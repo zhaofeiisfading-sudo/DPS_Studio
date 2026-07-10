@@ -1,4 +1,4 @@
-﻿# DPS Studio
+# DPS Studio
 
 PDV/DPS signal analysis software.
 

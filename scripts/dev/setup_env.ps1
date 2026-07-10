@@ -1,8 +1,22 @@
-﻿Set-StrictMode -Version Latest
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 Set-Location $RepoRoot
+
+function Invoke-Checked {
+    param(
+        [Parameter(Mandatory = $true)][scriptblock]$Command,
+        [Parameter(Mandatory = $true)][string]$Description
+    )
+
+    Write-Host $Description -ForegroundColor Cyan
+    & $Command
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Description failed with exit code $LASTEXITCODE."
+    }
+}
 
 if (-not (Get-Command conda -ErrorAction SilentlyContinue)) {
     throw "Conda was not found. Run 'conda init powershell' and reopen PowerShell."
@@ -20,19 +34,35 @@ foreach ($EnvironmentPath in $EnvironmentList.envs) {
 }
 
 if ($EnvironmentExists) {
-    Write-Host "Updating environment: $EnvironmentName" -ForegroundColor Cyan
-    conda env update -n $EnvironmentName -f environment.yml --prune
+    Invoke-Checked `
+        -Description "Updating Conda environment: $EnvironmentName" `
+        -Command { conda env update -n $EnvironmentName -f environment.yml --prune }
 }
 else {
-    Write-Host "Creating environment: $EnvironmentName" -ForegroundColor Cyan
-    conda env create -f environment.yml
+    Invoke-Checked `
+        -Description "Creating Conda environment: $EnvironmentName" `
+        -Command { conda env create -f environment.yml }
 }
 
-conda run -n $EnvironmentName python -m pip install --upgrade pip
-conda run -n $EnvironmentName python -m pip install -e ".[dev]"
+Invoke-Checked `
+    -Description "Upgrading pip" `
+    -Command { conda run -n $EnvironmentName python -m pip install --upgrade pip }
 
-conda run -n $EnvironmentName python -m dps_studio --version
-conda run -n $EnvironmentName pytest
-conda run -n $EnvironmentName ruff check .
+Invoke-Checked `
+    -Description "Installing DPS Studio and development dependencies" `
+    -Command { conda run -n $EnvironmentName python -m pip install -e ".[dev]" }
 
-Write-Host "Environment setup and validation completed." -ForegroundColor Green
+Invoke-Checked `
+    -Description "Checking package version" `
+    -Command { conda run -n $EnvironmentName python -m dps_studio --version }
+
+Invoke-Checked `
+    -Description "Running tests" `
+    -Command { conda run -n $EnvironmentName python -m pytest }
+
+Invoke-Checked `
+    -Description "Running Ruff" `
+    -Command { conda run -n $EnvironmentName python -m ruff check . }
+
+Write-Host ""
+Write-Host "Environment setup and validation completed successfully." -ForegroundColor Green

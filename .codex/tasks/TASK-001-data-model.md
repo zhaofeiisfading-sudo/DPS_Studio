@@ -1,4 +1,4 @@
-﻿# TASK-001: Raw signal data model
+# TASK-001: Raw signal data model
 
 Implement SignalRecord only. Do not implement GUI, STFT, filtering, or file readers.
 

@@ -1,4 +1,4 @@
-﻿from dps_studio import __version__
+from dps_studio import __version__
 from dps_studio.cli import main
 
 

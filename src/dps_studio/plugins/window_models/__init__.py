@@ -1,1 +1,1 @@
-﻿"""Package module."""
+"""Package module."""

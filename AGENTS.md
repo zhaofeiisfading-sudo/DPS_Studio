@@ -1,4 +1,4 @@
-﻿# Codex Project Rules
+# Codex Project Rules
 
 1. Never modify, overwrite, or delete files in data/raw.
 2. The core package must not depend on the GUI package.

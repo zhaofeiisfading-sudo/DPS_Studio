@@ -1,4 +1,4 @@
-﻿name: dps-studio
+name: dps-studio
 channels:
   - conda-forge
 dependencies:
