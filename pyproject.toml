@@ -1,0 +1,46 @@
+﻿[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dps-studio"
+version = "0.1.0"
+description = "PDV/DPS signal analysis software"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.13",
+  "pandas>=2.2",
+  "matplotlib>=3.8",
+  "PySide6>=6.8",
+  "pyqtgraph>=0.13.7",
+  "pydantic>=2.7"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+  "mypy>=1.10",
+  "pyinstaller>=6"
+]
+
+[project.scripts]
+dps-studio = "dps_studio.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dps_studio"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
