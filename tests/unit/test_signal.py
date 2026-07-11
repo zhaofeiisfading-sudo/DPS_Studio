@@ -221,9 +221,39 @@ def test_public_arrays_are_read_only() -> None:
         time_view.setflags(write=True)
     with pytest.raises(ValueError, match="WRITEABLE"):
         voltage_view.setflags(write=True)
+    with pytest.raises(ValueError, match="WRITEABLE"):
+        time_view.base.setflags(write=True)
+    with pytest.raises(ValueError, match="WRITEABLE"):
+        voltage_view.base.setflags(write=True)
 
     assert record.time_s[0] == pytest.approx(0.0)
     assert record.voltage_v[0] == pytest.approx(2.0)
+
+
+@pytest.mark.parametrize(
+    ("attribute_name", "expected_first_value"),
+    [("time_s", 0.0), ("voltage_v", 2.0)],
+)
+def test_complete_public_array_base_chain_cannot_modify_record(
+    attribute_name: str, expected_first_value: float
+) -> None:
+    record = SignalRecord([0.0, 1.0], [2.0, 3.0])
+    current: object = getattr(record, attribute_name)
+    visited_object_ids: set[int] = set()
+
+    while isinstance(current, np.ndarray):
+        assert id(current) not in visited_object_ids
+        visited_object_ids.add(id(current))
+        assert current.flags.writeable is False
+        with pytest.raises(ValueError, match="WRITEABLE"):
+            current.setflags(write=True)
+        with pytest.raises(ValueError, match="read-only"):
+            current[0] = -999.0
+        current = current.base
+
+    assert isinstance(current, bytes)
+    assert memoryview(current).readonly is True
+    assert getattr(record, attribute_name)[0] == pytest.approx(expected_first_value)
 
 
 def test_metadata_is_deep_copied_during_construction_and_access() -> None:

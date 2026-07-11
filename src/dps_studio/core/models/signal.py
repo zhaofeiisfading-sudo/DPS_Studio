@@ -93,8 +93,8 @@ class SignalRecord:
             maximum_relative_deviation,
         ) = _derive_sampling_information(time_array)
 
-        time_array.setflags(write=False)
-        voltage_array.setflags(write=False)
+        time_array = _store_in_immutable_buffer(time_array)
+        voltage_array = _store_in_immutable_buffer(voltage_array)
 
         self._time_s = time_array
         self._voltage_v = voltage_array
@@ -192,6 +192,13 @@ def _convert_to_float_array(value: ArrayLike, *, field_name: str) -> FloatArray:
         raise SignalConversionError(
             f"{field_name} could not be converted to a NumPy float64 array."
         ) from exc
+
+
+def _store_in_immutable_buffer(array: FloatArray) -> FloatArray:
+    immutable_buffer = array.tobytes(order="C")
+    immutable_array = np.frombuffer(immutable_buffer, dtype=np.float64)
+    immutable_array.setflags(write=False)
+    return immutable_array
 
 
 def _validate_one_dimensional(array: FloatArray, *, field_name: str) -> None:
