@@ -13,6 +13,7 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/reference/legacy/*.csv
 results/*
 !results/.gitkeep
 logs/*
