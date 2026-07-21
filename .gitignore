@@ -1,25 +1,104 @@
+# ============================================================
+# Python bytecode and caches
+# ============================================================
+
 __pycache__/
 *.py[cod]
-.venv/
+*$py.class
+
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-build/
-dist/
-*.egg-info/
-*.spec
+.pytype/
+.hypothesis/
 
-data/raw/*
-!data/raw/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
-data/reference/legacy/*.csv
-results/*
-!results/.gitkeep
-logs/*
-!logs/.gitkeep
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# ============================================================
+# Local Python environments
+# Only ignore environments located at the repository root
+# ============================================================
+
+/.venv/
+/venv/
+/env/
+
+# Conda environment export or local metadata
+.conda/
+
+# ============================================================
+# Build and packaging outputs
+# ============================================================
+
+/build/
+/dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Do not globally ignore *.spec.
+# A maintained PyInstaller spec file should usually be committed.
+
+# ============================================================
+# Experimental and generated data
+# ============================================================
+
+# Raw experimental data must never enter Git
+/data/raw/*
+!/data/raw/.gitkeep
+
+# Processed data is generated locally
+/data/processed/*
+!/data/processed/.gitkeep
+
+# Legacy reference CSV files may contain experimental data
+/data/reference/legacy/*.csv
+
+# Generated program outputs
+/outputs/
+
+/results/*
+!/results/.gitkeep
+
+/logs/*
+!/logs/.gitkeep
+
+# ============================================================
+# Notebooks
+# ============================================================
 
 .ipynb_checkpoints/
+
+# ============================================================
+# IDE and editor local files
+# ============================================================
+
+.idea/
 .vscode/*.local.json
+
+# Temporary editor files
+*.swp
+*.swo
+*~
+~$*
+
+# ============================================================
+# Logs and temporary files
+# ============================================================
+
+*.log
+*.tmp
+*.temp
+*.bak
+
+# ============================================================
+# Operating-system files
+# ============================================================
+
 Thumbs.db
 desktop.ini
+.DS_Store
