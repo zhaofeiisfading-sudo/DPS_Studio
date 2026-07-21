@@ -34,7 +34,7 @@ ANALYSIS_END_TIME_S = 555.45e-6
 TIME_ZERO_S = RIDGE_START_TIME_S
 
 # Must be set only from confirmed experiment or instrument records.
-VACUUM_WAVELENGTH_M: float | None = None
+VACUUM_WAVELENGTH_M = 1550e-9
 
 FIGURE_SIZE_INCHES = (12.0, 6.0)
 SAVE_DPI = 220

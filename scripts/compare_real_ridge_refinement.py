@@ -21,6 +21,7 @@ from matplotlib.axes import Axes  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
+from dps_studio.core import AnalysisProfile, BALANCED_PROFILE
 from dps_studio.core.io import read_delimited_signals
 from dps_studio.core.models import SignalRecord
 from dps_studio.core.physics import convert_ridge_to_apparent_velocity
@@ -48,7 +49,7 @@ WINDOW_NAME = "hann"
 HOP_SAMPLES = 128
 WINDOW_LENGTH_CONFIGURATIONS = ((512, 384), (768, 640), (1024, 896))
 
-RIDGE_MINIMUM_FREQUENCY_HZ = 0.1e9
+RIDGE_MINIMUM_FREQUENCY_HZ = 0.05e9
 RIDGE_MAXIMUM_FREQUENCY_HZ = 2.0e9
 RIDGE_START_TIME_S = 554.668e-6
 ANALYSIS_END_TIME_S = 555.45e-6
@@ -207,7 +208,11 @@ def _relative_stft_magnitude_db(
         return 20.0 * np.log10(np.maximum(magnitude, display_floor) / maximum)
 
 
-def _convert_refined_velocity(result: RefinedRidgeResult) -> FloatArray:
+def _convert_refined_velocity(
+    result: RefinedRidgeResult,
+    *,
+    vacuum_wavelength_m: float = DEMO_VACUUM_WAVELENGTH_M,
+) -> FloatArray:
     """Use TASK-006 while preserving NaN for unavailable candidate refinements."""
     candidate_mask = np.fromiter(
         (flag is RidgeQualityFlag.CANDIDATE for flag in result.quality_flags),
@@ -236,7 +241,7 @@ def _convert_refined_velocity(result: RefinedRidgeResult) -> FloatArray:
         )
         converted = convert_ridge_to_apparent_velocity(
             refined_frequency_as_ridge,
-            vacuum_wavelength_m=DEMO_VACUUM_WAVELENGTH_M,
+            vacuum_wavelength_m=vacuum_wavelength_m,
         )
         return converted.apparent_velocity_m_s.copy()
 
@@ -256,7 +261,7 @@ def _convert_refined_velocity(result: RefinedRidgeResult) -> FloatArray:
         )
         converted = convert_ridge_to_apparent_velocity(
             refined_frequency_as_ridge,
-            vacuum_wavelength_m=DEMO_VACUUM_WAVELENGTH_M,
+            vacuum_wavelength_m=vacuum_wavelength_m,
         )
         velocity_m_s[index] = converted.apparent_velocity_m_s[0]
     return velocity_m_s
@@ -866,7 +871,7 @@ def _save_stft_spectrogram(
         RIDGE_MINIMUM_FREQUENCY_HZ * 1.0e-9,
         RIDGE_MAXIMUM_FREQUENCY_HZ * 1.0e-9,
     )
-    axes[0].set_title("Full analysis band: 0.1–2.0 GHz")
+    axes[0].set_title("Full analysis band: 0.05–2.0 GHz")
     axes[1].set_ylim(
         STFT_DETAIL_MINIMUM_FREQUENCY_HZ * 1.0e-9,
         STFT_DETAIL_MAXIMUM_FREQUENCY_HZ * 1.0e-9,
@@ -1045,6 +1050,13 @@ def _analyze_configuration(
     window_length_samples: int,
     overlap_samples: int,
     nfft: int,
+    *,
+    window_name: str = WINDOW_NAME,
+    minimum_frequency_hz: float = RIDGE_MINIMUM_FREQUENCY_HZ,
+    maximum_frequency_hz: float = RIDGE_MAXIMUM_FREQUENCY_HZ,
+    event_start_time_s: float = RIDGE_START_TIME_S,
+    analysis_end_time_s: float = ANALYSIS_END_TIME_S,
+    vacuum_wavelength_m: float = DEMO_VACUUM_WAVELENGTH_M,
 ) -> tuple[dict[str, ChannelAnalysis], float]:
     start_time = perf_counter()
     analyses: dict[str, ChannelAnalysis] = {}
@@ -1054,21 +1066,24 @@ def _analyze_configuration(
             window_length_samples=window_length_samples,
             overlap_samples=overlap_samples,
             nfft=nfft,
-            window_name=WINDOW_NAME,
+            window_name=window_name,
         )
         ridge_result = extract_peak_ridge(
             stft_result,
-            minimum_frequency_hz=RIDGE_MINIMUM_FREQUENCY_HZ,
-            maximum_frequency_hz=RIDGE_MAXIMUM_FREQUENCY_HZ,
-            event_start_time_s=RIDGE_START_TIME_S,
-            analysis_end_time_s=ANALYSIS_END_TIME_S,
+            minimum_frequency_hz=minimum_frequency_hz,
+            maximum_frequency_hz=maximum_frequency_hz,
+            event_start_time_s=event_start_time_s,
+            analysis_end_time_s=analysis_end_time_s,
         )
         refined_result = refine_peak_ridge_subbin(stft_result, ridge_result)
         discrete_velocity_m_s = convert_ridge_to_apparent_velocity(
             ridge_result,
             vacuum_wavelength_m=DEMO_VACUUM_WAVELENGTH_M,
         ).apparent_velocity_m_s
-        refined_velocity_m_s = _convert_refined_velocity(refined_result)
+        refined_velocity_m_s = _convert_refined_velocity(
+            refined_result,
+            vacuum_wavelength_m=vacuum_wavelength_m,
+        )
         display_velocity_m_s, velocity_origins = _display_velocity(
             refined_result,
             refined_velocity_m_s,
@@ -2014,16 +2029,20 @@ def run_demo(
     output_directory: Path = OUTPUT_DIRECTORY,
     *,
     run_window_diagnostics: bool = False,
+    profile: AnalysisProfile = BALANCED_PROFILE,
 ) -> list[Path]:
-    """Run the explicit 768-point main preview and optional window diagnostics."""
+    """Run one explicit profile and optional development window diagnostics."""
+    if not isinstance(profile, AnalysisProfile):
+        raise TypeError("profile must be an AnalysisProfile.")
     print(DEMO_NOTICE)
     print(f"Input file: {DATA_PATH}")
     print(f"Output directory: {output_directory}")
     print(
-        f"Main development parameters: window_name={WINDOW_NAME}, "
-        f"window_length_samples={WINDOW_LENGTH_SAMPLES}, "
-        f"overlap_samples={OVERLAP_SAMPLES}, hop_samples={HOP_SAMPLES}, "
-        f"nfft={NFFT}"
+        f"Main development profile={profile.profile_id.value}: "
+        f"window_name={profile.window_name}, "
+        f"window_length_samples={profile.window_length_samples}, "
+        f"overlap_samples={profile.overlap_samples}, "
+        f"hop_samples={profile.hop_samples}, nfft={profile.nfft}"
     )
     print(f"Window diagnostics enabled: {run_window_diagnostics}")
     print("[STAGE 1/7] Validate input and calculate source SHA-256")
@@ -2044,12 +2063,15 @@ def run_demo(
         )
         output_directory.mkdir(parents=True, exist_ok=True)
 
-        print("[STAGE 3/7] Run explicit 768/640/4096 main analysis once")
+        print(f"[STAGE 3/7] Run explicit {profile.profile_id.value} analysis once")
         main_analyses, main_runtime_s = _analyze_configuration(
             loaded.records,
-            WINDOW_LENGTH_SAMPLES,
-            OVERLAP_SAMPLES,
-            NFFT,
+            profile.window_length_samples,
+            profile.overlap_samples,
+            profile.nfft,
+            window_name=profile.window_name,
+            minimum_frequency_hz=profile.minimum_frequency_hz,
+            maximum_frequency_hz=profile.maximum_frequency_hz,
         )
 
         print("[STAGE 4/7] Report actual main configuration and channel statistics")
@@ -2145,13 +2167,13 @@ def run_demo(
         print("[STAGE 6/7] Handle optional fixed-hop window diagnostics")
         if run_window_diagnostics:
             analyses_by_window: dict[int, Mapping[str, ChannelAnalysis]] = {
-                WINDOW_LENGTH_SAMPLES: main_analyses
+                profile.window_length_samples: main_analyses
             }
-            runtimes_by_window = {WINDOW_LENGTH_SAMPLES: main_runtime_s}
+            runtimes_by_window = {profile.window_length_samples: main_runtime_s}
             for window_length_samples, overlap_samples in (
                 WINDOW_LENGTH_CONFIGURATIONS
             ):
-                if window_length_samples == WINDOW_LENGTH_SAMPLES:
+                if window_length_samples == profile.window_length_samples:
                     continue
                 analyses, runtime_s = _analyze_configuration(
                     loaded.records,
@@ -2217,15 +2239,12 @@ def run_demo(
     for path in generated_paths:
         print(f"  {path.resolve()}")
     print(
-        "Interpretation guard: the explicit development main configuration is "
-        "window 768, overlap 640, hop 128, nfft 4096, Hann. The 19.2 ns window "
-        "support is a time-frequency tradeoff and does not establish improved "
-        "physical accuracy."
+        "Interpretation guard: the explicit development profile is "
+        f"{profile.profile_id.value}, window {profile.window_length_samples}, "
+        f"overlap {profile.overlap_samples}, hop {profile.hop_samples}, "
+        f"nfft {profile.nfft}, {profile.window_name}. {profile.tradeoff_note}"
     )
-    print(
-        "The 1024/896/4096 configuration remains available only through the explicit "
-        "window-diagnostics audit; the 512-point configuration is not selected."
-    )
+    print("Profiles are explicitly selected; signal contents never switch profiles.")
     return generated_paths
 
 

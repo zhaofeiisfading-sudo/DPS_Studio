@@ -14,6 +14,7 @@ from numpy.typing import NDArray
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
+from dps_studio.core import AnalysisProfile, BALANCED_PROFILE
 from assess_real_ridge_quality import (  # noqa: E402
     MINIMUM_BACKGROUND_BIN_COUNT,
     _finite_summary,
@@ -24,15 +25,10 @@ from compare_real_ridge_refinement import (  # noqa: E402
     DATA_PATH,
     DECLINE_END_RELATIVE_S,
     DECLINE_START_RELATIVE_S,
-    HOP_SAMPLES,
-    NFFT,
-    OVERLAP_SAMPLES,
     PLATEAU_END_RELATIVE_S,
     PLATEAU_START_RELATIVE_S,
     PRESENTATION_PRE_EVENT_DURATION_S,
     RIDGE_START_TIME_S,
-    WINDOW_LENGTH_SAMPLES,
-    WINDOW_NAME,
     ChannelAnalysis,
     _analyze_configuration,
     _relative_stft_magnitude_db,
@@ -743,16 +739,24 @@ def _print_two_channel_differences(
     )
 
 
-def run_ridge_diagnostics_demo(output_directory: Path) -> list[Path]:
-    """Run TASK-008B for the fixed 768/640/4096 development configuration."""
+def run_ridge_diagnostics_demo(
+    output_directory: Path,
+    *,
+    profile: AnalysisProfile = BALANCED_PROFILE,
+) -> list[Path]:
+    """Run TASK-008B for one explicit analysis profile."""
+    if not isinstance(profile, AnalysisProfile):
+        raise TypeError("profile must be an AnalysisProfile.")
     print("\nDPS Studio TASK-008B: ridge continuity and related-frequency evidence")
     print(DIAGNOSTIC_NOTICE)
     print(f"Input file: {DATA_PATH}")
     print(f"Output directory: {output_directory}")
     print(
-        f"Fixed parameters: window_name={WINDOW_NAME}, "
-        f"window_length_samples={WINDOW_LENGTH_SAMPLES}, "
-        f"overlap_samples={OVERLAP_SAMPLES}, hop_samples={HOP_SAMPLES}, nfft={NFFT}"
+        f"Explicit profile={profile.profile_id.value}: "
+        f"window_name={profile.window_name}, "
+        f"window_length_samples={profile.window_length_samples}, "
+        f"overlap_samples={profile.overlap_samples}, "
+        f"hop_samples={profile.hop_samples}, nfft={profile.nfft}"
     )
     if not DATA_PATH.is_file():
         raise FileNotFoundError(f"Input data file does not exist: {DATA_PATH}")
@@ -771,9 +775,12 @@ def run_ridge_diagnostics_demo(output_directory: Path) -> list[Path]:
         output_directory.mkdir(parents=True, exist_ok=True)
         analyses, runtime_s = _analyze_configuration(
             loaded.records,
-            WINDOW_LENGTH_SAMPLES,
-            OVERLAP_SAMPLES,
-            NFFT,
+            profile.window_length_samples,
+            profile.overlap_samples,
+            profile.nfft,
+            window_name=profile.window_name,
+            minimum_frequency_hz=profile.minimum_frequency_hz,
+            maximum_frequency_hz=profile.maximum_frequency_hz,
         )
         print(f"TASK-008B two-channel recomputation runtime: {runtime_s:.6f} s")
 
