@@ -22,7 +22,7 @@ def test_formal_profiles_have_exact_parameters() -> None:
     assert BALANCED_PROFILE.overlap_samples == 640
     assert BALANCED_PROFILE.hop_samples == 128
     assert BALANCED_PROFILE.nfft == 4096
-    assert BALANCED_PROFILE.minimum_frequency_hz == 0.1e9
+    assert BALANCED_PROFILE.minimum_frequency_hz == 0.05e9
     assert BALANCED_PROFILE.maximum_frequency_hz == 2.0e9
     assert (
         BALANCED_PROFILE.ridge_refinement
@@ -39,7 +39,7 @@ def test_formal_profiles_have_exact_parameters() -> None:
     assert HIGH_TIME_RESOLUTION_PROFILE.overlap_samples == 384
     assert HIGH_TIME_RESOLUTION_PROFILE.hop_samples == 128
     assert HIGH_TIME_RESOLUTION_PROFILE.nfft == 4096
-    assert HIGH_TIME_RESOLUTION_PROFILE.minimum_frequency_hz == 0.1e9
+    assert HIGH_TIME_RESOLUTION_PROFILE.minimum_frequency_hz == 0.05e9
     assert HIGH_TIME_RESOLUTION_PROFILE.maximum_frequency_hz == 2.0e9
 
 

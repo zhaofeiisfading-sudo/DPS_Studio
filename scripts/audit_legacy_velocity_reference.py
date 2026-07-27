@@ -799,7 +799,7 @@ def _production_channel(
         stft_result,
         minimum_frequency_hz=MINIMUM_FREQUENCY_HZ,
         maximum_frequency_hz=MAXIMUM_FREQUENCY_HZ,
-        event_start_time_s=RIDGE_START_TIME_S,
+        analysis_start_time_s=RIDGE_START_TIME_S,
         analysis_end_time_s=ANALYSIS_END_TIME_S,
     )
     refined_result = refine_peak_ridge_subbin(stft_result, ridge_result)

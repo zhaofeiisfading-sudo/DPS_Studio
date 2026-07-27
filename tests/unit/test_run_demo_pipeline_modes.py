@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
-from pytest import MonkeyPatch
+import pytest
 
-from dps_studio.core import BALANCED_PROFILE, OutputMode
+from dps_studio.core.workflow import load_workflow_config
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -17,84 +18,157 @@ if str(SCRIPTS_DIRECTORY) not in sys.path:
 import run_demo_pipeline as pipeline  # noqa: E402
 
 
-def test_cli_defaults_are_balanced_production() -> None:
+def test_cli_defaults_to_single_toml_and_timestamped_output() -> None:
     arguments = pipeline._parse_arguments([])  # noqa: SLF001
-    assert arguments.profile == "balanced"
-    assert arguments.output_mode == "production"
+    assert arguments.config == pipeline.DEFAULT_CONFIG_PATH
+    assert arguments.output_directory is None
 
 
-def test_diagnostic_mode_reuses_all_existing_stages_without_window_scan(
-    monkeypatch: MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    calls: list[tuple[str, object]] = []
-
-    def task007(output_directory: Path, **kwargs: object) -> list[Path]:
-        calls.append(("task007", kwargs))
-        return [output_directory / f"task007_{index}.out" for index in range(19)]
-
-    def task008a(output_directory: Path, **kwargs: object) -> list[Path]:
-        calls.append(("task008a", kwargs))
-        return [output_directory / f"task008a_{index}.out" for index in range(7)]
-
-    def task008b(output_directory: Path, **kwargs: object) -> list[Path]:
-        calls.append(("task008b", kwargs))
-        return [output_directory / f"task008b_{index}.out" for index in range(12)]
-
-    monkeypatch.setattr(pipeline, "run_demo", task007)
-    monkeypatch.setattr(pipeline, "run_spectral_quality_demo", task008a)
-    monkeypatch.setattr(pipeline, "run_ridge_diagnostics_demo", task008b)
-
-    paths = pipeline._run_diagnostic(  # noqa: SLF001
-        tmp_path / "diagnostic",
-        BALANCED_PROFILE,
+def test_default_config_selects_both_formal_profiles_in_fixed_order() -> None:
+    configuration = load_workflow_config(
+        pipeline.DEFAULT_CONFIG_PATH,
+        repository_root=PROJECT_ROOT,
     )
-
-    assert len(paths) == 38
-    assert [name for name, _ in calls] == ["task007", "task008a", "task008b"]
-    assert calls[0][1] == {
-        "run_window_diagnostics": False,
-        "profile": BALANCED_PROFILE,
-    }
-    assert calls[1][1] == {"profile": BALANCED_PROFILE}
-    assert calls[2][1] == {"profile": BALANCED_PROFILE}
+    assert [
+        profile.profile_id.value for profile in configuration.analysis.profiles
+    ] == ["balanced", "high_time_resolution"]
 
 
-def test_daily_pipeline_source_does_not_reference_development_audit() -> None:
+def test_new_default_directory_uses_contract_name(tmp_path: Path) -> None:
+    output_directory = pipeline._new_default_output_directory(tmp_path)  # noqa: SLF001
+    assert output_directory.parent == tmp_path
+    assert output_directory.name.startswith("run_")
+    assert len(output_directory.name) == len("run_YYYYMMDD_HHMMSS")
+
+
+def test_daily_pipeline_source_has_no_development_or_profile_override() -> None:
     source = (SCRIPTS_DIRECTORY / "run_demo_pipeline.py").read_text(encoding="utf-8")
     assert "audit_legacy_velocity_reference" not in source
-    assert "window-diagnostics" not in source
+    assert "compare_real_ridge_refinement" not in source
+    assert "assess_real_ridge" not in source
+    assert '"--profile"' not in source
+    assert '"--output-mode"' not in source
 
 
-def test_run_pipeline_rejects_implicit_output_mode(tmp_path: Path) -> None:
+def test_run_pipeline_rejects_implicit_configuration(tmp_path: Path) -> None:
     try:
         pipeline.run_pipeline(
             tmp_path / "invalid",
-            profile=BALANCED_PROFILE,
-            output_mode="production",  # type: ignore[arg-type]
+            configuration="config.toml",  # type: ignore[arg-type]
         )
     except TypeError as exc:
-        assert "OutputMode" in str(exc)
+        assert "WorkflowConfiguration" in str(exc)
     else:
-        raise AssertionError("String output_mode was silently accepted.")
+        raise AssertionError("String configuration was silently accepted.")
 
 
-def test_invalid_cli_values_return_nonzero() -> None:
-    for arguments in (
-        ("--profile", "automatic"),
-        ("--output-mode", "everything"),
-    ):
-        completed = subprocess.run(
-            (sys.executable, SCRIPTS_DIRECTORY / "run_demo_pipeline.py", *arguments),
-            cwd=PROJECT_ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
+def _temporary_output_configuration(tmp_path: Path) -> object:
+    configuration = load_workflow_config(
+        pipeline.DEFAULT_CONFIG_PATH,
+        repository_root=PROJECT_ROOT,
+    )
+    return replace(
+        configuration,
+        output=replace(
+            configuration.output,
+            root=tmp_path / "outputs" / "production_runs",
+        ),
+    )
+
+
+def test_formal_pipeline_rejects_output_outside_production_runs(
+    tmp_path: Path,
+) -> None:
+    configuration = _temporary_output_configuration(tmp_path)
+    with pytest.raises(ValueError, match="direct run directory"):
+        pipeline.run_pipeline(
+            tmp_path / "elsewhere" / "run_20260727_010500",
+            configuration=configuration,
         )
-        assert completed.returncode != 0
-        assert "invalid choice" in completed.stderr
 
 
-def test_output_modes_are_explicit_and_complete() -> None:
-    assert tuple(mode.value for mode in OutputMode) == ("production", "diagnostic")
+def test_failed_production_does_not_update_latest_run(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configuration = _temporary_output_configuration(tmp_path)
+    outputs_root = tmp_path / "outputs"
+    outputs_root.mkdir()
+    latest_path = outputs_root / "LATEST_RUN.txt"
+    latest_path.write_text(
+        "production_runs/run_previous\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "read_delimited_signals",
+        lambda *args, **kwargs: SimpleNamespace(records={}),
+    )
+
+    def fail_run(*args: object, **kwargs: object) -> list[Path]:
+        raise RuntimeError("synthetic production failure")
+
+    monkeypatch.setattr(pipeline, "run_production_outputs", fail_run)
+    with pytest.raises(RuntimeError, match="synthetic production failure"):
+        pipeline.run_pipeline(
+            configuration.output.root / "run_20260727_010501",
+            configuration=configuration,
+        )
+    assert latest_path.read_text(encoding="utf-8") == (
+        "production_runs/run_previous\n"
+    )
+
+
+def test_successful_production_updates_latest_run_and_prints_simple_exports(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    configuration = _temporary_output_configuration(tmp_path)
+    monkeypatch.setattr(
+        pipeline,
+        "read_delimited_signals",
+        lambda *args, **kwargs: SimpleNamespace(records={}),
+    )
+
+    def successful_run(
+        output_directory: Path,
+        *args: object,
+        **kwargs: object,
+    ) -> list[Path]:
+        simple_directory = output_directory / "simple_exports"
+        simple_directory.mkdir(parents=True)
+        paths = []
+        for profile_name in ("balanced", "high_time_resolution"):
+            for channel_name in ("pdv_channel_1", "pdv_channel_2"):
+                path = simple_directory / (
+                    f"{profile_name}__{channel_name}"
+                    "__apparent_velocity_time.csv"
+                )
+                path.write_text(
+                    "time_s,apparent_velocity_m_s\n",
+                    encoding="utf-8",
+                )
+                paths.append(path)
+        return paths
+
+    monkeypatch.setattr(pipeline, "run_production_outputs", successful_run)
+    output_directory = (
+        configuration.output.root / "run_20260727_010502"
+    )
+    pipeline.run_pipeline(
+        output_directory,
+        configuration=configuration,
+    )
+
+    latest_path = tmp_path / "outputs" / "LATEST_RUN.txt"
+    assert latest_path.read_text(encoding="utf-8") == (
+        "production_runs/run_20260727_010502\n"
+    )
+    terminal_output = capsys.readouterr().out
+    assert "Production run completed:" in terminal_output
+    assert "production_runs/run_20260727_010502" in terminal_output
+    assert (
+        "simple_exports/"
+        "balanced__pdv_channel_1__apparent_velocity_time.csv"
+    ) in terminal_output

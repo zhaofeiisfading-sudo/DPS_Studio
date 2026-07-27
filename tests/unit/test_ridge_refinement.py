@@ -66,7 +66,7 @@ def _ridge(
         stft_result,
         minimum_frequency_hz=minimum_frequency_hz,
         maximum_frequency_hz=maximum_frequency_hz,
-        event_start_time_s=event_start_time_s,
+        analysis_start_time_s=event_start_time_s,
         analysis_end_time_s=analysis_end_time_s,
     )
 

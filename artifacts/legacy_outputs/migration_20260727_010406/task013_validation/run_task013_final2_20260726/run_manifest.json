@@ -1,0 +1,776 @@
+{
+  "analysis": {
+    "analysis_end_time_s": 0.00055596022926,
+    "analysis_start_time_s": 0.00055396025426,
+    "event_reference_source": "manual_review_reference_only",
+    "manual_event_reference_time_s": 0.000554668,
+    "vacuum_wavelength_m": 1.55e-06,
+    "wavelength_status": "demonstration value; not confirmed by experiment records"
+  },
+  "config_path": "D:\\Code\\Python_Projects\\DPS_Studio\\configs\\demo_dual_profile.toml",
+  "generated_files": [
+    "balanced/pdv_channel_1/apparent_velocity.csv",
+    "balanced/pdv_channel_1/stft_full_band.png",
+    "balanced/pdv_channel_1/stft_analysis_band_with_ridge.png",
+    "balanced/pdv_channel_1/apparent_velocity_full_time.png",
+    "balanced/pdv_channel_1/apparent_velocity_event_detail.png",
+    "balanced/pdv_channel_1/apparent_velocity_full_preview.png",
+    "balanced/pdv_channel_1/signal_detection_diagnostics.png",
+    "balanced/pdv_channel_2/apparent_velocity.csv",
+    "balanced/pdv_channel_2/stft_full_band.png",
+    "balanced/pdv_channel_2/stft_analysis_band_with_ridge.png",
+    "balanced/pdv_channel_2/apparent_velocity_full_time.png",
+    "balanced/pdv_channel_2/apparent_velocity_event_detail.png",
+    "balanced/pdv_channel_2/apparent_velocity_full_preview.png",
+    "balanced/pdv_channel_2/signal_detection_diagnostics.png",
+    "balanced/quality_summary.csv",
+    "balanced/detected_event_candidates.png",
+    "balanced/profile_manifest.json",
+    "high_time_resolution/pdv_channel_1/apparent_velocity.csv",
+    "high_time_resolution/pdv_channel_1/stft_full_band.png",
+    "high_time_resolution/pdv_channel_1/stft_analysis_band_with_ridge.png",
+    "high_time_resolution/pdv_channel_1/apparent_velocity_full_time.png",
+    "high_time_resolution/pdv_channel_1/apparent_velocity_event_detail.png",
+    "high_time_resolution/pdv_channel_1/apparent_velocity_full_preview.png",
+    "high_time_resolution/pdv_channel_1/signal_detection_diagnostics.png",
+    "high_time_resolution/pdv_channel_2/apparent_velocity.csv",
+    "high_time_resolution/pdv_channel_2/stft_full_band.png",
+    "high_time_resolution/pdv_channel_2/stft_analysis_band_with_ridge.png",
+    "high_time_resolution/pdv_channel_2/apparent_velocity_full_time.png",
+    "high_time_resolution/pdv_channel_2/apparent_velocity_event_detail.png",
+    "high_time_resolution/pdv_channel_2/apparent_velocity_full_preview.png",
+    "high_time_resolution/pdv_channel_2/signal_detection_diagnostics.png",
+    "high_time_resolution/quality_summary.csv",
+    "high_time_resolution/detected_event_candidates.png",
+    "high_time_resolution/profile_manifest.json",
+    "run_manifest.json",
+    "run.log"
+  ],
+  "git_head": "11b761fe49550f22e7430f939f2bedb87826c345",
+  "git_worktree_dirty": true,
+  "input": {
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "has_header": false,
+    "time_column": 0,
+    "time_scale": 1.0,
+    "voltage_columns": {
+      "pdv_channel_1": 1,
+      "pdv_channel_2": 2
+    },
+    "voltage_scales": {
+      "pdv_channel_1": 1.0,
+      "pdv_channel_2": 1.0
+    }
+  },
+  "interpretation_guards": [
+    "unsigned apparent velocity",
+    "configured wavelength is a demonstration value not confirmed by experiment records",
+    "no LiF, refractive-index, or incidence-angle correction",
+    "no channel selection, averaging, or fusion",
+    "no profile selection, averaging, or fusion",
+    "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+    "pre-event display zero is disabled by default; if enabled it is display-only",
+    "high-overlap frames are not independent measurements",
+    "high-time profile is not a higher-accuracy claim",
+    "quality metrics do not automatically validate physical branch identity",
+    "full-range preview is quality-unfiltered and is not a formal measurement",
+    "display-only bridge has two endpoints and writes no intermediate CSV data"
+  ],
+  "output_contract": "dual-profile-task013-v3",
+  "plot": {
+    "analysis_display_maximum_frequency_hz": 2000000000.0,
+    "analysis_display_minimum_frequency_hz": 0.0,
+    "assume_pre_event_zero_for_display": false,
+    "event_detail_after_s": 2e-07,
+    "event_detail_before_s": 1e-07,
+    "relative_db_floor": -60.0
+  },
+  "profile_manifests": {
+    "balanced": {
+      "analysis_display_frequency_range_hz": [
+        0.0,
+        2000000000.0
+      ],
+      "analysis_end_time_s": 0.00055596022926,
+      "analysis_runtime_s": 4.681570000015199,
+      "analysis_start_time_s": 0.00055396025426,
+      "channel_summaries": {
+        "pdv_channel_1": {
+          "ambiguous_peak_frame_count": 122,
+          "candidate_frame_count": 620,
+          "channel_name": "pdv_channel_1",
+          "detected_event_candidate_run_frame_count": 3,
+          "detected_event_candidate_source": "spectral_detection",
+          "detected_event_candidate_time_s": 0.0005540818542600415,
+          "finite_continuity_step_count": 476,
+          "first_candidate_apparent_velocity_m_s": 1411.9332502790612,
+          "first_candidate_discrete_frequency_hz": 1826171874.3772647,
+          "first_candidate_peak_magnitude": 0.00021303880579233954,
+          "first_candidate_peak_to_background_db": 11.777776909519053,
+          "first_candidate_peak_to_competitor_db": 5.195644295925463,
+          "first_candidate_refined_frequency_hz": 1821849355.1987886,
+          "first_candidate_time_relative_s": -5.861457399585239e-07,
+          "insufficient_cycles_frame_count": 0,
+          "manual_event_reference_time_s": 0.000554668,
+          "maximum_absolute_frequency_step_hz": 1273979498.7711241,
+          "measured_frame_count": 392,
+          "minimum_candidate_apparent_velocity_m_s": 117.87840075523968,
+          "minimum_candidate_refined_frequency_hz": 152101162.2648254,
+          "no_detectable_beat_frame_count": 66,
+          "outside_analysis_window_frame_count": 0,
+          "outside_frame_count": 0,
+          "peak_at_band_boundary_frame_count": 21,
+          "peak_to_background_db_median": 23.44835596447632,
+          "peak_to_background_db_p05": 9.117790748386772,
+          "peak_to_competitor_db_median": 10.596407819542,
+          "peak_to_competitor_db_p05": 0.47500722532269846,
+          "pre_event_frame_count": 0,
+          "profile_id": "balanced",
+          "refined_frame_count": 502,
+          "refinement_failed_frame_count": 0,
+          "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+          "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+          "total_frame_count": 620,
+          "unstable_detection_frame_count": 19
+        },
+        "pdv_channel_2": {
+          "ambiguous_peak_frame_count": 65,
+          "candidate_frame_count": 620,
+          "channel_name": "pdv_channel_2",
+          "detected_event_candidate_run_frame_count": 322,
+          "detected_event_candidate_source": "spectral_detection",
+          "detected_event_candidate_time_s": 0.0005546674542602412,
+          "finite_continuity_step_count": 411,
+          "first_candidate_apparent_velocity_m_s": 512.2512090285401,
+          "first_candidate_discrete_frequency_hz": 664062499.7735507,
+          "first_candidate_peak_magnitude": 0.028112243971057427,
+          "first_candidate_peak_to_background_db": 28.291158319242125,
+          "first_candidate_peak_to_competitor_db": 4.3102666713652305,
+          "first_candidate_refined_frequency_hz": 660969301.9723097,
+          "first_candidate_time_relative_s": -5.457397588308141e-10,
+          "insufficient_cycles_frame_count": 0,
+          "manual_event_reference_time_s": 0.000554668,
+          "maximum_absolute_frequency_step_hz": 969047133.4610125,
+          "measured_frame_count": 379,
+          "minimum_candidate_apparent_velocity_m_s": 117.62446937745725,
+          "minimum_candidate_refined_frequency_hz": 151773508.87413839,
+          "no_detectable_beat_frame_count": 78,
+          "outside_analysis_window_frame_count": 0,
+          "outside_frame_count": 0,
+          "peak_at_band_boundary_frame_count": 95,
+          "peak_to_background_db_median": 28.316658080946468,
+          "peak_to_background_db_p05": 8.437407069144854,
+          "peak_to_competitor_db_median": 10.91787942467862,
+          "peak_to_competitor_db_p05": 0.7069686410906146,
+          "pre_event_frame_count": 0,
+          "profile_id": "balanced",
+          "refined_frame_count": 425,
+          "refinement_failed_frame_count": 0,
+          "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+          "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+          "total_frame_count": 620,
+          "unstable_detection_frame_count": 3
+        }
+      },
+      "detected_event_candidate_channel_difference_s": 5.85600000199693e-07,
+      "detection_capability_by_channel": {
+        "pdv_channel_1": {
+          "corresponding_apparent_velocity_m_s": 40.36458331956877,
+          "detected_event_candidate_source": "spectral_detection",
+          "detected_event_candidate_time_s": 0.0005540818542600415,
+          "hop_duration_s": 3.200000001091219e-09,
+          "minimum_resolvable_frequency_by_cycle_rule_hz": 52083333.31557261,
+          "window_duration_s": 1.9200000006547313e-08
+        },
+        "pdv_channel_2": {
+          "corresponding_apparent_velocity_m_s": 40.36458331956877,
+          "detected_event_candidate_source": "spectral_detection",
+          "detected_event_candidate_time_s": 0.0005546674542602412,
+          "hop_duration_s": 3.200000001091219e-09,
+          "minimum_resolvable_frequency_by_cycle_rule_hz": 52083333.31557261,
+          "window_duration_s": 1.9200000006547313e-08
+        }
+      },
+      "event_onset_diagnostics": {
+        "pdv_channel_1": {
+          "first_candidate_window_center_s": 0.0005539698542600033,
+          "first_candidate_window_support_crosses_event_start": false,
+          "first_candidate_window_support_end_s": 0.0005539794542600066,
+          "first_candidate_window_support_start_s": 0.00055396025426,
+          "spectral_evidence": {
+            "post_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 97656249.96669865,
+                "local_peak_magnitude": 0.0025715777247753433,
+                "local_peak_time_relative_s": 1.2254260245534061e-08,
+                "squared_magnitude_sum": 8.26225238467601e-05
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 712890624.7569001,
+                "local_peak_magnitude": 0.0339222925025926,
+                "local_peak_time_relative_s": 1.86542602477165e-08,
+                "squared_magnitude_sum": 0.04637649011902362
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 48828124.98334932,
+                "local_peak_magnitude": 0.001122562682238166,
+                "local_peak_time_relative_s": 1.86542602477165e-08,
+                "squared_magnitude_sum": 8.478713544881995e-06
+              }
+            },
+            "pre_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 97656249.96669865,
+                "local_peak_magnitude": 0.0005525031858911026,
+                "local_peak_time_relative_s": -5.457397588308141e-10,
+                "squared_magnitude_sum": 1.0848018600532936e-06
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 673828124.7702206,
+                "local_peak_magnitude": 0.008483479278496495,
+                "local_peak_time_relative_s": -5.457397588308141e-10,
+                "squared_magnitude_sum": 0.001306414094058487
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 0.0,
+                "local_peak_magnitude": 0.0004175381878448052,
+                "local_peak_time_relative_s": -5.457397588308141e-10,
+                "squared_magnitude_sum": 2.6696226358196144e-06
+              }
+            }
+          },
+          "stft_window_duration_s": 1.9200000006547313e-08,
+          "stft_window_half_support_s": 9.600000003273657e-09
+        },
+        "pdv_channel_2": {
+          "first_candidate_window_center_s": 0.0005539698542600033,
+          "first_candidate_window_support_crosses_event_start": false,
+          "first_candidate_window_support_end_s": 0.0005539794542600066,
+          "first_candidate_window_support_start_s": 0.00055396025426,
+          "spectral_evidence": {
+            "post_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 97656249.96669865,
+                "local_peak_magnitude": 0.0008330520639753247,
+                "local_peak_time_relative_s": 9.054260244442842e-09,
+                "squared_magnitude_sum": 6.2328841624709215e-06
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 712890624.7569001,
+                "local_peak_magnitude": 0.09995681247327999,
+                "local_peak_time_relative_s": 1.86542602477165e-08,
+                "squared_magnitude_sum": 0.4238089156527827
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 0.0,
+                "local_peak_magnitude": 0.001140806345310784,
+                "local_peak_time_relative_s": 1.86542602477165e-08,
+                "squared_magnitude_sum": 1.099391326052892e-05
+              }
+            },
+            "pre_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 97656249.96669865,
+                "local_peak_magnitude": 0.00048259864488705336,
+                "local_peak_time_relative_s": -5.457397588308141e-10,
+                "squared_magnitude_sum": 2.0947957556331218e-06
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 664062499.7735507,
+                "local_peak_magnitude": 0.028112243971057427,
+                "local_peak_time_relative_s": -5.457397588308141e-10,
+                "squared_magnitude_sum": 0.019838597104779348
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 6,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 0.0,
+                "local_peak_magnitude": 0.0008429708435414474,
+                "local_peak_time_relative_s": -1.334573976319569e-08,
+                "squared_magnitude_sum": 1.5668217014750428e-05
+              }
+            }
+          },
+          "stft_window_duration_s": 1.9200000006547313e-08,
+          "stft_window_half_support_s": 9.600000003273657e-09
+        }
+      },
+      "event_reference_source": "manual_review_reference_only",
+      "full_band_frequency_range_hz_by_channel": {
+        "pdv_channel_1": [
+          0.0,
+          19999999993.179882
+        ],
+        "pdv_channel_2": [
+          0.0,
+          19999999993.179882
+        ]
+      },
+      "full_range_preview": {
+        "formal_quality_gate_applied": false,
+        "frame_scope": "complete_stft_time_axis",
+        "frequency_range_hz": [
+          50000000.0,
+          2000000000.0
+        ],
+        "frequency_selection": "formal refined frequency when available; otherwise strongest discrete peak in the fixed search band",
+        "plot_pre_event_value": "disabled",
+        "status": "quality-unfiltered development preview; not formal measurement"
+      },
+      "generated_files": [
+        "pdv_channel_1/apparent_velocity.csv",
+        "pdv_channel_1/stft_full_band.png",
+        "pdv_channel_1/stft_analysis_band_with_ridge.png",
+        "pdv_channel_1/apparent_velocity_full_time.png",
+        "pdv_channel_1/apparent_velocity_event_detail.png",
+        "pdv_channel_1/apparent_velocity_full_preview.png",
+        "pdv_channel_1/signal_detection_diagnostics.png",
+        "pdv_channel_2/apparent_velocity.csv",
+        "pdv_channel_2/stft_full_band.png",
+        "pdv_channel_2/stft_analysis_band_with_ridge.png",
+        "pdv_channel_2/apparent_velocity_full_time.png",
+        "pdv_channel_2/apparent_velocity_event_detail.png",
+        "pdv_channel_2/apparent_velocity_full_preview.png",
+        "pdv_channel_2/signal_detection_diagnostics.png",
+        "quality_summary.csv",
+        "detected_event_candidates.png",
+        "profile_manifest.json"
+      ],
+      "interpretation_guards": [
+        "unsigned apparent velocity",
+        "configured wavelength is a demonstration value not confirmed by experiment records",
+        "no LiF, refractive-index, or incidence-angle correction",
+        "no channel selection, averaging, or fusion",
+        "no profile selection, averaging, or fusion",
+        "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+        "pre-event display zero is disabled by default; if enabled it is display-only",
+        "high-overlap frames are not independent measurements",
+        "high-time profile is not a higher-accuracy claim",
+        "quality metrics do not automatically validate physical branch identity",
+        "full-range preview is quality-unfiltered and is not a formal measurement",
+        "display-only bridge has two endpoints and writes no intermediate CSV data"
+      ],
+      "manual_event_reference_time_s": 0.000554668,
+      "nyquist_frequency_hz_by_channel": {
+        "pdv_channel_1": 19999999993.179882,
+        "pdv_channel_2": 19999999993.179882
+      },
+      "profile": {
+        "display_name": "Balanced",
+        "hop_samples": 128,
+        "maximum_frequency_hz": 2000000000.0,
+        "minimum_frequency_hz": 50000000.0,
+        "nfft": 4096,
+        "overlap_samples": 640,
+        "ridge_refinement": "log_magnitude_three_point_quadratic",
+        "tradeoff_note": "Default profile prioritizing plateau stability, frequency-estimate stability, and noise robustness.",
+        "window_length_samples": 768,
+        "window_name": "hann"
+      },
+      "profile_id": "balanced",
+      "quality": {
+        "background_guard_window_scale": 2.0,
+        "guard_status": "configured descriptive diagnostic; not a universal validated standard",
+        "minimum_background_bin_count": 2,
+        "signal_detection": {
+          "default_status": "development defaults; synthetic behavior verified; experimental threshold validation remains required",
+          "enabled": true,
+          "minimum_consecutive_frames": 3,
+          "minimum_cycles_in_window": 1.0,
+          "minimum_peak_to_background_db": 10.0,
+          "minimum_peak_to_competitor_db": 3.0,
+          "peak_exclusion_half_width_bins": 12
+        }
+      },
+      "search_frequency_range_hz": [
+        50000000.0,
+        2000000000.0
+      ],
+      "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+      "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+      "vacuum_wavelength_m": 1.55e-06,
+      "wavelength_status": "demonstration value; not confirmed by experiment records"
+    },
+    "high_time_resolution": {
+      "analysis_display_frequency_range_hz": [
+        0.0,
+        2000000000.0
+      ],
+      "analysis_end_time_s": 0.00055596022926,
+      "analysis_runtime_s": 4.962745300028473,
+      "analysis_start_time_s": 0.00055396025426,
+      "channel_summaries": {
+        "pdv_channel_1": {
+          "ambiguous_peak_frame_count": 93,
+          "candidate_frame_count": 622,
+          "channel_name": "pdv_channel_1",
+          "detected_event_candidate_run_frame_count": 319,
+          "detected_event_candidate_source": "spectral_detection",
+          "detected_event_candidate_time_s": 0.0005546674542602412,
+          "finite_continuity_step_count": 398,
+          "first_candidate_apparent_velocity_m_s": 496.1696775124476,
+          "first_candidate_discrete_frequency_hz": 644531249.7802111,
+          "first_candidate_peak_magnitude": 0.006274480217466459,
+          "first_candidate_peak_to_background_db": 20.906085722395524,
+          "first_candidate_peak_to_competitor_db": 3.9332128651949194,
+          "first_candidate_refined_frequency_hz": 640218938.7257389,
+          "first_candidate_time_relative_s": -5.457397588308141e-10,
+          "insufficient_cycles_frame_count": 0,
+          "manual_event_reference_time_s": 0.000554668,
+          "maximum_absolute_frequency_step_hz": 919736537.3534144,
+          "measured_frame_count": 375,
+          "minimum_candidate_apparent_velocity_m_s": 118.41687847114274,
+          "minimum_candidate_refined_frequency_hz": 152795972.22082934,
+          "no_detectable_beat_frame_count": 25,
+          "outside_analysis_window_frame_count": 0,
+          "outside_frame_count": 0,
+          "peak_at_band_boundary_frame_count": 126,
+          "peak_to_background_db_median": 21.04844223905703,
+          "peak_to_background_db_p05": 10.436858811593819,
+          "peak_to_competitor_db_median": 8.191766120399553,
+          "peak_to_competitor_db_p05": 1.084283603129827,
+          "pre_event_frame_count": 0,
+          "profile_id": "high_time_resolution",
+          "refined_frame_count": 416,
+          "refinement_failed_frame_count": 0,
+          "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+          "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+          "total_frame_count": 622,
+          "unstable_detection_frame_count": 3
+        },
+        "pdv_channel_2": {
+          "ambiguous_peak_frame_count": 36,
+          "candidate_frame_count": 622,
+          "channel_name": "pdv_channel_2",
+          "detected_event_candidate_run_frame_count": 321,
+          "detected_event_candidate_source": "spectral_detection",
+          "detected_event_candidate_time_s": 0.0005546706542602423,
+          "finite_continuity_step_count": 380,
+          "first_candidate_apparent_velocity_m_s": 521.3986246655138,
+          "first_candidate_discrete_frequency_hz": 673828124.7702206,
+          "first_candidate_peak_magnitude": 0.062288175813373314,
+          "first_candidate_peak_to_background_db": 26.805524989664683,
+          "first_candidate_peak_to_competitor_db": 6.6574520842315055,
+          "first_candidate_refined_frequency_hz": 672772418.9232436,
+          "first_candidate_time_relative_s": 2.6542602422604047e-09,
+          "insufficient_cycles_frame_count": 0,
+          "manual_event_reference_time_s": 0.000554668,
+          "maximum_absolute_frequency_step_hz": 608712435.7311817,
+          "measured_frame_count": 366,
+          "minimum_candidate_apparent_velocity_m_s": 114.76945305179862,
+          "minimum_candidate_refined_frequency_hz": 148089616.84103048,
+          "no_detectable_beat_frame_count": 22,
+          "outside_analysis_window_frame_count": 0,
+          "outside_frame_count": 0,
+          "peak_at_band_boundary_frame_count": 198,
+          "peak_to_background_db_median": 25.784312437223562,
+          "peak_to_background_db_p05": 10.604680451866901,
+          "peak_to_competitor_db_median": 9.518506725986594,
+          "peak_to_competitor_db_p05": 2.3967651116560216,
+          "pre_event_frame_count": 0,
+          "profile_id": "high_time_resolution",
+          "refined_frame_count": 386,
+          "refinement_failed_frame_count": 0,
+          "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+          "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+          "total_frame_count": 622,
+          "unstable_detection_frame_count": 0
+        }
+      },
+      "detected_event_candidate_channel_difference_s": 3.200000001091219e-09,
+      "detection_capability_by_channel": {
+        "pdv_channel_1": {
+          "corresponding_apparent_velocity_m_s": 60.546874979353156,
+          "detected_event_candidate_source": "spectral_detection",
+          "detected_event_candidate_time_s": 0.0005546674542602412,
+          "hop_duration_s": 3.200000001091219e-09,
+          "minimum_resolvable_frequency_by_cycle_rule_hz": 78124999.97335891,
+          "window_duration_s": 1.2800000004364875e-08
+        },
+        "pdv_channel_2": {
+          "corresponding_apparent_velocity_m_s": 60.546874979353156,
+          "detected_event_candidate_source": "spectral_detection",
+          "detected_event_candidate_time_s": 0.0005546706542602423,
+          "hop_duration_s": 3.200000001091219e-09,
+          "minimum_resolvable_frequency_by_cycle_rule_hz": 78124999.97335891,
+          "window_duration_s": 1.2800000004364875e-08
+        }
+      },
+      "event_onset_diagnostics": {
+        "pdv_channel_1": {
+          "first_candidate_window_center_s": 0.0005539666542600022,
+          "first_candidate_window_support_crosses_event_start": false,
+          "first_candidate_window_support_end_s": 0.0005539730542600044,
+          "first_candidate_window_support_start_s": 0.00055396025426,
+          "spectral_evidence": {
+            "post_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 97656249.96669865,
+                "local_peak_magnitude": 0.002857919225768939,
+                "local_peak_time_relative_s": 1.2254260245534061e-08,
+                "squared_magnitude_sum": 8.43738971045002e-05
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 712890624.7569001,
+                "local_peak_magnitude": 0.03282857663932171,
+                "local_peak_time_relative_s": 1.2254260245534061e-08,
+                "squared_magnitude_sum": 0.042028900797085274
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 48828124.98334932,
+                "local_peak_magnitude": 0.00178782554197668,
+                "local_peak_time_relative_s": 1.2254260245534061e-08,
+                "squared_magnitude_sum": 2.219824294690685e-05
+              }
+            },
+            "pre_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 97656249.96669865,
+                "local_peak_magnitude": 0.0004193392255146344,
+                "local_peak_time_relative_s": -5.457397588308141e-10,
+                "squared_magnitude_sum": 1.0037080575014883e-06
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 644531249.7802111,
+                "local_peak_magnitude": 0.006274480217466459,
+                "local_peak_time_relative_s": -5.457397588308141e-10,
+                "squared_magnitude_sum": 0.0009069770325083018
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 0.0,
+                "local_peak_magnitude": 0.00041570876051614354,
+                "local_peak_time_relative_s": -5.457397588308141e-10,
+                "squared_magnitude_sum": 2.1605194760133164e-06
+              }
+            }
+          },
+          "stft_window_duration_s": 1.2800000004364875e-08,
+          "stft_window_half_support_s": 6.400000002182438e-09
+        },
+        "pdv_channel_2": {
+          "first_candidate_window_center_s": 0.0005539666542600022,
+          "first_candidate_window_support_crosses_event_start": false,
+          "first_candidate_window_support_end_s": 0.0005539730542600044,
+          "first_candidate_window_support_start_s": 0.00055396025426,
+          "spectral_evidence": {
+            "post_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 97656249.96669865,
+                "local_peak_magnitude": 0.001406099765422125,
+                "local_peak_time_relative_s": 5.854260243351624e-09,
+                "squared_magnitude_sum": 1.4823436679256708e-05
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 712890624.7569001,
+                "local_peak_magnitude": 0.09659451901593397,
+                "local_peak_time_relative_s": 1.2254260245534061e-08,
+                "squared_magnitude_sum": 0.39777915994284707
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 48828124.98334932,
+                "local_peak_magnitude": 0.0007832766064571974,
+                "local_peak_time_relative_s": 1.2254260245534061e-08,
+                "squared_magnitude_sum": 3.7769236113569693e-06
+              }
+            },
+            "pre_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 97656249.96669865,
+                "local_peak_magnitude": 0.0007189402083278513,
+                "local_peak_time_relative_s": -5.457397588308141e-10,
+                "squared_magnitude_sum": 5.178929356851967e-06
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 585937499.8001919,
+                "local_peak_magnitude": 0.02405383516612516,
+                "local_peak_time_relative_s": -5.457397588308141e-10,
+                "squared_magnitude_sum": 0.017057397080286474
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 0.0,
+                "local_peak_magnitude": 0.0008493192120149688,
+                "local_peak_time_relative_s": -1.014573976210447e-08,
+                "squared_magnitude_sum": 1.2347686001125182e-05
+              }
+            }
+          },
+          "stft_window_duration_s": 1.2800000004364875e-08,
+          "stft_window_half_support_s": 6.400000002182438e-09
+        }
+      },
+      "event_reference_source": "manual_review_reference_only",
+      "full_band_frequency_range_hz_by_channel": {
+        "pdv_channel_1": [
+          0.0,
+          19999999993.179882
+        ],
+        "pdv_channel_2": [
+          0.0,
+          19999999993.179882
+        ]
+      },
+      "full_range_preview": {
+        "formal_quality_gate_applied": false,
+        "frame_scope": "complete_stft_time_axis",
+        "frequency_range_hz": [
+          50000000.0,
+          2000000000.0
+        ],
+        "frequency_selection": "formal refined frequency when available; otherwise strongest discrete peak in the fixed search band",
+        "plot_pre_event_value": "disabled",
+        "status": "quality-unfiltered development preview; not formal measurement"
+      },
+      "generated_files": [
+        "pdv_channel_1/apparent_velocity.csv",
+        "pdv_channel_1/stft_full_band.png",
+        "pdv_channel_1/stft_analysis_band_with_ridge.png",
+        "pdv_channel_1/apparent_velocity_full_time.png",
+        "pdv_channel_1/apparent_velocity_event_detail.png",
+        "pdv_channel_1/apparent_velocity_full_preview.png",
+        "pdv_channel_1/signal_detection_diagnostics.png",
+        "pdv_channel_2/apparent_velocity.csv",
+        "pdv_channel_2/stft_full_band.png",
+        "pdv_channel_2/stft_analysis_band_with_ridge.png",
+        "pdv_channel_2/apparent_velocity_full_time.png",
+        "pdv_channel_2/apparent_velocity_event_detail.png",
+        "pdv_channel_2/apparent_velocity_full_preview.png",
+        "pdv_channel_2/signal_detection_diagnostics.png",
+        "quality_summary.csv",
+        "detected_event_candidates.png",
+        "profile_manifest.json"
+      ],
+      "interpretation_guards": [
+        "unsigned apparent velocity",
+        "configured wavelength is a demonstration value not confirmed by experiment records",
+        "no LiF, refractive-index, or incidence-angle correction",
+        "no channel selection, averaging, or fusion",
+        "no profile selection, averaging, or fusion",
+        "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+        "pre-event display zero is disabled by default; if enabled it is display-only",
+        "high-overlap frames are not independent measurements",
+        "high-time profile is not a higher-accuracy claim",
+        "quality metrics do not automatically validate physical branch identity",
+        "full-range preview is quality-unfiltered and is not a formal measurement",
+        "display-only bridge has two endpoints and writes no intermediate CSV data"
+      ],
+      "manual_event_reference_time_s": 0.000554668,
+      "nyquist_frequency_hz_by_channel": {
+        "pdv_channel_1": 19999999993.179882,
+        "pdv_channel_2": 19999999993.179882
+      },
+      "profile": {
+        "display_name": "High time resolution",
+        "hop_samples": 128,
+        "maximum_frequency_hz": 2000000000.0,
+        "minimum_frequency_hz": 50000000.0,
+        "nfft": 4096,
+        "overlap_samples": 384,
+        "ridge_refinement": "log_magnitude_three_point_quadratic",
+        "tradeoff_note": "Shorter time support at the cost of frequency stability and plateau jitter; this is not a higher-accuracy claim.",
+        "window_length_samples": 512,
+        "window_name": "hann"
+      },
+      "profile_id": "high_time_resolution",
+      "quality": {
+        "background_guard_window_scale": 2.0,
+        "guard_status": "configured descriptive diagnostic; not a universal validated standard",
+        "minimum_background_bin_count": 2,
+        "signal_detection": {
+          "default_status": "development defaults; synthetic behavior verified; experimental threshold validation remains required",
+          "enabled": true,
+          "minimum_consecutive_frames": 3,
+          "minimum_cycles_in_window": 1.0,
+          "minimum_peak_to_background_db": 10.0,
+          "minimum_peak_to_competitor_db": 3.0,
+          "peak_exclusion_half_width_bins": 12
+        }
+      },
+      "search_frequency_range_hz": [
+        50000000.0,
+        2000000000.0
+      ],
+      "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+      "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+      "vacuum_wavelength_m": 1.55e-06,
+      "wavelength_status": "demonstration value; not confirmed by experiment records"
+    }
+  },
+  "profiles": [
+    "balanced",
+    "high_time_resolution"
+  ],
+  "quality": {
+    "background_guard_window_scale": 2.0,
+    "minimum_background_bin_count": 2,
+    "signal_detection": {
+      "default_status": "development defaults; synthetic behavior verified; experimental threshold validation remains required",
+      "enabled": true,
+      "minimum_consecutive_frames": 3,
+      "minimum_cycles_in_window": 1.0,
+      "minimum_peak_to_background_db": 10.0,
+      "minimum_peak_to_competitor_db": 3.0,
+      "peak_exclusion_half_width_bins": 12
+    }
+  },
+  "root_entries": [
+    "balanced",
+    "high_time_resolution",
+    "run_manifest.json",
+    "run.log"
+  ],
+  "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+  "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+  "versions": {
+    "dps-studio": "0.1.0",
+    "numpy": "2.5.1",
+    "python": "3.12.13",
+    "scipy": "1.18.0"
+  }
+}

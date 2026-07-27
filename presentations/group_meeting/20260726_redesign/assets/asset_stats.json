@@ -1,0 +1,25 @@
+{
+  "raw_source": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+  "raw_source_sha256": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+  "latest_run": "D:\\Code\\Python_Projects\\DPS_Studio\\outputs\\production_runs\\run_20260724_004901_103968",
+  "raw_voltage": {
+    "channel_1_peak_to_peak_v": 0.159933143,
+    "channel_2_peak_to_peak_v": 0.396908417,
+    "channel_2_to_channel_1_peak_to_peak_ratio": 2.4817146062089206,
+    "representative_sample_interval_s": 2.5000000008525147e-11,
+    "representative_sample_rate_hz": 39999999986.359764
+  },
+  "two_channel": {
+    "channel_1_first_candidate_m_s": 537.938728338121,
+    "channel_2_first_candidate_m_s": 531.8331159762934,
+    "channel_1_peak_to_background_db_median": 52.53007732555437,
+    "channel_2_peak_to_background_db_median": 55.78441927886544,
+    "channel_1_peak_to_competitor_db_median": 13.295586989225324,
+    "channel_2_peak_to_competitor_db_median": 19.88050131307892
+  },
+  "code_excerpt_source": "D:\\Code\\Python_Projects\\DPS_Studio\\src\\dps_studio\\core\\analysis_profiles.py",
+  "code_excerpt_lines": [
+    "136-145",
+    "153-162"
+  ]
+}

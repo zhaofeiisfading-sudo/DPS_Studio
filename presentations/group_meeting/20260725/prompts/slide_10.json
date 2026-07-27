@@ -1,0 +1,43 @@
+{
+  "slide": 10,
+  "title": "core/workflow 与 GUI 解耦，让数值链可以独立验证",
+  "prompt": "# Codex PPT Slide Image Prompt\n\n## Canvas\n{\n  \"type\": \"16:9 full-slide PowerPoint image\",\n  \"language\": \"Chinese\",\n  \"slide_number\": 10,\n  \"render_slide_number\": false\n}\n\n## Deck Goal\n面向课题组组会，基于当前 DPS Studio 工作树、真实测试和真实 production 输出，说明项目为什么重建、如何把 PDV 物理链转化为可验证软件链、当前能力边界以及下一阶段优先级。\n\n## Required Background\n{\n  \"deck_context\": {\n    \"source_summary\": \"DPS Studio 当前工作树已经建立从只读双通道 PDV 原始电压到 STFT、峰脊线、亚频点精修、无符号表观速度、描述性质量与非覆盖 production 输出的基础闭环。当前配置波长 1.55 µm 仅是未确认的演示值；没有 LiF 修正、corrected velocity、通道融合、正式 SNR/GOOD-BAD 阈值或可运行 GUI。当前质量门实测 271 passed，Ruff 通过，mypy 对 39 个源文件通过。最新真实 run 含 30 个文件且来自 dirty worktree。\",\n    \"core_claim\": \"基础处理链已经可运行，但下一阶段的核心是把弱信号和竞争谱峰条件下的结果推进到可信、可复现、可交付，而不是继续堆叠未验证功能。\",\n    \"canonical_terms\": [\n      \"无符号表观速度\",\n      \"描述性谱质量\",\n      \"PRE_EVENT 显示零是假设\",\n      \"双通道独立分析\",\n      \"1550 nm 未确认\",\n      \"无 LiF 修正\",\n      \"当前工作树能力，不等于稳定发布\"\n    ]\n  },\n  \"slide_local_context\": {\n    \"required_background\": \"正式 production 已不再依赖 compare 脚本私有编排。当前 CLI 只有 --version。\"\n  }\n}\n\n## Global Style\n{\n  \"name\": \"川大论文模板背景抽象化的清爽科研答辩风\",\n  \"visual_direction\": \"只借鉴用户模板的白色留白、砖红标题节奏、浅米灰几何装饰和细红底边。内容结构重新设计，禁止复用模板正文、章节结构、作者、引用、页码、校徽或四川大学文字。图表页以真实项目图片为主，流程页使用简洁矢量感图形。\",\n  \"color_palette\": \"主色砖红 #B52A12，深红 #8C1D0C，分析辅助色蓝绿 #167D8D，浅米灰 #F4EFEB，正文炭黑 #202020，白色背景\",\n  \"typography\": \"中文呈现微软雅黑或等线气质，标题粗体且结论性，正文左对齐；英文和数字呈 Arial 气质；标题视觉尺度 32–38 pt，正文不小于 20 pt，图注 15–16 pt\",\n  \"texture_and_finish\": \"平面、清晰、少阴影、无大面积复杂渐变；每页最多 3–5 个主要信息块；会议室投影可读\",\n  \"deck_consistency\": \"保持同一配色、字体层级、图标线条语言和上下边缘装饰，但根据页面角色变化布局，避免连续重复三卡片模板\",\n  \"forbidden_template_content\": \"不出现原模板标题、作者、论文图、引用、页码、校徽、四川大学文字或其他残留内容\"\n}\n\n## Input Images\n\n- Image 1: D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png — approved sample slide style reference; match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content\n\n\n## Slide\n{\n  \"number\": 10,\n  \"title\": \"core/workflow 与 GUI 解耦，让数值链可以独立验证\",\n  \"role\": \"architecture\",\n  \"intent\": \"展示当前真实模块关系和依赖方向\"\n}\n\n## Text\n{\n  \"title\": \"core/workflow 与 GUI 解耦，让数值链可以独立验证\",\n  \"key_points\": [\n    \"scripts/run_demo_pipeline.py → TOML → production_outputs.py → core.workflow\",\n    \"core.workflow → io / time_frequency / ridge / physics\",\n    \"core 不导入 scripts、Matplotlib 或 GUI\",\n    \"GUI 仍是占位；未来只能调用 core 公共 API\",\n    \"manifest 记录配置、源哈希、Git 状态和生成文件\"\n  ],\n  \"speaker_focus\": null\n}\n\n## Layout\n{\n  \"composition\": \"上层入口与配置，中层 production I/O，底层 core.workflow 和四个算法模块；GUI 在侧边以灰色虚线指向 core\",\n  \"content_zones\": \"标题、分层架构图、右侧四条因果解释\",\n  \"relationship_to_previous_slide\": \"从质量语义转到工程保障\",\n  \"spacing\": \"依赖箭头单向且不交叉\"\n}\n\n## Visual Elements\n{\n  \"main_visual\": \"三层模块架构图\",\n  \"supporting_elements\": \"只读配置、测试、manifest 三个保障标识\"\n}\n\n## Constraints\n[\n  \"不得画出 core → GUI 依赖\",\n  \"不得把 GUI 或完整 CLI 写成已实现\",\n  \"不要复用模板原有架构图\"\n]\n\n## Style Reference Rule\nUse Image 1 as the approved sample-slide style reference. Match its palette, typography mood, density, texture, and overall visual identity. Do not copy its exact layout unless this slide's layout explicitly asks for it.\n\n## Input Image Handling Rules\nFor any input image marked as a strict input asset, include it visibly and preserve its content. Do not redraw, replace, relabel, or invent a similar figure. Scale and crop only as needed for composition while keeping the important labels, arrows, data, and relationships recognizable.\n\n## Universal Constraints\n- The final image itself must contain the title and key points.\n- Render Chinese text exactly and legibly; avoid garbled characters.\n- Keep the confirmed deck style consistent while varying layout by slide role.\n- No watermark, unrelated logo, or extra slide number.\n",
+  "out": "slide_10.png",
+  "input_images": [
+    {
+      "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+      "role": "approved sample slide style reference",
+      "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+    }
+  ],
+  "requires_context_images": true,
+  "expected_backend": "built-in image tool",
+  "sample_generation_method": {
+    "backend_used": "built-in image tool",
+    "tool_name": "image_gen",
+    "mode": "generate",
+    "prompt_source": "prompts/sample_slide_07.txt",
+    "size": "1672x941 generated 16:9 landscape",
+    "quality": "built-in default",
+    "model_config": "Codex built-in image generation backend",
+    "approved_sample_path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+    "input_context_preparation": "view_image inspected the rendered template slide and strict STFT source; both were passed through referenced_image_paths",
+    "handoff_rule": "Subagents must use the same built-in image_gen generate mode and return a blocker if unavailable."
+  },
+  "generation_contract": {
+    "must_use_selected_image_backend": true,
+    "must_match_sample_generation_method": true,
+    "forbidden_final_image_methods": [
+      "local drawing/rendering scripts",
+      "Pillow-generated slides",
+      "SVG/HTML/CSS/canvas screenshots",
+      "python-pptx/PptxGenJS/native PPT layout screenshots",
+      "manually composited text/image overlays"
+    ],
+    "must_return": [
+      "backend_used",
+      "selected_source",
+      "qa_note"
+    ]
+  }
+}

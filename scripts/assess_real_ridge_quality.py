@@ -33,11 +33,15 @@ from dps_studio.core.ridge import (  # noqa: E402
     assess_ridge_spectral_quality,
 )
 from dps_studio.core.time_frequency import STFTResult  # noqa: E402
+from dps_studio.core.workflow import (  # noqa: E402
+    QualityConfiguration,
+    derive_background_exclusion_half_width_hz,
+    load_workflow_config,
+)
 
 
 FloatArray = NDArray[np.float64]
 
-MINIMUM_BACKGROUND_BIN_COUNT = 2
 FIGURE_SIZE_INCHES = (10.5, 5.2)
 SAVE_DPI = 220
 QUALITY_NOTICE = (
@@ -49,19 +53,6 @@ QUALITY_PLOT_NOTICE = (
     "Spectral-quality evidence only; no SNR, trust threshold, or accuracy claim.\n"
     "No smoothing, branch identification, channel selection/fusion, or ridge change."
 )
-
-
-def _hann_first_zero_guard_hz(stft_result: STFTResult) -> float:
-    """Return the diagnostic Hann main-lobe half-width to its first zero.
-
-    ``compute_stft`` uses SciPy's periodic Hann window (``fftbins=True``). Its
-    main-lobe first zeros are approximately two unpadded-window DFT bins from
-    the center, so the diagnostic half-width is ``2 * sample_rate / N``. This
-    is recorded as a development guard, not a validated scientific standard.
-    """
-    if stft_result.window_name != "hann":
-        raise ValueError("The development guard derivation is defined only for Hann.")
-    return 2.0 * stft_result.sample_rate_hz / stft_result.window_length_samples
 
 
 def _write_quality_csv(
@@ -415,6 +406,7 @@ def run_spectral_quality_demo(
     output_directory: Path,
     *,
     profile: AnalysisProfile = BALANCED_PROFILE,
+    quality_configuration: QualityConfiguration,
 ) -> list[Path]:
     """Run TASK-008A for one explicit analysis profile."""
     if not isinstance(profile, AnalysisProfile):
@@ -453,12 +445,22 @@ def run_spectral_quality_demo(
             window_name=profile.window_name,
             minimum_frequency_hz=profile.minimum_frequency_hz,
             maximum_frequency_hz=profile.maximum_frequency_hz,
+            background_guard_window_scale=(
+                quality_configuration.background_guard_window_scale
+            ),
+            minimum_background_bin_count=(
+                quality_configuration.minimum_background_bin_count
+            ),
         )
         print(f"TASK-008A two-channel recomputation runtime: {runtime_s:.6f} s")
 
         quality_results: dict[str, RidgeSpectralQualityResult] = {}
         for channel_name, analysis in analyses.items():
-            guard_hz = _hann_first_zero_guard_hz(analysis.stft_result)
+            guard_hz = derive_background_exclusion_half_width_hz(
+                sample_rate_hz=analysis.stft_result.sample_rate_hz,
+                window_length_samples=analysis.stft_result.window_length_samples,
+                window_scale=quality_configuration.background_guard_window_scale,
+            )
             print(
                 f"  {channel_name}: diagnostic Hann first-zero half-width = "
                 f"2 * {analysis.stft_result.sample_rate_hz:.12g} Hz / "
@@ -468,7 +470,9 @@ def run_spectral_quality_demo(
                 analysis.stft_result,
                 analysis.refined_result,
                 background_exclusion_half_width_hz=guard_hz,
-                minimum_background_bin_count=MINIMUM_BACKGROUND_BIN_COUNT,
+                minimum_background_bin_count=(
+                    quality_configuration.minimum_background_bin_count
+                ),
             )
             quality_results[channel_name] = result
             generated_paths.extend(
@@ -525,7 +529,16 @@ def run_spectral_quality_demo(
 def main() -> None:
     from compare_real_ridge_refinement import OUTPUT_DIRECTORY
 
-    run_spectral_quality_demo(OUTPUT_DIRECTORY)
+    project_root = DATA_PATH.parents[2]
+    configuration = load_workflow_config(
+        project_root / "configs" / "demo_dual_profile.toml",
+        repository_root=project_root,
+    )
+    run_spectral_quality_demo(
+        OUTPUT_DIRECTORY,
+        profile=configuration.analysis.profiles[0],
+        quality_configuration=configuration.quality,
+    )
 
 
 if __name__ == "__main__":

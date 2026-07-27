@@ -97,12 +97,12 @@ def test_equal_maxima_choose_first_lowest_frequency_bin() -> None:
     np.testing.assert_array_equal(result.frequency_hz, [10.0, 10.0, 10.0, 10.0])
 
 
-def test_frames_before_event_are_nan_and_pre_event() -> None:
+def test_frames_before_explicit_analysis_start_are_nan_and_pre_event() -> None:
     result = extract_peak_ridge(
         _stft_result(),
         minimum_frequency_hz=10.0,
         maximum_frequency_hz=30.0,
-        event_start_time_s=2.0,
+        analysis_start_time_s=2.0,
     )
 
     assert np.all(np.isnan(result.frequency_hz[:2]))
@@ -132,7 +132,7 @@ def test_frames_equal_to_both_time_boundaries_are_candidates() -> None:
         _stft_result(),
         minimum_frequency_hz=10.0,
         maximum_frequency_hz=30.0,
-        event_start_time_s=1.0,
+        analysis_start_time_s=1.0,
         analysis_end_time_s=2.0,
     )
 
@@ -155,6 +155,25 @@ def test_omitted_time_boundaries_keep_full_frame_count_as_candidates() -> None:
     assert len(result.peak_magnitude) == stft_result.time_s.size
     assert len(result.quality_flags) == stft_result.time_s.size
     assert result.quality_flags == (RidgeQualityFlag.CANDIDATE,) * 4
+
+
+def test_manual_event_reference_does_not_gate_or_change_ridge_arrays() -> None:
+    first = extract_peak_ridge(
+        _stft_result(),
+        minimum_frequency_hz=10.0,
+        maximum_frequency_hz=30.0,
+        event_start_time_s=0.5,
+    )
+    second = extract_peak_ridge(
+        _stft_result(),
+        minimum_frequency_hz=10.0,
+        maximum_frequency_hz=30.0,
+        event_start_time_s=2.5,
+    )
+    np.testing.assert_array_equal(first.frequency_hz, second.frequency_hz)
+    np.testing.assert_array_equal(first.peak_magnitude, second.peak_magnitude)
+    assert first.quality_flags == second.quality_flags
+    assert first.quality_flags == (RidgeQualityFlag.CANDIDATE,) * 4
 
 
 @pytest.mark.parametrize(
@@ -229,13 +248,13 @@ def test_nonfinite_or_bool_time_boundaries_are_rejected(
         )
 
 
-def test_event_start_after_analysis_end_is_rejected() -> None:
+def test_analysis_start_after_analysis_end_is_rejected() -> None:
     with pytest.raises(RidgeConfigurationError, match="less than or equal"):
         extract_peak_ridge(
             _stft_result(),
             minimum_frequency_hz=10.0,
             maximum_frequency_hz=30.0,
-            event_start_time_s=2.0,
+            analysis_start_time_s=2.0,
             analysis_end_time_s=1.0,
         )
 

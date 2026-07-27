@@ -35,6 +35,7 @@ packages = ["src/dps_studio"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+cache_dir = ".test_tmp/pytest_cache"
 
 [tool.ruff]
 line-length = 100

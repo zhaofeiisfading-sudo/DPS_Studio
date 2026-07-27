@@ -24,16 +24,16 @@ from matplotlib.lines import Line2D  # noqa: E402
 from dps_studio.core import AnalysisProfile, BALANCED_PROFILE
 from dps_studio.core.io import read_delimited_signals
 from dps_studio.core.models import SignalRecord
-from dps_studio.core.physics import convert_ridge_to_apparent_velocity
 from dps_studio.core.ridge import (
     RefinedRidgeResult,
     RidgeQualityFlag,
     RidgeRefinementStatus,
-    RidgeResult,
-    extract_peak_ridge,
-    refine_peak_ridge_subbin,
 )
-from dps_studio.core.time_frequency import STFTResult, compute_stft
+from dps_studio.core.time_frequency import STFTResult
+from dps_studio.core.workflow import (
+    ChannelAnalysis,
+    analyze_configuration as analyze_workflow_configuration,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -86,19 +86,6 @@ STFT_REFINED_RIDGE_LINE_WIDTH = 0.85
 MAIN_DISPLAY_DPI = 300
 
 FloatArray = NDArray[np.float64]
-
-
-@dataclass(frozen=True, slots=True)
-class ChannelAnalysis:
-    """Development-only results needed for plots and reporting."""
-
-    stft_result: STFTResult
-    ridge_result: RidgeResult
-    refined_result: RefinedRidgeResult
-    discrete_velocity_m_s: FloatArray
-    refined_velocity_m_s: FloatArray
-    display_velocity_m_s: FloatArray
-    velocity_origins: list[str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,87 +193,6 @@ def _relative_stft_magnitude_db(
     display_floor = maximum * float(np.power(10.0, floor_db / 20.0))
     with np.errstate(divide="ignore", invalid="ignore"):
         return 20.0 * np.log10(np.maximum(magnitude, display_floor) / maximum)
-
-
-def _convert_refined_velocity(
-    result: RefinedRidgeResult,
-    *,
-    vacuum_wavelength_m: float = DEMO_VACUUM_WAVELENGTH_M,
-) -> FloatArray:
-    """Use TASK-006 while preserving NaN for unavailable candidate refinements."""
-    candidate_mask = np.fromiter(
-        (flag is RidgeQualityFlag.CANDIDATE for flag in result.quality_flags),
-        dtype=np.bool_,
-        count=len(result.quality_flags),
-    )
-    refined_mask = np.fromiter(
-        (
-            status is RidgeRefinementStatus.REFINED
-            for status in result.refinement_statuses
-        ),
-        dtype=np.bool_,
-        count=len(result.refinement_statuses),
-    )
-    if np.all(~candidate_mask | refined_mask):
-        refined_frequency_as_ridge = RidgeResult(
-            time_s=result.time_s,
-            frequency_hz=result.refined_frequency_hz,
-            peak_magnitude=result.peak_magnitude,
-            quality_flags=result.quality_flags,
-            minimum_frequency_hz=result.minimum_frequency_hz,
-            maximum_frequency_hz=result.maximum_frequency_hz,
-            event_start_time_s=result.event_start_time_s,
-            analysis_end_time_s=result.analysis_end_time_s,
-            source_path=result.source_path,
-        )
-        converted = convert_ridge_to_apparent_velocity(
-            refined_frequency_as_ridge,
-            vacuum_wavelength_m=vacuum_wavelength_m,
-        )
-        return converted.apparent_velocity_m_s.copy()
-
-    velocity_m_s = np.full(result.time_s.shape, np.nan, dtype=np.float64)
-    for frame_index in np.flatnonzero(refined_mask):
-        index = int(frame_index)
-        refined_frequency_as_ridge = RidgeResult(
-            time_s=result.time_s[index : index + 1],
-            frequency_hz=result.refined_frequency_hz[index : index + 1],
-            peak_magnitude=result.peak_magnitude[index : index + 1],
-            quality_flags=(RidgeQualityFlag.CANDIDATE,),
-            minimum_frequency_hz=result.minimum_frequency_hz,
-            maximum_frequency_hz=result.maximum_frequency_hz,
-            event_start_time_s=None,
-            analysis_end_time_s=None,
-            source_path=result.source_path,
-        )
-        converted = convert_ridge_to_apparent_velocity(
-            refined_frequency_as_ridge,
-            vacuum_wavelength_m=vacuum_wavelength_m,
-        )
-        velocity_m_s[index] = converted.apparent_velocity_m_s[0]
-    return velocity_m_s
-
-
-def _display_velocity(
-    result: RefinedRidgeResult,
-    refined_velocity_m_s: FloatArray,
-) -> tuple[FloatArray, list[str]]:
-    display = np.full(result.time_s.shape, np.nan, dtype=np.float64)
-    origins: list[str] = []
-    for index, (flag, status) in enumerate(
-        zip(result.quality_flags, result.refinement_statuses)
-    ):
-        if flag is RidgeQualityFlag.PRE_EVENT:
-            display[index] = 0.0
-            origins.append("assumed_pre_event_zero")
-        elif flag is RidgeQualityFlag.OUTSIDE_ANALYSIS_WINDOW:
-            origins.append("outside_analysis_window")
-        elif status is RidgeRefinementStatus.REFINED:
-            display[index] = refined_velocity_m_s[index]
-            origins.append("refined_candidate_measurement")
-        else:
-            origins.append("refinement_unavailable")
-    return display, origins
 
 
 def _finite_unique_count(values: FloatArray) -> int:
@@ -1057,47 +963,25 @@ def _analyze_configuration(
     event_start_time_s: float = RIDGE_START_TIME_S,
     analysis_end_time_s: float = ANALYSIS_END_TIME_S,
     vacuum_wavelength_m: float = DEMO_VACUUM_WAVELENGTH_M,
+    background_guard_window_scale: float = 2.0,
+    minimum_background_bin_count: int = 2,
 ) -> tuple[dict[str, ChannelAnalysis], float]:
     start_time = perf_counter()
-    analyses: dict[str, ChannelAnalysis] = {}
-    for channel_name, record in records.items():
-        stft_result = compute_stft(
-            record,
-            window_length_samples=window_length_samples,
-            overlap_samples=overlap_samples,
-            nfft=nfft,
-            window_name=window_name,
-        )
-        ridge_result = extract_peak_ridge(
-            stft_result,
-            minimum_frequency_hz=minimum_frequency_hz,
-            maximum_frequency_hz=maximum_frequency_hz,
-            event_start_time_s=event_start_time_s,
-            analysis_end_time_s=analysis_end_time_s,
-        )
-        refined_result = refine_peak_ridge_subbin(stft_result, ridge_result)
-        discrete_velocity_m_s = convert_ridge_to_apparent_velocity(
-            ridge_result,
-            vacuum_wavelength_m=DEMO_VACUUM_WAVELENGTH_M,
-        ).apparent_velocity_m_s
-        refined_velocity_m_s = _convert_refined_velocity(
-            refined_result,
-            vacuum_wavelength_m=vacuum_wavelength_m,
-        )
-        display_velocity_m_s, velocity_origins = _display_velocity(
-            refined_result,
-            refined_velocity_m_s,
-        )
-        analyses[channel_name] = ChannelAnalysis(
-            stft_result=stft_result,
-            ridge_result=ridge_result,
-            refined_result=refined_result,
-            discrete_velocity_m_s=discrete_velocity_m_s,
-            refined_velocity_m_s=refined_velocity_m_s,
-            display_velocity_m_s=display_velocity_m_s,
-            velocity_origins=velocity_origins,
-        )
-    return analyses, perf_counter() - start_time
+    analyses = analyze_workflow_configuration(
+        records,
+        window_length_samples=window_length_samples,
+        overlap_samples=overlap_samples,
+        nfft=nfft,
+        window_name=window_name,
+        minimum_frequency_hz=minimum_frequency_hz,
+        maximum_frequency_hz=maximum_frequency_hz,
+        event_start_time_s=event_start_time_s,
+        analysis_end_time_s=analysis_end_time_s,
+        vacuum_wavelength_m=vacuum_wavelength_m,
+        background_guard_window_scale=background_guard_window_scale,
+        minimum_background_bin_count=minimum_background_bin_count,
+    )
+    return dict(analyses), perf_counter() - start_time
 
 
 def _print_overlap_statistics(

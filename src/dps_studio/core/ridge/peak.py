@@ -21,12 +21,16 @@ def extract_peak_ridge(
     minimum_frequency_hz: float,
     maximum_frequency_hz: float,
     event_start_time_s: float | None = None,
+    analysis_start_time_s: float | None = None,
     analysis_end_time_s: float | None = None,
 ) -> RidgeResult:
     """Extract the largest discrete-bin magnitude in each candidate frame.
 
     The frequency and time ranges are closed. Equal maxima use NumPy's first
     ``argmax`` result, which is the lowest-frequency bin in the search band.
+    ``event_start_time_s`` is retained as a validated compatibility-only manual
+    reference and never gates peak extraction. Use ``analysis_start_time_s`` and
+    ``analysis_end_time_s`` only when an explicit analysis range is required.
     No smoothing, continuity constraint, sub-bin interpolation, or physical
     conversion is applied.
     """
@@ -43,9 +47,13 @@ def extract_peak_ridge(
         maximum_frequency_hz,
         field_name="maximum_frequency_hz",
     )
-    event_start = _optional_finite_float(
+    _optional_finite_float(
         event_start_time_s,
         field_name="event_start_time_s",
+    )
+    analysis_start = _optional_finite_float(
+        analysis_start_time_s,
+        field_name="analysis_start_time_s",
     )
     analysis_end = _optional_finite_float(
         analysis_end_time_s,
@@ -68,12 +76,13 @@ def extract_peak_ridge(
             f"frequency {grid_maximum!r} Hz."
         )
     if (
-        event_start is not None
+        analysis_start is not None
         and analysis_end is not None
-        and event_start > analysis_end
+        and analysis_start > analysis_end
     ):
         raise RidgeConfigurationError(
-            "event_start_time_s must be less than or equal to analysis_end_time_s."
+            "analysis_start_time_s must be less than or equal to "
+            "analysis_end_time_s."
         )
 
     band_mask = (stft_result.frequency_hz >= minimum) & (
@@ -96,8 +105,8 @@ def extract_peak_ridge(
 
     pre_event_mask = np.zeros(stft_result.time_s.size, dtype=np.bool_)
     outside_mask = np.zeros(stft_result.time_s.size, dtype=np.bool_)
-    if event_start is not None:
-        pre_event_mask = stft_result.time_s < event_start
+    if analysis_start is not None:
+        pre_event_mask = stft_result.time_s < analysis_start
     if analysis_end is not None:
         outside_mask = stft_result.time_s > analysis_end
     candidate_mask = ~(pre_event_mask | outside_mask)
@@ -135,7 +144,7 @@ def extract_peak_ridge(
         quality_flags=tuple(quality_flags),
         minimum_frequency_hz=minimum,
         maximum_frequency_hz=maximum,
-        event_start_time_s=event_start,
+        event_start_time_s=analysis_start,
         analysis_end_time_s=analysis_end,
         source_path=stft_result.source_path,
     )

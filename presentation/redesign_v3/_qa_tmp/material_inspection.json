@@ -1,0 +1,5171 @@
+{
+  "repository": "D:\\Code\\Python_Projects\\DPS_Studio",
+  "data_directory": "presentations/data",
+  "counts": {
+    "images": 54,
+    "csvs": 14,
+    "jsons": 3
+  },
+  "images": [
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_continuity_diagnostics.png",
+      "bytes": 244195,
+      "width": 2420,
+      "height": 1803,
+      "aspect_ratio": 1.3422,
+      "mode": "RGBA",
+      "sha256": "8aec97711c5efeb5290ceede670305682a1b80dacccf1da67a9721643a8e6cfd",
+      "average_hash": "8001e0007ff87fff7ffba000f7ff70197fff87f78000701d7ecb67ff07f3fe3f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_decline_detail.png",
+      "bytes": 161970,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "8046b3524dcec5acbb0fda1e946b2c981b3e9a1db8db89b74ebc5a476e52bd24",
+      "average_hash": "ffffd00184a037ff3fff3fff3fff3fff3fff3fff3fffbffe8100a409fe1fe007"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_discrete_vs_refined_frequency.png",
+      "bytes": 174662,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "3a75d6ac77a9a6f865d86b762f7074565ce3011886604707b282523ff9668dc3",
+      "average_hash": "fc1fc0008010bfe8bfff3ffe3fff3fff3fff3ffeffffbfff8040c002fc1fc003"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_discrete_vs_refined_velocity.png",
+      "bytes": 184530,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "f7a738a559df3e0e54f1ec58d8bec2450e76fecd2eb7e7a2bda858b45c986512",
+      "average_hash": "f80f8000810701ff3fff3fff3fff3fff3ffc3fff3fffffff8060c40afe1fc003"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_full_display_velocity.png",
+      "bytes": 135418,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "e48810d30861d91ab5e0cec99bd7344f62d268514237d9c100c13543d6877375",
+      "average_hash": "ffff800080003ffebffe3ffe3ffe3ffe3fee3ffebffebfff80008001fe3fc003"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_peak_to_background_db.png",
+      "bytes": 135475,
+      "width": 2310,
+      "height": 1144,
+      "aspect_ratio": 2.0192,
+      "mode": "RGBA",
+      "sha256": "d543ba560a1efd3751b897fd15c8a2ed76ee1e33344927d28d61b9d4ae017249",
+      "average_hash": "f007e007e010e00863af7fff7fff7fff7ff77ff77fff7ffbfff1fffda000fe3f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_peak_to_competitor_db.png",
+      "bytes": 141185,
+      "width": 2310,
+      "height": 1144,
+      "aspect_ratio": 2.0192,
+      "mode": "RGBA",
+      "sha256": "18cb6051e45b7cb427c89d19ed8606271180a18e772059055afc4ab212750dea",
+      "average_hash": "f007e007e010ffd87f8f7f2f7e7f7ce340f567f97ffb7ffdfff7fff7a000fe3f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_presentation_velocity.png",
+      "bytes": 143328,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "fb2740b369beebe74fb486c51f64ff6e0ed369cbbc88f2840f6beb49a2ee691d",
+      "average_hash": "fc1f8000a3e03fff3ffe3ffe3ffe3ffe3ff83ffe3ffebfff8000b409fe3ff81f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_presentation_with_plateau_detail.png",
+      "bytes": 359134,
+      "width": 3000,
+      "height": 2400,
+      "aspect_ratio": 1.25,
+      "mode": "RGBA",
+      "sha256": "54de54f934220512c96b7eed4e8ef51a2846e6ff7eb5993d8842c51c658cee08",
+      "average_hash": "f00fa0003ff03fff3fff3fff3ffeb40ff8003ff83ddf3bef3ffe3ffec000f00f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_related_frequency_contrasts.png",
+      "bytes": 200163,
+      "width": 2420,
+      "height": 1496,
+      "aspect_ratio": 1.6176,
+      "mode": "RGBA",
+      "sha256": "79f0a056044d5b67f4524b26c85be0f166fe2233e370c587166f830fd558362e",
+      "average_hash": "8003e0007f917e2f60f767f97fffe000e000600f7fe77fff7fff07f985c0fe3f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_stft_detail.png",
+      "bytes": 355621,
+      "width": 2310,
+      "height": 1276,
+      "aspect_ratio": 1.8103,
+      "mode": "RGBA",
+      "sha256": "bafc3a584b6d777b2bd7dce17727d8b21118633272089676fb77d86ebe38a56f",
+      "average_hash": "ffffffff800f800f800f800f800f800f800f810f800f800f800fffffffffffff"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_stft_related_frequency_evidence.png",
+      "bytes": 351272,
+      "width": 2640,
+      "height": 1408,
+      "aspect_ratio": 1.875,
+      "mode": "RGBA",
+      "sha256": "ca930426af48917e3207f87e92fc78af8f44a50e7dd77544a2f17fae2d74eb0e",
+      "average_hash": "ffff803f801f8003bf03bfe3800380038003bfc3bfe38013800380038003ffff"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_stft_spectrogram_with_refined_ridge.png",
+      "bytes": 645543,
+      "width": 3300,
+      "height": 2400,
+      "aspect_ratio": 1.375,
+      "mode": "RGBA",
+      "sha256": "bbdb20fae6cf72fd823cc5abded6458d52f1d710045ed49a10644b205bbbb4bc",
+      "average_hash": "ffffffff800f800f800f800f800fffffc27f833f810f800f80078007ffffffff"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_continuity_diagnostics.png",
+      "bytes": 243560,
+      "width": 2420,
+      "height": 1803,
+      "aspect_ratio": 1.3422,
+      "mode": "RGBA",
+      "sha256": "8f8e7cb5b8625aac1e07785432c271ac3bdeeb372bec2b96f5d31a8681c44aac",
+      "average_hash": "8001e0007ff87fff7ffba000fff870187feffff7a0007ff8e0197feffff7fe3f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_decline_detail.png",
+      "bytes": 162886,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "036a0e237dd57c8557b98029df08f3400be85be458df3f3b40dc08748acc05ba",
+      "average_hash": "ffffd00184a037ff3fff3fff3fff3fff3fff3fff3fffbffe8100a409fe1fe007"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_discrete_vs_refined_frequency.png",
+      "bytes": 175256,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "d1b26959200b7f35e3b8c06a28d818542bf9cd3e07237b11cf0b0498a6648c88",
+      "average_hash": "fc1fc0008010bfe8bfff3ffe3fff3ffe3fff3ffeffffbfff8040c002fc1fc003"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_discrete_vs_refined_velocity.png",
+      "bytes": 184826,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "568d82fc9bb28c4460b168cc9a4e3ca0c757695b6110ec6c227a1c43a1cd665c",
+      "average_hash": "f80f8000810701ff3fff3fff3fff3fff3ffc3fff3fffffff8060c40afe1fc003"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_full_display_velocity.png",
+      "bytes": 135784,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "1ae687bf218884fbc0e2ddf2229d3052c9349befefcc8ba6007e8ae17339d97c",
+      "average_hash": "ffff800080003ffebffe3ffe3ffe3ffe3fee3ffebffebfff80008001fe3fc003"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_peak_to_background_db.png",
+      "bytes": 134989,
+      "width": 2310,
+      "height": 1144,
+      "aspect_ratio": 2.0192,
+      "mode": "RGBA",
+      "sha256": "b8c6c9bb4bb3d14c0abdaf17dbca30c8114ef51e14325bb6e9dedb4817b763dd",
+      "average_hash": "f007e007e010c008608f77ff7ff77ff77ffb7ff97ffd7ffdffffffffa000fe3f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_peak_to_competitor_db.png",
+      "bytes": 143715,
+      "width": 2310,
+      "height": 1144,
+      "aspect_ratio": 2.0192,
+      "mode": "RGBA",
+      "sha256": "e810d7563c9cdcf19c4deeb9ffd91979197574d5f4373be3b7fe60fc2b13b6ca",
+      "average_hash": "f007f0078001c7cf7f8f7f277e7760f761f97ff97ffd7fffffffffffa000fe3f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_presentation_velocity.png",
+      "bytes": 143534,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "550acac3af55d788a509cc97a51adfe6d7592e9b814eca00bee0dadacb853a9f",
+      "average_hash": "fc1f8000a3e03fff3ffe3ffe3ffe3ffe3ff83ffe3ffebfff8000b409fe3ff81f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_presentation_with_plateau_detail.png",
+      "bytes": 358978,
+      "width": 3000,
+      "height": 2400,
+      "aspect_ratio": 1.25,
+      "mode": "RGBA",
+      "sha256": "d5618b8820bf53b7461ea97974ff8f7e2cbab1b76b9988e56704b925b4d80f75",
+      "average_hash": "f00fa0003ff03fff3fff3fff3ffeb40ff8003ff83dff2bef3ffe3ffec000f00f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_related_frequency_contrasts.png",
+      "bytes": 202838,
+      "width": 2420,
+      "height": 1496,
+      "aspect_ratio": 1.6176,
+      "mode": "RGBA",
+      "sha256": "c896ddbb0d573db0ec6ceadb3bee75b46bb3d9ca046776491ea469e057dc1afb",
+      "average_hash": "800180010fdf7f277e7760ff7ff9e001e00060107fe77fff7ff97ffde1c3fe3f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_stft_detail.png",
+      "bytes": 316642,
+      "width": 2310,
+      "height": 1276,
+      "aspect_ratio": 1.8103,
+      "mode": "RGBA",
+      "sha256": "ae134909dd5cee1a9271621513e6fda7098f2849abeb72346cad967c8a8bd1f3",
+      "average_hash": "ffffffff800f800f800f800f800f800f800f810f800f800f800fffffffffffff"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_stft_related_frequency_evidence.png",
+      "bytes": 328188,
+      "width": 2640,
+      "height": 1408,
+      "aspect_ratio": 1.875,
+      "mode": "RGBA",
+      "sha256": "5791339c6abaea97fa141cc16ab302c57ceea05e7065e8b022fa92a0446b5d18",
+      "average_hash": "ffff801f801f800390038803800380038003bfc3bfe380138013800f8007ffff"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_stft_spectrogram_with_refined_ridge.png",
+      "bytes": 611914,
+      "width": 3300,
+      "height": 2400,
+      "aspect_ratio": 1.375,
+      "mode": "RGBA",
+      "sha256": "ce974758474415bd6a6264dba5a55d240688924e481fc9427401d34df348a59e",
+      "average_hash": "ffffffff800f800f800f800f800ffeffc27f833f810f800f80078007ffffffff"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/two_channel_continuity_comparison.png",
+      "bytes": 234129,
+      "width": 2530,
+      "height": 1584,
+      "aspect_ratio": 1.5972,
+      "mode": "RGBA",
+      "sha256": "5beda5b0f64d0953e995457844637619e015154487992d33fddea964c2e9b59f",
+      "average_hash": "c003880187ff67f77ff77fefffebc000e0017fffe01960097fe70ff785d3fe3f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/two_channel_presentation_velocity.png",
+      "bytes": 161802,
+      "width": 3000,
+      "height": 1560,
+      "aspect_ratio": 1.9231,
+      "mode": "RGBA",
+      "sha256": "2c38f42379145a594c5ab900f6b661189690c539abb119f55fb09de742916fdc",
+      "average_hash": "f80f8000aff83ffc3fff3ffe3ffe3ffe3ff83ffe3ffebfff8000b409fe3ff81f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/two_channel_related_frequency_comparison.png",
+      "bytes": 240802,
+      "width": 2530,
+      "height": 1584,
+      "aspect_ratio": 1.5972,
+      "mode": "RGBA",
+      "sha256": "e49ab8c6760a618f0c17331cf8cc6c06216295f90db5045d04e489f303afd842",
+      "average_hash": "8003e0017fbf600f6f0960717e7de000e001c0087fe07ff77ff37ff9e1c1fe3f"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/two_channel_spectral_quality_comparison.png",
+      "bytes": 224299,
+      "width": 2530,
+      "height": 1760,
+      "aspect_ratio": 1.4375,
+      "mode": "RGBA",
+      "sha256": "dfbea0623c2dfc0b3dedc7ae9705915de46a673c3e881fb6e8f1e4ebc8338315",
+      "average_hash": "f00f0004400c7ff77fff7fff7ffb7ff800007ffc7fdf7f3f40ff7fff7ff6a402"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/apparent_velocity_event_detail.png",
+      "bytes": 123067,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "23b5a00ae9d3b735178b84b7c5ff938634e82872d87de1277a11ed4365998882",
+      "average_hash": "0000fe007fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7f80ff800000281a"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/apparent_velocity_full_preview.png",
+      "bytes": 171567,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "1037d034aa40e3cb054f8fe8fc6021692fe36d4576afbfaa91f92e78ac972d8c",
+      "average_hash": "000000ff00fd8ffd7ffd7ffd7ffd7ffd7efb7fff7ffbffff7ff3ffff00008008"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/apparent_velocity_full_time.png",
+      "bytes": 129297,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "06f81d2df8d7b0e0bc50b05fe5e9ca271261229df43c09ed0f990f4eb19ee9e1",
+      "average_hash": "000080e702ff7fff7fff7fff7fff7fff7fff7ffe7fff7fff7fffffff0000d40a"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/stft_analysis_band_with_ridge.png",
+      "bytes": 400171,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "a19ece4460da344a559ad932733af97e6fb84bef08beae3b3767d7a327ac5f66",
+      "average_hash": "ffff807f807f800383838003800380038003878383c38003800380038617ffff"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/stft_full_band.png",
+      "bytes": 608509,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "5c30f36b2088fe6d396db0aaa5c26c3da08abb45d9e768eba83c22d1959d8946",
+      "average_hash": "ffff800380038003800380038003800380038003800380038003800387f7ffff"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_2/apparent_velocity_event_detail.png",
+      "bytes": 123126,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "6479c190a74104eb15784572b3e9d04863c0ac524a5f36f0464f3f08aaeb2c86",
+      "average_hash": "0000fe007fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7f80ff800000281a"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_2/apparent_velocity_full_preview.png",
+      "bytes": 168887,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "da8ceb1da66301d145f752b2afc07d5d2b716cce4dfba123e51ddfecc8df521d",
+      "average_hash": "000080ff00ff8fff7fff7fff7fff7ffd7e3b7ffb7ffbfffb7ff7ffff00008008"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_2/apparent_velocity_full_time.png",
+      "bytes": 129537,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "1b4e9fd1cbe78508f6080db403e02eb1fd96824708d0230e5ce26a2f927f514b",
+      "average_hash": "000080e702ff7fff7fff7fff7fff7fff7fff7ffe7fff7fff7fffffff0000d40a"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_2/stft_analysis_band_with_ridge.png",
+      "bytes": 359619,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "f3b9284400d2e6b116d8695dd94fbef44fdbc858bcbc9c744143b89ae5d3d14f",
+      "average_hash": "ffff807f807f80038383800380038003800387c383c38003803380038017ffff"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_2/stft_full_band.png",
+      "bytes": 459235,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "61d79c92510bf8f73676c1af909b9ee2b06e85281477c8b92fce3b43606c0774",
+      "average_hash": "ffff800380038003800380038003800380038003800380038003800387f7ffff"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_1/apparent_velocity_event_detail.png",
+      "bytes": 127179,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "0cd32c20825f65369db7920f45e33a69a8ac38a824f76558cceef7f196503a52",
+      "average_hash": "0000fe007fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7f80ff800000281a"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_1/apparent_velocity_full_preview.png",
+      "bytes": 189874,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "46f2760ae0a5fcbf065003ab27ac91beab959ca0de1b9df1cbb3416327dc4120",
+      "average_hash": "000080ff00ff8fff7fff7fff7fff7ffd7ff97ff97ff9fff97ff9fff98180a40a"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_1/apparent_velocity_full_time.png",
+      "bytes": 136600,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "458f6c67c8e6aa4d01fad351662037589475fa8d17330d3c079a349892e78421",
+      "average_hash": "0000807702ff7fff7fff7fff7fff7fff7fff7ffc7fff7fff7fffffff0000d40a"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_1/stft_analysis_band_with_ridge.png",
+      "bytes": 416681,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "7ca84431231eab001e216adf923c2a15a429884a37c690df7514f404fd919d14",
+      "average_hash": "ffff807f807f80038383800380038003820387c383c3800380038013c617ffff"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_1/stft_full_band.png",
+      "bytes": 659324,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "fcc6d4f126ad88680c71de091c408f43b449ab573bcd53c9dc7cae6fb65baddb",
+      "average_hash": "ffff8003800380038003800380038003800380038003800380038003c7f7ffff"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_2/apparent_velocity_event_detail.png",
+      "bytes": 127511,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "d1e3df696957b1e1f2f5500539718807f47bb00d662f3c78c035b1e7c64f25ed",
+      "average_hash": "0000fe007fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7f80ff800000281a"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_2/apparent_velocity_full_preview.png",
+      "bytes": 210086,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "a9d01f0496916fb450ea9bd15968db7eb75e798f576efb16746e8841bff3a9c2",
+      "average_hash": "00027ffd7ff9fff97ff97ff901f900f900f97ff97ff9fff97ff9ffff81cab42a"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_2/apparent_velocity_full_time.png",
+      "bytes": 136797,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "f138ec9026ae176420a0ea7bf89e351a4dd5c64e1a29049f887cfc7644c281d3",
+      "average_hash": "0000807702ff7fff7fff7fff7fff7fff7fff7ffe7fff7fff7fffffff0000d40a"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_2/stft_analysis_band_with_ridge.png",
+      "bytes": 385956,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "f6a22b04fa9520743819299e2ccbb6425ad1db55ea3c4b11c93be7bb2da76d22",
+      "average_hash": "ffff807f805f80038383800380038003830387c383c3804380338013c017ffff"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_2/stft_full_band.png",
+      "bytes": 539720,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "727f87dba82ca1f0b09ec22b20e787400b3ca3644bbf1ec7b93377d2dd1a9ea4",
+      "average_hash": "ffff8003800380038003800380038003800380038003800380038003c7f7ffff"
+    },
+    {
+      "path": "presentations/data/完整时间轴.png",
+      "bytes": 171567,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "1037d034aa40e3cb054f8fe8fc6021692fe36d4576afbfaa91f92e78ac972d8c",
+      "average_hash": "000000ff00fd8ffd7ffd7ffd7ffd7ffd7efb7fff7ffbffff7ff3ffff00008008"
+    },
+    {
+      "path": "presentations/data/完整频谱图.png",
+      "bytes": 608509,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "5c30f36b2088fe6d396db0aaa5c26c3da08abb45d9e768eba83c22d1959d8946",
+      "average_hash": "ffff800380038003800380038003800380038003800380038003800387f7ffff"
+    },
+    {
+      "path": "presentations/data/新软件速度时间图.png",
+      "bytes": 129297,
+      "width": 2420,
+      "height": 1430,
+      "aspect_ratio": 1.6923,
+      "mode": "RGBA",
+      "sha256": "06f81d2df8d7b0e0bc50b05fe5e9ca271261229df43c09ed0f990f4eb19ee9e1",
+      "average_hash": "000080e702ff7fff7fff7fff7fff7fff7fff7ffe7fff7fff7fffffff0000d40a"
+    },
+    {
+      "path": "presentations/data/旧软件速度时间图.png",
+      "bytes": 22874,
+      "width": 1940,
+      "height": 1396,
+      "aspect_ratio": 1.3897,
+      "mode": "RGBA",
+      "sha256": "95295f638c2d9cd976a498f5cfade22f78d0221e9fd20db10ede1a0a325d5a8d",
+      "average_hash": "00003f0c3ffe3ffe7ffe3ffe7ffe3ffe3ffe7ffc3ffc7ffe3ffe7ffe3efc0000"
+    }
+  ],
+  "csvs": [
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_refined_ridge_velocity.csv",
+      "bytes": 120326,
+      "encoding": "utf-8-sig",
+      "row_count": 620,
+      "column_count": 19,
+      "header": [
+        "channel_name",
+        "window_name",
+        "window_length_samples",
+        "overlap_samples",
+        "hop_samples",
+        "nfft",
+        "time_absolute_s",
+        "time_relative_s",
+        "quality_flag",
+        "refinement_status",
+        "discrete_frequency_bin_index",
+        "discrete_frequency_hz",
+        "refined_frequency_hz",
+        "frequency_bin_offset",
+        "peak_magnitude",
+        "discrete_apparent_velocity_m_s",
+        "refined_apparent_velocity_m_s",
+        "display_velocity_m_s",
+        "velocity_origin"
+      ],
+      "numeric_summary": {
+        "window_length_samples": {
+          "count": 620,
+          "min": 768.0,
+          "max": 768.0,
+          "mean": 768.0
+        },
+        "overlap_samples": {
+          "count": 620,
+          "min": 640.0,
+          "max": 640.0,
+          "mean": 640.0
+        },
+        "hop_samples": {
+          "count": 620,
+          "min": 128.0,
+          "max": 128.0,
+          "mean": 128.0
+        },
+        "nfft": {
+          "count": 620,
+          "min": 4096.0,
+          "max": 4096.0,
+          "mean": 4096.0
+        },
+        "time_absolute_s": {
+          "count": 620,
+          "min": 0.0005539698542600033,
+          "max": 0.0005559506542606788,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_s": {
+          "count": 620,
+          "min": -6.981457399967165e-07,
+          "max": 1.282654260678748e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "discrete_frequency_bin_index": {
+          "count": 620,
+          "min": -1.0,
+          "max": 76.0,
+          "mean": 24.864516129032257
+        },
+        "discrete_frequency_hz": {
+          "count": 244,
+          "min": 273437499.9067562,
+          "max": 742187499.7469097,
+          "mean": 632044057.1615185
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 272957881.8181949,
+          "max": 739374495.7379495,
+          "mean": 631738617.146734
+        },
+        "frequency_bin_offset": {
+          "count": 244,
+          "min": -0.49833088975109374,
+          "max": 0.4982078178077907,
+          "mean": -0.0312770575245968
+        },
+        "peak_magnitude": {
+          "count": 244,
+          "min": 0.0005559252082899487,
+          "max": 0.03694031686651519,
+          "mean": 0.02474790939936858
+        },
+        "discrete_apparent_velocity_m_s": {
+          "count": 244,
+          "min": 211.91406242773607,
+          "max": 575.1953123038551,
+          "mean": 489.83414430017683
+        },
+        "refined_apparent_velocity_m_s": {
+          "count": 244,
+          "min": 211.54235840910107,
+          "max": 573.0152341969108,
+          "mean": 489.5974282887188
+        },
+        "display_velocity_m_s": {
+          "count": 463,
+          "min": 0.0,
+          "max": 573.0152341969108,
+          "mean": 258.0167872623054
+        }
+      },
+      "sha256": "49f7f54b98f7970e722c1208fe2d5c091240315e55a1e72dea10b7166a673b66"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_related_frequency_evidence.csv",
+      "bytes": 356173,
+      "encoding": "utf-8-sig",
+      "row_count": 620,
+      "column_count": 34,
+      "header": [
+        "channel_name",
+        "time_s",
+        "time_relative_to_ridge_start_s",
+        "ridge_quality_flag",
+        "refinement_status",
+        "spectral_assessment_status",
+        "double_frequency_status",
+        "half_frequency_status",
+        "discrete_frequency_bin_index",
+        "refined_frequency_hz",
+        "main_peak_magnitude",
+        "double_frequency_target_hz",
+        "double_frequency_peak_hz",
+        "double_frequency_peak_magnitude",
+        "double_frequency_peak_offset_hz",
+        "main_to_double_frequency_db",
+        "half_frequency_target_hz",
+        "half_frequency_peak_hz",
+        "half_frequency_peak_magnitude",
+        "half_frequency_peak_offset_hz",
+        "main_to_half_frequency_db",
+        "related_search_half_width_hz",
+        "window_name",
+        "window_length_samples",
+        "overlap_samples",
+        "hop_samples",
+        "nfft",
+        "sample_rate_hz",
+        "search_minimum_frequency_hz",
+        "search_maximum_frequency_hz",
+        "event_start_time_s",
+        "analysis_end_time_s",
+        "evidence_method",
+        "source_path"
+      ],
+      "numeric_summary": {
+        "time_s": {
+          "count": 620,
+          "min": 0.0005539698542600033,
+          "max": 0.0005559506542606788,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_to_ridge_start_s": {
+          "count": 620,
+          "min": -6.981457399967165e-07,
+          "max": 1.282654260678748e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "discrete_frequency_bin_index": {
+          "count": 620,
+          "min": -1.0,
+          "max": 76.0,
+          "mean": 24.864516129032257
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 272957881.8181949,
+          "max": 739374495.7379495,
+          "mean": 631738617.146734
+        },
+        "main_peak_magnitude": {
+          "count": 244,
+          "min": 0.0005559252082899487,
+          "max": 0.03694031686651519,
+          "mean": 0.02474790939936858
+        },
+        "double_frequency_target_hz": {
+          "count": 244,
+          "min": 545915763.6363899,
+          "max": 1478748991.475899,
+          "mean": 1263477234.293468
+        },
+        "double_frequency_peak_hz": {
+          "count": 244,
+          "min": 546874999.8135124,
+          "max": 1474609374.4971495,
+          "mean": 1265448898.1340482
+        },
+        "double_frequency_peak_magnitude": {
+          "count": 244,
+          "min": 0.00018313904936211734,
+          "max": 0.008816353178450542,
+          "mean": 0.004730002450695902
+        },
+        "double_frequency_peak_offset_hz": {
+          "count": 244,
+          "min": -8648739.758972526,
+          "max": 40333586.186247945,
+          "mean": 1971663.8405802865
+        },
+        "main_to_double_frequency_db": {
+          "count": 244,
+          "min": 5.32836036933082,
+          "max": 21.3448189030144,
+          "mean": 13.84472176290058
+        },
+        "half_frequency_target_hz": {
+          "count": 244,
+          "min": 136478940.90909746,
+          "max": 369687247.86897475,
+          "mean": 315869308.573367
+        },
+        "half_frequency_peak_hz": {
+          "count": 244,
+          "min": 107421874.9633685,
+          "max": 410156249.8601343,
+          "mean": 328869428.6788372
+        },
+        "half_frequency_peak_magnitude": {
+          "count": 244,
+          "min": 2.526490141059438e-05,
+          "max": 0.0005908722741635912,
+          "mean": 6.716504963807987e-05
+        },
+        "half_frequency_peak_offset_hz": {
+          "count": 244,
+          "min": -51962396.653520286,
+          "max": 52048083.29580319,
+          "mean": 13000120.105470218
+        },
+        "main_to_half_frequency_db": {
+          "count": 244,
+          "min": 16.9354299853223,
+          "max": 62.424823754069145,
+          "mean": 48.063794925900766
+        },
+        "related_search_half_width_hz": {
+          "count": 620,
+          "min": 52083333.31557261,
+          "max": 52083333.31557261,
+          "mean": 52083333.31557261
+        },
+        "window_length_samples": {
+          "count": 620,
+          "min": 768.0,
+          "max": 768.0,
+          "mean": 768.0
+        },
+        "overlap_samples": {
+          "count": 620,
+          "min": 640.0,
+          "max": 640.0,
+          "mean": 640.0
+        },
+        "hop_samples": {
+          "count": 620,
+          "min": 128.0,
+          "max": 128.0,
+          "mean": 128.0
+        },
+        "nfft": {
+          "count": 620,
+          "min": 4096.0,
+          "max": 4096.0,
+          "mean": 4096.0
+        },
+        "sample_rate_hz": {
+          "count": 620,
+          "min": 39999999986.359764,
+          "max": 39999999986.359764,
+          "mean": 39999999986.359764
+        },
+        "search_minimum_frequency_hz": {
+          "count": 620,
+          "min": 100000000.0,
+          "max": 100000000.0,
+          "mean": 100000000.0
+        },
+        "search_maximum_frequency_hz": {
+          "count": 620,
+          "min": 2000000000.0,
+          "max": 2000000000.0,
+          "mean": 2000000000.0
+        },
+        "event_start_time_s": {
+          "count": 620,
+          "min": 0.000554668,
+          "max": 0.000554668,
+          "mean": 0.000554668
+        },
+        "analysis_end_time_s": {
+          "count": 620,
+          "min": 0.00055545,
+          "max": 0.00055545,
+          "mean": 0.00055545
+        }
+      },
+      "sha256": "28ce5f641d150331390457af301c649891bcb5a4a4fd6da88bc57052836b6b39"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_ridge_continuity.csv",
+      "bytes": 313241,
+      "encoding": "utf-8-sig",
+      "row_count": 620,
+      "column_count": 25,
+      "header": [
+        "channel_name",
+        "time_s",
+        "time_relative_to_ridge_start_s",
+        "ridge_quality_flag",
+        "refinement_status",
+        "continuity_status",
+        "refined_frequency_hz",
+        "previous_refined_frequency_hz",
+        "frame_interval_s",
+        "frequency_step_hz",
+        "absolute_frequency_step_hz",
+        "frequency_slope_hz_s",
+        "frequency_second_difference_hz",
+        "window_name",
+        "window_length_samples",
+        "overlap_samples",
+        "hop_samples",
+        "nfft",
+        "sample_rate_hz",
+        "search_minimum_frequency_hz",
+        "search_maximum_frequency_hz",
+        "event_start_time_s",
+        "analysis_end_time_s",
+        "continuity_method",
+        "source_path"
+      ],
+      "numeric_summary": {
+        "time_s": {
+          "count": 620,
+          "min": 0.0005539698542600033,
+          "max": 0.0005559506542606788,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_to_ridge_start_s": {
+          "count": 620,
+          "min": -6.981457399967165e-07,
+          "max": 1.282654260678748e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 272957881.8181949,
+          "max": 739374495.7379495,
+          "mean": 631738617.146734
+        },
+        "previous_refined_frequency_hz": {
+          "count": 243,
+          "min": 272957881.8181949,
+          "max": 739374495.7379495,
+          "mean": 633140145.7685459
+        },
+        "frame_interval_s": {
+          "count": 243,
+          "min": 3.200000001091219e-09,
+          "max": 3.200000001091219e-09,
+          "mean": 3.200000001091219e-09
+        },
+        "frequency_step_hz": {
+          "count": 243,
+          "min": -21810865.38909185,
+          "max": 9092143.477173686,
+          "mean": -1658219.449102
+        },
+        "absolute_frequency_step_hz": {
+          "count": 243,
+          "min": 10261.843920111656,
+          "max": 21810865.38909185,
+          "mean": 2737138.4489325327
+        },
+        "frequency_slope_hz_s": {
+          "count": 243,
+          "min": -6815895431766942.0,
+          "max": 2841294835647878.5,
+          "mean": -518193577667668.0
+        },
+        "frequency_second_difference_hz": {
+          "count": 242,
+          "min": -4317617.909948468,
+          "max": 8766692.711631238,
+          "mean": -18075.30582462559
+        },
+        "window_length_samples": {
+          "count": 620,
+          "min": 768.0,
+          "max": 768.0,
+          "mean": 768.0
+        },
+        "overlap_samples": {
+          "count": 620,
+          "min": 640.0,
+          "max": 640.0,
+          "mean": 640.0
+        },
+        "hop_samples": {
+          "count": 620,
+          "min": 128.0,
+          "max": 128.0,
+          "mean": 128.0
+        },
+        "nfft": {
+          "count": 620,
+          "min": 4096.0,
+          "max": 4096.0,
+          "mean": 4096.0
+        },
+        "sample_rate_hz": {
+          "count": 620,
+          "min": 39999999986.359764,
+          "max": 39999999986.359764,
+          "mean": 39999999986.359764
+        },
+        "search_minimum_frequency_hz": {
+          "count": 620,
+          "min": 100000000.0,
+          "max": 100000000.0,
+          "mean": 100000000.0
+        },
+        "search_maximum_frequency_hz": {
+          "count": 620,
+          "min": 2000000000.0,
+          "max": 2000000000.0,
+          "mean": 2000000000.0
+        },
+        "event_start_time_s": {
+          "count": 620,
+          "min": 0.000554668,
+          "max": 0.000554668,
+          "mean": 0.000554668
+        },
+        "analysis_end_time_s": {
+          "count": 620,
+          "min": 0.00055545,
+          "max": 0.00055545,
+          "mean": 0.00055545
+        }
+      },
+      "sha256": "446f20e5a2900b44c5e54311c2ab147164ec71391737b0a91896c02262c3849c"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_1_spectral_quality.csv",
+      "bytes": 335619,
+      "encoding": "utf-8-sig",
+      "row_count": 620,
+      "column_count": 29,
+      "header": [
+        "channel_name",
+        "time_s",
+        "time_relative_to_ridge_start_s",
+        "ridge_quality_flag",
+        "refinement_status",
+        "spectral_assessment_status",
+        "discrete_frequency_bin_index",
+        "discrete_frequency_hz",
+        "refined_frequency_hz",
+        "peak_magnitude",
+        "background_median_magnitude",
+        "strongest_competitor_magnitude",
+        "peak_to_background_db",
+        "peak_to_competitor_db",
+        "background_bin_count",
+        "background_exclusion_half_width_hz",
+        "minimum_background_bin_count",
+        "window_name",
+        "window_length_samples",
+        "overlap_samples",
+        "hop_samples",
+        "nfft",
+        "sample_rate_hz",
+        "search_minimum_frequency_hz",
+        "search_maximum_frequency_hz",
+        "event_start_time_s",
+        "analysis_end_time_s",
+        "assessment_method",
+        "source_path"
+      ],
+      "numeric_summary": {
+        "time_s": {
+          "count": 620,
+          "min": 0.0005539698542600033,
+          "max": 0.0005559506542606788,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_to_ridge_start_s": {
+          "count": 620,
+          "min": -6.981457399967165e-07,
+          "max": 1.282654260678748e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "discrete_frequency_bin_index": {
+          "count": 620,
+          "min": -1.0,
+          "max": 76.0,
+          "mean": 24.864516129032257
+        },
+        "discrete_frequency_hz": {
+          "count": 244,
+          "min": 273437499.9067562,
+          "max": 742187499.7469097,
+          "mean": 632044057.1615185
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 272957881.8181949,
+          "max": 739374495.7379495,
+          "mean": 631738617.146734
+        },
+        "peak_magnitude": {
+          "count": 244,
+          "min": 0.0005559252082899487,
+          "max": 0.03694031686651519,
+          "mean": 0.02474790939936858
+        },
+        "background_median_magnitude": {
+          "count": 244,
+          "min": 4.219322582188002e-05,
+          "max": 0.0011471081088903642,
+          "mean": 8.354207370571407e-05
+        },
+        "strongest_competitor_magnitude": {
+          "count": 244,
+          "min": 0.00018313904936211734,
+          "max": 0.008816353178450542,
+          "mean": 0.004742785914085834
+        },
+        "peak_to_background_db": {
+          "count": 244,
+          "min": 20.64088893380415,
+          "max": 56.52196959515466,
+          "mean": 46.63733165544206
+        },
+        "peak_to_competitor_db": {
+          "count": 244,
+          "min": 5.32836036933082,
+          "max": 21.3448189030144,
+          "mean": 13.809664167415075
+        },
+        "background_bin_count": {
+          "count": 620,
+          "min": -1.0,
+          "max": 173.0,
+          "mean": 67.47741935483872
+        },
+        "background_exclusion_half_width_hz": {
+          "count": 620,
+          "min": 104166666.63114522,
+          "max": 104166666.63114522,
+          "mean": 104166666.63114522
+        },
+        "minimum_background_bin_count": {
+          "count": 620,
+          "min": 2.0,
+          "max": 2.0,
+          "mean": 2.0
+        },
+        "window_length_samples": {
+          "count": 620,
+          "min": 768.0,
+          "max": 768.0,
+          "mean": 768.0
+        },
+        "overlap_samples": {
+          "count": 620,
+          "min": 640.0,
+          "max": 640.0,
+          "mean": 640.0
+        },
+        "hop_samples": {
+          "count": 620,
+          "min": 128.0,
+          "max": 128.0,
+          "mean": 128.0
+        },
+        "nfft": {
+          "count": 620,
+          "min": 4096.0,
+          "max": 4096.0,
+          "mean": 4096.0
+        },
+        "sample_rate_hz": {
+          "count": 620,
+          "min": 39999999986.359764,
+          "max": 39999999986.359764,
+          "mean": 39999999986.359764
+        },
+        "search_minimum_frequency_hz": {
+          "count": 620,
+          "min": 100000000.0,
+          "max": 100000000.0,
+          "mean": 100000000.0
+        },
+        "search_maximum_frequency_hz": {
+          "count": 620,
+          "min": 2000000000.0,
+          "max": 2000000000.0,
+          "mean": 2000000000.0
+        },
+        "event_start_time_s": {
+          "count": 620,
+          "min": 0.000554668,
+          "max": 0.000554668,
+          "mean": 0.000554668
+        },
+        "analysis_end_time_s": {
+          "count": 620,
+          "min": 0.00055545,
+          "max": 0.00055545,
+          "mean": 0.00055545
+        }
+      },
+      "sha256": "ef2299b34a96e73ed4fc7e56811da4a41a85b046cbf22930b6f23383254f1c02"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_refined_ridge_velocity.csv",
+      "bytes": 120188,
+      "encoding": "utf-8-sig",
+      "row_count": 620,
+      "column_count": 19,
+      "header": [
+        "channel_name",
+        "window_name",
+        "window_length_samples",
+        "overlap_samples",
+        "hop_samples",
+        "nfft",
+        "time_absolute_s",
+        "time_relative_s",
+        "quality_flag",
+        "refinement_status",
+        "discrete_frequency_bin_index",
+        "discrete_frequency_hz",
+        "refined_frequency_hz",
+        "frequency_bin_offset",
+        "peak_magnitude",
+        "discrete_apparent_velocity_m_s",
+        "refined_apparent_velocity_m_s",
+        "display_velocity_m_s",
+        "velocity_origin"
+      ],
+      "numeric_summary": {
+        "window_length_samples": {
+          "count": 620,
+          "min": 768.0,
+          "max": 768.0,
+          "mean": 768.0
+        },
+        "overlap_samples": {
+          "count": 620,
+          "min": 640.0,
+          "max": 640.0,
+          "mean": 640.0
+        },
+        "hop_samples": {
+          "count": 620,
+          "min": 128.0,
+          "max": 128.0,
+          "mean": 128.0
+        },
+        "nfft": {
+          "count": 620,
+          "min": 4096.0,
+          "max": 4096.0,
+          "mean": 4096.0
+        },
+        "time_absolute_s": {
+          "count": 620,
+          "min": 0.0005539698542600033,
+          "max": 0.0005559506542606788,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_s": {
+          "count": 620,
+          "min": -6.981457399967165e-07,
+          "max": 1.282654260678748e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "discrete_frequency_bin_index": {
+          "count": 620,
+          "min": -1.0,
+          "max": 76.0,
+          "mean": 24.89032258064516
+        },
+        "discrete_frequency_hz": {
+          "count": 244,
+          "min": 273437499.9067562,
+          "max": 742187499.7469097,
+          "mean": 632684426.013759
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 274415501.13529915,
+          "max": 739380154.6913958,
+          "mean": 632395459.2955308
+        },
+        "frequency_bin_offset": {
+          "count": 244,
+          "min": -0.49611397185761874,
+          "max": 0.4998357291976413,
+          "mean": -0.029590191956666005
+        },
+        "peak_magnitude": {
+          "count": 244,
+          "min": 0.007684759673155721,
+          "max": 0.09995681247327999,
+          "mean": 0.07509532358952072
+        },
+        "discrete_apparent_velocity_m_s": {
+          "count": 244,
+          "min": 211.91406242773607,
+          "max": 575.1953123038551,
+          "mean": 490.3304301606633
+        },
+        "refined_apparent_velocity_m_s": {
+          "count": 244,
+          "min": 212.67201337985685,
+          "max": 573.0196198858317,
+          "mean": 490.1064809540364
+        },
+        "display_velocity_m_s": {
+          "count": 463,
+          "min": 0.0,
+          "max": 573.0196198858317,
+          "mean": 258.28505691746193
+        }
+      },
+      "sha256": "19eb2392693c6366fd913f5bcd2d261724ca449e235e41d18fbf46c7185b628b"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_related_frequency_evidence.csv",
+      "bytes": 356058,
+      "encoding": "utf-8-sig",
+      "row_count": 620,
+      "column_count": 34,
+      "header": [
+        "channel_name",
+        "time_s",
+        "time_relative_to_ridge_start_s",
+        "ridge_quality_flag",
+        "refinement_status",
+        "spectral_assessment_status",
+        "double_frequency_status",
+        "half_frequency_status",
+        "discrete_frequency_bin_index",
+        "refined_frequency_hz",
+        "main_peak_magnitude",
+        "double_frequency_target_hz",
+        "double_frequency_peak_hz",
+        "double_frequency_peak_magnitude",
+        "double_frequency_peak_offset_hz",
+        "main_to_double_frequency_db",
+        "half_frequency_target_hz",
+        "half_frequency_peak_hz",
+        "half_frequency_peak_magnitude",
+        "half_frequency_peak_offset_hz",
+        "main_to_half_frequency_db",
+        "related_search_half_width_hz",
+        "window_name",
+        "window_length_samples",
+        "overlap_samples",
+        "hop_samples",
+        "nfft",
+        "sample_rate_hz",
+        "search_minimum_frequency_hz",
+        "search_maximum_frequency_hz",
+        "event_start_time_s",
+        "analysis_end_time_s",
+        "evidence_method",
+        "source_path"
+      ],
+      "numeric_summary": {
+        "time_s": {
+          "count": 620,
+          "min": 0.0005539698542600033,
+          "max": 0.0005559506542606788,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_to_ridge_start_s": {
+          "count": 620,
+          "min": -6.981457399967165e-07,
+          "max": 1.282654260678748e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "discrete_frequency_bin_index": {
+          "count": 620,
+          "min": -1.0,
+          "max": 76.0,
+          "mean": 24.89032258064516
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 274415501.13529915,
+          "max": 739380154.6913958,
+          "mean": 632395459.2955308
+        },
+        "main_peak_magnitude": {
+          "count": 244,
+          "min": 0.007684759673155721,
+          "max": 0.09995681247327999,
+          "mean": 0.07509532358952072
+        },
+        "double_frequency_target_hz": {
+          "count": 244,
+          "min": 548831002.2705983,
+          "max": 1478760309.3827915,
+          "mean": 1264790918.5910616
+        },
+        "double_frequency_peak_hz": {
+          "count": 244,
+          "min": 546874999.8135124,
+          "max": 1474609374.4971495,
+          "mean": 1265448898.1340482
+        },
+        "double_frequency_peak_magnitude": {
+          "count": 244,
+          "min": 0.0009356737105304181,
+          "max": 0.011500231277238683,
+          "mean": 0.006731126137535521
+        },
+        "double_frequency_peak_offset_hz": {
+          "count": 244,
+          "min": -14234061.556892276,
+          "max": 33777442.1622839,
+          "mean": 657979.5429865825
+        },
+        "main_to_double_frequency_db": {
+          "count": 244,
+          "min": 14.18971025284607,
+          "max": 28.497238557042884,
+          "mean": 21.087953721750353
+        },
+        "half_frequency_target_hz": {
+          "count": 244,
+          "min": 137207750.56764957,
+          "max": 369690077.3456979,
+          "mean": 316197729.6477654
+        },
+        "half_frequency_peak_hz": {
+          "count": 244,
+          "min": 156249999.94671783,
+          "max": 419921874.8568042,
+          "mean": 332911757.05860627
+        },
+        "half_frequency_peak_magnitude": {
+          "count": 244,
+          "min": 6.099457171134286e-05,
+          "max": 0.014081164842202093,
+          "mean": 0.0003888523595311537
+        },
+        "half_frequency_peak_offset_hz": {
+          "count": 244,
+          "min": -50987624.43206316,
+          "max": 51990293.15578291,
+          "mean": 16714027.410840875
+        },
+        "main_to_half_frequency_db": {
+          "count": 244,
+          "min": 12.127858821039696,
+          "max": 63.38150541679292,
+          "mean": 48.91364395547626
+        },
+        "related_search_half_width_hz": {
+          "count": 620,
+          "min": 52083333.31557261,
+          "max": 52083333.31557261,
+          "mean": 52083333.31557261
+        },
+        "window_length_samples": {
+          "count": 620,
+          "min": 768.0,
+          "max": 768.0,
+          "mean": 768.0
+        },
+        "overlap_samples": {
+          "count": 620,
+          "min": 640.0,
+          "max": 640.0,
+          "mean": 640.0
+        },
+        "hop_samples": {
+          "count": 620,
+          "min": 128.0,
+          "max": 128.0,
+          "mean": 128.0
+        },
+        "nfft": {
+          "count": 620,
+          "min": 4096.0,
+          "max": 4096.0,
+          "mean": 4096.0
+        },
+        "sample_rate_hz": {
+          "count": 620,
+          "min": 39999999986.359764,
+          "max": 39999999986.359764,
+          "mean": 39999999986.359764
+        },
+        "search_minimum_frequency_hz": {
+          "count": 620,
+          "min": 100000000.0,
+          "max": 100000000.0,
+          "mean": 100000000.0
+        },
+        "search_maximum_frequency_hz": {
+          "count": 620,
+          "min": 2000000000.0,
+          "max": 2000000000.0,
+          "mean": 2000000000.0
+        },
+        "event_start_time_s": {
+          "count": 620,
+          "min": 0.000554668,
+          "max": 0.000554668,
+          "mean": 0.000554668
+        },
+        "analysis_end_time_s": {
+          "count": 620,
+          "min": 0.00055545,
+          "max": 0.00055545,
+          "mean": 0.00055545
+        }
+      },
+      "sha256": "1902c2426932a4a9718f718a0e7dfb445b1ccc030b9915454b3a4f7fec8da4f8"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_ridge_continuity.csv",
+      "bytes": 313303,
+      "encoding": "utf-8-sig",
+      "row_count": 620,
+      "column_count": 25,
+      "header": [
+        "channel_name",
+        "time_s",
+        "time_relative_to_ridge_start_s",
+        "ridge_quality_flag",
+        "refinement_status",
+        "continuity_status",
+        "refined_frequency_hz",
+        "previous_refined_frequency_hz",
+        "frame_interval_s",
+        "frequency_step_hz",
+        "absolute_frequency_step_hz",
+        "frequency_slope_hz_s",
+        "frequency_second_difference_hz",
+        "window_name",
+        "window_length_samples",
+        "overlap_samples",
+        "hop_samples",
+        "nfft",
+        "sample_rate_hz",
+        "search_minimum_frequency_hz",
+        "search_maximum_frequency_hz",
+        "event_start_time_s",
+        "analysis_end_time_s",
+        "continuity_method",
+        "source_path"
+      ],
+      "numeric_summary": {
+        "time_s": {
+          "count": 620,
+          "min": 0.0005539698542600033,
+          "max": 0.0005559506542606788,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_to_ridge_start_s": {
+          "count": 620,
+          "min": -6.981457399967165e-07,
+          "max": 1.282654260678748e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 274415501.13529915,
+          "max": 739380154.6913958,
+          "mean": 632395459.2955308
+        },
+        "previous_refined_frequency_hz": {
+          "count": 243,
+          "min": 274415501.13529915,
+          "max": 739380154.6913958,
+          "mean": 633805324.5336865
+        },
+        "frame_interval_s": {
+          "count": 243,
+          "min": 3.200000001091219e-09,
+          "max": 3.200000001091219e-09,
+          "mean": 3.200000001091219e-09
+        },
+        "frequency_step_hz": {
+          "count": 243,
+          "min": -17509969.75472051,
+          "max": 13720855.634876966,
+          "mean": -1631432.3961127666
+        },
+        "absolute_frequency_step_hz": {
+          "count": 243,
+          "min": 8066.184160590172,
+          "max": 17509969.75472051,
+          "mean": 2727839.6246266
+        },
+        "frequency_slope_hz_s": {
+          "count": 243,
+          "min": -5471865546484221.0,
+          "max": 4287767384436898.0,
+          "mean": -509822623611387.0
+        },
+        "frequency_second_difference_hz": {
+          "count": 242,
+          "min": -6058555.288937449,
+          "max": 3962923.5122492313,
+          "mean": -57249.89643566421
+        },
+        "window_length_samples": {
+          "count": 620,
+          "min": 768.0,
+          "max": 768.0,
+          "mean": 768.0
+        },
+        "overlap_samples": {
+          "count": 620,
+          "min": 640.0,
+          "max": 640.0,
+          "mean": 640.0
+        },
+        "hop_samples": {
+          "count": 620,
+          "min": 128.0,
+          "max": 128.0,
+          "mean": 128.0
+        },
+        "nfft": {
+          "count": 620,
+          "min": 4096.0,
+          "max": 4096.0,
+          "mean": 4096.0
+        },
+        "sample_rate_hz": {
+          "count": 620,
+          "min": 39999999986.359764,
+          "max": 39999999986.359764,
+          "mean": 39999999986.359764
+        },
+        "search_minimum_frequency_hz": {
+          "count": 620,
+          "min": 100000000.0,
+          "max": 100000000.0,
+          "mean": 100000000.0
+        },
+        "search_maximum_frequency_hz": {
+          "count": 620,
+          "min": 2000000000.0,
+          "max": 2000000000.0,
+          "mean": 2000000000.0
+        },
+        "event_start_time_s": {
+          "count": 620,
+          "min": 0.000554668,
+          "max": 0.000554668,
+          "mean": 0.000554668
+        },
+        "analysis_end_time_s": {
+          "count": 620,
+          "min": 0.00055545,
+          "max": 0.00055545,
+          "mean": 0.00055545
+        }
+      },
+      "sha256": "2cc1b6e26edc604c9e9e486c39e61235a415fc28842121e7cf87a4cda261be3d"
+    },
+    {
+      "path": "presentations/data/balanced_diagnostic/pdv_channel_2_spectral_quality.csv",
+      "bytes": 335530,
+      "encoding": "utf-8-sig",
+      "row_count": 620,
+      "column_count": 29,
+      "header": [
+        "channel_name",
+        "time_s",
+        "time_relative_to_ridge_start_s",
+        "ridge_quality_flag",
+        "refinement_status",
+        "spectral_assessment_status",
+        "discrete_frequency_bin_index",
+        "discrete_frequency_hz",
+        "refined_frequency_hz",
+        "peak_magnitude",
+        "background_median_magnitude",
+        "strongest_competitor_magnitude",
+        "peak_to_background_db",
+        "peak_to_competitor_db",
+        "background_bin_count",
+        "background_exclusion_half_width_hz",
+        "minimum_background_bin_count",
+        "window_name",
+        "window_length_samples",
+        "overlap_samples",
+        "hop_samples",
+        "nfft",
+        "sample_rate_hz",
+        "search_minimum_frequency_hz",
+        "search_maximum_frequency_hz",
+        "event_start_time_s",
+        "analysis_end_time_s",
+        "assessment_method",
+        "source_path"
+      ],
+      "numeric_summary": {
+        "time_s": {
+          "count": 620,
+          "min": 0.0005539698542600033,
+          "max": 0.0005559506542606788,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_to_ridge_start_s": {
+          "count": 620,
+          "min": -6.981457399967165e-07,
+          "max": 1.282654260678748e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "discrete_frequency_bin_index": {
+          "count": 620,
+          "min": -1.0,
+          "max": 76.0,
+          "mean": 24.89032258064516
+        },
+        "discrete_frequency_hz": {
+          "count": 244,
+          "min": 273437499.9067562,
+          "max": 742187499.7469097,
+          "mean": 632684426.013759
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 274415501.13529915,
+          "max": 739380154.6913958,
+          "mean": 632395459.2955308
+        },
+        "peak_magnitude": {
+          "count": 244,
+          "min": 0.007684759673155721,
+          "max": 0.09995681247327999,
+          "mean": 0.07509532358952072
+        },
+        "background_median_magnitude": {
+          "count": 244,
+          "min": 7.921162124705498e-05,
+          "max": 0.0020667534844159463,
+          "mean": 0.00016536642513007336
+        },
+        "strongest_competitor_magnitude": {
+          "count": 244,
+          "min": 0.0009356737105304181,
+          "max": 0.019060905985771034,
+          "mean": 0.006921200074856543
+        },
+        "peak_to_background_db": {
+          "count": 244,
+          "min": 28.79485690356374,
+          "max": 59.460524183442956,
+          "mean": 52.7460181885603
+        },
+        "peak_to_competitor_db": {
+          "count": 244,
+          "min": 9.497759687713195,
+          "max": 27.362493981517453,
+          "mean": 20.749271512308134
+        },
+        "background_bin_count": {
+          "count": 620,
+          "min": -1.0,
+          "max": 173.0,
+          "mean": 67.47741935483872
+        },
+        "background_exclusion_half_width_hz": {
+          "count": 620,
+          "min": 104166666.63114522,
+          "max": 104166666.63114522,
+          "mean": 104166666.63114522
+        },
+        "minimum_background_bin_count": {
+          "count": 620,
+          "min": 2.0,
+          "max": 2.0,
+          "mean": 2.0
+        },
+        "window_length_samples": {
+          "count": 620,
+          "min": 768.0,
+          "max": 768.0,
+          "mean": 768.0
+        },
+        "overlap_samples": {
+          "count": 620,
+          "min": 640.0,
+          "max": 640.0,
+          "mean": 640.0
+        },
+        "hop_samples": {
+          "count": 620,
+          "min": 128.0,
+          "max": 128.0,
+          "mean": 128.0
+        },
+        "nfft": {
+          "count": 620,
+          "min": 4096.0,
+          "max": 4096.0,
+          "mean": 4096.0
+        },
+        "sample_rate_hz": {
+          "count": 620,
+          "min": 39999999986.359764,
+          "max": 39999999986.359764,
+          "mean": 39999999986.359764
+        },
+        "search_minimum_frequency_hz": {
+          "count": 620,
+          "min": 100000000.0,
+          "max": 100000000.0,
+          "mean": 100000000.0
+        },
+        "search_maximum_frequency_hz": {
+          "count": 620,
+          "min": 2000000000.0,
+          "max": 2000000000.0,
+          "mean": 2000000000.0
+        },
+        "event_start_time_s": {
+          "count": 620,
+          "min": 0.000554668,
+          "max": 0.000554668,
+          "mean": 0.000554668
+        },
+        "analysis_end_time_s": {
+          "count": 620,
+          "min": 0.00055545,
+          "max": 0.00055545,
+          "mean": 0.00055545
+        }
+      },
+      "sha256": "2ec3139bac708ccd8c34ea83c3276d58a01ff118bd12c83fce1d0dcc8d465278"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/apparent_velocity.csv",
+      "bytes": 215352,
+      "encoding": "utf-8-sig",
+      "row_count": 620,
+      "column_count": 27,
+      "header": [
+        "time_s",
+        "time_relative_to_event_s",
+        "discrete_frequency_hz",
+        "refined_frequency_hz",
+        "discrete_apparent_velocity_m_s",
+        "apparent_velocity_m_s",
+        "display_velocity_m_s",
+        "velocity_origin",
+        "quality_flag",
+        "refinement_status",
+        "peak_magnitude",
+        "frequency_bin_offset",
+        "peak_to_background_db",
+        "peak_to_competitor_db",
+        "spectral_assessment_status",
+        "background_median_magnitude",
+        "strongest_competitor_magnitude",
+        "background_bin_count",
+        "continuity_status",
+        "frequency_step_hz",
+        "frequency_slope_hz_s",
+        "preview_frequency_hz",
+        "preview_apparent_velocity_m_s",
+        "preview_velocity_origin",
+        "preview_quality_flag",
+        "preview_uses_refined_frequency",
+        "preview_is_formal_candidate"
+      ],
+      "numeric_summary": {
+        "time_s": {
+          "count": 620,
+          "min": 0.0005539698542600033,
+          "max": 0.0005559506542606788,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_to_event_s": {
+          "count": 620,
+          "min": -6.981457399967165e-07,
+          "max": 1.282654260678748e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "discrete_frequency_hz": {
+          "count": 244,
+          "min": 273437499.9067562,
+          "max": 742187499.7469097,
+          "mean": 632044057.1615185
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 272957881.8181949,
+          "max": 739374495.7379495,
+          "mean": 631738617.146734
+        },
+        "discrete_apparent_velocity_m_s": {
+          "count": 244,
+          "min": 211.91406242773607,
+          "max": 575.1953123038551,
+          "mean": 489.83414430017683
+        },
+        "apparent_velocity_m_s": {
+          "count": 244,
+          "min": 211.54235840910107,
+          "max": 573.0152341969108,
+          "mean": 489.5974282887188
+        },
+        "display_velocity_m_s": {
+          "count": 463,
+          "min": 0.0,
+          "max": 573.0152341969108,
+          "mean": 258.0167872623054
+        },
+        "peak_magnitude": {
+          "count": 244,
+          "min": 0.0005559252082899487,
+          "max": 0.03694031686651519,
+          "mean": 0.02474790939936858
+        },
+        "frequency_bin_offset": {
+          "count": 244,
+          "min": -0.49833088975109374,
+          "max": 0.4982078178077907,
+          "mean": -0.0312770575245968
+        },
+        "peak_to_background_db": {
+          "count": 244,
+          "min": 20.640825064100685,
+          "max": 56.51496537417877,
+          "mean": 46.57366277285096
+        },
+        "peak_to_competitor_db": {
+          "count": 244,
+          "min": 5.32836036933082,
+          "max": 21.3448189030144,
+          "mean": 13.809664167415075
+        },
+        "background_median_magnitude": {
+          "count": 244,
+          "min": 4.2258120798757323e-05,
+          "max": 0.0011252421769255671,
+          "mean": 8.42266546646854e-05
+        },
+        "strongest_competitor_magnitude": {
+          "count": 244,
+          "min": 0.00018313904936211734,
+          "max": 0.008816353178450542,
+          "mean": 0.004742785914085834
+        },
+        "background_bin_count": {
+          "count": 620,
+          "min": -1.0,
+          "max": 178.0,
+          "mean": 69.44516129032257
+        },
+        "frequency_step_hz": {
+          "count": 243,
+          "min": -21810865.38909185,
+          "max": 9092143.477173686,
+          "mean": -1658219.449102
+        },
+        "frequency_slope_hz_s": {
+          "count": 243,
+          "min": -6815895431766942.0,
+          "max": 2841294835647878.5,
+          "mean": -518193577667668.0
+        },
+        "preview_frequency_hz": {
+          "count": 620,
+          "min": 58593749.98001918,
+          "max": 1972656249.3273125,
+          "mean": 674479718.7399455
+        },
+        "preview_apparent_velocity_m_s": {
+          "count": 620,
+          "min": 45.410156234514865,
+          "max": 1528.8085932286672,
+          "mean": 522.7217820234578
+        }
+      },
+      "sha256": "c86bd791ccba767c0b73fb1ea819d53fa652848c8e538f5ce2b7c6666d4143fc"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_2/apparent_velocity.csv",
+      "bytes": 215291,
+      "encoding": "utf-8-sig",
+      "row_count": 620,
+      "column_count": 27,
+      "header": [
+        "time_s",
+        "time_relative_to_event_s",
+        "discrete_frequency_hz",
+        "refined_frequency_hz",
+        "discrete_apparent_velocity_m_s",
+        "apparent_velocity_m_s",
+        "display_velocity_m_s",
+        "velocity_origin",
+        "quality_flag",
+        "refinement_status",
+        "peak_magnitude",
+        "frequency_bin_offset",
+        "peak_to_background_db",
+        "peak_to_competitor_db",
+        "spectral_assessment_status",
+        "background_median_magnitude",
+        "strongest_competitor_magnitude",
+        "background_bin_count",
+        "continuity_status",
+        "frequency_step_hz",
+        "frequency_slope_hz_s",
+        "preview_frequency_hz",
+        "preview_apparent_velocity_m_s",
+        "preview_velocity_origin",
+        "preview_quality_flag",
+        "preview_uses_refined_frequency",
+        "preview_is_formal_candidate"
+      ],
+      "numeric_summary": {
+        "time_s": {
+          "count": 620,
+          "min": 0.0005539698542600033,
+          "max": 0.0005559506542606788,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_to_event_s": {
+          "count": 620,
+          "min": -6.981457399967165e-07,
+          "max": 1.282654260678748e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "discrete_frequency_hz": {
+          "count": 244,
+          "min": 273437499.9067562,
+          "max": 742187499.7469097,
+          "mean": 632684426.013759
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 274415501.13529915,
+          "max": 739380154.6913958,
+          "mean": 632395459.2955308
+        },
+        "discrete_apparent_velocity_m_s": {
+          "count": 244,
+          "min": 211.91406242773607,
+          "max": 575.1953123038551,
+          "mean": 490.3304301606633
+        },
+        "apparent_velocity_m_s": {
+          "count": 244,
+          "min": 212.67201337985685,
+          "max": 573.0196198858317,
+          "mean": 490.1064809540364
+        },
+        "display_velocity_m_s": {
+          "count": 463,
+          "min": 0.0,
+          "max": 573.0196198858317,
+          "mean": 258.28505691746193
+        },
+        "peak_magnitude": {
+          "count": 244,
+          "min": 0.007684759673155721,
+          "max": 0.09995681247327999,
+          "mean": 0.07509532358952072
+        },
+        "frequency_bin_offset": {
+          "count": 244,
+          "min": -0.49611397185761874,
+          "max": 0.4998357291976413,
+          "mean": -0.029590191956666005
+        },
+        "peak_to_background_db": {
+          "count": 244,
+          "min": 29.565823004090873,
+          "max": 59.285786323123304,
+          "mean": 52.74753643162566
+        },
+        "peak_to_competitor_db": {
+          "count": 244,
+          "min": 9.497759687713195,
+          "max": 27.362493981517453,
+          "mean": 20.749271512308134
+        },
+        "background_median_magnitude": {
+          "count": 244,
+          "min": 7.936059372267245e-05,
+          "max": 0.001954094564587765,
+          "mean": 0.0001643104962905459
+        },
+        "strongest_competitor_magnitude": {
+          "count": 244,
+          "min": 0.0009356737105304181,
+          "max": 0.019060905985771034,
+          "mean": 0.006921200074856543
+        },
+        "background_bin_count": {
+          "count": 620,
+          "min": -1.0,
+          "max": 178.0,
+          "mean": 69.44516129032257
+        },
+        "frequency_step_hz": {
+          "count": 243,
+          "min": -17509969.75472051,
+          "max": 13720855.634876966,
+          "mean": -1631432.3961127666
+        },
+        "frequency_slope_hz_s": {
+          "count": 243,
+          "min": -5471865546484221.0,
+          "max": 4287767384436898.0,
+          "mean": -509822623611387.0
+        },
+        "preview_frequency_hz": {
+          "count": 620,
+          "min": 58593749.98001918,
+          "max": 1992187499.3206522,
+          "mean": 452995526.45153916
+        },
+        "preview_apparent_velocity_m_s": {
+          "count": 620,
+          "min": 45.410156234514865,
+          "max": 1543.9453119735056,
+          "mean": 351.07153299994286
+        }
+      },
+      "sha256": "8dac60292dad2b8958c43e0ac278159d8704d3e882e658701bd4eb7ad97a923d"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/quality_summary.csv",
+      "bytes": 1524,
+      "encoding": "utf-8-sig",
+      "row_count": 2,
+      "column_count": 24,
+      "header": [
+        "channel_name",
+        "profile_id",
+        "total_frame_count",
+        "pre_event_frame_count",
+        "candidate_frame_count",
+        "outside_frame_count",
+        "refined_frame_count",
+        "first_candidate_time_relative_s",
+        "first_candidate_discrete_frequency_hz",
+        "first_candidate_refined_frequency_hz",
+        "first_candidate_apparent_velocity_m_s",
+        "first_candidate_peak_magnitude",
+        "first_candidate_peak_to_background_db",
+        "first_candidate_peak_to_competitor_db",
+        "minimum_candidate_refined_frequency_hz",
+        "minimum_candidate_apparent_velocity_m_s",
+        "peak_to_background_db_median",
+        "peak_to_background_db_p05",
+        "peak_to_competitor_db_median",
+        "peak_to_competitor_db_p05",
+        "finite_continuity_step_count",
+        "maximum_absolute_frequency_step_hz",
+        "source_path",
+        "source_sha256"
+      ],
+      "numeric_summary": {
+        "total_frame_count": {
+          "count": 2,
+          "min": 620.0,
+          "max": 620.0,
+          "mean": 620.0
+        },
+        "pre_event_frame_count": {
+          "count": 2,
+          "min": 219.0,
+          "max": 219.0,
+          "mean": 219.0
+        },
+        "candidate_frame_count": {
+          "count": 2,
+          "min": 244.0,
+          "max": 244.0,
+          "mean": 244.0
+        },
+        "outside_frame_count": {
+          "count": 2,
+          "min": 157.0,
+          "max": 157.0,
+          "mean": 157.0
+        },
+        "refined_frame_count": {
+          "count": 2,
+          "min": 244.0,
+          "max": 244.0,
+          "mean": 244.0
+        },
+        "first_candidate_time_relative_s": {
+          "count": 2,
+          "min": 2.6542602422604047e-09,
+          "max": 2.6542602422604047e-09,
+          "mean": 2.6542602422604047e-09
+        },
+        "first_candidate_discrete_frequency_hz": {
+          "count": 2,
+          "min": 683593749.7668905,
+          "max": 693359374.7635604,
+          "mean": 688476562.2652254
+        },
+        "first_candidate_refined_frequency_hz": {
+          "count": 2,
+          "min": 686236278.6790882,
+          "max": 694114488.1782206,
+          "mean": 690175383.4286544
+        },
+        "first_candidate_apparent_velocity_m_s": {
+          "count": 2,
+          "min": 531.8331159762934,
+          "max": 537.938728338121,
+          "mean": 534.8859221572072
+        },
+        "first_candidate_peak_magnitude": {
+          "count": 2,
+          "min": 0.018099436444237147,
+          "max": 0.05688942230651786,
+          "mean": 0.0374944293753775
+        },
+        "first_candidate_peak_to_background_db": {
+          "count": 2,
+          "min": 24.128381007016095,
+          "max": 29.565823004090873,
+          "mean": 26.847102005553484
+        },
+        "first_candidate_peak_to_competitor_db": {
+          "count": 2,
+          "min": 9.497759687713195,
+          "max": 9.567877043380335,
+          "mean": 9.532818365546765
+        },
+        "minimum_candidate_refined_frequency_hz": {
+          "count": 2,
+          "min": 272957881.8181949,
+          "max": 274415501.13529915,
+          "mean": 273686691.47674704
+        },
+        "minimum_candidate_apparent_velocity_m_s": {
+          "count": 2,
+          "min": 211.54235840910107,
+          "max": 212.67201337985685,
+          "mean": 212.10718589447896
+        },
+        "peak_to_background_db_median": {
+          "count": 2,
+          "min": 52.53007732555437,
+          "max": 55.78441927886544,
+          "mean": 54.15724830220991
+        },
+        "peak_to_background_db_p05": {
+          "count": 2,
+          "min": 23.133344738425535,
+          "max": 37.87199424727852,
+          "mean": 30.50266949285203
+        },
+        "peak_to_competitor_db_median": {
+          "count": 2,
+          "min": 13.295586989225324,
+          "max": 19.880501313078916,
+          "mean": 16.58804415115212
+        },
+        "peak_to_competitor_db_p05": {
+          "count": 2,
+          "min": 7.29455062495641,
+          "max": 16.031458054475358,
+          "mean": 11.663004339715885
+        },
+        "finite_continuity_step_count": {
+          "count": 2,
+          "min": 243.0,
+          "max": 243.0,
+          "mean": 243.0
+        },
+        "maximum_absolute_frequency_step_hz": {
+          "count": 2,
+          "min": 17509969.75472051,
+          "max": 21810865.38909185,
+          "mean": 19660417.57190618
+        }
+      },
+      "sha256": "00f9b221959f22a0d6b9429cc3d67bd9bbb4a86d1ee54036c39c9b4257700610"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_1/apparent_velocity.csv",
+      "bytes": 216029,
+      "encoding": "utf-8-sig",
+      "row_count": 622,
+      "column_count": 27,
+      "header": [
+        "time_s",
+        "time_relative_to_event_s",
+        "discrete_frequency_hz",
+        "refined_frequency_hz",
+        "discrete_apparent_velocity_m_s",
+        "apparent_velocity_m_s",
+        "display_velocity_m_s",
+        "velocity_origin",
+        "quality_flag",
+        "refinement_status",
+        "peak_magnitude",
+        "frequency_bin_offset",
+        "peak_to_background_db",
+        "peak_to_competitor_db",
+        "spectral_assessment_status",
+        "background_median_magnitude",
+        "strongest_competitor_magnitude",
+        "background_bin_count",
+        "continuity_status",
+        "frequency_step_hz",
+        "frequency_slope_hz_s",
+        "preview_frequency_hz",
+        "preview_apparent_velocity_m_s",
+        "preview_velocity_origin",
+        "preview_quality_flag",
+        "preview_uses_refined_frequency",
+        "preview_is_formal_candidate"
+      ],
+      "numeric_summary": {
+        "time_s": {
+          "count": 622,
+          "min": 0.0005539666542600022,
+          "max": 0.0005559538542606799,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_to_event_s": {
+          "count": 622,
+          "min": -7.013457399978077e-07,
+          "max": 1.2858542606798392e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "discrete_frequency_hz": {
+          "count": 244,
+          "min": 273437499.9067562,
+          "max": 742187499.7469097,
+          "mean": 631643826.628868
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 272349780.8948215,
+          "max": 740160060.4425159,
+          "mean": 631621988.9944482
+        },
+        "discrete_apparent_velocity_m_s": {
+          "count": 244,
+          "min": 211.91406242773607,
+          "max": 575.1953123038551,
+          "mean": 489.5239656373727
+        },
+        "apparent_velocity_m_s": {
+          "count": 244,
+          "min": 211.07108019348667,
+          "max": 573.6240468429497,
+          "mean": 489.5070414706973
+        },
+        "display_velocity_m_s": {
+          "count": 464,
+          "min": 0.0,
+          "max": 573.6240468429497,
+          "mean": 257.4131856009701
+        },
+        "peak_magnitude": {
+          "count": 244,
+          "min": 0.0005699729839884765,
+          "max": 0.03721246211700357,
+          "mean": 0.024822673228160834
+        },
+        "frequency_bin_offset": {
+          "count": 244,
+          "min": -0.4999454618830752,
+          "max": 0.49971185012157904,
+          "mean": -0.002236173765359658
+        },
+        "peak_to_background_db": {
+          "count": 244,
+          "min": 17.883551632862105,
+          "max": 51.95926522742489,
+          "mean": 42.46489476917902
+        },
+        "peak_to_competitor_db": {
+          "count": 244,
+          "min": 4.493488206201315,
+          "max": 21.55522262227374,
+          "mean": 13.709783219051694
+        },
+        "background_median_magnitude": {
+          "count": 244,
+          "min": 4.504877203967967e-05,
+          "max": 0.0014844818688490421,
+          "mean": 0.0001335429093022805
+        },
+        "strongest_competitor_magnitude": {
+          "count": 244,
+          "min": 0.00020416711286364342,
+          "max": 0.00895269769195861,
+          "mean": 0.004772446279033857
+        },
+        "background_bin_count": {
+          "count": 622,
+          "min": -1.0,
+          "max": 168.0,
+          "mean": 65.16398713826366
+        },
+        "frequency_step_hz": {
+          "count": 243,
+          "min": -25026510.212267518,
+          "max": 16273093.233852267,
+          "mean": -1613422.7636782168
+        },
+        "frequency_slope_hz_s": {
+          "count": 243,
+          "min": -7820784438666666.0,
+          "max": 5085341633844702.0,
+          "mean": -504194613477509.44
+        },
+        "preview_frequency_hz": {
+          "count": 622,
+          "min": 58593749.98001918,
+          "max": 1972656249.3273125,
+          "mean": 462241483.55169725
+        },
+        "preview_apparent_velocity_m_s": {
+          "count": 622,
+          "min": 45.410156234514865,
+          "max": 1528.8085932286672,
+          "mean": 358.23714975256536
+        }
+      },
+      "sha256": "8f69f2993f0bf1c2952f89e470dc27853befa9907c6dfb2f6769e3de7ee1df2c"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_2/apparent_velocity.csv",
+      "bytes": 215760,
+      "encoding": "utf-8-sig",
+      "row_count": 622,
+      "column_count": 27,
+      "header": [
+        "time_s",
+        "time_relative_to_event_s",
+        "discrete_frequency_hz",
+        "refined_frequency_hz",
+        "discrete_apparent_velocity_m_s",
+        "apparent_velocity_m_s",
+        "display_velocity_m_s",
+        "velocity_origin",
+        "quality_flag",
+        "refinement_status",
+        "peak_magnitude",
+        "frequency_bin_offset",
+        "peak_to_background_db",
+        "peak_to_competitor_db",
+        "spectral_assessment_status",
+        "background_median_magnitude",
+        "strongest_competitor_magnitude",
+        "background_bin_count",
+        "continuity_status",
+        "frequency_step_hz",
+        "frequency_slope_hz_s",
+        "preview_frequency_hz",
+        "preview_apparent_velocity_m_s",
+        "preview_velocity_origin",
+        "preview_quality_flag",
+        "preview_uses_refined_frequency",
+        "preview_is_formal_candidate"
+      ],
+      "numeric_summary": {
+        "time_s": {
+          "count": 622,
+          "min": 0.0005539666542600022,
+          "max": 0.0005559538542606799,
+          "mean": 0.000554960254260341
+        },
+        "time_relative_to_event_s": {
+          "count": 622,
+          "min": -7.013457399978077e-07,
+          "max": 1.2858542606798392e-06,
+          "mean": 2.922542603410157e-07
+        },
+        "discrete_frequency_hz": {
+          "count": 244,
+          "min": 273437499.9067562,
+          "max": 742187499.7469097,
+          "mean": 632444287.6941688
+        },
+        "refined_frequency_hz": {
+          "count": 244,
+          "min": 274186700.05083036,
+          "max": 740244989.9894366,
+          "mean": 632312662.9849417
+        },
+        "discrete_apparent_velocity_m_s": {
+          "count": 244,
+          "min": 211.91406242773607,
+          "max": 575.1953123038551,
+          "mean": 490.1443229629808
+        },
+        "apparent_velocity_m_s": {
+          "count": 244,
+          "min": 212.49469253939353,
+          "max": 573.6898672418134,
+          "mean": 490.0423138133298
+        },
+        "display_velocity_m_s": {
+          "count": 464,
+          "min": 0.0,
+          "max": 573.6898672418134,
+          "mean": 257.69466502252686
+        },
+        "peak_magnitude": {
+          "count": 244,
+          "min": 0.007567289210947852,
+          "max": 0.10062076926836906,
+          "mean": 0.07537747126418715
+        },
+        "frequency_bin_offset": {
+          "count": 244,
+          "min": -0.49949351597621794,
+          "max": 0.4920758945537943,
+          "mean": -0.013478370229454228
+        },
+        "peak_to_background_db": {
+          "count": 244,
+          "min": 27.390739672794066,
+          "max": 55.17620812766896,
+          "mean": 48.61843821635205
+        },
+        "peak_to_competitor_db": {
+          "count": 244,
+          "min": 7.485473583909585,
+          "max": 28.63415124258362,
+          "mean": 20.933079692531575
+        },
+        "background_median_magnitude": {
+          "count": 244,
+          "min": 9.334099542634191e-05,
+          "max": 0.0026599203284100414,
+          "mean": 0.0002598214714265219
+        },
+        "strongest_competitor_magnitude": {
+          "count": 244,
+          "min": 0.0009347206261689809,
+          "max": 0.026310671544604015,
+          "mean": 0.006898202510473525
+        },
+        "background_bin_count": {
+          "count": 622,
+          "min": -1.0,
+          "max": 168.0,
+          "mean": 65.16237942122187
+        },
+        "frequency_step_hz": {
+          "count": 243,
+          "min": -17743013.474518776,
+          "max": 26358303.948268056,
+          "mean": -1575499.891020218
+        },
+        "frequency_slope_hz_s": {
+          "count": 243,
+          "min": -5544691708896345.0,
+          "max": 8236969981024912.0,
+          "mean": -492343715775925.94
+        },
+        "preview_frequency_hz": {
+          "count": 622,
+          "min": 58593749.98001918,
+          "max": 888671874.6969577,
+          "mean": 382173672.21041226
+        },
+        "preview_apparent_velocity_m_s": {
+          "count": 622,
+          "min": 45.410156234514865,
+          "max": 688.7207028901422,
+          "mean": 296.1845959630695
+        }
+      },
+      "sha256": "eafd62e5d402b2f64fcc3cd26df54675435f336a527ba43b687400860347aa18"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/quality_summary.csv",
+      "bytes": 1553,
+      "encoding": "utf-8-sig",
+      "row_count": 2,
+      "column_count": 24,
+      "header": [
+        "channel_name",
+        "profile_id",
+        "total_frame_count",
+        "pre_event_frame_count",
+        "candidate_frame_count",
+        "outside_frame_count",
+        "refined_frame_count",
+        "first_candidate_time_relative_s",
+        "first_candidate_discrete_frequency_hz",
+        "first_candidate_refined_frequency_hz",
+        "first_candidate_apparent_velocity_m_s",
+        "first_candidate_peak_magnitude",
+        "first_candidate_peak_to_background_db",
+        "first_candidate_peak_to_competitor_db",
+        "minimum_candidate_refined_frequency_hz",
+        "minimum_candidate_apparent_velocity_m_s",
+        "peak_to_background_db_median",
+        "peak_to_background_db_p05",
+        "peak_to_competitor_db_median",
+        "peak_to_competitor_db_p05",
+        "finite_continuity_step_count",
+        "maximum_absolute_frequency_step_hz",
+        "source_path",
+        "source_sha256"
+      ],
+      "numeric_summary": {
+        "total_frame_count": {
+          "count": 2,
+          "min": 622.0,
+          "max": 622.0,
+          "mean": 622.0
+        },
+        "pre_event_frame_count": {
+          "count": 2,
+          "min": 220.0,
+          "max": 220.0,
+          "mean": 220.0
+        },
+        "candidate_frame_count": {
+          "count": 2,
+          "min": 244.0,
+          "max": 244.0,
+          "mean": 244.0
+        },
+        "outside_frame_count": {
+          "count": 2,
+          "min": 158.0,
+          "max": 158.0,
+          "mean": 158.0
+        },
+        "refined_frame_count": {
+          "count": 2,
+          "min": 244.0,
+          "max": 244.0,
+          "mean": 244.0
+        },
+        "first_candidate_time_relative_s": {
+          "count": 2,
+          "min": 2.6542602422604047e-09,
+          "max": 2.6542602422604047e-09,
+          "mean": 2.6542602422604047e-09
+        },
+        "first_candidate_discrete_frequency_hz": {
+          "count": 2,
+          "min": 673828124.7702206,
+          "max": 683593749.7668905,
+          "mean": 678710937.2685556
+        },
+        "first_candidate_refined_frequency_hz": {
+          "count": 2,
+          "min": 672772418.9232436,
+          "max": 686427069.3809656,
+          "mean": 679599744.1521046
+        },
+        "first_candidate_apparent_velocity_m_s": {
+          "count": 2,
+          "min": 521.3986246655138,
+          "max": 531.9809787702483,
+          "mean": 526.689801717881
+        },
+        "first_candidate_peak_magnitude": {
+          "count": 2,
+          "min": 0.019138235167840127,
+          "max": 0.062288175813373314,
+          "mean": 0.040713205490606724
+        },
+        "first_candidate_peak_to_background_db": {
+          "count": 2,
+          "min": 22.206539784870568,
+          "max": 27.390739672794066,
+          "mean": 24.798639728832317
+        },
+        "first_candidate_peak_to_competitor_db": {
+          "count": 2,
+          "min": 7.485473583909585,
+          "max": 9.340179204833014,
+          "mean": 8.412826394371299
+        },
+        "minimum_candidate_refined_frequency_hz": {
+          "count": 2,
+          "min": 272349780.8948215,
+          "max": 274186700.05083036,
+          "mean": 273268240.47282594
+        },
+        "minimum_candidate_apparent_velocity_m_s": {
+          "count": 2,
+          "min": 211.07108019348667,
+          "max": 212.49469253939353,
+          "mean": 211.7828863664401
+        },
+        "peak_to_background_db_median": {
+          "count": 2,
+          "min": 48.08393067867983,
+          "max": 51.11040248881652,
+          "mean": 49.59716658374818
+        },
+        "peak_to_background_db_p05": {
+          "count": 2,
+          "min": 20.777888095711187,
+          "max": 36.24862088544041,
+          "mean": 28.513254490575797
+        },
+        "peak_to_competitor_db_median": {
+          "count": 2,
+          "min": 13.306080823795277,
+          "max": 19.916726563847924,
+          "mean": 16.6114036938216
+        },
+        "peak_to_competitor_db_p05": {
+          "count": 2,
+          "min": 6.874873376354404,
+          "max": 15.940555781013952,
+          "mean": 11.407714578684178
+        },
+        "finite_continuity_step_count": {
+          "count": 2,
+          "min": 243.0,
+          "max": 243.0,
+          "mean": 243.0
+        },
+        "maximum_absolute_frequency_step_hz": {
+          "count": 2,
+          "min": 25026510.212267518,
+          "max": 26358303.948268056,
+          "mean": 25692407.080267787
+        }
+      },
+      "sha256": "4e0c502802fbf6cc669ebba7da47b746619b54091521818bfcbe303356a51156"
+    }
+  ],
+  "jsons": [
+    {
+      "path": "presentations/data/run_20260724_004901_103968/balanced/profile_manifest.json",
+      "bytes": 11855,
+      "top_level_type": "dict",
+      "top_level_keys": [
+        "analysis_display_frequency_range_hz",
+        "analysis_end_time_s",
+        "analysis_runtime_s",
+        "channel_summaries",
+        "event_onset_diagnostics",
+        "event_start_time_s",
+        "full_band_frequency_range_hz_by_channel",
+        "full_range_preview",
+        "generated_files",
+        "interpretation_guards",
+        "nyquist_frequency_hz_by_channel",
+        "profile",
+        "profile_id",
+        "quality",
+        "search_frequency_range_hz",
+        "source_path",
+        "source_sha256",
+        "vacuum_wavelength_m",
+        "wavelength_status"
+      ],
+      "payload": {
+        "analysis_display_frequency_range_hz": [
+          0.0,
+          2000000000.0
+        ],
+        "analysis_end_time_s": 0.00055545,
+        "analysis_runtime_s": 3.404844700009562,
+        "channel_summaries": {
+          "pdv_channel_1": {
+            "candidate_frame_count": 244,
+            "channel_name": "pdv_channel_1",
+            "finite_continuity_step_count": 243,
+            "first_candidate_apparent_velocity_m_s": 537.938728338121,
+            "first_candidate_discrete_frequency_hz": 693359374.7635604,
+            "first_candidate_peak_magnitude": 0.018099436444237147,
+            "first_candidate_peak_to_background_db": 24.128381007016095,
+            "first_candidate_peak_to_competitor_db": 9.567877043380335,
+            "first_candidate_refined_frequency_hz": 694114488.1782206,
+            "first_candidate_time_relative_s": 2.6542602422604047e-09,
+            "maximum_absolute_frequency_step_hz": 21810865.38909185,
+            "minimum_candidate_apparent_velocity_m_s": 211.54235840910107,
+            "minimum_candidate_refined_frequency_hz": 272957881.8181949,
+            "outside_frame_count": 157,
+            "peak_to_background_db_median": 52.53007732555437,
+            "peak_to_background_db_p05": 23.133344738425535,
+            "peak_to_competitor_db_median": 13.295586989225324,
+            "peak_to_competitor_db_p05": 7.29455062495641,
+            "pre_event_frame_count": 219,
+            "profile_id": "balanced",
+            "refined_frame_count": 244,
+            "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+            "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+            "total_frame_count": 620
+          },
+          "pdv_channel_2": {
+            "candidate_frame_count": 244,
+            "channel_name": "pdv_channel_2",
+            "finite_continuity_step_count": 243,
+            "first_candidate_apparent_velocity_m_s": 531.8331159762934,
+            "first_candidate_discrete_frequency_hz": 683593749.7668905,
+            "first_candidate_peak_magnitude": 0.05688942230651786,
+            "first_candidate_peak_to_background_db": 29.565823004090873,
+            "first_candidate_peak_to_competitor_db": 9.497759687713195,
+            "first_candidate_refined_frequency_hz": 686236278.6790882,
+            "first_candidate_time_relative_s": 2.6542602422604047e-09,
+            "maximum_absolute_frequency_step_hz": 17509969.75472051,
+            "minimum_candidate_apparent_velocity_m_s": 212.67201337985685,
+            "minimum_candidate_refined_frequency_hz": 274415501.13529915,
+            "outside_frame_count": 157,
+            "peak_to_background_db_median": 55.78441927886544,
+            "peak_to_background_db_p05": 37.87199424727852,
+            "peak_to_competitor_db_median": 19.880501313078916,
+            "peak_to_competitor_db_p05": 16.031458054475358,
+            "pre_event_frame_count": 219,
+            "profile_id": "balanced",
+            "refined_frame_count": 244,
+            "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+            "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+            "total_frame_count": 620
+          }
+        },
+        "event_onset_diagnostics": {
+          "pdv_channel_1": {
+            "first_candidate_window_center_s": 0.0005546706542602423,
+            "first_candidate_window_support_crosses_event_start": true,
+            "first_candidate_window_support_end_s": 0.0005546802542602456,
+            "first_candidate_window_support_start_s": 0.000554661054260239,
+            "spectral_evidence": {
+              "post_event_one_window": {
+                "0_05_to_0_1_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 5,
+                  "local_peak_frequency_hz": 97656249.96669865,
+                  "local_peak_magnitude": 0.0025715777247753433,
+                  "local_peak_time_relative_s": 1.2254260245534061e-08,
+                  "squared_magnitude_sum": 8.26225238467601e-05
+                },
+                "0_1_to_0_8_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 71,
+                  "local_peak_frequency_hz": 712890624.7569001,
+                  "local_peak_magnitude": 0.0339222925025926,
+                  "local_peak_time_relative_s": 1.86542602477165e-08,
+                  "squared_magnitude_sum": 0.04637649011902362
+                },
+                "0_to_0_05_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 6,
+                  "local_peak_frequency_hz": 48828124.98334932,
+                  "local_peak_magnitude": 0.001122562682238166,
+                  "local_peak_time_relative_s": 1.86542602477165e-08,
+                  "squared_magnitude_sum": 8.478713544881995e-06
+                }
+              },
+              "pre_event_one_window": {
+                "0_05_to_0_1_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 5,
+                  "local_peak_frequency_hz": 97656249.96669865,
+                  "local_peak_magnitude": 0.0005525031858911026,
+                  "local_peak_time_relative_s": -5.457397588308141e-10,
+                  "squared_magnitude_sum": 1.0848018600532936e-06
+                },
+                "0_1_to_0_8_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 71,
+                  "local_peak_frequency_hz": 673828124.7702206,
+                  "local_peak_magnitude": 0.008483479278496495,
+                  "local_peak_time_relative_s": -5.457397588308141e-10,
+                  "squared_magnitude_sum": 0.001306414094058487
+                },
+                "0_to_0_05_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 6,
+                  "local_peak_frequency_hz": 0.0,
+                  "local_peak_magnitude": 0.0004175381878448052,
+                  "local_peak_time_relative_s": -5.457397588308141e-10,
+                  "squared_magnitude_sum": 2.6696226358196144e-06
+                }
+              }
+            },
+            "stft_window_duration_s": 1.9200000006547313e-08,
+            "stft_window_half_support_s": 9.600000003273657e-09
+          },
+          "pdv_channel_2": {
+            "first_candidate_window_center_s": 0.0005546706542602423,
+            "first_candidate_window_support_crosses_event_start": true,
+            "first_candidate_window_support_end_s": 0.0005546802542602456,
+            "first_candidate_window_support_start_s": 0.000554661054260239,
+            "spectral_evidence": {
+              "post_event_one_window": {
+                "0_05_to_0_1_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 5,
+                  "local_peak_frequency_hz": 97656249.96669865,
+                  "local_peak_magnitude": 0.0008330520639753247,
+                  "local_peak_time_relative_s": 9.054260244442842e-09,
+                  "squared_magnitude_sum": 6.2328841624709215e-06
+                },
+                "0_1_to_0_8_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 71,
+                  "local_peak_frequency_hz": 712890624.7569001,
+                  "local_peak_magnitude": 0.09995681247327999,
+                  "local_peak_time_relative_s": 1.86542602477165e-08,
+                  "squared_magnitude_sum": 0.4238089156527827
+                },
+                "0_to_0_05_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 6,
+                  "local_peak_frequency_hz": 0.0,
+                  "local_peak_magnitude": 0.001140806345310784,
+                  "local_peak_time_relative_s": 1.86542602477165e-08,
+                  "squared_magnitude_sum": 1.099391326052892e-05
+                }
+              },
+              "pre_event_one_window": {
+                "0_05_to_0_1_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 5,
+                  "local_peak_frequency_hz": 97656249.96669865,
+                  "local_peak_magnitude": 0.00048259864488705336,
+                  "local_peak_time_relative_s": -5.457397588308141e-10,
+                  "squared_magnitude_sum": 2.0947957556331218e-06
+                },
+                "0_1_to_0_8_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 71,
+                  "local_peak_frequency_hz": 664062499.7735507,
+                  "local_peak_magnitude": 0.028112243971057427,
+                  "local_peak_time_relative_s": -5.457397588308141e-10,
+                  "squared_magnitude_sum": 0.019838597104779348
+                },
+                "0_to_0_05_ghz": {
+                  "frame_count": 6,
+                  "frequency_bin_count": 6,
+                  "local_peak_frequency_hz": 0.0,
+                  "local_peak_magnitude": 0.0008429708435414474,
+                  "local_peak_time_relative_s": -1.334573976319569e-08,
+                  "squared_magnitude_sum": 1.5668217014750428e-05
+                }
+              }
+            },
+            "stft_window_duration_s": 1.9200000006547313e-08,
+            "stft_window_half_support_s": 9.600000003273657e-09
+          }
+        },
+        "event_start_time_s": 0.000554668,
+        "full_band_frequency_range_hz_by_channel": {
+          "pdv_channel_1": [
+            0.0,
+            19999999993.179882
+          ],
+          "pdv_channel_2": [
+            0.0,
+            19999999993.179882
+          ]
+        },
+        "full_range_preview": {
+          "formal_quality_gate_applied": false,
+          "frame_scope": "complete_stft_time_axis",
+          "frequency_range_hz": [
+            50000000.0,
+            2000000000.0
+          ],
+          "frequency_selection": "formal refined frequency when available; otherwise strongest discrete peak in the fixed search band",
+          "plot_pre_event_value": "assumed display zero",
+          "status": "quality-unfiltered development preview; not formal measurement"
+        },
+        "generated_files": [
+          "pdv_channel_1/apparent_velocity.csv",
+          "pdv_channel_1/stft_full_band.png",
+          "pdv_channel_1/stft_analysis_band_with_ridge.png",
+          "pdv_channel_1/apparent_velocity_full_time.png",
+          "pdv_channel_1/apparent_velocity_event_detail.png",
+          "pdv_channel_1/apparent_velocity_full_preview.png",
+          "pdv_channel_2/apparent_velocity.csv",
+          "pdv_channel_2/stft_full_band.png",
+          "pdv_channel_2/stft_analysis_band_with_ridge.png",
+          "pdv_channel_2/apparent_velocity_full_time.png",
+          "pdv_channel_2/apparent_velocity_event_detail.png",
+          "pdv_channel_2/apparent_velocity_full_preview.png",
+          "quality_summary.csv",
+          "profile_manifest.json"
+        ],
+        "interpretation_guards": [
+          "unsigned apparent velocity",
+          "configured wavelength is a demonstration value not confirmed by experiment records",
+          "no LiF, refractive-index, or incidence-angle correction",
+          "no channel selection, averaging, or fusion",
+          "no profile selection, averaging, or fusion",
+          "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+          "pre-event display zero is an assumption and core apparent velocity remains NaN",
+          "high-overlap frames are not independent measurements",
+          "high-time profile is not a higher-accuracy claim",
+          "quality metrics do not automatically validate physical branch identity",
+          "full-range preview is quality-unfiltered and is not a formal measurement",
+          "display-only bridge has two endpoints and writes no intermediate CSV data"
+        ],
+        "nyquist_frequency_hz_by_channel": {
+          "pdv_channel_1": 19999999993.179882,
+          "pdv_channel_2": 19999999993.179882
+        },
+        "profile": {
+          "display_name": "Balanced",
+          "hop_samples": 128,
+          "maximum_frequency_hz": 2000000000.0,
+          "minimum_frequency_hz": 50000000.0,
+          "nfft": 4096,
+          "overlap_samples": 640,
+          "ridge_refinement": "log_magnitude_three_point_quadratic",
+          "tradeoff_note": "Default profile prioritizing plateau stability, frequency-estimate stability, and noise robustness.",
+          "window_length_samples": 768,
+          "window_name": "hann"
+        },
+        "profile_id": "balanced",
+        "quality": {
+          "background_guard_window_scale": 2.0,
+          "guard_status": "configured descriptive diagnostic; not a universal validated standard",
+          "minimum_background_bin_count": 2
+        },
+        "search_frequency_range_hz": [
+          50000000.0,
+          2000000000.0
+        ],
+        "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+        "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+        "vacuum_wavelength_m": 1.55e-06,
+        "wavelength_status": "demonstration value; not confirmed by experiment records"
+      },
+      "sha256": "c12d2c7184aec7f03656a1aef74871f30112839a415cb93a4f85aece24a7a781"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/high_time_resolution/profile_manifest.json",
+      "bytes": 11946,
+      "top_level_type": "dict",
+      "top_level_keys": [
+        "analysis_display_frequency_range_hz",
+        "analysis_end_time_s",
+        "analysis_runtime_s",
+        "channel_summaries",
+        "event_onset_diagnostics",
+        "event_start_time_s",
+        "full_band_frequency_range_hz_by_channel",
+        "full_range_preview",
+        "generated_files",
+        "interpretation_guards",
+        "nyquist_frequency_hz_by_channel",
+        "profile",
+        "profile_id",
+        "quality",
+        "search_frequency_range_hz",
+        "source_path",
+        "source_sha256",
+        "vacuum_wavelength_m",
+        "wavelength_status"
+      ],
+      "payload": {
+        "analysis_display_frequency_range_hz": [
+          0.0,
+          2000000000.0
+        ],
+        "analysis_end_time_s": 0.00055545,
+        "analysis_runtime_s": 3.374474100070074,
+        "channel_summaries": {
+          "pdv_channel_1": {
+            "candidate_frame_count": 244,
+            "channel_name": "pdv_channel_1",
+            "finite_continuity_step_count": 243,
+            "first_candidate_apparent_velocity_m_s": 531.9809787702483,
+            "first_candidate_discrete_frequency_hz": 683593749.7668905,
+            "first_candidate_peak_magnitude": 0.019138235167840127,
+            "first_candidate_peak_to_background_db": 22.206539784870568,
+            "first_candidate_peak_to_competitor_db": 9.340179204833014,
+            "first_candidate_refined_frequency_hz": 686427069.3809656,
+            "first_candidate_time_relative_s": 2.6542602422604047e-09,
+            "maximum_absolute_frequency_step_hz": 25026510.212267518,
+            "minimum_candidate_apparent_velocity_m_s": 211.07108019348667,
+            "minimum_candidate_refined_frequency_hz": 272349780.8948215,
+            "outside_frame_count": 158,
+            "peak_to_background_db_median": 48.08393067867983,
+            "peak_to_background_db_p05": 20.777888095711187,
+            "peak_to_competitor_db_median": 13.306080823795277,
+            "peak_to_competitor_db_p05": 6.874873376354404,
+            "pre_event_frame_count": 220,
+            "profile_id": "high_time_resolution",
+            "refined_frame_count": 244,
+            "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+            "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+            "total_frame_count": 622
+          },
+          "pdv_channel_2": {
+            "candidate_frame_count": 244,
+            "channel_name": "pdv_channel_2",
+            "finite_continuity_step_count": 243,
+            "first_candidate_apparent_velocity_m_s": 521.3986246655138,
+            "first_candidate_discrete_frequency_hz": 673828124.7702206,
+            "first_candidate_peak_magnitude": 0.062288175813373314,
+            "first_candidate_peak_to_background_db": 27.390739672794066,
+            "first_candidate_peak_to_competitor_db": 7.485473583909585,
+            "first_candidate_refined_frequency_hz": 672772418.9232436,
+            "first_candidate_time_relative_s": 2.6542602422604047e-09,
+            "maximum_absolute_frequency_step_hz": 26358303.948268056,
+            "minimum_candidate_apparent_velocity_m_s": 212.49469253939353,
+            "minimum_candidate_refined_frequency_hz": 274186700.05083036,
+            "outside_frame_count": 158,
+            "peak_to_background_db_median": 51.11040248881652,
+            "peak_to_background_db_p05": 36.24862088544041,
+            "peak_to_competitor_db_median": 19.916726563847924,
+            "peak_to_competitor_db_p05": 15.940555781013952,
+            "pre_event_frame_count": 220,
+            "profile_id": "high_time_resolution",
+            "refined_frame_count": 244,
+            "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+            "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+            "total_frame_count": 622
+          }
+        },
+        "event_onset_diagnostics": {
+          "pdv_channel_1": {
+            "first_candidate_window_center_s": 0.0005546706542602423,
+            "first_candidate_window_support_crosses_event_start": true,
+            "first_candidate_window_support_end_s": 0.0005546770542602445,
+            "first_candidate_window_support_start_s": 0.0005546642542602401,
+            "spectral_evidence": {
+              "post_event_one_window": {
+                "0_05_to_0_1_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 5,
+                  "local_peak_frequency_hz": 97656249.96669865,
+                  "local_peak_magnitude": 0.002857919225768939,
+                  "local_peak_time_relative_s": 1.2254260245534061e-08,
+                  "squared_magnitude_sum": 8.43738971045002e-05
+                },
+                "0_1_to_0_8_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 71,
+                  "local_peak_frequency_hz": 712890624.7569001,
+                  "local_peak_magnitude": 0.03282857663932171,
+                  "local_peak_time_relative_s": 1.2254260245534061e-08,
+                  "squared_magnitude_sum": 0.042028900797085274
+                },
+                "0_to_0_05_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 6,
+                  "local_peak_frequency_hz": 48828124.98334932,
+                  "local_peak_magnitude": 0.00178782554197668,
+                  "local_peak_time_relative_s": 1.2254260245534061e-08,
+                  "squared_magnitude_sum": 2.219824294690685e-05
+                }
+              },
+              "pre_event_one_window": {
+                "0_05_to_0_1_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 5,
+                  "local_peak_frequency_hz": 97656249.96669865,
+                  "local_peak_magnitude": 0.0004193392255146344,
+                  "local_peak_time_relative_s": -5.457397588308141e-10,
+                  "squared_magnitude_sum": 1.0037080575014883e-06
+                },
+                "0_1_to_0_8_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 71,
+                  "local_peak_frequency_hz": 644531249.7802111,
+                  "local_peak_magnitude": 0.006274480217466459,
+                  "local_peak_time_relative_s": -5.457397588308141e-10,
+                  "squared_magnitude_sum": 0.0009069770325083018
+                },
+                "0_to_0_05_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 6,
+                  "local_peak_frequency_hz": 0.0,
+                  "local_peak_magnitude": 0.00041570876051614354,
+                  "local_peak_time_relative_s": -5.457397588308141e-10,
+                  "squared_magnitude_sum": 2.1605194760133164e-06
+                }
+              }
+            },
+            "stft_window_duration_s": 1.2800000004364875e-08,
+            "stft_window_half_support_s": 6.400000002182438e-09
+          },
+          "pdv_channel_2": {
+            "first_candidate_window_center_s": 0.0005546706542602423,
+            "first_candidate_window_support_crosses_event_start": true,
+            "first_candidate_window_support_end_s": 0.0005546770542602445,
+            "first_candidate_window_support_start_s": 0.0005546642542602401,
+            "spectral_evidence": {
+              "post_event_one_window": {
+                "0_05_to_0_1_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 5,
+                  "local_peak_frequency_hz": 97656249.96669865,
+                  "local_peak_magnitude": 0.001406099765422125,
+                  "local_peak_time_relative_s": 5.854260243351624e-09,
+                  "squared_magnitude_sum": 1.4823436679256708e-05
+                },
+                "0_1_to_0_8_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 71,
+                  "local_peak_frequency_hz": 712890624.7569001,
+                  "local_peak_magnitude": 0.09659451901593397,
+                  "local_peak_time_relative_s": 1.2254260245534061e-08,
+                  "squared_magnitude_sum": 0.39777915994284707
+                },
+                "0_to_0_05_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 6,
+                  "local_peak_frequency_hz": 48828124.98334932,
+                  "local_peak_magnitude": 0.0007832766064571974,
+                  "local_peak_time_relative_s": 1.2254260245534061e-08,
+                  "squared_magnitude_sum": 3.7769236113569693e-06
+                }
+              },
+              "pre_event_one_window": {
+                "0_05_to_0_1_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 5,
+                  "local_peak_frequency_hz": 97656249.96669865,
+                  "local_peak_magnitude": 0.0007189402083278513,
+                  "local_peak_time_relative_s": -5.457397588308141e-10,
+                  "squared_magnitude_sum": 5.178929356851967e-06
+                },
+                "0_1_to_0_8_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 71,
+                  "local_peak_frequency_hz": 585937499.8001919,
+                  "local_peak_magnitude": 0.02405383516612516,
+                  "local_peak_time_relative_s": -5.457397588308141e-10,
+                  "squared_magnitude_sum": 0.017057397080286474
+                },
+                "0_to_0_05_ghz": {
+                  "frame_count": 4,
+                  "frequency_bin_count": 6,
+                  "local_peak_frequency_hz": 0.0,
+                  "local_peak_magnitude": 0.0008493192120149688,
+                  "local_peak_time_relative_s": -1.014573976210447e-08,
+                  "squared_magnitude_sum": 1.2347686001125182e-05
+                }
+              }
+            },
+            "stft_window_duration_s": 1.2800000004364875e-08,
+            "stft_window_half_support_s": 6.400000002182438e-09
+          }
+        },
+        "event_start_time_s": 0.000554668,
+        "full_band_frequency_range_hz_by_channel": {
+          "pdv_channel_1": [
+            0.0,
+            19999999993.179882
+          ],
+          "pdv_channel_2": [
+            0.0,
+            19999999993.179882
+          ]
+        },
+        "full_range_preview": {
+          "formal_quality_gate_applied": false,
+          "frame_scope": "complete_stft_time_axis",
+          "frequency_range_hz": [
+            50000000.0,
+            2000000000.0
+          ],
+          "frequency_selection": "formal refined frequency when available; otherwise strongest discrete peak in the fixed search band",
+          "plot_pre_event_value": "assumed display zero",
+          "status": "quality-unfiltered development preview; not formal measurement"
+        },
+        "generated_files": [
+          "pdv_channel_1/apparent_velocity.csv",
+          "pdv_channel_1/stft_full_band.png",
+          "pdv_channel_1/stft_analysis_band_with_ridge.png",
+          "pdv_channel_1/apparent_velocity_full_time.png",
+          "pdv_channel_1/apparent_velocity_event_detail.png",
+          "pdv_channel_1/apparent_velocity_full_preview.png",
+          "pdv_channel_2/apparent_velocity.csv",
+          "pdv_channel_2/stft_full_band.png",
+          "pdv_channel_2/stft_analysis_band_with_ridge.png",
+          "pdv_channel_2/apparent_velocity_full_time.png",
+          "pdv_channel_2/apparent_velocity_event_detail.png",
+          "pdv_channel_2/apparent_velocity_full_preview.png",
+          "quality_summary.csv",
+          "profile_manifest.json"
+        ],
+        "interpretation_guards": [
+          "unsigned apparent velocity",
+          "configured wavelength is a demonstration value not confirmed by experiment records",
+          "no LiF, refractive-index, or incidence-angle correction",
+          "no channel selection, averaging, or fusion",
+          "no profile selection, averaging, or fusion",
+          "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+          "pre-event display zero is an assumption and core apparent velocity remains NaN",
+          "high-overlap frames are not independent measurements",
+          "high-time profile is not a higher-accuracy claim",
+          "quality metrics do not automatically validate physical branch identity",
+          "full-range preview is quality-unfiltered and is not a formal measurement",
+          "display-only bridge has two endpoints and writes no intermediate CSV data"
+        ],
+        "nyquist_frequency_hz_by_channel": {
+          "pdv_channel_1": 19999999993.179882,
+          "pdv_channel_2": 19999999993.179882
+        },
+        "profile": {
+          "display_name": "High time resolution",
+          "hop_samples": 128,
+          "maximum_frequency_hz": 2000000000.0,
+          "minimum_frequency_hz": 50000000.0,
+          "nfft": 4096,
+          "overlap_samples": 384,
+          "ridge_refinement": "log_magnitude_three_point_quadratic",
+          "tradeoff_note": "Shorter time support at the cost of frequency stability and plateau jitter; this is not a higher-accuracy claim.",
+          "window_length_samples": 512,
+          "window_name": "hann"
+        },
+        "profile_id": "high_time_resolution",
+        "quality": {
+          "background_guard_window_scale": 2.0,
+          "guard_status": "configured descriptive diagnostic; not a universal validated standard",
+          "minimum_background_bin_count": 2
+        },
+        "search_frequency_range_hz": [
+          50000000.0,
+          2000000000.0
+        ],
+        "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+        "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+        "vacuum_wavelength_m": 1.55e-06,
+        "wavelength_status": "demonstration value; not confirmed by experiment records"
+      },
+      "sha256": "5c490913c2a667144097fec9e6810eebccf0bcf94d2c4770c8522cfb35c1ed66"
+    },
+    {
+      "path": "presentations/data/run_20260724_004901_103968/run_manifest.json",
+      "bytes": 30322,
+      "top_level_type": "dict",
+      "top_level_keys": [
+        "analysis",
+        "config_path",
+        "generated_files",
+        "git_head",
+        "git_worktree_dirty",
+        "input",
+        "interpretation_guards",
+        "output_contract",
+        "plot",
+        "profile_manifests",
+        "profiles",
+        "quality",
+        "root_entries",
+        "source_path",
+        "source_sha256",
+        "versions"
+      ],
+      "payload": {
+        "analysis": {
+          "analysis_end_time_s": 0.00055545,
+          "event_start_time_s": 0.000554668,
+          "vacuum_wavelength_m": 1.55e-06,
+          "wavelength_status": "demonstration value; not confirmed by experiment records"
+        },
+        "config_path": "D:\\Code\\Python_Projects\\DPS_Studio\\configs\\demo_dual_profile.toml",
+        "generated_files": [
+          "balanced/pdv_channel_1/apparent_velocity.csv",
+          "balanced/pdv_channel_1/stft_full_band.png",
+          "balanced/pdv_channel_1/stft_analysis_band_with_ridge.png",
+          "balanced/pdv_channel_1/apparent_velocity_full_time.png",
+          "balanced/pdv_channel_1/apparent_velocity_event_detail.png",
+          "balanced/pdv_channel_1/apparent_velocity_full_preview.png",
+          "balanced/pdv_channel_2/apparent_velocity.csv",
+          "balanced/pdv_channel_2/stft_full_band.png",
+          "balanced/pdv_channel_2/stft_analysis_band_with_ridge.png",
+          "balanced/pdv_channel_2/apparent_velocity_full_time.png",
+          "balanced/pdv_channel_2/apparent_velocity_event_detail.png",
+          "balanced/pdv_channel_2/apparent_velocity_full_preview.png",
+          "balanced/quality_summary.csv",
+          "balanced/profile_manifest.json",
+          "high_time_resolution/pdv_channel_1/apparent_velocity.csv",
+          "high_time_resolution/pdv_channel_1/stft_full_band.png",
+          "high_time_resolution/pdv_channel_1/stft_analysis_band_with_ridge.png",
+          "high_time_resolution/pdv_channel_1/apparent_velocity_full_time.png",
+          "high_time_resolution/pdv_channel_1/apparent_velocity_event_detail.png",
+          "high_time_resolution/pdv_channel_1/apparent_velocity_full_preview.png",
+          "high_time_resolution/pdv_channel_2/apparent_velocity.csv",
+          "high_time_resolution/pdv_channel_2/stft_full_band.png",
+          "high_time_resolution/pdv_channel_2/stft_analysis_band_with_ridge.png",
+          "high_time_resolution/pdv_channel_2/apparent_velocity_full_time.png",
+          "high_time_resolution/pdv_channel_2/apparent_velocity_event_detail.png",
+          "high_time_resolution/pdv_channel_2/apparent_velocity_full_preview.png",
+          "high_time_resolution/quality_summary.csv",
+          "high_time_resolution/profile_manifest.json",
+          "run_manifest.json",
+          "run.log"
+        ],
+        "git_head": "11b761fe49550f22e7430f939f2bedb87826c345",
+        "git_worktree_dirty": true,
+        "input": {
+          "delimiter": ",",
+          "encoding": "utf-8",
+          "has_header": false,
+          "time_column": 0,
+          "time_scale": 1.0,
+          "voltage_columns": {
+            "pdv_channel_1": 1,
+            "pdv_channel_2": 2
+          },
+          "voltage_scales": {
+            "pdv_channel_1": 1.0,
+            "pdv_channel_2": 1.0
+          }
+        },
+        "interpretation_guards": [
+          "unsigned apparent velocity",
+          "configured wavelength is a demonstration value not confirmed by experiment records",
+          "no LiF, refractive-index, or incidence-angle correction",
+          "no channel selection, averaging, or fusion",
+          "no profile selection, averaging, or fusion",
+          "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+          "pre-event display zero is an assumption and core apparent velocity remains NaN",
+          "high-overlap frames are not independent measurements",
+          "high-time profile is not a higher-accuracy claim",
+          "quality metrics do not automatically validate physical branch identity",
+          "full-range preview is quality-unfiltered and is not a formal measurement",
+          "display-only bridge has two endpoints and writes no intermediate CSV data"
+        ],
+        "output_contract": "dual-profile-v2",
+        "plot": {
+          "analysis_display_maximum_frequency_hz": 2000000000.0,
+          "analysis_display_minimum_frequency_hz": 0.0,
+          "event_detail_after_s": 2e-07,
+          "event_detail_before_s": 1e-07,
+          "relative_db_floor": -60.0
+        },
+        "profile_manifests": {
+          "balanced": {
+            "analysis_display_frequency_range_hz": [
+              0.0,
+              2000000000.0
+            ],
+            "analysis_end_time_s": 0.00055545,
+            "analysis_runtime_s": 3.404844700009562,
+            "channel_summaries": {
+              "pdv_channel_1": {
+                "candidate_frame_count": 244,
+                "channel_name": "pdv_channel_1",
+                "finite_continuity_step_count": 243,
+                "first_candidate_apparent_velocity_m_s": 537.938728338121,
+                "first_candidate_discrete_frequency_hz": 693359374.7635604,
+                "first_candidate_peak_magnitude": 0.018099436444237147,
+                "first_candidate_peak_to_background_db": 24.128381007016095,
+                "first_candidate_peak_to_competitor_db": 9.567877043380335,
+                "first_candidate_refined_frequency_hz": 694114488.1782206,
+                "first_candidate_time_relative_s": 2.6542602422604047e-09,
+                "maximum_absolute_frequency_step_hz": 21810865.38909185,
+                "minimum_candidate_apparent_velocity_m_s": 211.54235840910107,
+                "minimum_candidate_refined_frequency_hz": 272957881.8181949,
+                "outside_frame_count": 157,
+                "peak_to_background_db_median": 52.53007732555437,
+                "peak_to_background_db_p05": 23.133344738425535,
+                "peak_to_competitor_db_median": 13.295586989225324,
+                "peak_to_competitor_db_p05": 7.29455062495641,
+                "pre_event_frame_count": 219,
+                "profile_id": "balanced",
+                "refined_frame_count": 244,
+                "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+                "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+                "total_frame_count": 620
+              },
+              "pdv_channel_2": {
+                "candidate_frame_count": 244,
+                "channel_name": "pdv_channel_2",
+                "finite_continuity_step_count": 243,
+                "first_candidate_apparent_velocity_m_s": 531.8331159762934,
+                "first_candidate_discrete_frequency_hz": 683593749.7668905,
+                "first_candidate_peak_magnitude": 0.05688942230651786,
+                "first_candidate_peak_to_background_db": 29.565823004090873,
+                "first_candidate_peak_to_competitor_db": 9.497759687713195,
+                "first_candidate_refined_frequency_hz": 686236278.6790882,
+                "first_candidate_time_relative_s": 2.6542602422604047e-09,
+                "maximum_absolute_frequency_step_hz": 17509969.75472051,
+                "minimum_candidate_apparent_velocity_m_s": 212.67201337985685,
+                "minimum_candidate_refined_frequency_hz": 274415501.13529915,
+                "outside_frame_count": 157,
+                "peak_to_background_db_median": 55.78441927886544,
+                "peak_to_background_db_p05": 37.87199424727852,
+                "peak_to_competitor_db_median": 19.880501313078916,
+                "peak_to_competitor_db_p05": 16.031458054475358,
+                "pre_event_frame_count": 219,
+                "profile_id": "balanced",
+                "refined_frame_count": 244,
+                "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+                "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+                "total_frame_count": 620
+              }
+            },
+            "event_onset_diagnostics": {
+              "pdv_channel_1": {
+                "first_candidate_window_center_s": 0.0005546706542602423,
+                "first_candidate_window_support_crosses_event_start": true,
+                "first_candidate_window_support_end_s": 0.0005546802542602456,
+                "first_candidate_window_support_start_s": 0.000554661054260239,
+                "spectral_evidence": {
+                  "post_event_one_window": {
+                    "0_05_to_0_1_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 5,
+                      "local_peak_frequency_hz": 97656249.96669865,
+                      "local_peak_magnitude": 0.0025715777247753433,
+                      "local_peak_time_relative_s": 1.2254260245534061e-08,
+                      "squared_magnitude_sum": 8.26225238467601e-05
+                    },
+                    "0_1_to_0_8_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 71,
+                      "local_peak_frequency_hz": 712890624.7569001,
+                      "local_peak_magnitude": 0.0339222925025926,
+                      "local_peak_time_relative_s": 1.86542602477165e-08,
+                      "squared_magnitude_sum": 0.04637649011902362
+                    },
+                    "0_to_0_05_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 6,
+                      "local_peak_frequency_hz": 48828124.98334932,
+                      "local_peak_magnitude": 0.001122562682238166,
+                      "local_peak_time_relative_s": 1.86542602477165e-08,
+                      "squared_magnitude_sum": 8.478713544881995e-06
+                    }
+                  },
+                  "pre_event_one_window": {
+                    "0_05_to_0_1_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 5,
+                      "local_peak_frequency_hz": 97656249.96669865,
+                      "local_peak_magnitude": 0.0005525031858911026,
+                      "local_peak_time_relative_s": -5.457397588308141e-10,
+                      "squared_magnitude_sum": 1.0848018600532936e-06
+                    },
+                    "0_1_to_0_8_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 71,
+                      "local_peak_frequency_hz": 673828124.7702206,
+                      "local_peak_magnitude": 0.008483479278496495,
+                      "local_peak_time_relative_s": -5.457397588308141e-10,
+                      "squared_magnitude_sum": 0.001306414094058487
+                    },
+                    "0_to_0_05_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 6,
+                      "local_peak_frequency_hz": 0.0,
+                      "local_peak_magnitude": 0.0004175381878448052,
+                      "local_peak_time_relative_s": -5.457397588308141e-10,
+                      "squared_magnitude_sum": 2.6696226358196144e-06
+                    }
+                  }
+                },
+                "stft_window_duration_s": 1.9200000006547313e-08,
+                "stft_window_half_support_s": 9.600000003273657e-09
+              },
+              "pdv_channel_2": {
+                "first_candidate_window_center_s": 0.0005546706542602423,
+                "first_candidate_window_support_crosses_event_start": true,
+                "first_candidate_window_support_end_s": 0.0005546802542602456,
+                "first_candidate_window_support_start_s": 0.000554661054260239,
+                "spectral_evidence": {
+                  "post_event_one_window": {
+                    "0_05_to_0_1_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 5,
+                      "local_peak_frequency_hz": 97656249.96669865,
+                      "local_peak_magnitude": 0.0008330520639753247,
+                      "local_peak_time_relative_s": 9.054260244442842e-09,
+                      "squared_magnitude_sum": 6.2328841624709215e-06
+                    },
+                    "0_1_to_0_8_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 71,
+                      "local_peak_frequency_hz": 712890624.7569001,
+                      "local_peak_magnitude": 0.09995681247327999,
+                      "local_peak_time_relative_s": 1.86542602477165e-08,
+                      "squared_magnitude_sum": 0.4238089156527827
+                    },
+                    "0_to_0_05_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 6,
+                      "local_peak_frequency_hz": 0.0,
+                      "local_peak_magnitude": 0.001140806345310784,
+                      "local_peak_time_relative_s": 1.86542602477165e-08,
+                      "squared_magnitude_sum": 1.099391326052892e-05
+                    }
+                  },
+                  "pre_event_one_window": {
+                    "0_05_to_0_1_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 5,
+                      "local_peak_frequency_hz": 97656249.96669865,
+                      "local_peak_magnitude": 0.00048259864488705336,
+                      "local_peak_time_relative_s": -5.457397588308141e-10,
+                      "squared_magnitude_sum": 2.0947957556331218e-06
+                    },
+                    "0_1_to_0_8_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 71,
+                      "local_peak_frequency_hz": 664062499.7735507,
+                      "local_peak_magnitude": 0.028112243971057427,
+                      "local_peak_time_relative_s": -5.457397588308141e-10,
+                      "squared_magnitude_sum": 0.019838597104779348
+                    },
+                    "0_to_0_05_ghz": {
+                      "frame_count": 6,
+                      "frequency_bin_count": 6,
+                      "local_peak_frequency_hz": 0.0,
+                      "local_peak_magnitude": 0.0008429708435414474,
+                      "local_peak_time_relative_s": -1.334573976319569e-08,
+                      "squared_magnitude_sum": 1.5668217014750428e-05
+                    }
+                  }
+                },
+                "stft_window_duration_s": 1.9200000006547313e-08,
+                "stft_window_half_support_s": 9.600000003273657e-09
+              }
+            },
+            "event_start_time_s": 0.000554668,
+            "full_band_frequency_range_hz_by_channel": {
+              "pdv_channel_1": [
+                0.0,
+                19999999993.179882
+              ],
+              "pdv_channel_2": [
+                0.0,
+                19999999993.179882
+              ]
+            },
+            "full_range_preview": {
+              "formal_quality_gate_applied": false,
+              "frame_scope": "complete_stft_time_axis",
+              "frequency_range_hz": [
+                50000000.0,
+                2000000000.0
+              ],
+              "frequency_selection": "formal refined frequency when available; otherwise strongest discrete peak in the fixed search band",
+              "plot_pre_event_value": "assumed display zero",
+              "status": "quality-unfiltered development preview; not formal measurement"
+            },
+            "generated_files": [
+              "pdv_channel_1/apparent_velocity.csv",
+              "pdv_channel_1/stft_full_band.png",
+              "pdv_channel_1/stft_analysis_band_with_ridge.png",
+              "pdv_channel_1/apparent_velocity_full_time.png",
+              "pdv_channel_1/apparent_velocity_event_detail.png",
+              "pdv_channel_1/apparent_velocity_full_preview.png",
+              "pdv_channel_2/apparent_velocity.csv",
+              "pdv_channel_2/stft_full_band.png",
+              "pdv_channel_2/stft_analysis_band_with_ridge.png",
+              "pdv_channel_2/apparent_velocity_full_time.png",
+              "pdv_channel_2/apparent_velocity_event_detail.png",
+              "pdv_channel_2/apparent_velocity_full_preview.png",
+              "quality_summary.csv",
+              "profile_manifest.json"
+            ],
+            "interpretation_guards": [
+              "unsigned apparent velocity",
+              "configured wavelength is a demonstration value not confirmed by experiment records",
+              "no LiF, refractive-index, or incidence-angle correction",
+              "no channel selection, averaging, or fusion",
+              "no profile selection, averaging, or fusion",
+              "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+              "pre-event display zero is an assumption and core apparent velocity remains NaN",
+              "high-overlap frames are not independent measurements",
+              "high-time profile is not a higher-accuracy claim",
+              "quality metrics do not automatically validate physical branch identity",
+              "full-range preview is quality-unfiltered and is not a formal measurement",
+              "display-only bridge has two endpoints and writes no intermediate CSV data"
+            ],
+            "nyquist_frequency_hz_by_channel": {
+              "pdv_channel_1": 19999999993.179882,
+              "pdv_channel_2": 19999999993.179882
+            },
+            "profile": {
+              "display_name": "Balanced",
+              "hop_samples": 128,
+              "maximum_frequency_hz": 2000000000.0,
+              "minimum_frequency_hz": 50000000.0,
+              "nfft": 4096,
+              "overlap_samples": 640,
+              "ridge_refinement": "log_magnitude_three_point_quadratic",
+              "tradeoff_note": "Default profile prioritizing plateau stability, frequency-estimate stability, and noise robustness.",
+              "window_length_samples": 768,
+              "window_name": "hann"
+            },
+            "profile_id": "balanced",
+            "quality": {
+              "background_guard_window_scale": 2.0,
+              "guard_status": "configured descriptive diagnostic; not a universal validated standard",
+              "minimum_background_bin_count": 2
+            },
+            "search_frequency_range_hz": [
+              50000000.0,
+              2000000000.0
+            ],
+            "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+            "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+            "vacuum_wavelength_m": 1.55e-06,
+            "wavelength_status": "demonstration value; not confirmed by experiment records"
+          },
+          "high_time_resolution": {
+            "analysis_display_frequency_range_hz": [
+              0.0,
+              2000000000.0
+            ],
+            "analysis_end_time_s": 0.00055545,
+            "analysis_runtime_s": 3.374474100070074,
+            "channel_summaries": {
+              "pdv_channel_1": {
+                "candidate_frame_count": 244,
+                "channel_name": "pdv_channel_1",
+                "finite_continuity_step_count": 243,
+                "first_candidate_apparent_velocity_m_s": 531.9809787702483,
+                "first_candidate_discrete_frequency_hz": 683593749.7668905,
+                "first_candidate_peak_magnitude": 0.019138235167840127,
+                "first_candidate_peak_to_background_db": 22.206539784870568,
+                "first_candidate_peak_to_competitor_db": 9.340179204833014,
+                "first_candidate_refined_frequency_hz": 686427069.3809656,
+                "first_candidate_time_relative_s": 2.6542602422604047e-09,
+                "maximum_absolute_frequency_step_hz": 25026510.212267518,
+                "minimum_candidate_apparent_velocity_m_s": 211.07108019348667,
+                "minimum_candidate_refined_frequency_hz": 272349780.8948215,
+                "outside_frame_count": 158,
+                "peak_to_background_db_median": 48.08393067867983,
+                "peak_to_background_db_p05": 20.777888095711187,
+                "peak_to_competitor_db_median": 13.306080823795277,
+                "peak_to_competitor_db_p05": 6.874873376354404,
+                "pre_event_frame_count": 220,
+                "profile_id": "high_time_resolution",
+                "refined_frame_count": 244,
+                "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+                "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+                "total_frame_count": 622
+              },
+              "pdv_channel_2": {
+                "candidate_frame_count": 244,
+                "channel_name": "pdv_channel_2",
+                "finite_continuity_step_count": 243,
+                "first_candidate_apparent_velocity_m_s": 521.3986246655138,
+                "first_candidate_discrete_frequency_hz": 673828124.7702206,
+                "first_candidate_peak_magnitude": 0.062288175813373314,
+                "first_candidate_peak_to_background_db": 27.390739672794066,
+                "first_candidate_peak_to_competitor_db": 7.485473583909585,
+                "first_candidate_refined_frequency_hz": 672772418.9232436,
+                "first_candidate_time_relative_s": 2.6542602422604047e-09,
+                "maximum_absolute_frequency_step_hz": 26358303.948268056,
+                "minimum_candidate_apparent_velocity_m_s": 212.49469253939353,
+                "minimum_candidate_refined_frequency_hz": 274186700.05083036,
+                "outside_frame_count": 158,
+                "peak_to_background_db_median": 51.11040248881652,
+                "peak_to_background_db_p05": 36.24862088544041,
+                "peak_to_competitor_db_median": 19.916726563847924,
+                "peak_to_competitor_db_p05": 15.940555781013952,
+                "pre_event_frame_count": 220,
+                "profile_id": "high_time_resolution",
+                "refined_frame_count": 244,
+                "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+                "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+                "total_frame_count": 622
+              }
+            },
+            "event_onset_diagnostics": {
+              "pdv_channel_1": {
+                "first_candidate_window_center_s": 0.0005546706542602423,
+                "first_candidate_window_support_crosses_event_start": true,
+                "first_candidate_window_support_end_s": 0.0005546770542602445,
+                "first_candidate_window_support_start_s": 0.0005546642542602401,
+                "spectral_evidence": {
+                  "post_event_one_window": {
+                    "0_05_to_0_1_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 5,
+                      "local_peak_frequency_hz": 97656249.96669865,
+                      "local_peak_magnitude": 0.002857919225768939,
+                      "local_peak_time_relative_s": 1.2254260245534061e-08,
+                      "squared_magnitude_sum": 8.43738971045002e-05
+                    },
+                    "0_1_to_0_8_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 71,
+                      "local_peak_frequency_hz": 712890624.7569001,
+                      "local_peak_magnitude": 0.03282857663932171,
+                      "local_peak_time_relative_s": 1.2254260245534061e-08,
+                      "squared_magnitude_sum": 0.042028900797085274
+                    },
+                    "0_to_0_05_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 6,
+                      "local_peak_frequency_hz": 48828124.98334932,
+                      "local_peak_magnitude": 0.00178782554197668,
+                      "local_peak_time_relative_s": 1.2254260245534061e-08,
+                      "squared_magnitude_sum": 2.219824294690685e-05
+                    }
+                  },
+                  "pre_event_one_window": {
+                    "0_05_to_0_1_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 5,
+                      "local_peak_frequency_hz": 97656249.96669865,
+                      "local_peak_magnitude": 0.0004193392255146344,
+                      "local_peak_time_relative_s": -5.457397588308141e-10,
+                      "squared_magnitude_sum": 1.0037080575014883e-06
+                    },
+                    "0_1_to_0_8_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 71,
+                      "local_peak_frequency_hz": 644531249.7802111,
+                      "local_peak_magnitude": 0.006274480217466459,
+                      "local_peak_time_relative_s": -5.457397588308141e-10,
+                      "squared_magnitude_sum": 0.0009069770325083018
+                    },
+                    "0_to_0_05_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 6,
+                      "local_peak_frequency_hz": 0.0,
+                      "local_peak_magnitude": 0.00041570876051614354,
+                      "local_peak_time_relative_s": -5.457397588308141e-10,
+                      "squared_magnitude_sum": 2.1605194760133164e-06
+                    }
+                  }
+                },
+                "stft_window_duration_s": 1.2800000004364875e-08,
+                "stft_window_half_support_s": 6.400000002182438e-09
+              },
+              "pdv_channel_2": {
+                "first_candidate_window_center_s": 0.0005546706542602423,
+                "first_candidate_window_support_crosses_event_start": true,
+                "first_candidate_window_support_end_s": 0.0005546770542602445,
+                "first_candidate_window_support_start_s": 0.0005546642542602401,
+                "spectral_evidence": {
+                  "post_event_one_window": {
+                    "0_05_to_0_1_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 5,
+                      "local_peak_frequency_hz": 97656249.96669865,
+                      "local_peak_magnitude": 0.001406099765422125,
+                      "local_peak_time_relative_s": 5.854260243351624e-09,
+                      "squared_magnitude_sum": 1.4823436679256708e-05
+                    },
+                    "0_1_to_0_8_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 71,
+                      "local_peak_frequency_hz": 712890624.7569001,
+                      "local_peak_magnitude": 0.09659451901593397,
+                      "local_peak_time_relative_s": 1.2254260245534061e-08,
+                      "squared_magnitude_sum": 0.39777915994284707
+                    },
+                    "0_to_0_05_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 6,
+                      "local_peak_frequency_hz": 48828124.98334932,
+                      "local_peak_magnitude": 0.0007832766064571974,
+                      "local_peak_time_relative_s": 1.2254260245534061e-08,
+                      "squared_magnitude_sum": 3.7769236113569693e-06
+                    }
+                  },
+                  "pre_event_one_window": {
+                    "0_05_to_0_1_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 5,
+                      "local_peak_frequency_hz": 97656249.96669865,
+                      "local_peak_magnitude": 0.0007189402083278513,
+                      "local_peak_time_relative_s": -5.457397588308141e-10,
+                      "squared_magnitude_sum": 5.178929356851967e-06
+                    },
+                    "0_1_to_0_8_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 71,
+                      "local_peak_frequency_hz": 585937499.8001919,
+                      "local_peak_magnitude": 0.02405383516612516,
+                      "local_peak_time_relative_s": -5.457397588308141e-10,
+                      "squared_magnitude_sum": 0.017057397080286474
+                    },
+                    "0_to_0_05_ghz": {
+                      "frame_count": 4,
+                      "frequency_bin_count": 6,
+                      "local_peak_frequency_hz": 0.0,
+                      "local_peak_magnitude": 0.0008493192120149688,
+                      "local_peak_time_relative_s": -1.014573976210447e-08,
+                      "squared_magnitude_sum": 1.2347686001125182e-05
+                    }
+                  }
+                },
+                "stft_window_duration_s": 1.2800000004364875e-08,
+                "stft_window_half_support_s": 6.400000002182438e-09
+              }
+            },
+            "event_start_time_s": 0.000554668,
+            "full_band_frequency_range_hz_by_channel": {
+              "pdv_channel_1": [
+                0.0,
+                19999999993.179882
+              ],
+              "pdv_channel_2": [
+                0.0,
+                19999999993.179882
+              ]
+            },
+            "full_range_preview": {
+              "formal_quality_gate_applied": false,
+              "frame_scope": "complete_stft_time_axis",
+              "frequency_range_hz": [
+                50000000.0,
+                2000000000.0
+              ],
+              "frequency_selection": "formal refined frequency when available; otherwise strongest discrete peak in the fixed search band",
+              "plot_pre_event_value": "assumed display zero",
+              "status": "quality-unfiltered development preview; not formal measurement"
+            },
+            "generated_files": [
+              "pdv_channel_1/apparent_velocity.csv",
+              "pdv_channel_1/stft_full_band.png",
+              "pdv_channel_1/stft_analysis_band_with_ridge.png",
+              "pdv_channel_1/apparent_velocity_full_time.png",
+              "pdv_channel_1/apparent_velocity_event_detail.png",
+              "pdv_channel_1/apparent_velocity_full_preview.png",
+              "pdv_channel_2/apparent_velocity.csv",
+              "pdv_channel_2/stft_full_band.png",
+              "pdv_channel_2/stft_analysis_band_with_ridge.png",
+              "pdv_channel_2/apparent_velocity_full_time.png",
+              "pdv_channel_2/apparent_velocity_event_detail.png",
+              "pdv_channel_2/apparent_velocity_full_preview.png",
+              "quality_summary.csv",
+              "profile_manifest.json"
+            ],
+            "interpretation_guards": [
+              "unsigned apparent velocity",
+              "configured wavelength is a demonstration value not confirmed by experiment records",
+              "no LiF, refractive-index, or incidence-angle correction",
+              "no channel selection, averaging, or fusion",
+              "no profile selection, averaging, or fusion",
+              "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+              "pre-event display zero is an assumption and core apparent velocity remains NaN",
+              "high-overlap frames are not independent measurements",
+              "high-time profile is not a higher-accuracy claim",
+              "quality metrics do not automatically validate physical branch identity",
+              "full-range preview is quality-unfiltered and is not a formal measurement",
+              "display-only bridge has two endpoints and writes no intermediate CSV data"
+            ],
+            "nyquist_frequency_hz_by_channel": {
+              "pdv_channel_1": 19999999993.179882,
+              "pdv_channel_2": 19999999993.179882
+            },
+            "profile": {
+              "display_name": "High time resolution",
+              "hop_samples": 128,
+              "maximum_frequency_hz": 2000000000.0,
+              "minimum_frequency_hz": 50000000.0,
+              "nfft": 4096,
+              "overlap_samples": 384,
+              "ridge_refinement": "log_magnitude_three_point_quadratic",
+              "tradeoff_note": "Shorter time support at the cost of frequency stability and plateau jitter; this is not a higher-accuracy claim.",
+              "window_length_samples": 512,
+              "window_name": "hann"
+            },
+            "profile_id": "high_time_resolution",
+            "quality": {
+              "background_guard_window_scale": 2.0,
+              "guard_status": "configured descriptive diagnostic; not a universal validated standard",
+              "minimum_background_bin_count": 2
+            },
+            "search_frequency_range_hz": [
+              50000000.0,
+              2000000000.0
+            ],
+            "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+            "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+            "vacuum_wavelength_m": 1.55e-06,
+            "wavelength_status": "demonstration value; not confirmed by experiment records"
+          }
+        },
+        "profiles": [
+          "balanced",
+          "high_time_resolution"
+        ],
+        "quality": {
+          "background_guard_window_scale": 2.0,
+          "minimum_background_bin_count": 2
+        },
+        "root_entries": [
+          "balanced",
+          "high_time_resolution",
+          "run_manifest.json",
+          "run.log"
+        ],
+        "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+        "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+        "versions": {
+          "dps-studio": "0.1.0",
+          "numpy": "2.5.1",
+          "python": "3.12.13",
+          "scipy": "1.18.0"
+        }
+      },
+      "sha256": "da9b2194941da61d911048899fc8ab74c958287f740fc9742f7c4e04c1508b37"
+    }
+  ],
+  "extras": [
+    {
+      "path": "presentations/group_meeting/20260726_redesign/assets/real/raw_voltage_dual_channel.png",
+      "exists": true,
+      "bytes": 702462,
+      "sha256": "8c4a2994403d41eb66167b2aae61e3c6243656ff5f8554c12a99b00d486ab58b",
+      "image": {
+        "path": "presentations/group_meeting/20260726_redesign/assets/real/raw_voltage_dual_channel.png",
+        "bytes": 702462,
+        "width": 3168,
+        "height": 1248,
+        "aspect_ratio": 2.5385,
+        "mode": "RGBA",
+        "sha256": "8c4a2994403d41eb66167b2aae61e3c6243656ff5f8554c12a99b00d486ab58b",
+        "average_hash": "fffffc01fc01fc01fc01fc01fffffffffc01fc01fc01fc01fc01ffffffffffff"
+      }
+    },
+    {
+      "path": "data/reference/legacy/legacy_velocity_time.csv",
+      "exists": true,
+      "bytes": 11483,
+      "sha256": "a1b65d9c207948335b020e6b63cf7b34c5e6284b7cbbffd3780bfd81eb447af5",
+      "csv": {
+        "path": "data/reference/legacy/legacy_velocity_time.csv",
+        "bytes": 11483,
+        "encoding": "utf-8-sig",
+        "row_count": 226,
+        "column_count": 4,
+        "header": [
+          "time_us",
+          "velocity_m_s",
+          "velocity_km_s",
+          "data_flag"
+        ],
+        "numeric_summary": {
+          "time_us": {
+            "count": 226,
+            "min": 0.0,
+            "max": 0.719999999999914,
+            "mean": 0.359999999999991
+          },
+          "velocity_m_s": {
+            "count": 226,
+            "min": 0.0,
+            "max": 574.10546875,
+            "mean": 479.3040652654867
+          },
+          "velocity_km_s": {
+            "count": 226,
+            "min": 0.0,
+            "max": 0.57410546875,
+            "mean": 0.47930406526548675
+          }
+        },
+        "sha256": "a1b65d9c207948335b020e6b63cf7b34c5e6284b7cbbffd3780bfd81eb447af5"
+      }
+    },
+    {
+      "path": "data/reference/legacy/README.md",
+      "exists": true,
+      "bytes": 436,
+      "sha256": "7dde4d325d08518ce8e7d1d2d970fd29a61c01b9a65edcaa3a0d5300dee2ba8b",
+      "line_count": 9,
+      "text": "# Local legacy reference data\n\nThis directory is reserved for local, read-only exports from the legacy\nsoftware. CSV files are excluded from version control by default.\n\nThe development audit script expects `legacy_velocity_time.csv`. Its source\nand provenance must be confirmed by the experimental team before use. The\nfile is not a physical ground truth; it is used only for development\ncomparison and parameter-fingerprint auditing.\n"
+    },
+    {
+      "path": "docs/旧软件速度时间数据.csv",
+      "exists": true,
+      "bytes": 11483,
+      "sha256": "a1b65d9c207948335b020e6b63cf7b34c5e6284b7cbbffd3780bfd81eb447af5",
+      "csv": {
+        "path": "docs/旧软件速度时间数据.csv",
+        "bytes": 11483,
+        "encoding": "utf-8-sig",
+        "row_count": 226,
+        "column_count": 4,
+        "header": [
+          "time_us",
+          "velocity_m_s",
+          "velocity_km_s",
+          "data_flag"
+        ],
+        "numeric_summary": {
+          "time_us": {
+            "count": 226,
+            "min": 0.0,
+            "max": 0.719999999999914,
+            "mean": 0.359999999999991
+          },
+          "velocity_m_s": {
+            "count": 226,
+            "min": 0.0,
+            "max": 574.10546875,
+            "mean": 479.3040652654867
+          },
+          "velocity_km_s": {
+            "count": 226,
+            "min": 0.0,
+            "max": 0.57410546875,
+            "mean": 0.47930406526548675
+          }
+        },
+        "sha256": "a1b65d9c207948335b020e6b63cf7b34c5e6284b7cbbffd3780bfd81eb447af5"
+      }
+    },
+    {
+      "path": "README.md",
+      "exists": true,
+      "bytes": 1298,
+      "sha256": "b62059ec0c46d6998f7846deff5e7331850f6a7dce8e68e0f77a92935b2ba687",
+      "line_count": 33,
+      "text": "# DPS Studio\n\nPDV/DPS signal analysis software.\n\nFormal production entry point:\n\n```powershell\nD:\\miniconda3\\envs\\dps-studio\\python.exe scripts\\run_demo_pipeline.py --config configs\\demo_dual_profile.toml\n```\n\nThe TOML file is the single production configuration entry for the input path,\ncolumn mapping, event interval, demonstration wavelength, quality parameters,\nplot ranges, and output root. Every production run analyzes the independent\nacquisition channels with both the Balanced and High time resolution profiles.\n\nNumerical workflow:\n\nraw time-voltage data -> validation -> STFT -> peak ridge -> sub-bin refinement\n-> unsigned apparent velocity -> descriptive spectral quality and continuity\n\nThe formal ridge search is 0.05–2.0 GHz. The analysis-band plots display\n0–2.0 GHz, while full-band plots use the complete one-sided STFT range from\n0 Hz through the actual Nyquist frequency. The configured 1550 nm wavelength\nis an unconfirmed demonstration value. No LiF correction, smoothing,\ninterpolation, channel fusion, or profile fusion is implemented.\n\nDevelopment rules:\n\n- Never overwrite raw data.\n- Keep the numerical core independent from the GUI.\n- Use SI units internally.\n- Store all parameters and manual edits.\n- Return NaN and quality flags when no reliable signal exists.\n"
+    },
+    {
+      "path": "AGENTS.md",
+      "exists": true,
+      "bytes": 578,
+      "sha256": "3724cc5a888b2269f523b2d9b53e6644ebbede79b96ad0c8bf63bf0ff24c49ea",
+      "line_count": 12,
+      "text": "# Codex Project Rules\n\n1. Never modify, overwrite, or delete files in data/raw.\n2. The core package must not depend on the GUI package.\n3. Use SI units for internal calculations.\n4. Store apparent velocity and corrected velocity separately.\n5. Do not silently interpolate, smooth, or delete data.\n6. Return NaN and quality flags when the signal is unreliable.\n7. Do not add a formal LiF correction formula until it has been verified.\n8. Every task must add tests and run pytest and ruff.\n9. Do not perform unrelated large refactors.\n10. Stop after completing the requested task."
+    },
+    {
+      "path": "pyproject.toml",
+      "exists": true,
+      "bytes": 802,
+      "sha256": "e41a530d9d13293820c362e0298939bc2f7a988e26588b555cc10ae81792eeb6",
+      "line_count": 46,
+      "text": "[build-system]\nrequires = [\"hatchling>=1.25\"]\nbuild-backend = \"hatchling.build\"\n\n[project]\nname = \"dps-studio\"\nversion = \"0.1.0\"\ndescription = \"PDV/DPS signal analysis software\"\nreadme = \"README.md\"\nrequires-python = \">=3.12,<3.14\"\ndependencies = [\n  \"numpy>=1.26\",\n  \"scipy>=1.13\",\n  \"pandas>=2.2\",\n  \"matplotlib>=3.8\",\n  \"PySide6>=6.8\",\n  \"pyqtgraph>=0.13.7\",\n  \"pydantic>=2.7\"\n]\n\n[project.optional-dependencies]\ndev = [\n  \"pytest>=8\",\n  \"ruff>=0.6\",\n  \"mypy>=1.10\",\n  \"pyinstaller>=6\"\n]\n\n[project.scripts]\ndps-studio = \"dps_studio.cli:main\"\n\n[tool.hatch.build.targets.wheel]\npackages = [\"src/dps_studio\"]\n\n[tool.pytest.ini_options]\ntestpaths = [\"tests\"]\npythonpath = [\"src\"]\n\n[tool.ruff]\nline-length = 100\ntarget-version = \"py312\"\n\n[tool.mypy]\npython_version = \"3.12\"\nstrict = true\nmypy_path = \"src\""
+    },
+    {
+      "path": "configs/demo_dual_profile.toml",
+      "exists": true,
+      "bytes": 786,
+      "sha256": "4057ff05da3c000cb1b10e5a2a306bf00ef83d0e61183b7388b4359dd53f7de5",
+      "line_count": 36,
+      "text": "[input]\npath = \"data/raw/20260607.csv\"\ntime_column = 0\ndelimiter = \",\"\nhas_header = false\nencoding = \"utf-8\"\ntime_scale = 1.0\n\n[input.voltage_columns]\npdv_channel_1 = 1\npdv_channel_2 = 2\n\n[input.voltage_scales]\npdv_channel_1 = 1.0\npdv_channel_2 = 1.0\n\n[analysis]\nprofiles = [\"balanced\", \"high_time_resolution\"]\nevent_start_time_s = 5.54668e-4\nanalysis_end_time_s = 5.5545e-4\n# Demonstration value only; not confirmed against the experiment record.\nvacuum_wavelength_m = 1.55e-6\n\n[quality]\nbackground_guard_window_scale = 2.0\nminimum_background_bin_count = 2\n\n[plot]\nrelative_db_floor = -60.0\nanalysis_display_minimum_frequency_hz = 0.0\nanalysis_display_maximum_frequency_hz = 2.0e9\nevent_detail_before_s = 1.0e-7\nevent_detail_after_s = 2.0e-7\n\n[output]\nroot = \"outputs/production_runs\"\n"
+    }
+  ],
+  "decks": [
+    {
+      "path": "presentations/Sigapore_presentation.pptx",
+      "bytes": 53253102,
+      "slide_count": 20,
+      "width": 12192000,
+      "height": 6858000,
+      "slides": [
+        {
+          "number": 1,
+          "pictures": 1,
+          "native_shapes": 8,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "2D Materials photonics for \nnext-generation datacom and telecom"
+          ]
+        },
+        {
+          "number": 2,
+          "pictures": 2,
+          "native_shapes": 13,
+          "tables": 0,
+          "charts": 0,
+          "text": []
+        },
+        {
+          "number": 3,
+          "pictures": 2,
+          "native_shapes": 3,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "datacom and telecom",
+            "Romagnoli et.al. Nature Reviews Materials  392～414. https://doi.org/10.1038/s41578-018-0040-9."
+          ]
+        },
+        {
+          "number": 4,
+          "pictures": 2,
+          "native_shapes": 9,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "二维材料",
+            "极化激元：一种模式；准粒子；",
+            "D. N. Basov et al. Polaritons in van der Waals materials.Science354, aag1992(2016). DOI:10.1126/science.aag1992",
+            "2D系列材料支持所有这些极化子",
+            "非线性光学：在光与物质相互作用中，感应极化强度非线性地依赖于外电场的现象。"
+          ]
+        },
+        {
+          "number": 5,
+          "pictures": 3,
+          "native_shapes": 5,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "光电技术高速与低能耗",
+            "※Source Center for Low Carbon Society Strategy, Japan Science and Technology Agency",
+            "许多人可能期待光子学领域的进一步发展\n Further development of humankind requires a mechanism to realize a sustainable society",
+            "图1显示了2030年的数字基于不会有重大技术进步的假设下，在全球数据中心数据量和功耗"
+          ]
+        },
+        {
+          "number": 6,
+          "pictures": 5,
+          "native_shapes": 12,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "纳米结构识别",
+            "无损高精度极化激元结构诊断技术",
+            "技术",
+            "IR",
+            "Dai S Y, Tymchenko M, Xu Z Q, Tran T T, Yang Y F, Ma Q, Watanabe K, Taniguchi T, Jarillo-Herrero P, Aharonovich I, Basov D N, \nTao T H, Alù A 2018 Nano Lett. 18 5205"
+          ]
+        },
+        {
+          "number": 7,
+          "pictures": 5,
+          "native_shapes": 10,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "补充：双曲材料中的定向光束",
+            "双曲性使得非常光具有双曲等频面，因此可支持极化激元极大波矢、强局域、定向传播",
+            "Type II hyperbolic material",
+            "Thin slab of a Type II HM",
+            "Dai, S., Ma, Q., Andersen, T. et al. Subdiffractional focusing and guiding of polaritonic rays in a natural hyperbolic material. Nat Commun 6, 6963 (2015). https://doi.org/10.1038/ncomms7963"
+          ]
+        },
+        {
+          "number": 8,
+          "pictures": 3,
+          "native_shapes": 8,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "\"超聚焦透镜\"及多模波导",
+            "六方氮化硼(hBN)晶体作为天然的双曲材料，可激发双曲声子极化激元（HP 2 ）",
+            "S. Dai, Q. Ma, T. Andersen, A. S. Mcleod, Z. Fei, M. K. Liu, M. Wagner, K. Watanabe, T. Taniguchi, M. Thiemens, F. Keilmann, P. Jarillo-Herrero, M. M. Fogler & D. N. Basov\nSubdiffractional focusing and guiding of polaritonic rays in a natural hyperbolic material. Nat Commun 6, 6963 (2015). https://doi.org/10.1038/ncomms7963"
+          ]
+        },
+        {
+          "number": 9,
+          "pictures": 1,
+          "native_shapes": 9,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "0.25",
+            "首个波导集成石墨烯电吸收调制器。通过电调谐石墨烯的费米能级，在室温条件下实现了对 1.35~1.6 µm宽波长范围内导光频率超过 1 GHz的调制。",
+            "存在问题:传统的硅基调制器是由锗和化合物半导体制成的，兼容集成困难且带宽窄",
+            "Ming Liu, Xiaobo Yin, Erick Ulin-Avila, Baisong Geng, Thomas Zentgraf, Long Ju, Feng Wang & Xiang ZhangA graphene-based broadband optical modulator. Nature 474, 64–67 (2011). https://doi.org/10.1038/nature10067",
+            "电光调制器",
+            "吸收最强"
+          ]
+        },
+        {
+          "number": 10,
+          "pictures": 6,
+          "native_shapes": 18,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "Cureister",
+            "探索极化激元与高性能光子集成电路（PIC）\n破纪录公司",
+            "专注于将等离激元（ plasmon-polariton ）器件与硅光子工艺结合，以实现超高带宽、低功耗的电光调制器和光引擎。其芯片面向高速数据通信、计算、测试测量、空间和量子技术等领域。",
+            "这项研究成果在物理领域重要期刊《OPTICA》上发表",
+            "400G/通道\n 高容量",
+            "10 MHz - 1.1 THz\n 超宽带",
+            "等离极化激元电光调制器",
+            "补充：极化激元商业化应用"
+          ]
+        },
+        {
+          "number": 11,
+          "pictures": 6,
+          "native_shapes": 12,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "寻找兼容硅光技术的功能光电材料及器件结构\n单层石墨烯探测器响应度较低",
+            "4.1° 的tBLG范霍夫奇点（vHs）能级差与1,550 nm（0.8 eV）通信波段光子能量相匹配，显著增强了与光的耦合效率",
+            "1550 nm 下材料的带间吸收最强，光探测器器件的光电转换效率最高。",
+            "主要研究热点",
+            "vHs距狄拉克点相差0.4 eV",
+            "光探测器",
+            "Wu, Q., Qian, J., Wang, Y. et al. Waveguide-integrated twisted bilayer graphene photodetectors. Nat Commun 15, 3688 (2024). https://doi.org/10.1038/s41467-024-47925-x"
+          ]
+        },
+        {
+          "number": 12,
+          "pictures": 2,
+          "native_shapes": 3,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "汇总",
+            "2D材料极化激元（等离子体、声子、激子 ）在各频率范围内可能的应用空间汇总"
+          ]
+        },
+        {
+          "number": 13,
+          "pictures": 3,
+          "native_shapes": 2,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "Malevich, Y., Ergoktas, M.S., Bakan, G. et al. Very-large-scale reconfigurable intelligent surfaces for dynamic control of terahertz and millimeter waves. Nat Commun 16, 2907 (2025). https://doi.org/10.1038/s41467-025-58256-w",
+            "6G智能超表面技术（RIS）"
+          ]
+        },
+        {
+          "number": 14,
+          "pictures": 6,
+          "native_shapes": 11,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "Malevich, Y., Ergoktas, M.S., Bakan, G. et al. Very-large-scale reconfigurable intelligent surfaces for dynamic control of terahertz and millimeter waves. Nat Commun 16, 2907 (2025). https://doi.org/10.1038/s41467-025-58256-w",
+            "6G智能超表面技术（RIS）",
+            "双层石墨烯 “可调光学/电磁材料” TFT 背板负责寻址\n电解质负责高效栅控\n石墨烯负责真正调制太赫兹波。",
+            "一个低功耗、可编程的电磁波中继/反射/波束控制界面。",
+            "研究结论",
+            "控制每个单元散射波的相位和振幅，从而利用波的干涉重构整个空间中的电磁波前，实现波束偏转、聚焦、多波束和波前整形。",
+            "双层石墨烯\n离子液体电解质\nITO 像素电极\nTFT 有源矩阵背板"
+          ]
+        },
+        {
+          "number": 15,
+          "pictures": 1,
+          "native_shapes": 3,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "关键：测量Hadamard基上的系数。",
+            "补充：Hadamard单像素成像",
+            "调制器产生第 1 个 Hadamard 掩膜图案\n 太赫兹波通过物体/被物体遮挡\n 单像素探测器记录一个总强度 I1\n\n调制器产生第 2 个 Hadamard 掩膜图案\n 探测器记录总强度 I2\n\n……\n\n重复 1024 个图案\n 得到 1024 个强度值\n 用矩阵反演/解码重建 32 × 32 图像"
+          ]
+        },
+        {
+          "number": 16,
+          "pictures": 4,
+          "native_shapes": 22,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "2D材料与非线性光学",
+            "利用二维材料“可扭转堆叠”的特性可以把二维范德华晶体真正做成可用的、集成在光纤里的二阶非线性功能器件。",
+            "扭角相位匹配",
+            "多功能集成光学模块",
+            "全光纤 SHG（倍频）",
+            "全光纤 SPDC",
+            "全光纤倍频超快激光器",
+            "Fibre-rBN– fibre",
+            "局部优化、全局优化",
+            "光学倍频转换效率的突破。\n3.2微米厚度下可达4.1%，同厚度下相较于传统晶体提升了100-10000倍，是世界已知最薄的光学晶体。能够有效调控参量光的偏振态。",
+            "界面转角相位匹配"
+          ]
+        },
+        {
+          "number": 17,
+          "pictures": 3,
+          "native_shapes": 16,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "二维vdW材料",
+            "地位",
+            "揭示新奇量子效应，推动纳米光子学应用",
+            "光电子器件",
+            "极化激元“开关”",
+            "Zhen-Bing Dai et al. ,Gradient polaritonic surface with space-variant switchable light-matter interactions in 2D moiré superlattices.Sci. Adv.10,eadq7445(2024).DOI:10.1126/sciadv.adq7445\nLin, K., Yao, G., Shao, J. et al. Nonlinear phase-matched van der Waals crystals integrated on optical fibres. Nat. Mater. (2026). https://doi.org/10.1038/s41563-025-02461-x",
+            "通过改变莫尔超晶格的局部应变方向，实现了极化激元与畴壁的相互作用开关及连续调控",
+            "光纤集成非线性相位匹配范德华晶体，利用光纤集成石墨烯/菱方氮化硼异质结复合器件，研制出全光纤锁模倍频激光器"
+          ]
+        },
+        {
+          "number": 18,
+          "pictures": 3,
+          "native_shapes": 19,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "束缚在远低于光波长的光会使电场增强，从而导致光与物质相互作用加强。\n这引发了强烈的非线性效应、巨大的光作用力以及增强的发射和吸收概率。",
+            "二维材料的观测与调控",
+            "高灵敏度的光学表征技术与丰富的调控手段",
+            "多场调控机制",
+            "02",
+            "主动等离激元器件、非线性光学器件、光电器件等",
+            "广泛的应用潜力",
+            "03",
+            "2D材料光电子学推动通信技术发展",
+            "总结展望"
+          ]
+        },
+        {
+          "number": 19,
+          "pictures": 2,
+          "native_shapes": 1,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "商业公司"
+          ]
+        },
+        {
+          "number": 20,
+          "pictures": 1,
+          "native_shapes": 3,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "感谢大家\n敬请批评指正！"
+          ]
+        }
+      ],
+      "sha256": "95e8fec1e5ca37fb2c90f86d845731176f47052afdb56573cb2bea8fd1f3e8e2"
+    },
+    {
+      "path": "presentations/group_meeting/20260725/DPS_Studio_组会汇报_20260725.pptx",
+      "bytes": 1576324,
+      "slide_count": 15,
+      "width": 9144000,
+      "height": 5143500,
+      "slides": [
+        {
+          "number": 1,
+          "pictures": 0,
+          "native_shapes": 8,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "PDV数据处理",
+            "面向冲击波实验的 PDV 数据分析软件开发进展",
+            "课题组组会",
+            "2026年7月27日",
+            "当前是可运行的数值分析工作流\n尚不是完成发布的 GUI 软件"
+          ]
+        },
+        {
+          "number": 2,
+          "pictures": 0,
+          "native_shapes": 35,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "速度曲线连接实验信号与后续物理判断",
+            "02",
+            "1",
+            "实验信号",
+            "双通道时间—电压序列",
+            "2",
+            "拍频脊线",
+            "STFT 能量与谱峰轨迹",
+            "3",
+            "表观速度",
+            "显式波长换算，无符号",
+            "4",
+            "物理分析",
+            "质量判断与修正后解释",
+            "关键结论",
+            "软件是实验信号与物理判断之间的关键桥梁；只有跨过质量与物理修正闸门，结果才具备进一步解释的基础。"
+          ]
+        },
+        {
+          "number": 3,
+          "pictures": 2,
+          "native_shapes": 10,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "新旧软件对比",
+            "03",
+            "旧输出曲线",
+            "回归指纹 ≠ 物理真",
+            "新输出曲线"
+          ]
+        },
+        {
+          "number": 4,
+          "pictures": 0,
+          "native_shapes": 30,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "Python 重建：把算法、配置和验证放进同一工作流",
+            "04",
+            "Python core / workflow",
+            "算法 · 配置 · 验证",
+            "数值计算",
+            "NumPy + SciPy\n数组、Hann 窗、STFT",
+            "可复现输出",
+            "Matplotlib\nproduction 图与实验输出",
+            "交互与交付",
+            "PySide6 + PyQtGraph：GUI 待实现\nPyInstaller：跨机器打包待验证",
+            "质量验证",
+            "pytest + Ruff + mypy\n271 passed｜39 个源文件",
+            "271 tests passed",
+            "Ruff 全部通过",
+            "mypy 39 files"
+          ]
+        },
+        {
+          "number": 5,
+          "pictures": 0,
+          "native_shapes": 49,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "处理链已实现表观速度闭环",
+            "05",
+            "已实现",
+            "只读输入",
+            "STFT",
+            "峰脊线",
+            "三点精修",
+            "无符号\n表观速度",
+            "描述性\n质量",
+            "非覆盖\n输出",
+            "物理修正隔离闸门",
+            "尚未实现",
+            "LiF 修正\ncorrected velocity\n有符号速度\n通道融合\nGUI",
+            "正在完善",
+            "弱信号判据",
+            "从描述性质量推进到可验证阈值",
+            "双通道质量决策",
+            "先输出证据，再建立择优规则",
+            "preview 语义",
+            "明确 development preview 与正式结果",
+            "边界",
+            "当前闭环止于无符号表观速度与描述性质量；全时段 preview 不是正式测量。"
+          ]
+        },
+        {
+          "number": 6,
+          "pictures": 1,
+          "native_shapes": 5,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "06",
+            "完整频谱图"
+          ]
+        },
+        {
+          "number": 7,
+          "pictures": 1,
+          "native_shapes": 21,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "STFT 将时变拍频转换为可追踪的时频脊线",
+            "07",
+            "真实输出｜Balanced｜PDV 通道 1｜搜索 0.05–2.0 GHz",
+            "滑动时间窗",
+            "保留频率随时间的演化",
+            "Balanced",
+            "Hann｜768｜hop 128｜NFFT 4096",
+            "边界说明",
+            "NFFT 加密频格，不等于真实分辨率提升",
+            "白色脊线是候选轨迹"
+          ]
+        },
+        {
+          "number": 8,
+          "pictures": 1,
+          "native_shapes": 17,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "脊线给出拍频轨迹；只有显式波长才能换算表观速度",
+            "08",
+            "带内最大谱峰 → 三点对数幅值精修",
+            "vₐₚₚ = λ₀ fᵦ / 2",
+            "λ₀ = 1.55 μm",
+            "未确认的演示值，不作为实验参数结论",
+            "失败保持 NaN",
+            "精修失败与 PRE_EVENT 核心速度均不伪造数值",
+            "物理量分离",
+            "apparent velocity 与未来 corrected velocity 必须分开",
+            "Balanced / 通道 1｜正式候选帧"
+          ]
+        },
+        {
+          "number": 9,
+          "pictures": 2,
+          "native_shapes": 10,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "双通道独立分析",
+            "09",
+            "· 两个量程分别执行 STFT、脊线与速度换算\n· dB 量描述当前谱结构",
+            "· 通道 2 数值较高 ≠ 自动更可信\n· 这些 dB 不是正式 SNR\n· 当前没有 GOOD/BAD 阈值或自动融合"
+          ]
+        },
+        {
+          "number": 10,
+          "pictures": 0,
+          "native_shapes": 52,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "core/workflow 与 GUI 解耦，让数值链可以独立验证",
+            "10",
+            "入口与配置",
+            "run_demo_pipeline.py",
+            "TOML（只读配置）",
+            "production_outputs.py",
+            "core.workflow",
+            "manifest",
+            "配置｜源哈希｜Git 状态｜生成文件",
+            "GUI 占位",
+            "io",
+            "time_frequency",
+            "ridge",
+            "physics",
+            "A",
+            "单向依赖",
+            "入口 → production I/O → core.workflow → 算法模块",
+            "B",
+            "边界明确",
+            "core 不导入 scripts、Matplotlib 或 GUI",
+            "C",
+            "GUI 尚未实现",
+            "未来只能调用 core 公共 API",
+            "D",
+            "输出可追溯",
+            "manifest 记录配置、哈希、Git 状态和文件"
+          ]
+        },
+        {
+          "number": 11,
+          "pictures": 0,
+          "native_shapes": 5,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "当前工作树",
+            "11"
+          ]
+        },
+        {
+          "number": 12,
+          "pictures": 0,
+          "native_shapes": 19,
+          "tables": 0,
+          "charts": 2,
+          "text": [
+            "真实运行显示两通道结果同量级，但不能自动判定“哪个更可信”",
+            "12",
+            "244",
+            "两通道各 244 个候选帧",
+            "538 / 532 m/s",
+            "两通道首候选表观速度",
+            "≈212 m/s",
+            "候选最低表观速度",
+            "Balanced / 通道 1",
+            "Balanced / 通道 2",
+            "相对事件时间 (μs)｜无符号表观速度 (m/s)",
+            "相对事件时间 (μs)｜无符号表观速度 (m/s)",
+            "一致性是重复性线索，不是物理准确度证明；不得自动选择、平均或融合通道。"
+          ]
+        },
+        {
+          "number": 13,
+          "pictures": 0,
+          "native_shapes": 37,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "软件能运行，不等于结果已达到科研使用标准",
+            "13",
+            "基础闭环已建立",
+            "可运行｜工程质量门已通过",
+            "≠",
+            "科研级可信仍未完成",
+            "需实验依据｜需质量判断｜需交付验证",
+            "1",
+            "脊线连续性",
+            "逐帧最大峰仍无最大跳频、动态规划或连续性约束",
+            "2",
+            "质量阈值",
+            "描述性质量量无正式阈值，不能自动拒绝假峰",
+            "3",
+            "物理参数",
+            "1550 nm 未确认；LiF、折射率与 corrected velocity 未实现",
+            "4",
+            "preview 语义",
+            "全时段 preview 未经过正式质量门，不是正式低速测量",
+            "5",
+            "交付能力",
+            "GUI、完整 CLI、集成测试、打包和跨机器部署未完成"
+          ]
+        },
+        {
+          "number": 14,
+          "pictures": 0,
+          "native_shapes": 37,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "下一阶段优先建立可信判据，再推进修正模型和 GUI",
+            "14",
+            "下一阶段计划｜按依赖推进",
+            "01",
+            "谱线连续性",
+            "非 AI 连续跟踪\n搜索范围 · 物理先验",
+            "02",
+            "可验证判据",
+            "起跳点 · 平台区 · 弱信号\n自动测试 / 验收",
+            "03",
+            "通道质量择优",
+            "先输出证据，再标定阈值\n对照测试 / 验收",
+            "04",
+            "修正模型",
+            "核验波长与 LiF\n验证后接入 corrected velocity",
+            "05",
+            "交付链",
+            "CLI → GUI → 打包部署\n真实用户验收",
+            "AI 辅助识别（后期）",
+            "仅辅助候选识别，\n不直接生成最终速度",
+            "验收原则：每个功能都必须有自动测试和明确验收标准｜以上均为计划，非已完成。"
+          ]
+        },
+        {
+          "number": 15,
+          "pictures": 0,
+          "native_shapes": 12,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "从“跑通”到“可信”：DPS Studio 的下一阶段",
+            "已有：",
+            "双通道、双 Profile、正式 core workflow、真实 production 输出",
+            "仍需：",
+            "可信谱线、通道决策、波长与 LiF 模型验证",
+            "后续：",
+            "数值链稳定后推进 CLI / GUI、打包和用户验收"
+          ]
+        }
+      ],
+      "sha256": "2d5684b95c307ecc42f89a5ef33648d107306136f95db7041ed905bdd30af9a4"
+    },
+    {
+      "path": "presentations/group_meeting/20260726_redesign/DPS_Studio_组会汇报_redesign.pptx",
+      "bytes": 2288921,
+      "slide_count": 15,
+      "width": 12191695,
+      "height": 6858000,
+      "slides": [
+        {
+          "number": 1,
+          "pictures": 0,
+          "native_shapes": 12,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "DPS Studio",
+            "从 PDV 原始信号到\n可追溯表观速度曲线",
+            "课题组组会汇报",
+            "2026 年 7 月 26 日",
+            "V(t)",
+            "/",
+            "S(t, f)",
+            "/",
+            "v_app(t)",
+            "可追溯 ≠ 已完成物理修正"
+          ]
+        },
+        {
+          "number": 2,
+          "pictures": 0,
+          "native_shapes": 23,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "问题",
+            "旧流程缺少参数、处理步骤与结果之间的可追溯映射",
+            "看到曲线后，\n仍难回答它如何产生。",
+            "参数、人工选择、异常峰和源文件之间没有完整记录，结果接近也不代表过程相同。",
+            "因此要重建处理证据，不只是更换界面。",
+            "01",
+            "看不到",
+            "结果不能对应到完整参数和时间区间",
+            "02",
+            "说不清",
+            "人工选峰与修改步骤难以复现",
+            "03",
+            "辨不出",
+            "弱信号和假峰缺少可核验依据",
+            "04",
+            "回不去",
+            "原始数据与处理结果边界不清"
+          ]
+        },
+        {
+          "number": 3,
+          "pictures": 0,
+          "native_shapes": 19,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "目标",
+            "当前优先级：数值链验证先于 GUI 完善",
+            "01",
+            "数据安全",
+            "只读输入｜不覆盖原文件｜SI 单位｜异常明示",
+            "02",
+            "算法复刻",
+            "文件读取｜STFT｜脊线｜拍频换算｜复现与导出",
+            "03",
+            "可信判断",
+            "弱信号｜假峰｜起跳点｜双通道｜修正边界",
+            "GUI 排在可信判断之后",
+            "当前优先级：先把计算说清楚，再把操作做方便。"
+          ]
+        },
+        {
+          "number": 4,
+          "pictures": 0,
+          "native_shapes": 24,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "工具选择",
+            "Python 的价值在于让计算、配置和检查留在同一份记录里",
+            "数值计算",
+            "NumPy · SciPy · pandas",
+            "读取、数组、STFT 和数据表",
+            "可复现图",
+            "Matplotlib",
+            "同一输入和配置重复生成图",
+            "交互界面",
+            "PySide6 · PyQtGraph",
+            "依赖已列入；GUI 尚未完成",
+            "检查",
+            "pytest · Ruff · mypy",
+            "行为、代码和类型检查",
+            "[project]\nname = \"dps-studio\"\n\ndependencies = [\n  \"numpy\", \"scipy\", \"pandas\",\n  \"matplotlib\",\n  \"PySide6\", \"pyqtgraph\",\n  \"pydantic\"\n]\n\n[project.optional-dependencies]\ndev = [\"pytest\", \"ruff\",\n       \"mypy\", \"pyinstaller\"]",
+            "pyproject.toml · lines 8–27",
+            "依赖被记录下来，结果才有机会对应到具体运行环境。"
+          ]
+        },
+        {
+          "number": 5,
+          "pictures": 0,
+          "native_shapes": 48,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "数值链",
+            "当前处理链已经到表观速度，物理修正仍在链路之外",
+            "已实现",
+            "初步实现",
+            "未完成 / 待核验",
+            "01",
+            "时间—电压",
+            "02",
+            "文件读取",
+            "03",
+            "SignalRecord",
+            "04",
+            "STFT",
+            "05",
+            "候选脊线",
+            "06",
+            "亚频点精修",
+            "07",
+            "表观速度",
+            "08",
+            "描述性质量",
+            "09",
+            "CSV / 图 / manifest",
+            "链路之外：LiF 修正｜双通道自动择优 / 融合｜GUI",
+            "当前结果是无符号表观速度，不是窗口修正后的真实界面速度。"
+          ]
+        },
+        {
+          "number": 6,
+          "pictures": 1,
+          "native_shapes": 17,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "输入",
+            "输入层先保留差异，再决定如何比较",
+            "01",
+            "只读与 SI",
+            "时间为秒，电压为伏特；数组只读。",
+            "02",
+            "不静默处理",
+            "非均匀采样会报错，不静默重采样。",
+            "2.48×",
+            "峰峰值比（显示窗）",
+            "量程不同：不在电压层平均。",
+            "data/raw/20260607.csv · 事件附近显示窗 · 无平滑、插值或重采样"
+          ]
+        },
+        {
+          "number": 7,
+          "pictures": 1,
+          "native_shapes": 7,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "STFT",
+            "单次 FFT 无法定位拍频在何时改变",
+            "STFT 将局部频谱沿时间展开；白线只是候选脊线，不是物理真值。",
+            "Balanced / pdv_channel_1 · 真实 production 输出"
+          ]
+        },
+        {
+          "number": 8,
+          "pictures": 1,
+          "native_shapes": 43,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "参数",
+            "参数共同决定时间、频率分辨率与搜索范围",
+            "参数",
+            "Balanced",
+            "High time",
+            "window",
+            "Hann",
+            "Hann",
+            "window length",
+            "768",
+            "512",
+            "overlap",
+            "640",
+            "384",
+            "hop",
+            "128",
+            "128",
+            "nfft",
+            "4096",
+            "4096",
+            "ridge search",
+            "0.05–2.0 GHz",
+            "0.05–2.0 GHz",
+            "40 GHz：窗长 19.2 / 12.8 ns；hop ≈ 3.2 ns。",
+            "src/dps_studio/core/analysis_profiles.py:136–145",
+            "窗长",
+            "越长，频率估计更稳；时间定位更宽。",
+            "hop",
+            "越小，时间网格更密；计算量更大。",
+            "nfft",
+            "加密频率网格，不等于提高分辨率",
+            "搜索带",
+            "排除明显假峰，不任意排除真实信号"
+          ]
+        },
+        {
+          "number": 9,
+          "pictures": 0,
+          "native_shapes": 20,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "物理换算",
+            "脊线先给出拍频，波长明确后才能换算表观速度",
+            "vₐₚₚ = λ₀ fᵦ / 2",
+            "normal-incidence reflection PDV",
+            "拍频不是速度",
+            "脊线纵坐标先是 f_b；只有显式波长后才换算。",
+            "当前是无符号表观速度",
+            "一侧频谱不提供方向；当前输出不带符号。",
+            "修正仍未实现",
+            "没有 LiF、折射率或入射角修正。",
+            "λ₀ = 1.55 μm",
+            "配置中的演示值，尚未与实验记录核验。",
+            "apparent velocity 与 corrected velocity 必须分开记录和表述。"
+          ]
+        },
+        {
+          "number": 10,
+          "pictures": 2,
+          "native_shapes": 10,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "真实结果",
+            "同一次真实运行把时频脊线对应到表观速度曲线",
+            "左：Balanced / channel 1 · STFT 与 refined candidate ridge",
+            "右：同一 run / profile / channel · 事件区表观速度",
+            "左：候选谱线位置；右：同一候选频率换算为表观速度。结果可复现，但弱信号区仍需核验。",
+            "run_20260724_004901_103968 · display-only bridge 不写入中间测量点。"
+          ]
+        },
+        {
+          "number": 11,
+          "pictures": 1,
+          "native_shapes": 15,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "双通道",
+            "双通道一致性不能替代通道可信度判定",
+            "最新 Balanced run · formal candidate · 无平滑、插值、平均或融合",
+            "538 / 532",
+            "m/s · 两通道首个候选",
+            "52.5 / 55.8 dB",
+            "peak-to-background median",
+            "13.3 / 19.9 dB",
+            "peak-to-competitor median",
+            "这些 dB 量仅是\n描述性证据\n不是 SNR\n也不是自动择优阈值"
+          ]
+        },
+        {
+          "number": 12,
+          "pictures": 0,
+          "native_shapes": 60,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "完成度",
+            "目前已经复刻了核心数值链，但完成度不等于可信度",
+            "已实现",
+            "初步实现",
+            "未完成 / 待核验",
+            "能力",
+            "状态",
+            "证据 / 边界",
+            "原始数据只读读取",
+            "已实现",
+            "core/models/signal.py",
+            "SignalRecord 数据模型",
+            "已实现",
+            "SI、只读数组、采样信息",
+            "STFT 时频计算",
+            "已实现",
+            "core/time_frequency/stft.py",
+            "脊线提取与亚频点精修",
+            "已实现",
+            "core/ridge/peak.py · refinement.py",
+            "拍频到无符号表观速度",
+            "已实现",
+            "core/physics/velocity.py",
+            "双通道独立分析与输出",
+            "已实现",
+            "core/workflow/analysis.py",
+            "连续性与谱质量证据",
+            "初步实现",
+            "没有正式可信阈值",
+            "CSV、图片与 manifest",
+            "已实现",
+            "scripts/production_outputs.py",
+            "LiF 修正、完整 GUI、打包",
+            "未完成",
+            "不得写成当前成果",
+            "能力状态来自当前工作树；未提交内容不等于稳定发布。"
+          ]
+        },
+        {
+          "number": 13,
+          "pictures": 0,
+          "native_shapes": 29,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "当前问题",
+            "当前结果能展示流程，还不能宣称是最终科研结果",
+            "曲线可生成",
+            "曲线可信",
+            "弱信号区\n可能追错分支",
+            "起跳点、平台和零速度区\n缺少物理判据",
+            "参数改变\n时频图细节",
+            "双通道择优\n没有正式规则",
+            "波长与 LiF\n修正尚未核验",
+            "GUI、打包和验收\n尚未完成",
+            "当前结果适合检查数值流程和定位问题，不适合直接宣称为最终科研数据。"
+          ]
+        },
+        {
+          "number": 14,
+          "pictures": 0,
+          "native_shapes": 36,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "下一阶段",
+            "下一阶段按依赖顺序推进，AI 只做后期辅助识别",
+            "01",
+            "非 AI 谱线增强与连续性约束",
+            "输出：候选谱线连续性与分支证据",
+            "02",
+            "起跳点、平台区和弱信号判据",
+            "输出：可解释的区间标记与拒绝理由",
+            "03",
+            "双通道质量择优",
+            "输出：规则、证据和不确定状态",
+            "04",
+            "波长、LiF 修正与实验条件核验",
+            "输出：经核对的参数和修正模型",
+            "05",
+            "GUI 操作流程",
+            "输出：围绕已验证数值链的交互界面",
+            "06",
+            "打包部署与用户测试",
+            "输出：跨机器安装、日志和验收记录",
+            "AI 的位置：标记可疑区域，不直接生成或决定最终速度曲线。"
+          ]
+        },
+        {
+          "number": 15,
+          "pictures": 0,
+          "native_shapes": 13,
+          "tables": 0,
+          "charts": 0,
+          "text": [
+            "总结",
+            "当前重点已由曲线生成转向\n谱线追踪的可信度验证。",
+            "现状",
+            "真实 PDV 原始数据到表观速度的基础数值链已经存在。",
+            "当前",
+            "弱信号谱线、双通道判断、波长与窗口修正仍需证据。",
+            "后续",
+            "可信判断稳定后，再完善 GUI、打包和用户测试。",
+            "DPS Studio · 组会汇报 · 2026.07.26"
+          ]
+        }
+      ],
+      "sha256": "0503b3e560600021360572b296a47d4930a2fd529b6e8723f8598a4ebc2fa545"
+    }
+  ],
+  "exact_duplicate_groups": [
+    [
+      "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/apparent_velocity_full_preview.png",
+      "presentations/data/完整时间轴.png"
+    ],
+    [
+      "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/apparent_velocity_full_time.png",
+      "presentations/data/新软件速度时间图.png"
+    ],
+    [
+      "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/stft_full_band.png",
+      "presentations/data/完整频谱图.png"
+    ]
+  ],
+  "same_average_hash_groups": [
+    [
+      "presentations/data/balanced_diagnostic/pdv_channel_1_decline_detail.png",
+      "presentations/data/balanced_diagnostic/pdv_channel_2_decline_detail.png"
+    ],
+    [
+      "presentations/data/balanced_diagnostic/pdv_channel_1_discrete_vs_refined_velocity.png",
+      "presentations/data/balanced_diagnostic/pdv_channel_2_discrete_vs_refined_velocity.png"
+    ],
+    [
+      "presentations/data/balanced_diagnostic/pdv_channel_1_full_display_velocity.png",
+      "presentations/data/balanced_diagnostic/pdv_channel_2_full_display_velocity.png"
+    ],
+    [
+      "presentations/data/balanced_diagnostic/pdv_channel_1_presentation_velocity.png",
+      "presentations/data/balanced_diagnostic/pdv_channel_2_presentation_velocity.png"
+    ],
+    [
+      "presentations/data/balanced_diagnostic/pdv_channel_1_stft_detail.png",
+      "presentations/data/balanced_diagnostic/pdv_channel_2_stft_detail.png"
+    ],
+    [
+      "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/apparent_velocity_event_detail.png",
+      "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_2/apparent_velocity_event_detail.png",
+      "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_1/apparent_velocity_event_detail.png",
+      "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_2/apparent_velocity_event_detail.png"
+    ],
+    [
+      "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/apparent_velocity_full_preview.png",
+      "presentations/data/完整时间轴.png"
+    ],
+    [
+      "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/apparent_velocity_full_time.png",
+      "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_2/apparent_velocity_full_time.png",
+      "presentations/data/新软件速度时间图.png"
+    ],
+    [
+      "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_1/stft_full_band.png",
+      "presentations/data/run_20260724_004901_103968/balanced/pdv_channel_2/stft_full_band.png",
+      "presentations/data/完整频谱图.png"
+    ],
+    [
+      "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_1/stft_full_band.png",
+      "presentations/data/run_20260724_004901_103968/high_time_resolution/pdv_channel_2/stft_full_band.png"
+    ]
+  ],
+  "contact_sheets": [
+    "presentation/redesign_v3/_qa_tmp/data_contact_sheet_01.png",
+    "presentation/redesign_v3/_qa_tmp/data_contact_sheet_02.png",
+    "presentation/redesign_v3/_qa_tmp/data_contact_sheet_03.png",
+    "presentation/redesign_v3/_qa_tmp/data_contact_sheet_04.png",
+    "presentation/redesign_v3/_qa_tmp/data_contact_sheet_05.png",
+    "presentation/redesign_v3/_qa_tmp/data_contact_sheet_06.png"
+  ]
+}

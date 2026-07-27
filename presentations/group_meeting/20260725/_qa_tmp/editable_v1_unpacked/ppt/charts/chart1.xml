@@ -1,0 +1,744 @@
+<?xml version="1.0" encoding="utf-8"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <c:date1904 val="0"/>
+  <c:roundedCorners val="1"/>
+  <c:chart>
+    <c:autoTitleDeleted val="1"/>
+    <c:plotArea>
+      <c:layout/>
+      <c:lineChart>
+        <c:varyColors val="0"/>
+        <c:ser>
+            
+          <c:idx val="0"/>
+          <c:order val="0"/>
+            
+          <c:tx>
+                
+            <c:strRef>
+                    
+              <c:f>Sheet1!$B$1</c:f>
+                    
+              <c:strCache>
+                <c:ptCount val="1"/>
+                <c:pt idx="0">
+                  <c:v>通道 1</c:v>
+                </c:pt>
+              </c:strCache>
+                  
+            </c:strRef>
+              
+          </c:tx>
+            
+          <c:spPr>
+            <a:solidFill>
+              <a:srgbClr val="0F7785"/>
+            </a:solidFill>
+            <a:ln w="31750" cap="flat">
+              <a:solidFill>
+                <a:srgbClr val="0F7785"/>
+              </a:solidFill>
+              <a:prstDash val="solid"/>
+              <a:round/>
+            </a:ln>
+            <a:effectLst/>
+              
+          </c:spPr>
+            
+          <c:invertIfNegative val="0"/>
+          <c:dLbls>
+            <c:numFmt formatCode="#,##0" sourceLinked="0"/>
+            <c:txPr>
+              <a:bodyPr/>
+              <a:lstStyle/>
+              <a:p>
+                <a:pPr>
+                  <a:defRPr b="0" i="0" strike="noStrike" sz="1200" u="none">
+                    <a:solidFill>
+                      <a:srgbClr val="000000"/>
+                    </a:solidFill>
+                    <a:latin typeface="Arial"/>
+                  </a:defRPr>
+                </a:pPr>
+              </a:p>
+            </c:txPr>
+            <c:showLegendKey val="0"/>
+            <c:showVal val="0"/>
+            <c:showCatName val="0"/>
+            <c:showSerName val="0"/>
+            <c:showPercent val="0"/>
+            <c:showBubbleSize val="0"/>
+            <c:showLeaderLines val="0"/>
+          </c:dLbls>
+          <c:marker>
+              
+            <c:symbol val="circle"/>
+            <c:size val="6"/>
+              
+            <c:spPr>
+                  
+              <a:solidFill>
+                <a:srgbClr val="0F7785"/>
+              </a:solidFill>
+                  
+              <a:ln w="9525" cap="flat">
+                <a:solidFill>
+                  <a:srgbClr val="0F7785"/>
+                </a:solidFill>
+                <a:prstDash val="solid"/>
+                <a:round/>
+              </a:ln>
+                  
+              <a:effectLst/>
+                
+            </c:spPr>
+          </c:marker>
+          <c:cat>
+              
+            <c:multiLvlStrRef>
+                  
+              <c:f>Sheet1!$A$2:$A$63</c:f>
+                  
+              <c:multiLvlStrCache>
+                      
+                <c:ptCount val="62"/>
+                <c:lvl>
+                  <c:pt idx="0">
+                    <c:v>0.003</c:v>
+                  </c:pt>
+                  <c:pt idx="1">
+                    <c:v>0.006</c:v>
+                  </c:pt>
+                  <c:pt idx="2">
+                    <c:v>0.009</c:v>
+                  </c:pt>
+                  <c:pt idx="3">
+                    <c:v>0.012</c:v>
+                  </c:pt>
+                  <c:pt idx="4">
+                    <c:v>0.015</c:v>
+                  </c:pt>
+                  <c:pt idx="5">
+                    <c:v>0.019</c:v>
+                  </c:pt>
+                  <c:pt idx="6">
+                    <c:v>0.022</c:v>
+                  </c:pt>
+                  <c:pt idx="7">
+                    <c:v>0.025</c:v>
+                  </c:pt>
+                  <c:pt idx="8">
+                    <c:v>0.028</c:v>
+                  </c:pt>
+                  <c:pt idx="9">
+                    <c:v>0.031</c:v>
+                  </c:pt>
+                  <c:pt idx="10">
+                    <c:v>0.035</c:v>
+                  </c:pt>
+                  <c:pt idx="11">
+                    <c:v>0.038</c:v>
+                  </c:pt>
+                  <c:pt idx="12">
+                    <c:v>0.041</c:v>
+                  </c:pt>
+                  <c:pt idx="13">
+                    <c:v>0.044</c:v>
+                  </c:pt>
+                  <c:pt idx="14">
+                    <c:v>0.047</c:v>
+                  </c:pt>
+                  <c:pt idx="15">
+                    <c:v>0.051</c:v>
+                  </c:pt>
+                  <c:pt idx="16">
+                    <c:v>0.054</c:v>
+                  </c:pt>
+                  <c:pt idx="17">
+                    <c:v>0.057</c:v>
+                  </c:pt>
+                  <c:pt idx="18">
+                    <c:v>0.060</c:v>
+                  </c:pt>
+                  <c:pt idx="19">
+                    <c:v>0.063</c:v>
+                  </c:pt>
+                  <c:pt idx="20">
+                    <c:v>0.067</c:v>
+                  </c:pt>
+                  <c:pt idx="21">
+                    <c:v>0.070</c:v>
+                  </c:pt>
+                  <c:pt idx="22">
+                    <c:v>0.073</c:v>
+                  </c:pt>
+                  <c:pt idx="23">
+                    <c:v>0.076</c:v>
+                  </c:pt>
+                  <c:pt idx="24">
+                    <c:v>0.079</c:v>
+                  </c:pt>
+                  <c:pt idx="25">
+                    <c:v>0.083</c:v>
+                  </c:pt>
+                  <c:pt idx="26">
+                    <c:v>0.086</c:v>
+                  </c:pt>
+                  <c:pt idx="27">
+                    <c:v>0.089</c:v>
+                  </c:pt>
+                  <c:pt idx="28">
+                    <c:v>0.092</c:v>
+                  </c:pt>
+                  <c:pt idx="29">
+                    <c:v>0.095</c:v>
+                  </c:pt>
+                  <c:pt idx="30">
+                    <c:v>0.099</c:v>
+                  </c:pt>
+                  <c:pt idx="31">
+                    <c:v>0.102</c:v>
+                  </c:pt>
+                  <c:pt idx="32">
+                    <c:v>0.105</c:v>
+                  </c:pt>
+                  <c:pt idx="33">
+                    <c:v>0.108</c:v>
+                  </c:pt>
+                  <c:pt idx="34">
+                    <c:v>0.111</c:v>
+                  </c:pt>
+                  <c:pt idx="35">
+                    <c:v>0.115</c:v>
+                  </c:pt>
+                  <c:pt idx="36">
+                    <c:v>0.118</c:v>
+                  </c:pt>
+                  <c:pt idx="37">
+                    <c:v>0.121</c:v>
+                  </c:pt>
+                  <c:pt idx="38">
+                    <c:v>0.124</c:v>
+                  </c:pt>
+                  <c:pt idx="39">
+                    <c:v>0.127</c:v>
+                  </c:pt>
+                  <c:pt idx="40">
+                    <c:v>0.131</c:v>
+                  </c:pt>
+                  <c:pt idx="41">
+                    <c:v>0.134</c:v>
+                  </c:pt>
+                  <c:pt idx="42">
+                    <c:v>0.137</c:v>
+                  </c:pt>
+                  <c:pt idx="43">
+                    <c:v>0.140</c:v>
+                  </c:pt>
+                  <c:pt idx="44">
+                    <c:v>0.143</c:v>
+                  </c:pt>
+                  <c:pt idx="45">
+                    <c:v>0.147</c:v>
+                  </c:pt>
+                  <c:pt idx="46">
+                    <c:v>0.150</c:v>
+                  </c:pt>
+                  <c:pt idx="47">
+                    <c:v>0.153</c:v>
+                  </c:pt>
+                  <c:pt idx="48">
+                    <c:v>0.156</c:v>
+                  </c:pt>
+                  <c:pt idx="49">
+                    <c:v>0.159</c:v>
+                  </c:pt>
+                  <c:pt idx="50">
+                    <c:v>0.163</c:v>
+                  </c:pt>
+                  <c:pt idx="51">
+                    <c:v>0.166</c:v>
+                  </c:pt>
+                  <c:pt idx="52">
+                    <c:v>0.169</c:v>
+                  </c:pt>
+                  <c:pt idx="53">
+                    <c:v>0.172</c:v>
+                  </c:pt>
+                  <c:pt idx="54">
+                    <c:v>0.175</c:v>
+                  </c:pt>
+                  <c:pt idx="55">
+                    <c:v>0.179</c:v>
+                  </c:pt>
+                  <c:pt idx="56">
+                    <c:v>0.182</c:v>
+                  </c:pt>
+                  <c:pt idx="57">
+                    <c:v>0.185</c:v>
+                  </c:pt>
+                  <c:pt idx="58">
+                    <c:v>0.188</c:v>
+                  </c:pt>
+                  <c:pt idx="59">
+                    <c:v>0.191</c:v>
+                  </c:pt>
+                  <c:pt idx="60">
+                    <c:v>0.195</c:v>
+                  </c:pt>
+                  <c:pt idx="61">
+                    <c:v>0.198</c:v>
+                  </c:pt>
+                </c:lvl>
+                    
+              </c:multiLvlStrCache>
+                
+            </c:multiLvlStrRef>
+          </c:cat>
+          <c:val>
+              
+            <c:numRef>
+              <c:f>Sheet1!$B$2:$B$63</c:f>
+                  
+              <c:numCache>
+                      
+                <c:formatCode>General</c:formatCode>
+                      
+                <c:ptCount val="62"/>
+                <c:pt idx="0">
+                  <c:v>537.94</c:v>
+                </c:pt>
+                <c:pt idx="1">
+                  <c:v>544.99</c:v>
+                </c:pt>
+                <c:pt idx="2">
+                  <c:v>548.86</c:v>
+                </c:pt>
+                <c:pt idx="3">
+                  <c:v>549.74</c:v>
+                </c:pt>
+                <c:pt idx="4">
+                  <c:v>550.46</c:v>
+                </c:pt>
+                <c:pt idx="5">
+                  <c:v>553.11</c:v>
+                </c:pt>
+                <c:pt idx="6">
+                  <c:v>558.02</c:v>
+                </c:pt>
+                <c:pt idx="7">
+                  <c:v>563.68</c:v>
+                </c:pt>
+                <c:pt idx="8">
+                  <c:v>568.91</c:v>
+                </c:pt>
+                <c:pt idx="9">
+                  <c:v>570.79</c:v>
+                </c:pt>
+                <c:pt idx="10">
+                  <c:v>569.78</c:v>
+                </c:pt>
+                <c:pt idx="11">
+                  <c:v>568.7</c:v>
+                </c:pt>
+                <c:pt idx="12">
+                  <c:v>569.05</c:v>
+                </c:pt>
+                <c:pt idx="13">
+                  <c:v>570.85</c:v>
+                </c:pt>
+                <c:pt idx="14">
+                  <c:v>572.81</c:v>
+                </c:pt>
+                <c:pt idx="15">
+                  <c:v>573.02</c:v>
+                </c:pt>
+                <c:pt idx="16">
+                  <c:v>571.84</c:v>
+                </c:pt>
+                <c:pt idx="17">
+                  <c:v>571.4</c:v>
+                </c:pt>
+                <c:pt idx="18">
+                  <c:v>571.25</c:v>
+                </c:pt>
+                <c:pt idx="19">
+                  <c:v>569.36</c:v>
+                </c:pt>
+                <c:pt idx="20">
+                  <c:v>566.41</c:v>
+                </c:pt>
+                <c:pt idx="21">
+                  <c:v>564.26</c:v>
+                </c:pt>
+                <c:pt idx="22">
+                  <c:v>562.73</c:v>
+                </c:pt>
+                <c:pt idx="23">
+                  <c:v>562.02</c:v>
+                </c:pt>
+                <c:pt idx="24">
+                  <c:v>563.12</c:v>
+                </c:pt>
+                <c:pt idx="25">
+                  <c:v>565.12</c:v>
+                </c:pt>
+                <c:pt idx="26">
+                  <c:v>566.27</c:v>
+                </c:pt>
+                <c:pt idx="27">
+                  <c:v>566.58</c:v>
+                </c:pt>
+                <c:pt idx="28">
+                  <c:v>566.88</c:v>
+                </c:pt>
+                <c:pt idx="29">
+                  <c:v>566.78</c:v>
+                </c:pt>
+                <c:pt idx="30">
+                  <c:v>565.33</c:v>
+                </c:pt>
+                <c:pt idx="31">
+                  <c:v>562.62</c:v>
+                </c:pt>
+                <c:pt idx="32">
+                  <c:v>560.59</c:v>
+                </c:pt>
+                <c:pt idx="33">
+                  <c:v>561.6</c:v>
+                </c:pt>
+                <c:pt idx="34">
+                  <c:v>564.98</c:v>
+                </c:pt>
+                <c:pt idx="35">
+                  <c:v>567.15</c:v>
+                </c:pt>
+                <c:pt idx="36">
+                  <c:v>566.24</c:v>
+                </c:pt>
+                <c:pt idx="37">
+                  <c:v>564.38</c:v>
+                </c:pt>
+                <c:pt idx="38">
+                  <c:v>563.95</c:v>
+                </c:pt>
+                <c:pt idx="39">
+                  <c:v>564.87</c:v>
+                </c:pt>
+                <c:pt idx="40">
+                  <c:v>565.25</c:v>
+                </c:pt>
+                <c:pt idx="41">
+                  <c:v>564.44</c:v>
+                </c:pt>
+                <c:pt idx="42">
+                  <c:v>563.96</c:v>
+                </c:pt>
+                <c:pt idx="43">
+                  <c:v>564.49</c:v>
+                </c:pt>
+                <c:pt idx="44">
+                  <c:v>565.11</c:v>
+                </c:pt>
+                <c:pt idx="45">
+                  <c:v>565.24</c:v>
+                </c:pt>
+                <c:pt idx="46">
+                  <c:v>565.06</c:v>
+                </c:pt>
+                <c:pt idx="47">
+                  <c:v>564.33</c:v>
+                </c:pt>
+                <c:pt idx="48">
+                  <c:v>563.35</c:v>
+                </c:pt>
+                <c:pt idx="49">
+                  <c:v>562.89</c:v>
+                </c:pt>
+                <c:pt idx="50">
+                  <c:v>562.51</c:v>
+                </c:pt>
+                <c:pt idx="51">
+                  <c:v>561.63</c:v>
+                </c:pt>
+                <c:pt idx="52">
+                  <c:v>561.38</c:v>
+                </c:pt>
+                <c:pt idx="53">
+                  <c:v>562.65</c:v>
+                </c:pt>
+                <c:pt idx="54">
+                  <c:v>563.96</c:v>
+                </c:pt>
+                <c:pt idx="55">
+                  <c:v>564.27</c:v>
+                </c:pt>
+                <c:pt idx="56">
+                  <c:v>563.9</c:v>
+                </c:pt>
+                <c:pt idx="57">
+                  <c:v>563.16</c:v>
+                </c:pt>
+                <c:pt idx="58">
+                  <c:v>562.88</c:v>
+                </c:pt>
+                <c:pt idx="59">
+                  <c:v>563.71</c:v>
+                </c:pt>
+                <c:pt idx="60">
+                  <c:v>564.59</c:v>
+                </c:pt>
+                <c:pt idx="61">
+                  <c:v>564.74</c:v>
+                </c:pt>
+                    
+              </c:numCache>
+                
+            </c:numRef>
+          </c:val>
+          <c:smooth val="0"/>
+        </c:ser>
+          
+        <c:dLbls>
+              
+          <c:numFmt formatCode="#,##0" sourceLinked="0"/>
+              
+          <c:txPr>
+                  
+            <a:bodyPr/>
+                  
+            <a:lstStyle/>
+                  
+            <a:p>
+              <a:pPr>
+                        
+                <a:defRPr b="0" i="0" strike="noStrike" sz="1200" u="none">
+                            
+                  <a:solidFill>
+                    <a:srgbClr val="000000"/>
+                  </a:solidFill>
+                            
+                  <a:latin typeface="Arial"/>
+                          
+                </a:defRPr>
+                      
+              </a:pPr>
+            </a:p>
+                
+          </c:txPr>
+              
+          <c:showLegendKey val="0"/>
+              
+          <c:showVal val="0"/>
+              
+          <c:showCatName val="0"/>
+              
+          <c:showSerName val="0"/>
+              
+          <c:showPercent val="0"/>
+              
+          <c:showBubbleSize val="0"/>
+              
+          <c:showLeaderLines val="0"/>
+            
+        </c:dLbls>
+          
+        <c:marker val="1"/>
+        <c:axId val="2094734554"/>
+        <c:axId val="2094734552"/>
+        <c:axId val="2094734556"/>
+      </c:lineChart>
+      <c:catAx>
+          
+        <c:axId val="2094734554"/>
+          
+        <c:scaling>
+          <c:orientation val="minMax"/>
+        </c:scaling>
+          
+        <c:delete val="0"/>
+          
+        <c:axPos val="b"/>
+          
+        <c:numFmt formatCode="General" sourceLinked="1"/>
+          
+        <c:majorTickMark val="out"/>
+          
+        <c:minorTickMark val="none"/>
+          
+        <c:tickLblPos val="low"/>
+          
+        <c:spPr>
+              
+          <a:ln w="12700" cap="flat">
+            <a:solidFill>
+              <a:srgbClr val="888888"/>
+            </a:solidFill>
+                  
+            <a:prstDash val="solid"/>
+                  
+            <a:round/>
+                
+          </a:ln>
+            
+        </c:spPr>
+          
+        <c:txPr>
+          <a:bodyPr/>
+              
+          <a:lstStyle/>
+              
+          <a:p>
+                
+            <a:pPr>
+                    
+              <a:defRPr sz="800" b="0" i="0" u="none" strike="noStrike">
+                      
+                <a:solidFill>
+                  <a:srgbClr val="62676D"/>
+                </a:solidFill>
+                      
+                <a:latin typeface="Aptos"/>
+                   
+              </a:defRPr>
+                
+            </a:pPr>
+              
+            <a:endParaRPr lang="en-US"/>
+              
+          </a:p>
+           
+        </c:txPr>
+         
+        <c:crossAx val="2094734552"/>
+         
+        <c:crosses val="autoZero"/>
+         
+        <c:auto val="1"/>
+         
+        <c:lblAlgn val="ctr"/>
+         
+        <c:noMultiLvlLbl val="1"/>
+      </c:catAx>
+      <c:valAx>
+          
+        <c:axId val="2094734552"/>
+          
+        <c:scaling>
+          <c:orientation val="minMax"/>
+          <c:max val="600"/>
+          <c:min val="0"/>
+            
+        </c:scaling>
+          
+        <c:delete val="0"/>
+          
+        <c:axPos val="l"/>
+        <c:majorGridlines>
+           
+          <c:spPr>
+              
+            <a:ln w="6350" cap="flat">
+                
+              <a:solidFill>
+                <a:srgbClr val="E5E7E9"/>
+              </a:solidFill>
+                 
+              <a:prstDash val="solid"/>
+              <a:round/>
+                
+            </a:ln>
+             
+          </c:spPr>
+        </c:majorGridlines>
+        <c:numFmt formatCode="General" sourceLinked="0"/>
+         
+        <c:majorTickMark val="out"/>
+         
+        <c:minorTickMark val="none"/>
+         
+        <c:tickLblPos val="nextTo"/>
+         
+        <c:spPr>
+             
+          <a:ln w="12700" cap="flat">
+            <a:solidFill>
+              <a:srgbClr val="888888"/>
+            </a:solidFill>
+                 
+            <a:prstDash val="solid"/>
+                 
+            <a:round/>
+               
+          </a:ln>
+           
+        </c:spPr>
+         
+        <c:txPr>
+            
+          <a:bodyPr/>
+            
+          <a:lstStyle/>
+            
+          <a:p>
+                
+            <a:pPr>
+                    
+              <a:defRPr sz="800" b="0" i="0" u="none" strike="noStrike">
+                        
+                <a:solidFill>
+                  <a:srgbClr val="62676D"/>
+                </a:solidFill>
+                        
+                <a:latin typeface="Aptos"/>
+                      
+              </a:defRPr>
+                  
+            </a:pPr>
+              
+            <a:endParaRPr lang="en-US"/>
+              
+          </a:p>
+           
+        </c:txPr>
+         
+        <c:crossAx val="2094734554"/>
+         
+        <c:crosses val="autoZero"/>
+         
+        <c:crossBetween val="between"/>
+         
+        <c:majorUnit val="100"/>
+      </c:valAx>
+        
+      <c:spPr>
+        <a:noFill/>
+        <a:ln>
+          <a:noFill/>
+        </a:ln>
+            
+        <a:effectLst/>
+          
+      </c:spPr>
+    </c:plotArea>
+      
+    <c:plotVisOnly val="1"/>
+      
+    <c:dispBlanksAs val="span"/>
+  </c:chart>
+  <c:spPr>
+    <a:solidFill>
+      <a:srgbClr val="FFFFFF"/>
+    </a:solidFill>
+    <a:ln w="12700" cap="flat">
+      <a:solidFill>
+        <a:srgbClr val="E5D6D0"/>
+      </a:solidFill>
+    </a:ln>
+      
+    <a:effectLst/>
+  </c:spPr>
+  <c:externalData r:id="rId1">
+    <c:autoUpdate val="0"/>
+  </c:externalData>
+</c:chartSpace>

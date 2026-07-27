@@ -1,0 +1,541 @@
+{
+  "deck_name": "DPS_Studio_组会汇报_20260725",
+  "language": "Chinese",
+  "goal": "面向课题组组会，基于当前 DPS Studio 工作树、真实测试和真实 production 输出，说明项目为什么重建、如何把 PDV 物理链转化为可验证软件链、当前能力边界以及下一阶段优先级。",
+  "deck_context": {
+    "source_summary": "DPS Studio 当前工作树已经建立从只读双通道 PDV 原始电压到 STFT、峰脊线、亚频点精修、无符号表观速度、描述性质量与非覆盖 production 输出的基础闭环。当前配置波长 1.55 µm 仅是未确认的演示值；没有 LiF 修正、corrected velocity、通道融合、正式 SNR/GOOD-BAD 阈值或可运行 GUI。当前质量门实测 271 passed，Ruff 通过，mypy 对 39 个源文件通过。最新真实 run 含 30 个文件且来自 dirty worktree。",
+    "core_claim": "基础处理链已经可运行，但下一阶段的核心是把弱信号和竞争谱峰条件下的结果推进到可信、可复现、可交付，而不是继续堆叠未验证功能。",
+    "canonical_terms": [
+      "无符号表观速度",
+      "描述性谱质量",
+      "PRE_EVENT 显示零是假设",
+      "双通道独立分析",
+      "1550 nm 未确认",
+      "无 LiF 修正",
+      "当前工作树能力，不等于稳定发布"
+    ]
+  },
+  "selected_image_backend": "built-in image tool",
+  "max_concurrent_slides": 3,
+  "sample_generation_method": {
+    "backend_used": "built-in image tool",
+    "tool_name": "image_gen",
+    "mode": "generate",
+    "prompt_source": "prompts/sample_slide_07.txt",
+    "size": "1672x941 generated 16:9 landscape",
+    "quality": "built-in default",
+    "model_config": "Codex built-in image generation backend",
+    "approved_sample_path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+    "input_context_preparation": "view_image inspected the rendered template slide and strict STFT source; both were passed through referenced_image_paths",
+    "handoff_rule": "Subagents must use the same built-in image_gen generate mode and return a blocker if unavailable."
+  },
+  "style": {
+    "name": "川大论文模板背景抽象化的清爽科研答辩风",
+    "visual_direction": "只借鉴用户模板的白色留白、砖红标题节奏、浅米灰几何装饰和细红底边。内容结构重新设计，禁止复用模板正文、章节结构、作者、引用、页码、校徽或四川大学文字。图表页以真实项目图片为主，流程页使用简洁矢量感图形。",
+    "color_palette": "主色砖红 #B52A12，深红 #8C1D0C，分析辅助色蓝绿 #167D8D，浅米灰 #F4EFEB，正文炭黑 #202020，白色背景",
+    "typography": "中文呈现微软雅黑或等线气质，标题粗体且结论性，正文左对齐；英文和数字呈 Arial 气质；标题视觉尺度 32–38 pt，正文不小于 20 pt，图注 15–16 pt",
+    "texture_and_finish": "平面、清晰、少阴影、无大面积复杂渐变；每页最多 3–5 个主要信息块；会议室投影可读",
+    "deck_consistency": "保持同一配色、字体层级、图标线条语言和上下边缘装饰，但根据页面角色变化布局，避免连续重复三卡片模板",
+    "forbidden_template_content": "不出现原模板标题、作者、论文图、引用、页码、校徽、四川大学文字或其他残留内容"
+  },
+  "approved_style_reference": {
+    "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+    "role": "approved sample slide style reference",
+    "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+  },
+  "slides": [
+    {
+      "number": 1,
+      "title": "DPS Studio：从原始 PDV 信号到可追溯的表观速度",
+      "role": "cover",
+      "intent": "界定项目对象和汇报主线，保持简洁正式",
+      "key_points": [
+        "面向冲击波实验的 PDV 数据分析软件开发进展",
+        "课题组组会｜开发进展与下一阶段",
+        "2026年7月25日"
+      ],
+      "local_context": {
+        "required_background": "当前项目是可运行的数值分析工作流，不是已发布 GUI 软件。封面不写汇报人姓名，避免猜测。"
+      },
+      "layout": {
+        "composition": "深砖红大面积圆角标题面板占左中部，右侧保留抽象信号波纹或时频网格的低对比装饰；副标题和日期分层",
+        "content_zones": "大标题、两行副标题、极简抽象背景",
+        "relationship_to_previous_slide": "opening",
+        "spacing": "大留白，不放正文段落"
+      },
+      "visual_elements": {
+        "main_visual": "抽象化的时间—频率网格与单条白色轨迹，只作概念装饰，不能像真实实验图",
+        "supporting_elements": "浅米灰几何切面、细红底边"
+      },
+      "constraints": [
+        "封面文本必须逐字准确",
+        "不要生成校徽、机构 logo、作者姓名、页码或模板原文",
+        "不要把抽象背景伪装成实验结果"
+      ]
+    },
+    {
+      "number": 2,
+      "title": "速度曲线连接实验信号与后续物理判断",
+      "role": "process",
+      "intent": "用一条因果链说明软件在实验链路中的作用",
+      "key_points": [
+        "原始输入：双通道时间—电压序列",
+        "软件中间量：时频能量与拍频脊线",
+        "当前输出：显式波长换算的无符号表观速度",
+        "只有经质量判断和物理修正后，才支撑后续物理解释"
+      ],
+      "local_context": {
+        "required_background": "不要泛化为 PDV 科普。四阶段分别是实验信号、拍频脊线、表观速度、物理分析；当前软件只正式到无符号表观速度和描述性诊断。"
+      },
+      "layout": {
+        "composition": "横向四阶段流程，从左到右逐级收敛；最后一步用虚线边框表示需要进一步验证",
+        "content_zones": "顶部标题、中央因果链、底部一句结论",
+        "relationship_to_previous_slide": "从项目对象切换到科研作用",
+        "spacing": "四阶段间保持清晰箭头和足够间距"
+      },
+      "visual_elements": {
+        "main_visual": "波形图标、时频热图图标、速度曲线图标、物理判断图标组成的流程",
+        "supporting_elements": "在第三与第四阶段之间放置质量/修正闸门"
+      },
+      "constraints": [
+        "所有图形只能是示意，不得生成仿真实验曲线",
+        "不要声称当前已经获得 corrected velocity",
+        "不要使用模板原始内容或 logo"
+      ]
+    },
+    {
+      "number": 3,
+      "title": "旧流程的核心风险不是界面陈旧，而是证据链不完整",
+      "role": "problem framing",
+      "intent": "把旧输出的可追溯性缺口表达为科研风险",
+      "key_points": [
+        "旧输出在仓库中只作为回归指纹，不是物理真值",
+        "只有 measured / zero_masked，无法重建完整谱证据与质量状态",
+        "波长、窗长、搜索带和人工选择若不可追溯，结果无法复现",
+        "连续曲线仍可能跟踪了错误谱分支"
+      ],
+      "local_context": {
+        "required_background": "这些结论来自 legacy README 和审计；不要编造崩溃、文件被覆盖、旧技术栈依赖或具体旧界面问题。"
+      },
+      "layout": {
+        "composition": "左侧显示一个标记为‘旧输出曲线’的抽象文件卡，中央三层风险链，右侧显示‘物理结论？’的不确定性",
+        "content_zones": "标题、证据缺口、后果链",
+        "relationship_to_previous_slide": "从软件重要性转到旧流程风险",
+        "spacing": "突出箭头因果，不使用长段落"
+      },
+      "visual_elements": {
+        "main_visual": "参数缺失、谱证据缺失、质量状态缺失三枚警示标记",
+        "supporting_elements": "结果曲线旁明确写‘回归指纹 ≠ 物理真值’"
+      },
+      "constraints": [
+        "不得编造旧软件截图或功能故障",
+        "不要使用真实实验曲线外观",
+        "保留‘回归指纹 ≠ 物理真值’准确表述"
+      ]
+    },
+    {
+      "number": 4,
+      "title": "Python 重建的价值是把算法、配置和验证放进同一工作流",
+      "role": "architecture rationale",
+      "intent": "解释技术选型与项目目标的直接关系",
+      "key_points": [
+        "NumPy + SciPy：数组计算、Hann 窗和 STFT",
+        "Matplotlib：当前 production 图和可复现实验输出",
+        "PySide6 + PyQtGraph：已列入依赖，GUI 仍待实现",
+        "pytest + Ruff + mypy：271 passed｜Ruff 通过｜39 个源文件通过",
+        "PyInstaller：已列入开发依赖，跨机器打包尚未验证"
+      ],
+      "local_context": {
+        "required_background": "不贬低 MATLAB；可把 MATLAB 视为算法交叉验证工具，但不是当前软件主运行环境。"
+      },
+      "layout": {
+        "composition": "中央 core/workflow 圆角模块，四周是数值、输出、交互、质量四个象限；底部放三项本轮质量门数字",
+        "content_zones": "标题、四象限、质量门数字条",
+        "relationship_to_previous_slide": "从风险需求转到工程选择",
+        "spacing": "每个象限两行以内"
+      },
+      "visual_elements": {
+        "main_visual": "无品牌 logo 的文字模块网络",
+        "supporting_elements": "271、Ruff、39 三个事实数字"
+      },
+      "constraints": [
+        "不要生成第三方品牌 logo",
+        "不要把 GUI 或打包写成已完成",
+        "测试数字必须准确"
+      ]
+    },
+    {
+      "number": 5,
+      "title": "新版处理链已打通表观速度闭环，物理修正仍被明确隔离",
+      "role": "workflow",
+      "intent": "展示完整处理链并区分三种状态",
+      "key_points": [
+        "已实现：只读输入 → STFT → 峰脊线 → 三点精修 → 无符号表观速度 → 描述性质量 → 非覆盖输出",
+        "正在完善：弱信号判据、双通道质量决策、全时段 preview 语义",
+        "尚未实现：LiF 修正、corrected velocity、有符号速度、自动通道融合、GUI"
+      ],
+      "local_context": {
+        "required_background": "正式数值链位于 core.workflow；preprocessing 没有正式滤波/平滑实现。全时段 preview 是 quality-unfiltered development preview，不是正式测量。"
+      },
+      "layout": {
+        "composition": "一条主流程横跨页面，已实现节点用砖红，正在完善用橙色，未实现用浅灰虚线；右下角给三态图例",
+        "content_zones": "标题、主流程、状态图例、边界结论",
+        "relationship_to_previous_slide": "从技术栈进入真实处理链",
+        "spacing": "节点文字不超过两行"
+      },
+      "visual_elements": {
+        "main_visual": "十节点状态流程图",
+        "supporting_elements": "在 LiF 修正前画明确隔离闸门"
+      },
+      "constraints": [
+        "LiF 修正必须显示为尚未实现",
+        "不要出现平滑、插值或自动融合已完成的暗示",
+        "不要使用模板原始流程结构"
+      ]
+    },
+    {
+      "number": 6,
+      "title": "可信输入从只读原始数据、SI 单位和显式列映射开始",
+      "role": "data evidence",
+      "intent": "用真实双通道原始波形解释输入安全和数据模型",
+      "key_points": [
+        "time=0｜channel_1=1｜channel_2=2 写入单一 TOML 配置",
+        "两个电压列分别构造独立 SignalRecord",
+        "内部统一秒、伏特、赫兹；源文件只读并记录 SHA-256",
+        "不静默丢列、插值、平滑或重采样；问题通过 NaN 和状态传递"
+      ],
+      "required_images": [
+        {
+          "path": "assets/project_outputs/raw_voltage_event.png",
+          "role": "strict input asset and main raw-data evidence figure",
+          "fidelity": "preserve both channel plots, all axes, labels, curves, colors, source note and values; do not redraw or alter the waveform"
+        }
+      ],
+      "source_image_rules": {
+        "main_figure": "严格保留真实波形图，不改变曲线、坐标和来源说明，只设计外围版式"
+      },
+      "layout": {
+        "composition": "真实波形图占右侧约 68%，左侧四条安全约束按输入→模型→单位→失败语义排列",
+        "content_zones": "标题、左侧约束、右侧真实图、底部来源",
+        "relationship_to_previous_slide": "从全流程缩放到输入端",
+        "spacing": "真实图足够大，坐标和图例可读"
+      },
+      "visual_elements": {
+        "main_visual": "提供的真实双通道波形",
+        "supporting_elements": "只读锁、SI、双通道、NaN 四个线性图标"
+      },
+      "constraints": [
+        "不得重绘、平滑或美化真实波形",
+        "不要把两通道画成平均结果",
+        "不要复制模板 logo 或正文"
+      ]
+    },
+    {
+      "number": 7,
+      "title": "STFT 将时变拍频转换为可追踪的时频脊线",
+      "role": "data evidence",
+      "intent": "用真实 STFT 图解释时频分析和参数边界",
+      "key_points": [
+        "滑动时间窗：保留频率随时间的演化",
+        "Balanced：Hann｜768｜hop 128｜NFFT 4096",
+        "NFFT 加密网格，不等于真实分辨率提升",
+        "白色脊线是候选拍频轨迹，不是速度本身"
+      ],
+      "required_images": [
+        {
+          "path": "assets/project_outputs/balanced_ch1_stft_ridge.png",
+          "role": "strict input asset and main STFT evidence figure",
+          "fidelity": "preserve data, axes, labels, legend, color scale, ridge, event marker and frequency limits exactly"
+        }
+      ],
+      "layout": {
+        "composition": "已批准样张：左侧大图，右侧三个信息块与底部结论框",
+        "content_zones": "标题、真实 STFT 图、参数说明、结论",
+        "relationship_to_previous_slide": "从输入端进入时频变换",
+        "spacing": "保持已批准样张"
+      },
+      "visual_elements": {
+        "main_visual": "真实 Balanced / 通道 1 STFT + ridge",
+        "supporting_elements": "滑动窗、参数、边界说明三枚图标"
+      },
+      "constraints": [
+        "使用已批准的 origin_image/slide_07.png，不再生成",
+        "不得改变真实图",
+        "sample_approved"
+      ],
+      "sample_approved": true
+    },
+    {
+      "number": 8,
+      "title": "脊线给出拍频轨迹，只有显式波长才能换算表观速度",
+      "role": "method and evidence",
+      "intent": "连接候选谱峰、亚频点精修和表观速度，强调物理边界",
+      "key_points": [
+        "每帧闭搜索带内最大谱峰 → 三点对数幅值精修",
+        "v_app = λ₀ f_b / 2",
+        "λ₀ = 1.55 µm 仅是未确认的演示值",
+        "精修失败保持 NaN；PRE_EVENT 核心速度仍为 NaN",
+        "apparent velocity 与 future corrected velocity 必须分开"
+      ],
+      "required_images": [
+        {
+          "path": "assets/project_outputs/balanced_ch1_velocity_event.png",
+          "role": "strict input asset and real apparent-velocity evidence figure",
+          "fidelity": "preserve the complete plot, axes, legend, event marker, bridge semantics, data points and labels exactly"
+        }
+      ],
+      "source_image_rules": {
+        "main_figure": "严格保留事件细节速度图；图内 display-only bridge 与 assumed pre-event zero 文字不能被改写"
+      },
+      "layout": {
+        "composition": "左上短公式链，左下三个物理边界提示，右侧约 62% 放真实速度图",
+        "content_zones": "标题、方法链、真实速度图、警示框",
+        "relationship_to_previous_slide": "从拍频轨迹过渡到速度",
+        "spacing": "公式只保留一行，图保持大尺寸"
+      },
+      "visual_elements": {
+        "main_visual": "真实 Balanced / 通道 1 事件速度图",
+        "supporting_elements": "未确认波长、NaN、apparent/corrected 分离三枚边界标识"
+      },
+      "constraints": [
+        "不要写 LiF corrected velocity 或 true velocity",
+        "1550 nm 必须标注未确认",
+        "不得改写或补造真实曲线"
+      ]
+    },
+    {
+      "number": 9,
+      "title": "双通道必须独立分析；质量量只提供诊断证据",
+      "role": "comparison and data evidence",
+      "intent": "解释双通道与质量量的安全语义",
+      "key_points": [
+        "两个量程分别执行 STFT、脊线和速度换算，不做电压平均",
+        "峰—背景与峰—竞争峰幅值对比度只描述当前谱结构",
+        "通道 2 在本次数据中数值较高，但不能据此自动判定更可信",
+        "这些 dB 不是正式 SNR；当前没有 GOOD/BAD 阈值或自动融合"
+      ],
+      "required_images": [
+        {
+          "path": "assets/project_outputs/quality_diagnostics_summary.png",
+          "role": "strict input asset and main descriptive-quality chart",
+          "fidelity": "preserve all bars, values, labels, title, legend and source note exactly; do not relabel as SNR"
+        }
+      ],
+      "source_image_rules": {
+        "main_figure": "严格保留标题中的‘不是正式 SNR’和图底部解释"
+      },
+      "layout": {
+        "composition": "图表占左侧约 65%，右侧为‘可说 / 不可说’两栏边界卡",
+        "content_zones": "标题、真实质量图、语义边界",
+        "relationship_to_previous_slide": "从单通道速度转到双通道证据",
+        "spacing": "右侧每栏最多三行"
+      },
+      "visual_elements": {
+        "main_visual": "真实描述性质量柱状图",
+        "supporting_elements": "独立通道箭头、禁止平均符号、无自动选择标识"
+      },
+      "constraints": [
+        "不得把 dB 写成正式 SNR、置信度或准确率",
+        "不得声称通道 2 已被自动选择",
+        "不得修改真实柱状图数值"
+      ]
+    },
+    {
+      "number": 10,
+      "title": "core/workflow 与 GUI 解耦，让数值链可以独立验证",
+      "role": "architecture",
+      "intent": "展示当前真实模块关系和依赖方向",
+      "key_points": [
+        "scripts/run_demo_pipeline.py → TOML → production_outputs.py → core.workflow",
+        "core.workflow → io / time_frequency / ridge / physics",
+        "core 不导入 scripts、Matplotlib 或 GUI",
+        "GUI 仍是占位；未来只能调用 core 公共 API",
+        "manifest 记录配置、源哈希、Git 状态和生成文件"
+      ],
+      "local_context": {
+        "required_background": "正式 production 已不再依赖 compare 脚本私有编排。当前 CLI 只有 --version。"
+      },
+      "layout": {
+        "composition": "上层入口与配置，中层 production I/O，底层 core.workflow 和四个算法模块；GUI 在侧边以灰色虚线指向 core",
+        "content_zones": "标题、分层架构图、右侧四条因果解释",
+        "relationship_to_previous_slide": "从质量语义转到工程保障",
+        "spacing": "依赖箭头单向且不交叉"
+      },
+      "visual_elements": {
+        "main_visual": "三层模块架构图",
+        "supporting_elements": "只读配置、测试、manifest 三个保障标识"
+      },
+      "constraints": [
+        "不得画出 core → GUI 依赖",
+        "不得把 GUI 或完整 CLI 写成已实现",
+        "不要复用模板原有架构图"
+      ]
+    },
+    {
+      "number": 11,
+      "title": "当前工作树已形成可运行闭环；质量门通过但尚未发布",
+      "role": "status dashboard",
+      "intent": "用能力层级和实测数字准确汇总当前进展",
+      "key_points": [
+        "完整：输入安全、STFT、峰脊线、精修、表观速度、描述性质量、core workflow",
+        "基本可用：双 Profile、双通道 production、manifest、真实输出",
+        "正在优化：弱信号决策、preview 语义、文档与输出契约同步",
+        "尚未实现：GUI、完整 CLI、LiF 修正、可信阈值、通道融合、部署验证"
+      ],
+      "local_context": {
+        "required_background": "本轮实测 271 passed；Ruff All checks passed；mypy 39 source files；最新真实 run 30 files。HEAD 11b761f，工作树 dirty，不能称稳定发布。"
+      },
+      "layout": {
+        "composition": "左侧四级状态阶梯，右侧 271 / 39 / 30 三个大数字，底部一条‘dirty worktree ≠ released version’警示",
+        "content_zones": "标题、状态矩阵、事实数字、版本边界",
+        "relationship_to_previous_slide": "从架构保障汇总到当前进度",
+        "spacing": "每个状态区不超过两行"
+      },
+      "visual_elements": {
+        "main_visual": "四级状态矩阵",
+        "supporting_elements": "271 tests、39 source files、30 production files 三个数字卡"
+      },
+      "constraints": [
+        "数字必须准确：271、39、30",
+        "必须出现‘当前工作树’和‘尚未发布’边界",
+        "不要声称科研级验证完成"
+      ]
+    },
+    {
+      "number": 12,
+      "title": "真实运行显示两通道结果同量级，但还不能自动判定“哪个更可信”",
+      "role": "data evidence",
+      "intent": "并排展示最近真实 run 的两个通道速度结果",
+      "key_points": [
+        "Balanced：两通道各 244 个候选帧并完成精修",
+        "首候选表观速度约 538 m/s 与 532 m/s",
+        "候选最低表观速度约 212 m/s",
+        "一致性是重复性线索，不是物理准确度证明",
+        "来源 run_20260724_004901_103968｜git_worktree_dirty=true"
+      ],
+      "required_images": [
+        {
+          "path": "assets/project_outputs/balanced_ch1_velocity_event.png",
+          "role": "strict input asset for Balanced channel 1",
+          "fidelity": "preserve the full plot, axes, legend, event marker, bridge semantics and values exactly"
+        },
+        {
+          "path": "assets/project_outputs/balanced_ch2_velocity_event.png",
+          "role": "strict input asset for Balanced channel 2",
+          "fidelity": "preserve the full plot, axes, legend, event marker, bridge semantics and values exactly"
+        }
+      ],
+      "source_image_rules": {
+        "comparison": "两张图等宽并排，不得合并曲线、平均、重绘或删除图例"
+      },
+      "layout": {
+        "composition": "上半部放标题与三项事实数字，下半部两张真实速度图等宽并排，底部放安全解释",
+        "content_zones": "标题、事实数字、双图、解释",
+        "relationship_to_previous_slide": "从状态汇总转到真实数据证据",
+        "spacing": "确保两图坐标与图例在投影中可读"
+      },
+      "visual_elements": {
+        "main_visual": "两个真实通道的事件速度图",
+        "supporting_elements": "244、538/532、≈212 三个小型事实数字"
+      },
+      "constraints": [
+        "两张真实图必须原样保留",
+        "不得自动选择、平均或融合通道",
+        "不得把相近结果写成准确度证明"
+      ]
+    },
+    {
+      "number": 13,
+      "title": "软件能运行不等于结果已达到科研使用标准",
+      "role": "limitations",
+      "intent": "把当前可信度缺口与已跑通闭环明确分开",
+      "key_points": [
+        "逐帧最大峰仍无最大跳频、动态规划或连续性约束",
+        "描述性质量量无正式阈值，不能自动拒绝假峰或选择通道",
+        "1550 nm 未确认；LiF、折射率和 corrected velocity 未实现",
+        "全时段 preview 未经过正式质量门，不是正式低速测量",
+        "GUI、完整 CLI、集成测试、打包和跨机器部署未完成"
+      ],
+      "local_context": {
+        "required_background": "不要把未实现项写成路线图完成状态。基础闭环确实已运行并通过工程质量门，但物理可信度仍需实验依据。"
+      },
+      "layout": {
+        "composition": "页面中央放巨大‘≠’，左侧是‘基础闭环已建立’，右侧是‘科研级可信仍未完成’，下方五条证据缺口",
+        "content_zones": "标题、对照主视觉、缺口条目",
+        "relationship_to_previous_slide": "从真实结果进入局限",
+        "spacing": "避免五条文字拥挤，使用两列"
+      },
+      "visual_elements": {
+        "main_visual": "基础闭环与科研可信的对照天平",
+        "supporting_elements": "分支、阈值、波长、preview、产品化五枚图标"
+      },
+      "constraints": [
+        "不要写成软件不能运行",
+        "不要生成伪实验图",
+        "每个缺口保持事实边界"
+      ]
+    },
+    {
+      "number": 14,
+      "title": "下一阶段优先建立可信判据，再推进修正模型和 GUI",
+      "role": "roadmap",
+      "intent": "从当前问题推导按依赖排序的开发路线",
+      "key_points": [
+        "1｜非 AI 谱线连续性、显式搜索范围和物理先验",
+        "2｜起跳点、平台区与弱信号的可验证判据",
+        "3｜双通道质量择优：先输出证据，再标定阈值",
+        "4｜核验波长与 LiF 模型，新增独立 corrected velocity",
+        "5｜完整 CLI → GUI → 打包部署 → 真实用户测试",
+        "AI 仅可后期辅助识别，不直接生成最终速度"
+      ],
+      "local_context": {
+        "required_background": "LiF 公式在文献和实验条件确认前不能正式写入。每个功能必须有自动测试和验收标准。"
+      },
+      "layout": {
+        "composition": "五阶段由左下向右上递进的路线图，每阶段都有验收闸门；AI 辅助作为最上方虚线支路，不进入最终速度主链",
+        "content_zones": "标题、五阶段路线、AI 边界、验收原则",
+        "relationship_to_previous_slide": "从缺口直接推导行动顺序",
+        "spacing": "路线节点简洁，主线清楚"
+      },
+      "visual_elements": {
+        "main_visual": "五阶段依赖路线图",
+        "supporting_elements": "每阶段一个测试/验收勾选框"
+      },
+      "constraints": [
+        "所有内容标注为下一阶段计划",
+        "AI 不得连接到最终速度输出",
+        "LiF 模型必须显示‘验证后接入’"
+      ]
+    },
+    {
+      "number": 15,
+      "title": "项目重点已从“跑通”转向“可信、可复现、可交付”",
+      "role": "summary and closing",
+      "intent": "收束当前成果、边界和下一阶段核心",
+      "key_points": [
+        "已有：双通道、双 Profile、正式 core workflow、真实 production 输出",
+        "仍需：可信谱线、通道决策、波长与 LiF 模型验证",
+        "后续：数值链稳定后推进 CLI / GUI、打包和用户验收",
+        "请老师批评指正"
+      ],
+      "local_context": {
+        "required_background": "结论不能写成‘软件已完成’。强调当前工作重点变化。"
+      },
+      "layout": {
+        "composition": "深砖红大圆角结论面板置中，三个关键词‘可信｜可复现｜可交付’形成视觉锚点，底部放请老师批评指正",
+        "content_zones": "标题、三条结论、三个关键词、收尾文字",
+        "relationship_to_previous_slide": "closing",
+        "spacing": "简洁、留白充足"
+      },
+      "visual_elements": {
+        "main_visual": "三个关键词组成的递进三角形",
+        "supporting_elements": "浅米灰几何背景和细红底边"
+      },
+      "constraints": [
+        "不要写‘已完成软件’、‘科研级验证完成’或‘已发布’",
+        "不要生成校徽、机构 logo、模板原文或页码",
+        "收尾文字必须清晰"
+      ]
+    }
+  ]
+}

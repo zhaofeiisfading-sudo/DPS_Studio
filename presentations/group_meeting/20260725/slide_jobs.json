@@ -1,0 +1,633 @@
+{
+  "run_status": "slides_recorded",
+  "deck_name": "DPS_Studio_组会汇报_20260725",
+  "selected_backend": "built-in image tool",
+  "sample_generation_method": {
+    "backend_used": "built-in image tool",
+    "tool_name": "image_gen",
+    "mode": "generate",
+    "prompt_source": "prompts/sample_slide_07.txt",
+    "size": "1672x941 generated 16:9 landscape",
+    "quality": "built-in default",
+    "model_config": "Codex built-in image generation backend",
+    "approved_sample_path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+    "input_context_preparation": "view_image inspected the rendered template slide and strict STFT source; both were passed through referenced_image_paths",
+    "handoff_rule": "Subagents must use the same built-in image_gen generate mode and return a blocker if unavailable."
+  },
+  "max_concurrent_slides": 3,
+  "slides": [
+    {
+      "slide_id": "slide_01",
+      "number": 1,
+      "title": "DPS Studio：从原始 PDV 信号到可追溯的表观速度",
+      "job": "prompts/slide_01.json",
+      "out": "origin_image/slide_01.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/template_audit",
+        "agent_nickname": "slide_01_worker",
+        "prompt": "prompts/slide_01.json",
+        "prompt_sha256": "f62179e758347af1809e3cf1f7bb4c0398809939750173fc75b1978a33669153",
+        "dispatched_at": "2026-07-24T16:35:18Z"
+      },
+      "result": {
+        "agent_id": "/root/template_audit",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f94e9-638d-77c2-b77f-9f21881267b4\\call_NayAKJyLYuvavJWAl4ipgFSH.png",
+        "selected_source_sha256": "47f8a2dc69032d439b8451cb018afa237b2c326e9f94e646d431b47e50329dde",
+        "final_image": "origin_image/slide_01.png",
+        "final_image_sha256": "47f8a2dc69032d439b8451cb018afa237b2c326e9f94e646d431b47e50329dde",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "封面中文、日期与主题清晰；无机构标识或模板残留。",
+        "recorded_at": "2026-07-24T16:40:14Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_02",
+      "number": 2,
+      "title": "速度曲线连接实验信号与后续物理判断",
+      "job": "prompts/slide_02.json",
+      "out": "origin_image/slide_02.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_02",
+        "agent_nickname": "slide_02_worker",
+        "prompt": "prompts/slide_02.json",
+        "prompt_sha256": "2e9ac78e16d1338f73760d2c66429a52074387cc3be81685115badc2f830aebd",
+        "dispatched_at": "2026-07-24T16:35:18Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_02",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f94fa-84aa-72d1-91d5-e24b4916365a\\call_EACNKrrf8ojCRtiX9gSWUgDx.png",
+        "selected_source_sha256": "0f4a2c347c19449eb4bae917ae20e5a8544debbb27032bf97ddea8d206508567",
+        "final_image": "origin_image/slide_02.png",
+        "final_image_sha256": "0f4a2c347c19449eb4bae917ae20e5a8544debbb27032bf97ddea8d206508567",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "四阶段逻辑与质量/修正闸门清晰，中文与关键限定语完整。",
+        "recorded_at": "2026-07-24T16:40:14Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_03",
+      "number": 3,
+      "title": "旧流程的核心风险不是界面陈旧，而是证据链不完整",
+      "job": "prompts/slide_03.json",
+      "out": "origin_image/slide_03.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_03",
+        "agent_nickname": "slide_03_worker",
+        "prompt": "prompts/slide_03.json",
+        "prompt_sha256": "28e7f2f6b6a725a91628e260faf9482f38cd0bf8d51a1d4ec64416f4f59cc892",
+        "dispatched_at": "2026-07-24T16:35:18Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_03",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f94fa-cc4e-7742-8ff6-334e3e56fc78\\call_sBTGqbhNFkKcSE7RZpJKEIEE.png",
+        "selected_source_sha256": "e9242c5e75729a12eaabb648aa094279b8bea233270e549d79978735a5a98d07",
+        "final_image": "origin_image/slide_03.png",
+        "final_image_sha256": "e9242c5e75729a12eaabb648aa094279b8bea233270e549d79978735a5a98d07",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "三类证据缺口与不可确认物理结论关系明确，无重叠截断。",
+        "recorded_at": "2026-07-24T16:40:25Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_04",
+      "number": 4,
+      "title": "Python 重建的价值是把算法、配置和验证放进同一工作流",
+      "job": "prompts/slide_04.json",
+      "out": "origin_image/slide_04.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_04",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_04.json",
+        "prompt_sha256": "2b3e106c92b2eca247b3b93a0071e488ddf7caa551fdba8fe93bcaaf3b3ac62e",
+        "dispatched_at": "2026-07-24T16:45:19Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_04",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f9503-bec2-7210-ae82-221e393474e3\\call_uwqU9bQYiIztPLazpQqvCEi4.png",
+        "selected_source_sha256": "8d8bf2539c75607f356bcb0f7198fe9bc6d4b1dbc4d2a2c15146fbc9a76c8267",
+        "final_image": "origin_image/slide_04.png",
+        "final_image_sha256": "8d8bf2539c75607f356bcb0f7198fe9bc6d4b1dbc4d2a2c15146fbc9a76c8267",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "中心工作流与四个能力支点层级清楚，字号克制，留白充分。",
+        "recorded_at": "2026-07-24T16:49:08Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_05",
+      "number": 5,
+      "title": "新版处理链已打通表观速度闭环，物理修正仍被明确隔离",
+      "job": "prompts/slide_05.json",
+      "out": "origin_image/slide_05.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_05",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_05.json",
+        "prompt_sha256": "a14467b2fdd45de5d3a695f719f0e6e88212780dd2d746a4f75baf444d878e40",
+        "dispatched_at": "2026-07-24T16:45:19Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_05",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f9503-e988-7081-985e-b3ecbb16ce9f\\call_aEu2XGFhA4eSbj7OAVfNj7RS.png",
+        "selected_source_sha256": "25f33b2ca8e874a517061124ae9b33e750df6646172a774a20f3c455d4e6d500",
+        "final_image": "origin_image/slide_05.png",
+        "final_image_sha256": "25f33b2ca8e874a517061124ae9b33e750df6646172a774a20f3c455d4e6d500",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "已实现、正在完善、未实现三层边界明确；物理修正隔离闸门醒目。",
+        "recorded_at": "2026-07-24T16:49:08Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_06",
+      "number": 6,
+      "title": "可信输入从只读原始数据、SI 单位和显式列映射开始",
+      "job": "prompts/slide_06.json",
+      "out": "origin_image/slide_06.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        },
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\assets\\project_outputs\\raw_voltage_event.png",
+          "role": "strict input asset and main raw-data evidence figure",
+          "fidelity": "preserve both channel plots, all axes, labels, curves, colors, source note and values; do not redraw or alter the waveform"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_06",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_06.json",
+        "prompt_sha256": "47ab239c19362624b5fa5f54c48e3b7cdafe320d397bc79ea6bdd10d7917cddd",
+        "dispatched_at": "2026-07-24T16:45:20Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_06",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f9504-1db4-7892-b18b-ac80fec95ffe\\call_qlTRNMBd1U6ovJbO7DluvPCl.png",
+        "selected_source_sha256": "86f318b8fb014b33892eee9e7e9f1c44a94fbff9a7e2db21ca8aafa5aef9add8",
+        "final_image": "origin_image/slide_06.png",
+        "final_image_sha256": "86f318b8fb014b33892eee9e7e9f1c44a94fbff9a7e2db21ca8aafa5aef9add8",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "只读、显式列映射、SI、NaN/状态四项约束明确，真实双通道图可读。",
+        "recorded_at": "2026-07-24T16:50:45Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_07",
+      "number": 7,
+      "title": "STFT 将时变拍频转换为可追踪的时频脊线",
+      "job": "prompts/slide_07.json",
+      "out": "origin_image/slide_07.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        },
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\assets\\project_outputs\\balanced_ch1_stft_ridge.png",
+          "role": "strict input asset and main STFT evidence figure",
+          "fidelity": "preserve data, axes, labels, legend, color scale, ridge, event marker and frequency limits exactly"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "accepted",
+      "dispatch": null,
+      "result": {
+        "final_image": "origin_image/slide_07.png",
+        "accepted_sample": true
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_08",
+      "number": 8,
+      "title": "脊线给出拍频轨迹，只有显式波长才能换算表观速度",
+      "job": "prompts/slide_08.json",
+      "out": "origin_image/slide_08.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        },
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\assets\\project_outputs\\balanced_ch1_velocity_event.png",
+          "role": "strict input asset and real apparent-velocity evidence figure",
+          "fidelity": "preserve the complete plot, axes, legend, event marker, bridge semantics, data points and labels exactly"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_08",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_08.json",
+        "prompt_sha256": "40ffaf7aa7ba7718c2896985bddac69ada54f119cc58e49d4a86c40720211d1d",
+        "dispatched_at": "2026-07-24T16:49:41Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_08",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f9507-f63f-78e1-89a7-d01e119437d4\\call_OoDIi9PUmtzOYKmnTrN60HaA.png",
+        "selected_source_sha256": "4233f812d01d3c9922045f764bc29676bff4b9cb41eb4a646e441d3e19e1ce24",
+        "final_image": "origin_image/slide_08.png",
+        "final_image_sha256": "4233f812d01d3c9922045f764bc29676bff4b9cb41eb4a646e441d3e19e1ce24",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "真实事件速度图和 λ0 换算边界保持清晰，display-only bridge 限定语完整。",
+        "recorded_at": "2026-07-24T16:52:50Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_09",
+      "number": 9,
+      "title": "双通道必须独立分析；质量量只提供诊断证据",
+      "job": "prompts/slide_09.json",
+      "out": "origin_image/slide_09.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        },
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\assets\\project_outputs\\quality_diagnostics_summary.png",
+          "role": "strict input asset and main descriptive-quality chart",
+          "fidelity": "preserve all bars, values, labels, title, legend and source note exactly; do not relabel as SNR"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_09",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_09.json",
+        "prompt_sha256": "e50d2f1f832cc8f12041c709099eb61aa991ac5a9b3adaa0ae94865702f0024f",
+        "dispatched_at": "2026-07-24T16:49:41Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_09",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f9508-285b-7d30-b405-ab4cc91126e2\\call_7STj2oAeDF80S1Dc3eDc6EAz.png",
+        "selected_source_sha256": "bce5b5f1153bec8f3d7464843b6bb5a0ac8f9693862c39c8e66e1db00932cda5",
+        "final_image": "origin_image/slide_09.png",
+        "final_image_sha256": "bce5b5f1153bec8f3d7464843b6bb5a0ac8f9693862c39c8e66e1db00932cda5",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "真实质量统计图保留数值与轴标签，能说/不能说边界明确，不误称正式 SNR。",
+        "recorded_at": "2026-07-24T16:52:50Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_10",
+      "number": 10,
+      "title": "core/workflow 与 GUI 解耦，让数值链可以独立验证",
+      "job": "prompts/slide_10.json",
+      "out": "origin_image/slide_10.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_10",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_10.json",
+        "prompt_sha256": "e8bc3f001f4f367a7aecc81550d9022b6f77a3eef626326cbf88d349fef4cba7",
+        "dispatched_at": "2026-07-24T16:51:03Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_10",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f9509-71cb-73e2-836b-eac41f338dde\\call_GLKQIbKNVnWYsilcyo9NQXex.png",
+        "selected_source_sha256": "7371bf8da33eea02accab5fcd907064a987af4ca0f6f1f5161f89c6e48172a0a",
+        "final_image": "origin_image/slide_10.png",
+        "final_image_sha256": "7371bf8da33eea02accab5fcd907064a987af4ca0f6f1f5161f89c6e48172a0a",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "core/workflow 单向依赖与 GUI 占位边界清晰，manifest 可追溯信息明确。",
+        "recorded_at": "2026-07-24T16:53:52Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_11",
+      "number": 11,
+      "title": "当前工作树已形成可运行闭环；质量门通过但尚未发布",
+      "job": "prompts/slide_11.json",
+      "out": "origin_image/slide_11.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_11",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_11.json",
+        "prompt_sha256": "c1be00c5b024646d75918ddf1d7606cd408dfd10030639d95eda174cf5ee9902",
+        "dispatched_at": "2026-07-24T16:53:22Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_11",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f950b-60f7-73e1-bb4a-3f7e8dedd9b9\\call_509Pwn8QyZcE3JaRN41QYL0i.png",
+        "selected_source_sha256": "500277504f9b8ef373db85accf10037f045f0b8625f580fd31568343e9e6ffcd",
+        "final_image": "origin_image/slide_11.png",
+        "final_image_sha256": "500277504f9b8ef373db85accf10037f045f0b8625f580fd31568343e9e6ffcd",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "完成度分层、271/39/30 与 HEAD dirty 边界清晰；明确尚未发布。",
+        "recorded_at": "2026-07-24T16:55:46Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_12",
+      "number": 12,
+      "title": "真实运行显示两通道结果同量级，但还不能自动判定“哪个更可信”",
+      "job": "prompts/slide_12.json",
+      "out": "origin_image/slide_12.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        },
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\assets\\project_outputs\\balanced_ch1_velocity_event.png",
+          "role": "strict input asset for Balanced channel 1",
+          "fidelity": "preserve the full plot, axes, legend, event marker, bridge semantics and values exactly"
+        },
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\assets\\project_outputs\\balanced_ch2_velocity_event.png",
+          "role": "strict input asset for Balanced channel 2",
+          "fidelity": "preserve the full plot, axes, legend, event marker, bridge semantics and values exactly"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_12_repair",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_12.json",
+        "prompt_sha256": "772f4303fb83646ef5f9bdebf0e67b6951f8a2e46fdcd8444576bfa1beeb6c45",
+        "dispatched_at": "2026-07-24T17:14:13Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_12_repair",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f94e6-6343-7410-b76e-0d30795aa423\\call_10OVaClWHNWJ47CEofpeUJW0.png",
+        "selected_source_sha256": "3dbb9f8a09283abe27b66557718d7784a3a29ad0edfc4d7a02f06084b744a829",
+        "final_image": "origin_image/slide_12.png",
+        "final_image_sha256": "3dbb9f8a09283abe27b66557718d7784a3a29ad0edfc4d7a02f06084b744a829",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "fix-and-verify v2：两通道趋势、坐标轴、事件线、四项图例及数值均保留，图表占高增大，投影更清晰。",
+        "recorded_at": "2026-07-24T17:15:55Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_13",
+      "number": 13,
+      "title": "软件能运行不等于结果已达到科研使用标准",
+      "job": "prompts/slide_13.json",
+      "out": "origin_image/slide_13.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_13",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_13.json",
+        "prompt_sha256": "ef0aebab9c92820867dca51324aaf6fc622732653975987d75262a101fead2ba",
+        "dispatched_at": "2026-07-24T16:54:13Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_13",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f950c-4bf3-7152-ae13-8aabb87f7667\\call_02s777IVbMjxT95cCllrhUJH.png",
+        "selected_source_sha256": "2b97e1b2e5c33ec893b3a9a7ab89eca53e3a70b3cb2c2cd142a0ec4a491e94ff",
+        "final_image": "origin_image/slide_13.png",
+        "final_image_sha256": "2b97e1b2e5c33ec893b3a9a7ab89eca53e3a70b3cb2c2cd142a0ec4a491e94ff",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "工程闭环与科研可用标准严格分开，五项未完成边界清晰。",
+        "recorded_at": "2026-07-24T16:57:09Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_14",
+      "number": 14,
+      "title": "下一阶段优先建立可信判据，再推进修正模型和 GUI",
+      "job": "prompts/slide_14.json",
+      "out": "origin_image/slide_14.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_14",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_14.json",
+        "prompt_sha256": "b455c48b5a144a3bc8bccdf0b868b3c2fd98234665e85d13ccf8e0bf5fe87fdc",
+        "dispatched_at": "2026-07-24T16:56:05Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_14",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f950e-0823-7a41-8ce5-f594ba066471\\call_ShVIPxFNVgb3q0KRYkTZyx7t.png",
+        "selected_source_sha256": "a43a9b1cf97fc2e86b7e2677f189a88e158eb57fbb2b4250adaa4b0ba3ca6f54",
+        "final_image": "origin_image/slide_14.png",
+        "final_image_sha256": "a43a9b1cf97fc2e86b7e2677f189a88e158eb57fbb2b4250adaa4b0ba3ca6f54",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "五阶段依赖路线与验收原则清晰，AI 支路、LiF、GUI 均保持计划态。",
+        "recorded_at": "2026-07-24T17:00:34Z"
+      },
+      "blocker": null
+    },
+    {
+      "slide_id": "slide_15",
+      "number": 15,
+      "title": "项目重点已从“跑通”转向“可信、可复现、可交付”",
+      "job": "prompts/slide_15.json",
+      "out": "origin_image/slide_15.png",
+      "input_images": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\presentations\\group_meeting\\20260725\\origin_image\\slide_07.png",
+          "role": "approved sample slide style reference",
+          "fidelity": "match palette, typography mood, density and decorative rhythm only; do not copy its exact layout or STFT content"
+        }
+      ],
+      "requires_context_images": true,
+      "status": "recorded",
+      "dispatch": {
+        "agent_id": "/root/slide_15",
+        "agent_nickname": null,
+        "prompt": "prompts/slide_15.json",
+        "prompt_sha256": "861e6bf941a42a0d2d080537490754e8f4a178223adb6d29ea041de0ce67fc4e",
+        "dispatched_at": "2026-07-24T16:57:27Z"
+      },
+      "result": {
+        "agent_id": "/root/slide_15",
+        "backend_used": "built-in image tool",
+        "selected_source": "C:\\Users\\89484\\.codex\\generated_images\\019f950f-4f1e-7b81-a256-cb76d5677d0b\\call_StFAz0odAR7V2wtvtrtBr6Qr.png",
+        "selected_source_sha256": "aa6457d9b0f22bcf4e90d7fe55d71ab9f636701b29415b6eb020dfe3dac4fda5",
+        "final_image": "origin_image/slide_15.png",
+        "final_image_sha256": "aa6457d9b0f22bcf4e90d7fe55d71ab9f636701b29415b6eb020dfe3dac4fda5",
+        "expected_backend": "built-in image tool",
+        "expected_backend_labels": [
+          "built-in image tool",
+          "image_gen"
+        ],
+        "sample_generation_method_matched": true,
+        "qa_note": "收束页与封面呼应，可信/可复现/可交付三词突出，已有/仍需/后续边界清楚。",
+        "recorded_at": "2026-07-24T17:00:34Z"
+      },
+      "blocker": null
+    }
+  ],
+  "updated_at": "2026-07-24T17:15:55Z"
+}

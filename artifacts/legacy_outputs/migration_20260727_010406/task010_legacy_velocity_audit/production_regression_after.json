@@ -1,0 +1,1361 @@
+{
+  "configuration": {
+    "hop_samples": 128,
+    "nfft": 4096,
+    "overlap_samples": 640,
+    "window_length_samples": 768
+  },
+  "source_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+  "task001_to_task007": {
+    "pdv_channel_1": {
+      "discrete_velocity_m_s": {
+        "data_sha256": "2e91519cfa5bce129b0b50ae5986b6d48a7a7a8ad876fd4823bde96160f972bc",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "display_velocity_m_s": {
+        "data_sha256": "719299bc4d85f9d4f452f9412a7add44aeb3314a1237f04d6a57b56b835bf181",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 157,
+        "nan_mask_sha256": "d24499f8924cd4c17665c6611f8fb17bbd278a414a28460ea1c6599199f01546",
+        "shape": [
+          620
+        ]
+      },
+      "refined_result": {
+        "analysis_end_time_s": 0.00055545,
+        "discrete_frequency_bin_index": {
+          "data_sha256": "9090aa35d3d900c490ca85adfa8256c0fb400bb438b669f4d64d1783425e9932",
+          "dtype": "<i8",
+          "kind": "ndarray",
+          "shape": [
+            620
+          ]
+        },
+        "discrete_frequency_hz": {
+          "data_sha256": "ecc18d273bcb38b1daa818efa5c1830d7be0d572e834787a7950a85de7963214",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "event_start_time_s": 0.000554668,
+        "frequency_bin_offset": {
+          "data_sha256": "ead60342389d743548161e43de8d2e95a12d93c3fba84007171a117e3ea73ea0",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "maximum_frequency_hz": 2000000000.0,
+        "minimum_frequency_hz": 100000000.0,
+        "peak_magnitude": {
+          "data_sha256": "ece8fd1ffa791e0fcbb20d920fd1a8ec5a2606d90ba4a57a712ec8c99568b7ae",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "quality_flags": {
+          "counts": {
+            "candidate": 244,
+            "outside_analysis_window": 157,
+            "pre_event": 219
+          },
+          "data_sha256": "7131f34c11f491ab61bed909a472c6f78bd9985155b3737fe495fd22093d6a97",
+          "kind": "sequence",
+          "length": 620
+        },
+        "refined_frequency_hz": {
+          "data_sha256": "48379de47c0845f6d318ba2d05a1eddc7bd106f1694650c7a77bf47af243c0a5",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "refinement_method": "log-magnitude three-point quadratic peak interpolation",
+        "refinement_statuses": {
+          "counts": {
+            "outside_analysis_window": 157,
+            "pre_event": 219,
+            "refined": 244
+          },
+          "data_sha256": "8582bbb466e750d3696f4ae63465f526b254747db93059132fd464bf5242c87e",
+          "kind": "sequence",
+          "length": 620
+        },
+        "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+        "time_s": {
+          "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 0,
+          "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+          "shape": [
+            620
+          ]
+        }
+      },
+      "refined_velocity_m_s": {
+        "data_sha256": "9c322e7982787fab38a9ae4c18129c6ac368b13d57232d7316a8d8448b9d5b9a",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "ridge_result": {
+        "analysis_end_time_s": 0.00055545,
+        "event_start_time_s": 0.000554668,
+        "frequency_hz": {
+          "data_sha256": "ecc18d273bcb38b1daa818efa5c1830d7be0d572e834787a7950a85de7963214",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "maximum_frequency_hz": 2000000000.0,
+        "minimum_frequency_hz": 100000000.0,
+        "peak_magnitude": {
+          "data_sha256": "ece8fd1ffa791e0fcbb20d920fd1a8ec5a2606d90ba4a57a712ec8c99568b7ae",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "quality_flags": {
+          "counts": {
+            "candidate": 244,
+            "outside_analysis_window": 157,
+            "pre_event": 219
+          },
+          "data_sha256": "7131f34c11f491ab61bed909a472c6f78bd9985155b3737fe495fd22093d6a97",
+          "kind": "sequence",
+          "length": 620
+        },
+        "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+        "time_s": {
+          "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 0,
+          "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+          "shape": [
+            620
+          ]
+        }
+      },
+      "stft_result": {
+        "boundary_padding_applied": false,
+        "detrend_applied": false,
+        "frequency_hz": {
+          "data_sha256": "4ee72e0f702c52bf54a658ca43f8ff2842014f79d4c6bfa230b6abecfcd1a72d",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 0,
+          "nan_mask_sha256": "5373c2d1dc4c5333681ef9fccfe13fcb842c4779960359570e994a864145c2d2",
+          "shape": [
+            2049
+          ]
+        },
+        "hop_samples": 128,
+        "is_one_sided": true,
+        "nfft": 4096,
+        "overlap_samples": 640,
+        "sample_rate_hz": 39999999986.359764,
+        "scaling": "spectrum",
+        "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+        "spectrum": {
+          "data_sha256": "b2e2ee32ef32f34935f76aeb1880b0e60641f22b76ff20bd1fcabf179cbb5d3b",
+          "dtype": "<c16",
+          "kind": "ndarray",
+          "nan_count": 0,
+          "nan_mask_sha256": "d02db4551a3a958e309d3c4ffce7993a705fc2c92e4a124a642ba38cd13a0b32",
+          "shape": [
+            2049,
+            620
+          ]
+        },
+        "time_s": {
+          "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 0,
+          "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+          "shape": [
+            620
+          ]
+        },
+        "window_length_samples": 768,
+        "window_name": "hann"
+      },
+      "velocity_origins": {
+        "counts": {
+          "assumed_pre_event_zero": 219,
+          "outside_analysis_window": 157,
+          "refined_candidate_measurement": 244
+        },
+        "data_sha256": "92dadb25a1b2b787e2a711da60b30b4370d24eef74245f1f3a18702dbb1a06ae",
+        "kind": "sequence",
+        "length": 620
+      }
+    },
+    "pdv_channel_2": {
+      "discrete_velocity_m_s": {
+        "data_sha256": "efc4270ca41fd1a988ab1c5cf334b420e5225610a742b68d404d935cbf503a50",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "display_velocity_m_s": {
+        "data_sha256": "2ccb2d6916b99e86bc1d5c56d9052687817b27482baee749e9d2a04c4de3f757",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 157,
+        "nan_mask_sha256": "d24499f8924cd4c17665c6611f8fb17bbd278a414a28460ea1c6599199f01546",
+        "shape": [
+          620
+        ]
+      },
+      "refined_result": {
+        "analysis_end_time_s": 0.00055545,
+        "discrete_frequency_bin_index": {
+          "data_sha256": "1dbb275d697dbc363cbccd6a362b122875cf776a60ed5566c5e8f7e4bc29fd74",
+          "dtype": "<i8",
+          "kind": "ndarray",
+          "shape": [
+            620
+          ]
+        },
+        "discrete_frequency_hz": {
+          "data_sha256": "2cee1e2bd6909843f63691e39de8b923ffb9f1444b72d10bed71a1cc4cc1e084",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "event_start_time_s": 0.000554668,
+        "frequency_bin_offset": {
+          "data_sha256": "54cd33ddb19a15c3a53231d2e1739a544ab27e6907afac3ee5feb541b2c38edf",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "maximum_frequency_hz": 2000000000.0,
+        "minimum_frequency_hz": 100000000.0,
+        "peak_magnitude": {
+          "data_sha256": "c22fb5183a4ce80d077c4784b0c01adb1bb5c3099b09f84e1115986c2f4fa67e",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "quality_flags": {
+          "counts": {
+            "candidate": 244,
+            "outside_analysis_window": 157,
+            "pre_event": 219
+          },
+          "data_sha256": "7131f34c11f491ab61bed909a472c6f78bd9985155b3737fe495fd22093d6a97",
+          "kind": "sequence",
+          "length": 620
+        },
+        "refined_frequency_hz": {
+          "data_sha256": "04c6f2811b03cb02dd3d8c1272de68cb0cb6920cbab591e1d49f6479bae5b8f8",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "refinement_method": "log-magnitude three-point quadratic peak interpolation",
+        "refinement_statuses": {
+          "counts": {
+            "outside_analysis_window": 157,
+            "pre_event": 219,
+            "refined": 244
+          },
+          "data_sha256": "8582bbb466e750d3696f4ae63465f526b254747db93059132fd464bf5242c87e",
+          "kind": "sequence",
+          "length": 620
+        },
+        "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+        "time_s": {
+          "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 0,
+          "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+          "shape": [
+            620
+          ]
+        }
+      },
+      "refined_velocity_m_s": {
+        "data_sha256": "3ccf592ae432a34049617a290f4c301aa64f5513801bce7bd2d3527f8271be18",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "ridge_result": {
+        "analysis_end_time_s": 0.00055545,
+        "event_start_time_s": 0.000554668,
+        "frequency_hz": {
+          "data_sha256": "2cee1e2bd6909843f63691e39de8b923ffb9f1444b72d10bed71a1cc4cc1e084",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "maximum_frequency_hz": 2000000000.0,
+        "minimum_frequency_hz": 100000000.0,
+        "peak_magnitude": {
+          "data_sha256": "c22fb5183a4ce80d077c4784b0c01adb1bb5c3099b09f84e1115986c2f4fa67e",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 376,
+          "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+          "shape": [
+            620
+          ]
+        },
+        "quality_flags": {
+          "counts": {
+            "candidate": 244,
+            "outside_analysis_window": 157,
+            "pre_event": 219
+          },
+          "data_sha256": "7131f34c11f491ab61bed909a472c6f78bd9985155b3737fe495fd22093d6a97",
+          "kind": "sequence",
+          "length": 620
+        },
+        "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+        "time_s": {
+          "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 0,
+          "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+          "shape": [
+            620
+          ]
+        }
+      },
+      "stft_result": {
+        "boundary_padding_applied": false,
+        "detrend_applied": false,
+        "frequency_hz": {
+          "data_sha256": "4ee72e0f702c52bf54a658ca43f8ff2842014f79d4c6bfa230b6abecfcd1a72d",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 0,
+          "nan_mask_sha256": "5373c2d1dc4c5333681ef9fccfe13fcb842c4779960359570e994a864145c2d2",
+          "shape": [
+            2049
+          ]
+        },
+        "hop_samples": 128,
+        "is_one_sided": true,
+        "nfft": 4096,
+        "overlap_samples": 640,
+        "sample_rate_hz": 39999999986.359764,
+        "scaling": "spectrum",
+        "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+        "spectrum": {
+          "data_sha256": "96a5c3d5b9155ad0ef4b919e0d381dc2a2ef6bb7b2b41054e6208b323d4ce8d2",
+          "dtype": "<c16",
+          "kind": "ndarray",
+          "nan_count": 0,
+          "nan_mask_sha256": "d02db4551a3a958e309d3c4ffce7993a705fc2c92e4a124a642ba38cd13a0b32",
+          "shape": [
+            2049,
+            620
+          ]
+        },
+        "time_s": {
+          "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+          "dtype": "<f8",
+          "kind": "ndarray",
+          "nan_count": 0,
+          "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+          "shape": [
+            620
+          ]
+        },
+        "window_length_samples": 768,
+        "window_name": "hann"
+      },
+      "velocity_origins": {
+        "counts": {
+          "assumed_pre_event_zero": 219,
+          "outside_analysis_window": 157,
+          "refined_candidate_measurement": 244
+        },
+        "data_sha256": "92dadb25a1b2b787e2a711da60b30b4370d24eef74245f1f3a18702dbb1a06ae",
+        "kind": "sequence",
+        "length": 620
+      }
+    }
+  },
+  "task008a": {
+    "pdv_channel_1": {
+      "analysis_end_time_s": 0.00055545,
+      "assessment_method": "discrete peak magnitude compared with the median and maximum magnitudes outside an inclusive frequency guard in the closed ridge search band; 20*log10 magnitude ratios; no thresholds or physical-accuracy claim",
+      "assessment_statuses": {
+        "counts": {
+          "assessed": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "0ae4c1718043d63994b6d3cdc5808d5259e0df376c8e5ae9c92b939436b75e1f",
+        "kind": "sequence",
+        "length": 620
+      },
+      "background_bin_count": {
+        "data_sha256": "815ec3afec69291cf79f373f824d17e264a9723add3838d54454cdfb33231d90",
+        "dtype": "<i8",
+        "kind": "ndarray",
+        "shape": [
+          620
+        ]
+      },
+      "background_exclusion_half_width_hz": 104166666.63114522,
+      "background_median_magnitude": {
+        "data_sha256": "b571d078f5ae9db189d7cf50fbb3bd755d73e57821ffdd3c5e58fa1c41b0b18c",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "discrete_frequency_bin_index": {
+        "data_sha256": "9090aa35d3d900c490ca85adfa8256c0fb400bb438b669f4d64d1783425e9932",
+        "dtype": "<i8",
+        "kind": "ndarray",
+        "shape": [
+          620
+        ]
+      },
+      "discrete_frequency_hz": {
+        "data_sha256": "ecc18d273bcb38b1daa818efa5c1830d7be0d572e834787a7950a85de7963214",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "event_start_time_s": 0.000554668,
+      "maximum_frequency_hz": 2000000000.0,
+      "minimum_background_bin_count": 2,
+      "minimum_frequency_hz": 100000000.0,
+      "peak_magnitude": {
+        "data_sha256": "ece8fd1ffa791e0fcbb20d920fd1a8ec5a2606d90ba4a57a712ec8c99568b7ae",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "peak_to_background_db": {
+        "data_sha256": "ea0bd4661b243725a3c07ad9e16b9684642033e978cecb727084ebf544679b9c",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "peak_to_competitor_db": {
+        "data_sha256": "8a4a97bed3bb3d2b2183f1a753957962919e2d345d8b59ed8ac2f12c27ade1f8",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "quality_flags": {
+        "counts": {
+          "candidate": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "7131f34c11f491ab61bed909a472c6f78bd9985155b3737fe495fd22093d6a97",
+        "kind": "sequence",
+        "length": 620
+      },
+      "refined_frequency_hz": {
+        "data_sha256": "48379de47c0845f6d318ba2d05a1eddc7bd106f1694650c7a77bf47af243c0a5",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "refinement_statuses": {
+        "counts": {
+          "outside_analysis_window": 157,
+          "pre_event": 219,
+          "refined": 244
+        },
+        "data_sha256": "8582bbb466e750d3696f4ae63465f526b254747db93059132fd464bf5242c87e",
+        "kind": "sequence",
+        "length": 620
+      },
+      "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+      "strongest_competitor_magnitude": {
+        "data_sha256": "c1b900d4dc92a8fa555668ca3dc23b59e7944f95a97a7b1c56f4587faad14ac1",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "time_s": {
+        "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 0,
+        "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+        "shape": [
+          620
+        ]
+      }
+    },
+    "pdv_channel_2": {
+      "analysis_end_time_s": 0.00055545,
+      "assessment_method": "discrete peak magnitude compared with the median and maximum magnitudes outside an inclusive frequency guard in the closed ridge search band; 20*log10 magnitude ratios; no thresholds or physical-accuracy claim",
+      "assessment_statuses": {
+        "counts": {
+          "assessed": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "0ae4c1718043d63994b6d3cdc5808d5259e0df376c8e5ae9c92b939436b75e1f",
+        "kind": "sequence",
+        "length": 620
+      },
+      "background_bin_count": {
+        "data_sha256": "815ec3afec69291cf79f373f824d17e264a9723add3838d54454cdfb33231d90",
+        "dtype": "<i8",
+        "kind": "ndarray",
+        "shape": [
+          620
+        ]
+      },
+      "background_exclusion_half_width_hz": 104166666.63114522,
+      "background_median_magnitude": {
+        "data_sha256": "99d1b639ee4d8bf0261a829dc068a2ffa0cbb9bd77f0b0072f0d870954f0ee8f",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "discrete_frequency_bin_index": {
+        "data_sha256": "1dbb275d697dbc363cbccd6a362b122875cf776a60ed5566c5e8f7e4bc29fd74",
+        "dtype": "<i8",
+        "kind": "ndarray",
+        "shape": [
+          620
+        ]
+      },
+      "discrete_frequency_hz": {
+        "data_sha256": "2cee1e2bd6909843f63691e39de8b923ffb9f1444b72d10bed71a1cc4cc1e084",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "event_start_time_s": 0.000554668,
+      "maximum_frequency_hz": 2000000000.0,
+      "minimum_background_bin_count": 2,
+      "minimum_frequency_hz": 100000000.0,
+      "peak_magnitude": {
+        "data_sha256": "c22fb5183a4ce80d077c4784b0c01adb1bb5c3099b09f84e1115986c2f4fa67e",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "peak_to_background_db": {
+        "data_sha256": "c7b0a7f0f3027670afce07b9eceeff60a760915653d271c99b3741ebe1f920b2",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "peak_to_competitor_db": {
+        "data_sha256": "b04069cc664a2c22ca75fd4a848efa7e4fe2551930ecfe8865a6661cef62e945",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "quality_flags": {
+        "counts": {
+          "candidate": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "7131f34c11f491ab61bed909a472c6f78bd9985155b3737fe495fd22093d6a97",
+        "kind": "sequence",
+        "length": 620
+      },
+      "refined_frequency_hz": {
+        "data_sha256": "04c6f2811b03cb02dd3d8c1272de68cb0cb6920cbab591e1d49f6479bae5b8f8",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "refinement_statuses": {
+        "counts": {
+          "outside_analysis_window": 157,
+          "pre_event": 219,
+          "refined": 244
+        },
+        "data_sha256": "8582bbb466e750d3696f4ae63465f526b254747db93059132fd464bf5242c87e",
+        "kind": "sequence",
+        "length": 620
+      },
+      "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+      "strongest_competitor_magnitude": {
+        "data_sha256": "e77e6566013626ed4227649b10fdd6c2b29a4bd03aedb3ef1f49bf14c431279e",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "time_s": {
+        "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 0,
+        "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+        "shape": [
+          620
+        ]
+      }
+    }
+  },
+  "task008b_continuity": {
+    "pdv_channel_1": {
+      "absolute_frequency_step_hz": {
+        "data_sha256": "fbec656fb992d75c7a41935938c87e3634ba00f062bc5a8d35bc8ab60f466729",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 377,
+        "nan_mask_sha256": "d75972c80f245b2f776e41d575719f61a0831dfa43ff7e9219ec2ba0945338e3",
+        "shape": [
+          620
+        ]
+      },
+      "analysis_end_time_s": 0.00055545,
+      "continuity_method": "first difference and time slope from adjacent refined candidate frames; second difference from three adjacent refined candidate frames; no thresholding, smoothing, interpolation, or ridge modification",
+      "continuity_statuses": {
+        "counts": {
+          "assessed": 242,
+          "no_previous_candidate": 1,
+          "no_two_previous_candidates": 1,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "9f958cd68cdaaf49f249e522c135b9dfaa6ddf5a981cbeed23344b0010ae3294",
+        "kind": "sequence",
+        "length": 620
+      },
+      "event_start_time_s": 0.000554668,
+      "frame_interval_s": {
+        "data_sha256": "bae604b7c4e1386ca579169d6da39fb7e19ae56a54cfbde88d376ac4ab642c82",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 377,
+        "nan_mask_sha256": "d75972c80f245b2f776e41d575719f61a0831dfa43ff7e9219ec2ba0945338e3",
+        "shape": [
+          620
+        ]
+      },
+      "frequency_second_difference_hz": {
+        "data_sha256": "b950f840c31ef3aa1bbe495987243f4b045d655472a79b1fd61c2193e04a6f30",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 378,
+        "nan_mask_sha256": "5c557067a5e0a8f0c474bbad9c1c9bfccfd3c3c4ee17982a1bdd91ae0a56e3e6",
+        "shape": [
+          620
+        ]
+      },
+      "frequency_slope_hz_s": {
+        "data_sha256": "35768cd32d83eddf1f1a547a242701480e270fa4a8576f565f1a88bc535ba599",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 377,
+        "nan_mask_sha256": "d75972c80f245b2f776e41d575719f61a0831dfa43ff7e9219ec2ba0945338e3",
+        "shape": [
+          620
+        ]
+      },
+      "frequency_step_hz": {
+        "data_sha256": "9564848c7e4b4a5d6475fb69c7898658827fa095dff3e11bb517104b9769c635",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 377,
+        "nan_mask_sha256": "d75972c80f245b2f776e41d575719f61a0831dfa43ff7e9219ec2ba0945338e3",
+        "shape": [
+          620
+        ]
+      },
+      "maximum_frequency_hz": 2000000000.0,
+      "minimum_frequency_hz": 100000000.0,
+      "previous_refined_frequency_hz": {
+        "data_sha256": "0caf8ec59c386b7cbaa199988aa32caac1d15fb17d4ef94ce074fd47c8366fe1",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 377,
+        "nan_mask_sha256": "d75972c80f245b2f776e41d575719f61a0831dfa43ff7e9219ec2ba0945338e3",
+        "shape": [
+          620
+        ]
+      },
+      "quality_flags": {
+        "counts": {
+          "candidate": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "7131f34c11f491ab61bed909a472c6f78bd9985155b3737fe495fd22093d6a97",
+        "kind": "sequence",
+        "length": 620
+      },
+      "refined_frequency_hz": {
+        "data_sha256": "48379de47c0845f6d318ba2d05a1eddc7bd106f1694650c7a77bf47af243c0a5",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "refinement_statuses": {
+        "counts": {
+          "outside_analysis_window": 157,
+          "pre_event": 219,
+          "refined": 244
+        },
+        "data_sha256": "8582bbb466e750d3696f4ae63465f526b254747db93059132fd464bf5242c87e",
+        "kind": "sequence",
+        "length": 620
+      },
+      "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+      "time_s": {
+        "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 0,
+        "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+        "shape": [
+          620
+        ]
+      }
+    },
+    "pdv_channel_2": {
+      "absolute_frequency_step_hz": {
+        "data_sha256": "398c98ff21d0d719aa20d24cba2a68679b733da98f59d7f86256d3b16577adfa",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 377,
+        "nan_mask_sha256": "d75972c80f245b2f776e41d575719f61a0831dfa43ff7e9219ec2ba0945338e3",
+        "shape": [
+          620
+        ]
+      },
+      "analysis_end_time_s": 0.00055545,
+      "continuity_method": "first difference and time slope from adjacent refined candidate frames; second difference from three adjacent refined candidate frames; no thresholding, smoothing, interpolation, or ridge modification",
+      "continuity_statuses": {
+        "counts": {
+          "assessed": 242,
+          "no_previous_candidate": 1,
+          "no_two_previous_candidates": 1,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "9f958cd68cdaaf49f249e522c135b9dfaa6ddf5a981cbeed23344b0010ae3294",
+        "kind": "sequence",
+        "length": 620
+      },
+      "event_start_time_s": 0.000554668,
+      "frame_interval_s": {
+        "data_sha256": "bae604b7c4e1386ca579169d6da39fb7e19ae56a54cfbde88d376ac4ab642c82",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 377,
+        "nan_mask_sha256": "d75972c80f245b2f776e41d575719f61a0831dfa43ff7e9219ec2ba0945338e3",
+        "shape": [
+          620
+        ]
+      },
+      "frequency_second_difference_hz": {
+        "data_sha256": "4000825694d0a0cd13470d5335a53bc3e48e734335c74dd1e19a15ca0b96f568",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 378,
+        "nan_mask_sha256": "5c557067a5e0a8f0c474bbad9c1c9bfccfd3c3c4ee17982a1bdd91ae0a56e3e6",
+        "shape": [
+          620
+        ]
+      },
+      "frequency_slope_hz_s": {
+        "data_sha256": "2fc5e08dfa6cb64e5a153e70295790aa2364ff911e3df1bd2c6bdd274e217134",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 377,
+        "nan_mask_sha256": "d75972c80f245b2f776e41d575719f61a0831dfa43ff7e9219ec2ba0945338e3",
+        "shape": [
+          620
+        ]
+      },
+      "frequency_step_hz": {
+        "data_sha256": "bf8f6ce2ed1e290badd2164472f8c8bae5a296767edfd84dc936d75690c31756",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 377,
+        "nan_mask_sha256": "d75972c80f245b2f776e41d575719f61a0831dfa43ff7e9219ec2ba0945338e3",
+        "shape": [
+          620
+        ]
+      },
+      "maximum_frequency_hz": 2000000000.0,
+      "minimum_frequency_hz": 100000000.0,
+      "previous_refined_frequency_hz": {
+        "data_sha256": "9f204b5dc9881209bddcf980ae4116454bf1cba6d57467996b5ca177586d2d31",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 377,
+        "nan_mask_sha256": "d75972c80f245b2f776e41d575719f61a0831dfa43ff7e9219ec2ba0945338e3",
+        "shape": [
+          620
+        ]
+      },
+      "quality_flags": {
+        "counts": {
+          "candidate": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "7131f34c11f491ab61bed909a472c6f78bd9985155b3737fe495fd22093d6a97",
+        "kind": "sequence",
+        "length": 620
+      },
+      "refined_frequency_hz": {
+        "data_sha256": "04c6f2811b03cb02dd3d8c1272de68cb0cb6920cbab591e1d49f6479bae5b8f8",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "refinement_statuses": {
+        "counts": {
+          "outside_analysis_window": 157,
+          "pre_event": 219,
+          "refined": 244
+        },
+        "data_sha256": "8582bbb466e750d3696f4ae63465f526b254747db93059132fd464bf5242c87e",
+        "kind": "sequence",
+        "length": 620
+      },
+      "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+      "time_s": {
+        "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 0,
+        "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+        "shape": [
+          620
+        ]
+      }
+    }
+  },
+  "task008b_related_frequency": {
+    "pdv_channel_1": {
+      "analysis_end_time_s": 0.00055545,
+      "discrete_frequency_bin_index": {
+        "data_sha256": "9090aa35d3d900c490ca85adfa8256c0fb400bb438b669f4d64d1783425e9932",
+        "dtype": "<i8",
+        "kind": "ndarray",
+        "shape": [
+          620
+        ]
+      },
+      "double_frequency_peak_hz": {
+        "data_sha256": "d2dcde0a847de5907a036e319b9b73a558eb741a884e402cd5f76458c7d6fb29",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "double_frequency_peak_magnitude": {
+        "data_sha256": "7940e996f80ca83bd88a307d151bb35a14ac1b66c0124507ba371844ed7eef30",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "double_frequency_peak_offset_hz": {
+        "data_sha256": "f62450e92846416cea8304cb89255d8efb336592926d53091eaec6004d040f4a",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "double_frequency_statuses": {
+        "counts": {
+          "assessed": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "0ae4c1718043d63994b6d3cdc5808d5259e0df376c8e5ae9c92b939436b75e1f",
+        "kind": "sequence",
+        "length": 620
+      },
+      "double_frequency_target_hz": {
+        "data_sha256": "946d98dc37709c088d7e5b7f201bad22e791bdea2a55927cdd184f4962d06664",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "event_start_time_s": 0.000554668,
+      "evidence_method": "local maximum magnitude within an explicit half-width around 2f and f/2 targets in the closed ridge analysis band; 20*log10 main-to-related magnitude ratios; diagnostic evidence only",
+      "half_frequency_peak_hz": {
+        "data_sha256": "39f659938ce05e7b361b1ec214d7075cfa69d17ebcb0b5056b158ebaabc2dac6",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "half_frequency_peak_magnitude": {
+        "data_sha256": "36ec9697c3eb631850cd448957213ae4da9d76593885675750e170254b33a1ec",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "half_frequency_peak_offset_hz": {
+        "data_sha256": "df0177753c5b578ab49c607a2e77330d54ede9ef24e0a8b6097cc2c0117d0bd2",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "half_frequency_statuses": {
+        "counts": {
+          "assessed": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "0ae4c1718043d63994b6d3cdc5808d5259e0df376c8e5ae9c92b939436b75e1f",
+        "kind": "sequence",
+        "length": 620
+      },
+      "half_frequency_target_hz": {
+        "data_sha256": "a4520487886fd9c19c20a4849038faa41f01cb23d2e55ce02a199783a72e058b",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "main_peak_magnitude": {
+        "data_sha256": "ece8fd1ffa791e0fcbb20d920fd1a8ec5a2606d90ba4a57a712ec8c99568b7ae",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "main_to_double_frequency_db": {
+        "data_sha256": "91dd99061ab7b01e40a625ab3fa66a37deb0c48f1a97ed0a323fbc3cecb4eb36",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "main_to_half_frequency_db": {
+        "data_sha256": "9635f677a2b57bce5b064780084730317dadbb2fb9bb3a91846edf9bac6442f1",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "maximum_frequency_hz": 2000000000.0,
+      "minimum_frequency_hz": 100000000.0,
+      "quality_flags": {
+        "counts": {
+          "candidate": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "7131f34c11f491ab61bed909a472c6f78bd9985155b3737fe495fd22093d6a97",
+        "kind": "sequence",
+        "length": 620
+      },
+      "refined_frequency_hz": {
+        "data_sha256": "48379de47c0845f6d318ba2d05a1eddc7bd106f1694650c7a77bf47af243c0a5",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "refinement_statuses": {
+        "counts": {
+          "outside_analysis_window": 157,
+          "pre_event": 219,
+          "refined": 244
+        },
+        "data_sha256": "8582bbb466e750d3696f4ae63465f526b254747db93059132fd464bf5242c87e",
+        "kind": "sequence",
+        "length": 620
+      },
+      "search_half_width_hz": 52083333.31557261,
+      "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+      "spectral_quality_statuses": {
+        "counts": {
+          "assessed": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "0ae4c1718043d63994b6d3cdc5808d5259e0df376c8e5ae9c92b939436b75e1f",
+        "kind": "sequence",
+        "length": 620
+      },
+      "time_s": {
+        "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 0,
+        "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+        "shape": [
+          620
+        ]
+      }
+    },
+    "pdv_channel_2": {
+      "analysis_end_time_s": 0.00055545,
+      "discrete_frequency_bin_index": {
+        "data_sha256": "1dbb275d697dbc363cbccd6a362b122875cf776a60ed5566c5e8f7e4bc29fd74",
+        "dtype": "<i8",
+        "kind": "ndarray",
+        "shape": [
+          620
+        ]
+      },
+      "double_frequency_peak_hz": {
+        "data_sha256": "d96b2a845367afb6e3fba0f5f4efe98bbcd72797fc6efde8e2a6b4eabeedeea5",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "double_frequency_peak_magnitude": {
+        "data_sha256": "d379cc65381bb0d108a01005f114e2c6aeff0da5bf814894491226127b3ce84e",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "double_frequency_peak_offset_hz": {
+        "data_sha256": "47ad3be305e7c281461d590f4059924a9398f3bb7f559965423adc89cfc268ed",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "double_frequency_statuses": {
+        "counts": {
+          "assessed": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "0ae4c1718043d63994b6d3cdc5808d5259e0df376c8e5ae9c92b939436b75e1f",
+        "kind": "sequence",
+        "length": 620
+      },
+      "double_frequency_target_hz": {
+        "data_sha256": "11ed20cd37b083c0e091503bdd26c55e4d39243d37454e9179552d215eafb487",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "event_start_time_s": 0.000554668,
+      "evidence_method": "local maximum magnitude within an explicit half-width around 2f and f/2 targets in the closed ridge analysis band; 20*log10 main-to-related magnitude ratios; diagnostic evidence only",
+      "half_frequency_peak_hz": {
+        "data_sha256": "fe8963de2adaf5edfb4ce0550ff686a33bf670ac86e41f977b5a852e9795c86e",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "half_frequency_peak_magnitude": {
+        "data_sha256": "190bc5325df054405bd00edfec431739d1fbe02aa6dbfd8c794320beb1167d6e",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "half_frequency_peak_offset_hz": {
+        "data_sha256": "f52fe454624b4723d62f875384117c3eed7d80b0da8189aa7db8a8d44e247b1a",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "half_frequency_statuses": {
+        "counts": {
+          "assessed": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "0ae4c1718043d63994b6d3cdc5808d5259e0df376c8e5ae9c92b939436b75e1f",
+        "kind": "sequence",
+        "length": 620
+      },
+      "half_frequency_target_hz": {
+        "data_sha256": "ba2d15a44b3d791694a2f007a6c5a044f51202cca17c20619535b7e7c4940bab",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "main_peak_magnitude": {
+        "data_sha256": "c22fb5183a4ce80d077c4784b0c01adb1bb5c3099b09f84e1115986c2f4fa67e",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "main_to_double_frequency_db": {
+        "data_sha256": "5176b2a99f84857a7277c7254df3b293dbc8509f5ef56ee2cfef350f5668c800",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "main_to_half_frequency_db": {
+        "data_sha256": "c77e706d6d324f18eb2c1a4d38e933d851d706963bf3a7a955ce765af7929a4b",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "maximum_frequency_hz": 2000000000.0,
+      "minimum_frequency_hz": 100000000.0,
+      "quality_flags": {
+        "counts": {
+          "candidate": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "7131f34c11f491ab61bed909a472c6f78bd9985155b3737fe495fd22093d6a97",
+        "kind": "sequence",
+        "length": 620
+      },
+      "refined_frequency_hz": {
+        "data_sha256": "04c6f2811b03cb02dd3d8c1272de68cb0cb6920cbab591e1d49f6479bae5b8f8",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 376,
+        "nan_mask_sha256": "8bf985e4c34d5c8062822bdee652347330920050e79b2796eeae45afb41b7b05",
+        "shape": [
+          620
+        ]
+      },
+      "refinement_statuses": {
+        "counts": {
+          "outside_analysis_window": 157,
+          "pre_event": 219,
+          "refined": 244
+        },
+        "data_sha256": "8582bbb466e750d3696f4ae63465f526b254747db93059132fd464bf5242c87e",
+        "kind": "sequence",
+        "length": 620
+      },
+      "search_half_width_hz": 52083333.31557261,
+      "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+      "spectral_quality_statuses": {
+        "counts": {
+          "assessed": 244,
+          "outside_analysis_window": 157,
+          "pre_event": 219
+        },
+        "data_sha256": "0ae4c1718043d63994b6d3cdc5808d5259e0df376c8e5ae9c92b939436b75e1f",
+        "kind": "sequence",
+        "length": 620
+      },
+      "time_s": {
+        "data_sha256": "3da49e5b02d78b90162e30d9ff619a2755ffb2873e89715811fbd75b0e3dd6b4",
+        "dtype": "<f8",
+        "kind": "ndarray",
+        "nan_count": 0,
+        "nan_mask_sha256": "b5afda9531d50eca02d7e10dd6a5e5a9346ef452f1aea17049b4acf84be62641",
+        "shape": [
+          620
+        ]
+      }
+    }
+  }
+}

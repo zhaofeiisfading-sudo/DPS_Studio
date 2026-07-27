@@ -6,43 +6,35 @@ cd /d "%~dp0"
 if errorlevel 1 goto :cd_failure
 
 set "PYTHON_EXE=D:\miniconda3\envs\dps-studio\python.exe"
+set "CONFIG_FILE=%CD%\configs\demo_dual_profile.toml"
+for /f %%I in ('powershell.exe -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set "RUN_STAMP=%%I"
+set "OUTPUT_DIR=%CD%\outputs\production_runs\run_%RUN_STAMP%"
 set "PYTHONPATH=%CD%\src"
 set "PYTHONUTF8=1"
 set "PYTHONIOENCODING=utf-8"
 set "PYTHONUNBUFFERED=1"
-set "DATA_FILE=%CD%\data\raw\20260607.csv"
-set "OUTPUT_ROOT=%CD%\outputs\task011b_runs"
-
-:select_output_directory
-set "RUN_ID=run_%RANDOM%_%RANDOM%"
-set "OUTPUT_DIR=%OUTPUT_ROOT%\%RUN_ID%"
-if exist "%OUTPUT_DIR%" goto :select_output_directory
-set "DPS_DEMO_OUTPUT_DIR=%OUTPUT_DIR%"
 
 echo ================================================================
-echo DPS Studio balanced production analysis
+echo DPS Studio formal dual-profile production analysis
 echo ================================================================
-echo [INPUT]  %DATA_FILE%
+echo [CONFIG] %CONFIG_FILE%
 echo [OUTPUT] %OUTPUT_DIR%
 echo [PYTHON] %PYTHON_EXE%
-echo [NOTICE] Temporary 1550 nm parameter; unsigned velocity; no LiF correction.
+echo [NOTICE] Configured 1550 nm is an unconfirmed demonstration value.
+echo [NOTICE] Unsigned apparent velocity; no LiF correction or data interpolation.
 echo.
 
 if not exist "%PYTHON_EXE%" goto :python_missing
-if not exist "%DATA_FILE%" goto :data_missing
-if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
-if errorlevel 1 goto :output_failure
+if not exist "%CONFIG_FILE%" goto :config_missing
 
-echo [STAGE] Launching balanced profile in production output mode...
-"%PYTHON_EXE%" "%CD%\scripts\run_demo_pipeline.py" --profile balanced --output-mode production 2>&1
+echo [STAGE] Launching Balanced and High time resolution profiles...
+"%PYTHON_EXE%" "%CD%\scripts\run_demo_pipeline.py" --config "%CONFIG_FILE%" --output-directory "%OUTPUT_DIR%" 2>&1
 set "EXIT_CODE=%ERRORLEVEL%"
 if not "%EXIT_CODE%"=="0" goto :python_failure
 
 echo.
-echo [SUCCESS] Balanced production analysis completed successfully.
-echo [SUCCESS] The complete generated-file list is shown above.
+echo [SUCCESS] Dual-profile production analysis completed successfully.
 echo [SUCCESS] Output directory: %OUTPUT_DIR%
-echo [STAGE] Opening this run directory in Windows Explorer...
 start "" explorer.exe "%OUTPUT_DIR%"
 if errorlevel 1 echo [WARNING] Windows Explorer could not be launched automatically.
 set "EXIT_CODE=0"
@@ -51,36 +43,24 @@ goto :pause_and_exit
 :cd_failure
 set "EXIT_CODE=2"
 echo [FAILURE] Could not change to repository root: %~dp0
-echo [FAILURE] Exit code: %EXIT_CODE%
 goto :pause_and_exit
 
 :python_missing
 set "EXIT_CODE=2"
 echo [FAILURE] Required Python executable was not found:
 echo %PYTHON_EXE%
-echo [FAILURE] Exit code: %EXIT_CODE%
 goto :pause_and_exit
 
-:data_missing
+:config_missing
 set "EXIT_CODE=2"
-echo [FAILURE] Raw input file was not found:
-echo %DATA_FILE%
-echo [FAILURE] Exit code: %EXIT_CODE%
-goto :pause_and_exit
-
-:output_failure
-set "EXIT_CODE=3"
-echo [FAILURE] Could not create the output directory:
-echo %OUTPUT_DIR%
-echo [FAILURE] Existing outputs were not deleted or modified.
-echo [FAILURE] Exit code: %EXIT_CODE%
+echo [FAILURE] Formal TOML configuration was not found:
+echo %CONFIG_FILE%
 goto :pause_and_exit
 
 :python_failure
 echo.
 echo [FAILURE] Python pipeline failed with exit code %EXIT_CODE%.
 echo [FAILURE] The Python error and traceback are shown above.
-goto :pause_and_exit
 
 :pause_and_exit
 echo.

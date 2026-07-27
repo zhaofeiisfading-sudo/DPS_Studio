@@ -16,9 +16,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 from dps_studio.core import AnalysisProfile, BALANCED_PROFILE
 from assess_real_ridge_quality import (  # noqa: E402
-    MINIMUM_BACKGROUND_BIN_COUNT,
     _finite_summary,
-    _hann_first_zero_guard_hz,
 )
 from compare_real_ridge_refinement import (  # noqa: E402
     ANALYSIS_END_TIME_S,
@@ -46,6 +44,11 @@ from dps_studio.core.ridge import (  # noqa: E402
     assess_ridge_spectral_quality,
 )
 from dps_studio.core.time_frequency import STFTResult  # noqa: E402
+from dps_studio.core.workflow import (  # noqa: E402
+    QualityConfiguration,
+    derive_background_exclusion_half_width_hz,
+    load_workflow_config,
+)
 
 
 FloatArray = NDArray[np.float64]
@@ -743,6 +746,7 @@ def run_ridge_diagnostics_demo(
     output_directory: Path,
     *,
     profile: AnalysisProfile = BALANCED_PROFILE,
+    quality_configuration: QualityConfiguration,
 ) -> list[Path]:
     """Run TASK-008B for one explicit analysis profile."""
     if not isinstance(profile, AnalysisProfile):
@@ -781,6 +785,12 @@ def run_ridge_diagnostics_demo(
             window_name=profile.window_name,
             minimum_frequency_hz=profile.minimum_frequency_hz,
             maximum_frequency_hz=profile.maximum_frequency_hz,
+            background_guard_window_scale=(
+                quality_configuration.background_guard_window_scale
+            ),
+            minimum_background_bin_count=(
+                quality_configuration.minimum_background_bin_count
+            ),
         )
         print(f"TASK-008B two-channel recomputation runtime: {runtime_s:.6f} s")
 
@@ -788,7 +798,11 @@ def run_ridge_diagnostics_demo(
         related_results: dict[str, RelatedFrequencyEvidenceResult] = {}
         quality_results: dict[str, RidgeSpectralQualityResult] = {}
         for channel_name, analysis in analyses.items():
-            guard_hz = _hann_first_zero_guard_hz(analysis.stft_result)
+            guard_hz = derive_background_exclusion_half_width_hz(
+                sample_rate_hz=analysis.stft_result.sample_rate_hz,
+                window_length_samples=analysis.stft_result.window_length_samples,
+                window_scale=quality_configuration.background_guard_window_scale,
+            )
             search_half_width_hz = _related_search_half_width_hz(
                 analysis.stft_result
             )
@@ -803,7 +817,9 @@ def run_ridge_diagnostics_demo(
                 analysis.stft_result,
                 analysis.refined_result,
                 background_exclusion_half_width_hz=guard_hz,
-                minimum_background_bin_count=MINIMUM_BACKGROUND_BIN_COUNT,
+                minimum_background_bin_count=(
+                    quality_configuration.minimum_background_bin_count
+                ),
             )
             continuity = assess_ridge_continuity(analysis.refined_result)
             related = assess_related_frequency_evidence(
@@ -884,7 +900,16 @@ def run_ridge_diagnostics_demo(
 def main() -> None:
     from compare_real_ridge_refinement import OUTPUT_DIRECTORY
 
-    run_ridge_diagnostics_demo(OUTPUT_DIRECTORY)
+    project_root = DATA_PATH.parents[2]
+    configuration = load_workflow_config(
+        project_root / "configs" / "demo_dual_profile.toml",
+        repository_root=project_root,
+    )
+    run_ridge_diagnostics_demo(
+        OUTPUT_DIRECTORY,
+        profile=configuration.analysis.profiles[0],
+        quality_configuration=configuration.quality,
+    )
 
 
 if __name__ == "__main__":
