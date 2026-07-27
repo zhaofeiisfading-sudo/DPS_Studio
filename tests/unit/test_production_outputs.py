@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import sys
 from pathlib import Path
@@ -33,9 +34,16 @@ from production_outputs import (  # noqa: E402
     LOWER_BOUND_ARGMAX_NOTE,
     PROFILE_FILENAMES,
     QUALITY_UNFILTERED_PREVIEW_LABEL,
+    THRESHOLD_CALIBRATION_CANDIDATES_DB,
+    THRESHOLD_CALIBRATION_PROVENANCE,
     _build_full_range_preview,
+    _build_reviewed_velocity_series,
     _production_root_entries,
+    _save_apparent_velocity_full_overview,
+    _save_apparent_velocity_full_time_reviewed,
     _simple_export_filename,
+    _simple_export_velocity_m_s,
+    _select_threshold_candidate,
     _velocity_plot_series,
     _write_simple_velocity_csv,
     run_production_outputs,
@@ -153,7 +161,7 @@ def production_run(tmp_path_factory: pytest.TempPathFactory) -> Path:
         configuration=configuration,
         source_sha256=source_sha256,
     )
-    assert len(paths) == 54
+    assert len(paths) == 59
     return output_directory
 
 
@@ -233,10 +241,28 @@ def test_production_writes_exact_dual_profile_tree_and_manifest(
             (BALANCED_PROFILE, HIGH_TIME_RESOLUTION_PROFILE)
         )
     )
-    assert manifest["output_contract"] == "dual-profile-task013b-v5"
-    assert len(manifest["generated_files"]) == 54
+    assert manifest["output_contract"] == "dual-profile-task013c-r-v1"
+    assert len(manifest["generated_files"]) == 59
     assert manifest["simple_exports"]["display_or_preview_values_used"] is False
     assert manifest["simple_exports"]["all_stft_frames_retained"] is True
+    assert manifest["simple_exports"]["columns"] == [
+        "time_s",
+        "velocity_m_s",
+    ]
+    assert (
+        manifest["simple_exports"]["pre_consensus_zero_fill"]
+        == "unconditional for every frame"
+    )
+    assert manifest["simple_exports"]["zero_fill_is_measurement"] is False
+    assert manifest["plot"]["reviewed_display"]["same_array_as_simple_export"] is True
+    calibration = manifest["quality"]["threshold_calibration"]
+    assert calibration["candidate_pairs_db"] == [
+        [10.0, 3.0],
+        [12.0, 4.0],
+        [14.0, 5.0],
+        [16.0, 6.0],
+    ]
+    assert calibration["provenance"] == THRESHOLD_CALIBRATION_PROVENANCE
     assert manifest["interpretation_guards"] == list(INTERPRETATION_GUARDS)
     assert manifest["cross_profile_consensus"]["consensus_event_status"] in {
         "cross_profile_consensus",
@@ -267,6 +293,9 @@ def test_csv_keeps_all_frames_and_display_zero_separate_from_measurement(
         "velocity_origin",
         "quality_flag",
         "signal_state",
+        "minimum_peak_to_background_threshold_db",
+        "minimum_peak_to_competitor_threshold_db",
+        "threshold_provenance",
         "measured_semantics",
         "physical_branch_review_status",
         "event_segment_id",
@@ -455,6 +484,12 @@ def test_full_band_and_analysis_plot_ranges_are_explicit_and_images_are_readable
             LOWER_BOUND_ARGMAX_NOTE
         )
         assert "state-layered" in manifest["full_range_preview"]["rendering"]
+        assert "no state markers" in (
+            manifest["full_range_preview"]["overview_rendering"]
+        )
+        assert manifest["full_range_preview"]["state_diagnostics_filename"] == (
+            "apparent_velocity_state_diagnostics.png"
+        )
         assert manifest["analysis_display_frequency_range_hz"] == [0.0, 2.0e9]
         for channel_name in ("pdv_channel_1", "pdv_channel_2"):
             full_range = manifest["full_band_frequency_range_hz_by_channel"][
@@ -528,34 +563,131 @@ def test_preview_boundary_is_explicitly_not_zero_and_state_layered(
         "high_time_resolution",
         "pdv_channel_2",
         analysis,
+        zero_before_time_s=float(analysis.refined_result.time_s[-1]),
     )
     simple = pd.read_csv(simple_path)
-    assert simple.loc[boundary, "apparent_velocity_m_s"].isna().all()
+    pre_consensus = analysis.refined_result.time_s < analysis.refined_result.time_s[-1]
+    assert np.all(simple.loc[pre_consensus, "velocity_m_s"] == 0.0)
+    assert np.isnan(simple.loc[~pre_consensus, "velocity_m_s"]).all()
 
 
-def test_detailed_diagnostic_compatibility_files_are_identical(
+def test_duplicate_apparent_velocity_csv_alias_is_not_generated(
     production_run: Path,
 ) -> None:
+    assert DETAILED_DIAGNOSTIC_FILENAMES == (
+        "apparent_velocity_diagnostics.csv",
+    )
     for profile_name in ("balanced", "high_time_resolution"):
         for channel_name in ("pdv_channel_1", "pdv_channel_2"):
             channel_directory = production_run / profile_name / channel_name
-            first, second = (
-                pd.read_csv(channel_directory / filename)
-                for filename in DETAILED_DIAGNOSTIC_FILENAMES
-            )
-            pd.testing.assert_frame_equal(first, second)
+            assert (channel_directory / "apparent_velocity_diagnostics.csv").is_file()
+            assert not (channel_directory / "apparent_velocity.csv").exists()
 
 
-def test_simple_exports_are_strict_formal_two_column_roundtrips(
+def test_all_streams_write_primary_overview_reviewed_and_state_diagnostics(
+    production_run: Path,
+) -> None:
+    required = {
+        "apparent_velocity_full_overview.png",
+        "apparent_velocity_full_time_reviewed.png",
+        "apparent_velocity_full_time_formal.png",
+        "apparent_velocity_event_detail.png",
+        "apparent_velocity_state_diagnostics.png",
+        "apparent_velocity_diagnostics.csv",
+    }
+    for profile_name in ("balanced", "high_time_resolution"):
+        for channel_name in ("pdv_channel_1", "pdv_channel_2"):
+            channel_directory = production_run / profile_name / channel_name
+            assert required <= {
+                path.name for path in channel_directory.iterdir()
+            }
+
+
+def test_primary_overview_uses_preview_and_formal_without_state_markers() -> None:
+    source = inspect.getsource(_save_apparent_velocity_full_overview)
+    assert "preview.apparent_velocity_m_s" in source
+    assert "analysis.refined_velocity_m_s" in source
+    assert QUALITY_UNFILTERED_PREVIEW_LABEL == (
+        "quality-unfiltered argmax preview; not a measurement"
+    )
+    assert "axis.scatter" not in source
+    assert "marker=" not in source
+    assert "Red preview is diagnostic only." in source
+    assert "Lower-bound argmax is not zero velocity." in source
+
+
+def test_reviewed_display_uses_simple_series_without_mutating_formal_velocity(
+    formal_analyses: tuple[object, dict[str, object]],
+) -> None:
+    _, analyses_by_profile = formal_analyses
+    analysis = analyses_by_profile["balanced"]["pdv_channel_1"]
+    consensus_time_s = float(analysis.refined_result.time_s[5])
+    formal_before = analysis.refined_velocity_m_s.copy()
+
+    reviewed = _build_reviewed_velocity_series(
+        analysis,
+        consensus_event_time_s=consensus_time_s,
+    )
+
+    pre_mask = analysis.refined_result.time_s < consensus_time_s
+    assert pre_mask.any()
+    assert np.isfinite(formal_before[pre_mask]).any()
+    assert np.all(reviewed.pre_event_zero_velocity_m_s[pre_mask] == 0.0)
+    assert np.all(reviewed.simple_export_velocity_m_s[pre_mask] == 0.0)
+    assert np.isnan(reviewed.post_event_velocity_m_s[pre_mask]).all()
+    np.testing.assert_allclose(
+        reviewed.simple_export_velocity_m_s[~pre_mask],
+        formal_before[~pre_mask],
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
+    np.testing.assert_allclose(
+        reviewed.post_event_velocity_m_s[~pre_mask],
+        formal_before[~pre_mask],
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
+    np.testing.assert_array_equal(
+        analysis.refined_velocity_m_s,
+        formal_before,
+    )
+
+    plot_source = inspect.getsource(_save_apparent_velocity_full_time_reviewed)
+    assert "bridge" not in plot_source
+    assert "axvline" not in plot_source
+    assert "reviewed.simple_export_velocity_m_s" in plot_source
+    assert "pre-event baseline defined as zero for plotting" in plot_source
+    assert "quality-gated apparent velocity after event" in plot_source
+    assert (
+        "Pre-event zero is a plotting convention based on the consensus event time."
+        in plot_source
+    )
+    assert "preview" not in plot_source
+    assert "red" not in plot_source.lower()
+
+
+def test_simple_exports_are_origin_ready_two_column_roundtrips(
     production_run: Path,
     formal_analyses: tuple[object, dict[str, object]],
 ) -> None:
     _, analyses_by_profile = formal_analyses
+    run_manifest = json.loads((production_run / "run_manifest.json").read_text())
+    zero_before_time_s = run_manifest["cross_profile_consensus"][
+        "consensus_event_candidate_time_s"
+    ]
     simple_directory = production_run / "simple_exports"
     expected_csv_names = {
         _simple_export_filename(profile_name, channel_name)
         for profile_name in analyses_by_profile
         for channel_name in analyses_by_profile[profile_name]
+    }
+    assert expected_csv_names == {
+        "balanced__pdv_channel_1__velocity_time.csv",
+        "balanced__pdv_channel_2__velocity_time.csv",
+        "high_time_resolution__pdv_channel_1__velocity_time.csv",
+        "high_time_resolution__pdv_channel_2__velocity_time.csv",
     }
     assert {path.name for path in simple_directory.glob("*.csv")} == expected_csv_names
     assert (simple_directory / "README.txt").is_file()
@@ -579,7 +711,7 @@ def test_simple_exports_are_strict_formal_two_column_roundtrips(
             frame = pd.read_csv(path)
             assert frame.columns.tolist() == [
                 "time_s",
-                "apparent_velocity_m_s",
+                "velocity_m_s",
             ]
             assert len(frame) == analysis.stft_result.time_s.size
             assert np.all(np.diff(frame["time_s"].to_numpy()) > 0.0)
@@ -590,22 +722,21 @@ def test_simple_exports_are_strict_formal_two_column_roundtrips(
                 atol=2.0e-18,
             )
             np.testing.assert_allclose(
-                frame["apparent_velocity_m_s"].to_numpy(),
-                analysis.refined_velocity_m_s,
+                frame["velocity_m_s"].to_numpy(),
+                _simple_export_velocity_m_s(
+                    analysis,
+                    zero_before_time_s=zero_before_time_s,
+                ),
                 rtol=1.0e-15,
                 atol=0.0,
                 equal_nan=True,
-            )
-            np.testing.assert_array_equal(
-                frame["apparent_velocity_m_s"].isna().to_numpy(),
-                np.isnan(analysis.refined_velocity_m_s),
             )
             finite_indices = np.flatnonzero(
                 np.isfinite(analysis.refined_velocity_m_s)
             )
             assert finite_indices.size > 0
             assert np.isfinite(
-                frame["apparent_velocity_m_s"].iloc[finite_indices[-1]]
+                frame["velocity_m_s"].iloc[finite_indices[-1]]
             )
 
             detailed = pd.read_csv(
@@ -618,10 +749,77 @@ def test_simple_exports_are_strict_formal_two_column_roundtrips(
                 frame["time_s"].to_numpy(),
                 detailed["time_s"].to_numpy(),
             )
-            np.testing.assert_array_equal(
-                frame["apparent_velocity_m_s"].to_numpy(),
+            np.testing.assert_allclose(
                 detailed["apparent_velocity_m_s"].to_numpy(),
+                analysis.refined_velocity_m_s,
+                rtol=1.0e-15,
+                atol=0.0,
+                equal_nan=True,
             )
+            if zero_before_time_s is None:
+                np.testing.assert_allclose(
+                    frame["velocity_m_s"].to_numpy(),
+                    detailed["apparent_velocity_m_s"].to_numpy(),
+                    rtol=1.0e-15,
+                    atol=0.0,
+                    equal_nan=True,
+                )
+            else:
+                pre_mask = frame["time_s"].to_numpy() < zero_before_time_s
+                post_mask = ~pre_mask
+                assert np.all(frame.loc[pre_mask, "velocity_m_s"] == 0.0)
+                np.testing.assert_allclose(
+                    frame.loc[post_mask, "velocity_m_s"].to_numpy(),
+                    detailed.loc[post_mask, "apparent_velocity_m_s"].to_numpy(),
+                    rtol=1.0e-15,
+                    atol=0.0,
+                    equal_nan=True,
+                )
+
+
+def test_simple_export_zero_overrides_every_pre_consensus_formal_value(
+    tmp_path: Path,
+    formal_analyses: tuple[object, dict[str, object]],
+) -> None:
+    _, analyses_by_profile = formal_analyses
+    analysis = analyses_by_profile["balanced"]["pdv_channel_1"]
+    zero_before_time_s = float(analysis.refined_result.time_s[-1])
+    expected_zero = analysis.refined_result.time_s < zero_before_time_s
+    formal_before = analysis.refined_velocity_m_s.copy()
+    assert expected_zero.sum() == analysis.refined_result.time_s.size - 1
+    assert np.isfinite(formal_before[expected_zero]).any()
+
+    simple_velocity = _simple_export_velocity_m_s(
+        analysis,
+        zero_before_time_s=zero_before_time_s,
+    )
+    assert np.all(simple_velocity[expected_zero] == 0.0)
+    np.testing.assert_allclose(
+        simple_velocity[~expected_zero],
+        formal_before[~expected_zero],
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
+    np.testing.assert_array_equal(
+        analysis.refined_velocity_m_s,
+        formal_before,
+    )
+    path = _write_simple_velocity_csv(
+        tmp_path,
+        "balanced",
+        "pdv_channel_1",
+        analysis,
+        zero_before_time_s=zero_before_time_s,
+    )
+    written = pd.read_csv(path)
+    np.testing.assert_allclose(
+        written["velocity_m_s"].to_numpy(),
+        simple_velocity,
+        rtol=1.0e-15,
+        atol=0.0,
+        equal_nan=True,
+    )
 
 
 def test_simple_export_fields_ignore_manual_reference_and_event_candidate_config(
@@ -676,6 +874,7 @@ def test_simple_export_fields_ignore_manual_reference_and_event_candidate_config
             f"balanced_{index}",
             "pdv_channel_1",
             analysis,
+            zero_before_time_s=float(base.refined_result.time_s[0]),
         )
         frame = pd.read_csv(path)
         np.testing.assert_allclose(
@@ -685,12 +884,170 @@ def test_simple_export_fields_ignore_manual_reference_and_event_candidate_config
             atol=2.0e-18,
         )
         np.testing.assert_allclose(
-            frame["apparent_velocity_m_s"].to_numpy(),
+            frame["velocity_m_s"].to_numpy(),
             base.refined_velocity_m_s,
             rtol=1.0e-15,
             atol=0.0,
             equal_nan=True,
         )
+
+
+def test_simple_export_consensus_unavailable_copies_formal_without_manual_fallback(
+    formal_analyses: tuple[object, dict[str, object]],
+) -> None:
+    _, analyses_by_profile = formal_analyses
+    analysis = analyses_by_profile["balanced"]["pdv_channel_1"]
+    formal_before = analysis.refined_velocity_m_s.copy()
+
+    simple = _simple_export_velocity_m_s(
+        analysis,
+        zero_before_time_s=None,
+    )
+    reviewed = _build_reviewed_velocity_series(
+        analysis,
+        consensus_event_time_s=None,
+    )
+
+    assert not np.shares_memory(simple, analysis.refined_velocity_m_s)
+    np.testing.assert_allclose(
+        simple,
+        formal_before,
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
+    np.testing.assert_allclose(
+        reviewed.simple_export_velocity_m_s,
+        formal_before,
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
+    assert np.isnan(reviewed.pre_event_zero_velocity_m_s).all()
+    np.testing.assert_allclose(
+        reviewed.post_event_velocity_m_s,
+        formal_before,
+        rtol=0.0,
+        atol=0.0,
+        equal_nan=True,
+    )
+
+
+def test_simple_readme_states_origin_semantics_and_formal_reference(
+    production_run: Path,
+) -> None:
+    readme = (
+        production_run / "simple_exports" / "README.txt"
+    ).read_text(encoding="utf-8")
+    assert "direct use in Origin or Excel" in readme
+    assert "velocity_m_s is unsigned apparent velocity in m/s" in readme
+    assert "every frame with time_s before" in readme
+    assert "invalid frames remain NaN" in readme
+    assert "interpolated, smoothed, bridged, or resampled" in readme
+    assert "not received a verified LiF correction" in readme
+    assert "formal reference and are never pre-event zero-filled" in readme
+    assert THRESHOLD_CALIBRATION_PROVENANCE in readme
+
+
+def test_detailed_diagnostics_record_selected_thresholds_and_provenance(
+    production_run: Path,
+) -> None:
+    for profile_name in ("balanced", "high_time_resolution"):
+        for channel_name in ("pdv_channel_1", "pdv_channel_2"):
+            frame = pd.read_csv(
+                production_run
+                / profile_name
+                / channel_name
+                / "apparent_velocity_diagnostics.csv"
+            )
+            assert set(
+                frame["minimum_peak_to_background_threshold_db"]
+            ) == {10.0}
+            assert set(
+                frame["minimum_peak_to_competitor_threshold_db"]
+            ) == {3.0}
+            assert set(frame["threshold_provenance"]) == {
+                THRESHOLD_CALIBRATION_PROVENANCE
+            }
+
+
+def test_threshold_calibration_csv_covers_exact_candidates_and_streams(
+    production_run: Path,
+) -> None:
+    frame = pd.read_csv(
+        production_run / "comparisons" / "threshold_calibration.csv"
+    )
+    required_columns = {
+        "peak_to_background_threshold_db",
+        "peak_to_competitor_threshold_db",
+        "profile",
+        "channel",
+        "pre_event_measured_count",
+        "main_event_baseline_count",
+        "main_event_retained_count",
+        "main_event_retention_fraction",
+        "post_event_nan_count",
+        "post_event_added_nan_count",
+        "consensus_status",
+        "selected",
+    }
+    assert required_columns <= set(frame.columns)
+    assert len(frame) == 16
+    assert {
+        tuple(pair)
+        for pair in frame[
+            [
+                "peak_to_background_threshold_db",
+                "peak_to_competitor_threshold_db",
+            ]
+        ].drop_duplicates().to_numpy()
+    } == set(THRESHOLD_CALIBRATION_CANDIDATES_DB)
+    assert set(frame["profile"]) == {
+        "balanced",
+        "high_time_resolution",
+    }
+    assert set(frame["channel"]) == {
+        "pdv_channel_1",
+        "pdv_channel_2",
+    }
+    assert frame["selected"].sum() == 4
+    assert set(frame.loc[frame["selected"], "consensus_status"]) == {
+        "no_eligible_segments"
+    }
+
+
+def test_threshold_selection_is_deterministic_and_chooses_smallest_qualifier() -> None:
+    summaries = [
+        {
+            "peak_to_background_threshold_db": background,
+            "peak_to_competitor_threshold_db": competitor,
+            "qualifies": background >= 12.0,
+        }
+        for background, competitor in reversed(
+            THRESHOLD_CALIBRATION_CANDIDATES_DB
+        )
+    ]
+    assert _select_threshold_candidate(summaries) == (
+        12.0,
+        4.0,
+        "smallest_candidate_meeting_all_criteria",
+    )
+
+
+def test_threshold_selection_falls_back_to_10_3_when_none_qualify() -> None:
+    summaries = [
+        {
+            "peak_to_background_threshold_db": background,
+            "peak_to_competitor_threshold_db": competitor,
+            "qualifies": False,
+        }
+        for background, competitor in THRESHOLD_CALIBRATION_CANDIDATES_DB
+    ]
+    assert _select_threshold_candidate(summaries) == (
+        10.0,
+        3.0,
+        "no_candidate_met_all_criteria_fallback_to_10_3",
+    )
 
 
 def test_production_source_has_no_private_compare_dependency() -> None:

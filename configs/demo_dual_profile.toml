@@ -28,7 +28,10 @@ vacuum_wavelength_m = 1.55e-6
 # Retained for legacy descriptive scripts; formal detection uses the bin guard below.
 background_guard_window_scale = 2.0
 minimum_background_bin_count = 2
-# Development defaults: synthetic behavior is tested, experimental validation remains.
+# TASK-013C-R development calibration compared exactly (10,3), (12,4),
+# (14,5), and (16,6) dB. No stricter pair met every retention/continuity
+# criterion, so the deterministic fallback retains 10/3 dB.
+# This is not an absolute experimental standard.
 minimum_peak_to_background_db = 10.0
 minimum_peak_to_competitor_db = 3.0
 peak_exclusion_half_width_bins = 12

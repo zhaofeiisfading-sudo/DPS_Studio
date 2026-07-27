@@ -17,12 +17,25 @@ with both the Balanced and High time resolution profiles.
 Successful formal runs are isolated under
 `outputs/production_runs/run_<YYYYMMDD_HHMMSS>/`. The run root contains the
 profile/channel diagnostic trees, `comparisons/`, `event_consensus.json`, and a
-`simple_exports/` directory. Each simple export has exactly `time_s` and the
-formal quality-gated `apparent_velocity_m_s`; all STFT frames and NaN gaps are
-retained. The complete 42-column per-frame table remains available as
-`apparent_velocity_diagnostics.csv` and the compatibility filename
-`apparent_velocity.csv`. `outputs/LATEST_RUN.txt` is updated only after a
-complete successful formal run.
+`simple_exports/` directory. Each actual profile/channel stream has exactly one
+`<profile>__<channel>__velocity_time.csv` file with the Origin/Excel-ready
+columns `time_s` and `velocity_m_s`. Every frame before the cross-profile
+consensus time is defined as zero solely for plotting. At and after consensus,
+the formal quality-gated apparent velocity is copied exactly, including NaN
+gaps; all original STFT frames and times are retained without interpolation,
+smoothing, bridging, or resampling. If consensus is unavailable, the formal
+array is copied unchanged and the manual reference is not substituted. The
+complete per-frame table remains available as
+`apparent_velocity_diagnostics.csv`; no duplicate `apparent_velocity.csv` alias
+is generated. Its formal `apparent_velocity_m_s` and signal states are never
+pre-event zero-filled. Each profile/channel directory also contains the primary
+red/blue `apparent_velocity_full_overview.png`, the simple-series
+`apparent_velocity_full_time_reviewed.png`, a formal full-time plot, and separate
+state diagnostics. `comparisons/threshold_calibration.csv` records the four
+approved threshold pairs and deterministic selection. The retained 10 dB
+peak/background and 3 dB peak/competitor values are development-calibrated for
+this record, not an absolute experimental standard. `outputs/LATEST_RUN.txt` is
+updated only after a complete successful formal run.
 
 Numerical workflow:
 

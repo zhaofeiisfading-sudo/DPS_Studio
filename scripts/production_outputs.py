@@ -54,14 +54,15 @@ from dps_studio.core.workflow import (  # noqa: E402
 
 DETAILED_DIAGNOSTIC_FILENAMES = (
     "apparent_velocity_diagnostics.csv",
-    "apparent_velocity.csv",
 )
 CHANNEL_PLOT_FILENAMES = (
     "stft_full_band.png",
     "stft_analysis_band_with_ridge.png",
-    "apparent_velocity_full_time.png",
+    "apparent_velocity_full_overview.png",
+    "apparent_velocity_full_time_reviewed.png",
+    "apparent_velocity_full_time_formal.png",
     "apparent_velocity_event_detail.png",
-    "apparent_velocity_full_preview.png",
+    "apparent_velocity_state_diagnostics.png",
     "signal_detection_diagnostics.png",
 )
 CHANNEL_FILENAMES = (*DETAILED_DIAGNOSTIC_FILENAMES, *CHANNEL_PLOT_FILENAMES)
@@ -77,6 +78,7 @@ COMPARISON_FILENAMES = (
     "event_candidate_sensitivity.csv",
     "measured_segments.csv",
     "spectral_contrast_distribution_comparison.png",
+    "threshold_calibration.csv",
     "threshold_transferability_audit.csv",
 )
 PRODUCTION_SUPPORT_ROOT_ENTRIES = (
@@ -88,6 +90,18 @@ PRODUCTION_SUPPORT_ROOT_ENTRIES = (
     "simple_exports",
 )
 SIMPLE_EXPORT_README_FILENAME = "README.txt"
+THRESHOLD_CALIBRATION_CANDIDATES_DB = (
+    (10.0, 3.0),
+    (12.0, 4.0),
+    (14.0, 5.0),
+    (16.0, 6.0),
+)
+THRESHOLD_CALIBRATION_PROVENANCE = (
+    "development-calibrated for the current production record; not an absolute "
+    "experimental standard"
+)
+THRESHOLD_CALIBRATION_FILENAME = "threshold_calibration.csv"
+MAIN_EVENT_MINIMUM_RETENTION_FRACTION = 0.98
 
 INTERPRETATION_GUARDS = (
     "unsigned apparent velocity",
@@ -105,6 +119,7 @@ INTERPRETATION_GUARDS = (
     "lower-bound argmax is not zero velocity",
     "event candidates and consensus do not modify formal per-frame arrays",
     "display-only bridge has two endpoints and writes no intermediate CSV data",
+    "simple-export zero is a pre-consensus plotting convention and not measured",
 )
 QUALITY_UNFILTERED_PREVIEW_LABEL = (
     "quality-unfiltered argmax preview; not a measurement"
@@ -135,6 +150,28 @@ class VelocityPlotSeries:
     bridge_velocity_m_s: np.ndarray[Any, np.dtype[np.float64]]
 
 
+@dataclass(frozen=True, slots=True)
+class ReviewedVelocitySeries:
+    """The simple-export plotting series split only at consensus time."""
+
+    simple_export_velocity_m_s: np.ndarray[Any, np.dtype[np.float64]]
+    pre_event_zero_velocity_m_s: np.ndarray[Any, np.dtype[np.float64]]
+    post_event_velocity_m_s: np.ndarray[Any, np.dtype[np.float64]]
+
+
+@dataclass(frozen=True, slots=True)
+class ThresholdCalibrationResult:
+    """Deterministic comparison and selection across the approved thresholds."""
+
+    rows: tuple[dict[str, Any], ...]
+    candidate_summaries: tuple[dict[str, Any], ...]
+    selected_peak_to_background_db: float
+    selected_peak_to_competitor_db: float
+    selection_status: str
+    baseline_consensus_event_time_s: float | None
+    selected_consensus_event_time_s: float | None
+
+
 def run_production_outputs(
     output_directory: Path,
     records: Mapping[str, SignalRecord],
@@ -149,6 +186,14 @@ def run_production_outputs(
         records,
         configuration=configuration,
         source_sha256=source_sha256,
+    )
+    threshold_calibration = _calibrate_detection_thresholds(
+        records,
+        configuration=configuration,
+    )
+    _validate_configured_detection_thresholds(
+        configuration.quality.signal_detection,
+        calibration=threshold_calibration,
     )
     output_directory.mkdir(parents=True, exist_ok=True)
     profile_names = tuple(
@@ -167,6 +212,7 @@ def run_production_outputs(
     generated_paths: list[Path] = []
     profile_manifests: dict[str, dict[str, Any]] = {}
     analyses_by_profile: dict[str, Mapping[str, ChannelAnalysis]] = {}
+    previews_by_profile: dict[str, dict[str, PreviewVelocitySeries]] = {}
     profile_consensus_results: dict[str, ProfileConsensusResult] = {}
     log_lines = [
         "DPS Studio formal dual-profile production run",
@@ -205,6 +251,7 @@ def run_production_outputs(
             ),
         )
         analyses_by_profile[profile_name] = analyses
+        previews_by_profile[profile_name] = {}
         profile_consensus = build_profile_consensus(
             {
                 name: analysis.stream_event_candidates
@@ -220,21 +267,21 @@ def run_production_outputs(
             channel_directory = profile_directory / channel_name
             channel_directory.mkdir()
             analysis = analyses[channel_name]
+            preview = _build_full_range_preview(
+                analysis,
+                minimum_frequency_hz=profile.minimum_frequency_hz,
+                maximum_frequency_hz=profile.maximum_frequency_hz,
+                vacuum_wavelength_m=configuration.analysis.vacuum_wavelength_m,
+            )
+            previews_by_profile[profile_name][channel_name] = preview
             generated_paths.extend(
                 _write_channel_outputs(
                     channel_directory,
                     channel_name,
                     analysis,
+                    preview=preview,
                     profile=profile,
                     configuration=configuration,
-                )
-            )
-            generated_paths.append(
-                _write_simple_velocity_csv(
-                    simple_exports_directory,
-                    profile_name,
-                    channel_name,
-                    analysis,
                 )
             )
             summary = _channel_summary(
@@ -304,11 +351,39 @@ def run_production_outputs(
             configuration.analysis.manual_event_reference_time_s
         ),
     )
+    for profile in configuration.analysis.profiles:
+        profile_name = profile.profile_id.value
+        for channel_name in sorted(analyses_by_profile[profile_name]):
+            generated_paths.extend(
+                _write_consensus_velocity_outputs(
+                    output_directory / profile_name / channel_name,
+                    channel_name,
+                    analyses_by_profile[profile_name][channel_name],
+                    preview=previews_by_profile[profile_name][channel_name],
+                    profile=profile,
+                    cross_profile_consensus=cross_profile_consensus,
+                )
+            )
+            generated_paths.append(
+                _write_simple_velocity_csv(
+                    simple_exports_directory,
+                    profile_name,
+                    channel_name,
+                    analyses_by_profile[profile_name][channel_name],
+                    zero_before_time_s=(
+                        cross_profile_consensus.consensus_event_candidate_time_s
+                    ),
+                )
+            )
     generated_paths.append(
         _write_simple_exports_readme(
             simple_exports_directory,
             profile_names=profile_names,
             channel_names=channel_names,
+            zero_before_time_s=(
+                cross_profile_consensus.consensus_event_candidate_time_s
+            ),
+            detection_config=configuration.quality.signal_detection,
         )
     )
     generated_paths.append(
@@ -316,6 +391,7 @@ def run_production_outputs(
             output_directory,
             profile_names=profile_names,
             channel_names=channel_names,
+            detection_config=configuration.quality.signal_detection,
         )
     )
     generated_paths.extend(
@@ -326,6 +402,7 @@ def run_production_outputs(
             profile_consensus_results=profile_consensus_results,
             cross_profile_consensus=cross_profile_consensus,
             configuration=configuration,
+            threshold_calibration=threshold_calibration,
         )
     )
     manifest_path = output_directory / "run_manifest.json"
@@ -336,6 +413,7 @@ def run_production_outputs(
         profile_manifests=profile_manifests,
         profile_consensus_results=profile_consensus_results,
         cross_profile_consensus=cross_profile_consensus,
+        threshold_calibration=threshold_calibration,
         expected_paths=expected_paths,
     )
     _write_json(manifest_path, run_manifest)
@@ -344,6 +422,12 @@ def run_production_outputs(
     log_lines.extend(
         (
             f"total_runtime_s={perf_counter() - start_clock:.9f}",
+            "threshold_calibration_selected_db="
+            f"{threshold_calibration.selected_peak_to_background_db:g},"
+            f"{threshold_calibration.selected_peak_to_competitor_db:g}",
+            "threshold_calibration_status="
+            f"{threshold_calibration.selection_status}",
+            f"threshold_provenance={THRESHOLD_CALIBRATION_PROVENANCE}",
             f"consensus_event_status={cross_profile_consensus.consensus_event_status.value}",
             "consensus_event_candidate_time_s="
             f"{cross_profile_consensus.consensus_event_candidate_time_s}",
@@ -409,15 +493,10 @@ def _write_channel_outputs(
     channel_name: str,
     analysis: ChannelAnalysis,
     *,
+    preview: PreviewVelocitySeries,
     profile: AnalysisProfile,
     configuration: WorkflowConfiguration,
 ) -> list[Path]:
-    preview = _build_full_range_preview(
-        analysis,
-        minimum_frequency_hz=profile.minimum_frequency_hz,
-        maximum_frequency_hz=profile.maximum_frequency_hz,
-        vacuum_wavelength_m=configuration.analysis.vacuum_wavelength_m,
-    )
     diagnostic_paths = _write_apparent_velocity_csv(
         output_directory,
         analysis,
@@ -454,7 +533,7 @@ def _write_channel_outputs(
             ),
             relative_db_floor=configuration.plot.relative_db_floor,
         ),
-        _save_apparent_velocity_full_time(
+        _save_apparent_velocity_full_time_formal(
             output_directory,
             channel_name,
             analysis,
@@ -474,7 +553,7 @@ def _write_channel_outputs(
             event_detail_before_s=configuration.plot.event_detail_before_s,
             event_detail_after_s=configuration.plot.event_detail_after_s,
         ),
-        _save_apparent_velocity_full_preview(
+        _save_apparent_velocity_state_diagnostics(
             output_directory,
             channel_name,
             analysis,
@@ -492,6 +571,40 @@ def _write_channel_outputs(
             manual_event_reference_time_s=(
                 configuration.analysis.manual_event_reference_time_s
             ),
+        ),
+    ]
+
+
+def _write_consensus_velocity_outputs(
+    output_directory: Path,
+    channel_name: str,
+    analysis: ChannelAnalysis,
+    *,
+    preview: PreviewVelocitySeries,
+    profile: AnalysisProfile,
+    cross_profile_consensus: CrossProfileConsensusResult,
+) -> list[Path]:
+    consensus_time_s = cross_profile_consensus.consensus_event_candidate_time_s
+    reviewed = _build_reviewed_velocity_series(
+        analysis,
+        consensus_event_time_s=consensus_time_s,
+    )
+    return [
+        _save_apparent_velocity_full_overview(
+            output_directory,
+            channel_name,
+            analysis,
+            preview=preview,
+            profile=profile,
+            consensus_event_time_s=consensus_time_s,
+        ),
+        _save_apparent_velocity_full_time_reviewed(
+            output_directory,
+            channel_name,
+            analysis,
+            reviewed=reviewed,
+            profile=profile,
+            consensus_event_time_s=consensus_time_s,
         ),
     ]
 
@@ -527,6 +640,13 @@ def _write_apparent_velocity_csv(
             "velocity_origin": analysis.velocity_origins,
             "quality_flag": [flag.value for flag in refined.quality_flags],
             "signal_state": [state.value for state in detection.signal_states],
+            "minimum_peak_to_background_threshold_db": (
+                detection.detection_config.minimum_peak_to_background_db
+            ),
+            "minimum_peak_to_competitor_threshold_db": (
+                detection.detection_config.minimum_peak_to_competitor_db
+            ),
+            "threshold_provenance": THRESHOLD_CALIBRATION_PROVENANCE,
             "measured_semantics": [
                 (
                     "spectrally qualified under configured detection rules; "
@@ -580,16 +700,13 @@ def _write_apparent_velocity_csv(
             "preview_is_formal_candidate": preview.is_formal_candidate,
         }
     )
-    paths = [
-        output_directory / filename for filename in DETAILED_DIAGNOSTIC_FILENAMES
-    ]
-    for path in paths:
-        frame.to_csv(path, index=False, float_format="%.18e")
-    return paths
+    path = output_directory / DETAILED_DIAGNOSTIC_FILENAMES[0]
+    frame.to_csv(path, index=False, float_format="%.18e")
+    return [path]
 
 
 def _simple_export_filename(profile_name: str, channel_name: str) -> str:
-    return f"{profile_name}__{channel_name}__apparent_velocity_time.csv"
+    return f"{profile_name}__{channel_name}__velocity_time.csv"
 
 
 def _write_simple_velocity_csv(
@@ -597,21 +714,43 @@ def _write_simple_velocity_csv(
     profile_name: str,
     channel_name: str,
     analysis: ChannelAnalysis,
+    *,
+    zero_before_time_s: float | None,
 ) -> Path:
-    """Write only absolute frame-center time and formal quality-gated velocity."""
+    """Write the two-column Origin/Excel plotting series."""
     time_s = analysis.refined_result.time_s
     if time_s.ndim != 1 or not np.all(np.diff(time_s) > 0.0):
         raise RuntimeError("Simple-export time_s must be one-dimensional and increasing.")
     if time_s.shape != analysis.refined_velocity_m_s.shape:
         raise RuntimeError("Simple-export time and formal velocity shapes differ.")
+    velocity_m_s = _simple_export_velocity_m_s(
+        analysis,
+        zero_before_time_s=zero_before_time_s,
+    )
     path = output_directory / _simple_export_filename(profile_name, channel_name)
     pd.DataFrame(
         {
             "time_s": time_s,
-            "apparent_velocity_m_s": analysis.refined_velocity_m_s,
+            "velocity_m_s": velocity_m_s,
         }
     ).to_csv(path, index=False, float_format="%.18e")
     return path
+
+
+def _simple_export_velocity_m_s(
+    analysis: ChannelAnalysis,
+    *,
+    zero_before_time_s: float | None,
+) -> np.ndarray[Any, np.dtype[np.float64]]:
+    """Copy formal values and define every pre-consensus plotting value as zero."""
+    velocity_m_s = analysis.refined_velocity_m_s.copy()
+    if zero_before_time_s is None:
+        return velocity_m_s
+    if not math.isfinite(zero_before_time_s):
+        raise ValueError("zero_before_time_s must be finite or None.")
+    zero_mask = analysis.refined_result.time_s < zero_before_time_s
+    velocity_m_s[zero_mask] = 0.0
+    return velocity_m_s
 
 
 def _write_simple_exports_readme(
@@ -619,6 +758,8 @@ def _write_simple_exports_readme(
     *,
     profile_names: Sequence[str],
     channel_names: Sequence[str],
+    zero_before_time_s: float | None,
+    detection_config: SignalDetectionConfig,
 ) -> Path:
     path = output_directory / SIMPLE_EXPORT_README_FILENAME
     file_lines = [
@@ -626,22 +767,46 @@ def _write_simple_exports_readme(
         for profile_name in profile_names
         for channel_name in channel_names
     ]
+    consensus_availability = (
+        "This run uses cross-profile consensus time "
+        f"{zero_before_time_s:.18e} s."
+        if zero_before_time_s is not None
+        else "For this run, cross-profile consensus is unavailable; no manual "
+        "reference is substituted and the formal quality-gated array is copied "
+        "unchanged."
+    )
     path.write_text(
         "\n".join(
             (
                 "DPS Studio simple apparent-velocity exports",
                 "",
-                "This directory contains four independent profile/channel files:",
+                "This directory contains one independent file for every actual "
+                "configured profile/channel stream:",
                 *file_lines,
                 "",
                 "Filename fields identify the configured analysis profile and the "
                 "independent PDV acquisition channel.",
                 "Columns: time_s is absolute STFT frame-center time in seconds; "
-                "apparent_velocity_m_s is unsigned apparent velocity in m/s.",
-                "NaN means the frame did not pass the current spectral quality gate.",
-                "All STFT frames are retained; NaN rows are not removed, filled, "
-                "interpolated, or smoothed.",
+                "velocity_m_s is unsigned apparent velocity in m/s.",
+                "When cross-profile consensus is available, every frame with "
+                "time_s before it is written as exactly 0 m/s, regardless of "
+                "its formal diagnostic signal state.",
+                consensus_availability,
+                "The complete pre-event zero platform is a plotting convention for "
+                "direct use in Origin or Excel; it is not a measured velocity.",
+                "At and after the consensus time, formal quality-gated apparent "
+                "velocity is copied exactly and invalid frames remain NaN.",
+                "All original STFT frames and times are retained. No row is removed "
+                "and no value is interpolated, smoothed, bridged, or resampled.",
                 "These values have not received a verified LiF correction.",
+                "Configured development-calibrated thresholds: "
+                f"peak/background >= "
+                f"{detection_config.minimum_peak_to_background_db:g} dB and "
+                "peak/competitor >= "
+                f"{detection_config.minimum_peak_to_competitor_db:g} dB.",
+                f"Threshold provenance: {THRESHOLD_CALIBRATION_PROVENANCE}.",
+                "The detailed apparent_velocity_diagnostics.csv files are the "
+                "formal reference and are never pre-event zero-filled.",
                 "The physical identities of spectral branches near the record tail "
                 "remain unconfirmed.",
                 "Do not directly average the two raw voltage channels or the four "
@@ -659,6 +824,7 @@ def _write_run_readme(
     *,
     profile_names: Sequence[str],
     channel_names: Sequence[str],
+    detection_config: SignalDetectionConfig,
 ) -> Path:
     path = output_directory / "README.txt"
     path.write_text(
@@ -668,11 +834,26 @@ def _write_run_readme(
                 "",
                 f"Profiles: {', '.join(profile_names)}",
                 f"Independent channels: {', '.join(channel_names)}",
-                "simple_exports/ contains strict two-column user plotting files.",
+                "simple_exports/ contains strict two-column Origin-ready files.",
+                "Every pre-consensus simple-export frame is written as plotting "
+                "zero; post-consensus formal NaN gaps remain NaN.",
                 "Each profile/channel apparent_velocity_diagnostics.csv is the "
                 "complete detailed diagnostic table.",
-                "The compatibility filename apparent_velocity.csv contains the same "
-                "detailed diagnostic table; it is not a simple velocity export.",
+                "Detailed formal apparent_velocity_m_s is never pre-event "
+                "zero-filled.",
+                "Configured detection thresholds are "
+                f"{detection_config.minimum_peak_to_background_db:g} dB "
+                "peak/background and "
+                f"{detection_config.minimum_peak_to_competitor_db:g} dB "
+                "peak/competitor.",
+                f"Threshold provenance: {THRESHOLD_CALIBRATION_PROVENANCE}.",
+                "comparisons/threshold_calibration.csv records the four approved "
+                "candidate comparisons and deterministic selection.",
+                "No duplicate apparent_velocity.csv compatibility alias is generated.",
+                "apparent_velocity_full_overview.png is the primary full-range "
+                "preview/formal comparison.",
+                "apparent_velocity_full_time_reviewed.png is display-only and never "
+                "changes or exports formal velocity values.",
                 "comparisons/ contains cross-stream validation and event diagnostics.",
                 "event_consensus.json records event-candidate consensus metadata.",
                 "Apparent velocities are unsigned, are not LiF-corrected, and do not "
@@ -859,7 +1040,122 @@ def _save_stft_analysis_band_with_ridge(
     return path
 
 
-def _save_apparent_velocity_full_time(
+def _save_apparent_velocity_full_overview(
+    output_directory: Path,
+    channel_name: str,
+    analysis: ChannelAnalysis,
+    *,
+    preview: PreviewVelocitySeries,
+    profile: AnalysisProfile,
+    consensus_event_time_s: float | None,
+) -> Path:
+    """Plot the complete fixed-band preview over the unchanged formal series."""
+    path = output_directory / "apparent_velocity_full_overview.png"
+    relative_time_us = _plot_time_us(preview.time_s, consensus_event_time_s)
+    figure, axis = plt.subplots(figsize=(11.0, 6.5), constrained_layout=True)
+    axis.plot(
+        relative_time_us,
+        preview.apparent_velocity_m_s,
+        color="#d62728",
+        linewidth=0.65,
+        alpha=0.86,
+        label=QUALITY_UNFILTERED_PREVIEW_LABEL,
+    )
+    axis.plot(
+        relative_time_us,
+        analysis.refined_velocity_m_s,
+        color="#1f77b4",
+        linewidth=1.0,
+        label="quality-gated formal apparent velocity",
+    )
+    axis.text(
+        0.015,
+        0.975,
+        "Red preview is diagnostic only.\n"
+        "Lower-bound argmax is not zero velocity.",
+        transform=axis.transAxes,
+        va="top",
+        ha="left",
+        fontsize=9.0,
+        bbox={
+            "boxstyle": "round,pad=0.3",
+            "facecolor": "white",
+            "edgecolor": "#bdbdbd",
+            "alpha": 0.85,
+        },
+    )
+    axis.set_xlim(relative_time_us[0], relative_time_us[-1])
+    axis.set_xlabel(_consensus_time_axis_label(consensus_event_time_s))
+    axis.set_ylabel("Unsigned apparent velocity (m/s)")
+    axis.set_title(
+        f"{profile.display_name} / {channel_name}: full-range overview"
+    )
+    axis.grid(alpha=0.25)
+    axis.legend(loc="best")
+    _save_figure(figure, path)
+    return path
+
+
+def _save_apparent_velocity_full_time_reviewed(
+    output_directory: Path,
+    channel_name: str,
+    analysis: ChannelAnalysis,
+    *,
+    reviewed: ReviewedVelocitySeries,
+    profile: AnalysisProfile,
+    consensus_event_time_s: float | None,
+) -> Path:
+    """Plot the exact simple-export series without interpolation or bridging."""
+    path = output_directory / "apparent_velocity_full_time_reviewed.png"
+    relative_time_us = _plot_time_us(
+        analysis.refined_result.time_s,
+        consensus_event_time_s,
+    )
+    figure, axis = plt.subplots(figsize=(11.0, 6.5), constrained_layout=True)
+    axis.plot(
+        relative_time_us,
+        np.where(
+            np.isfinite(reviewed.pre_event_zero_velocity_m_s),
+            reviewed.simple_export_velocity_m_s,
+            np.nan,
+        ),
+        color="#7f7f7f",
+        linestyle="--",
+        linewidth=1.0,
+        label="pre-event baseline defined as zero for plotting",
+    )
+    axis.plot(
+        relative_time_us,
+        np.where(
+            np.isfinite(reviewed.post_event_velocity_m_s),
+            reviewed.simple_export_velocity_m_s,
+            np.nan,
+        ),
+        color="#1f77b4",
+        linewidth=1.1,
+        label="quality-gated apparent velocity after event",
+    )
+    axis.set_xlim(relative_time_us[0], relative_time_us[-1])
+    axis.set_xlabel(_consensus_time_axis_label(consensus_event_time_s))
+    axis.set_ylabel("Unsigned apparent velocity (m/s)")
+    axis.set_title(
+        f"{profile.display_name} / {channel_name}: full-time reviewed display"
+    )
+    axis.text(
+        0.01,
+        0.02,
+        "Pre-event zero is a plotting convention based on the consensus event time.",
+        transform=axis.transAxes,
+        fontsize=8.5,
+        va="bottom",
+    )
+    axis.grid(alpha=0.25)
+    axis.legend(loc="best")
+    _save_figure(figure, path)
+    return path
+
+
+def _save_apparent_velocity_full_time_formal(
     output_directory: Path,
     channel_name: str,
     analysis: ChannelAnalysis,
@@ -867,7 +1163,7 @@ def _save_apparent_velocity_full_time(
     profile: AnalysisProfile,
     event_start_time_s: float | None,
 ) -> Path:
-    path = output_directory / "apparent_velocity_full_time.png"
+    path = output_directory / "apparent_velocity_full_time_formal.png"
     relative_time_us = _plot_time_us(
         analysis.refined_result.time_s,
         event_start_time_s,
@@ -976,7 +1272,7 @@ def _save_apparent_velocity_event_detail(
     return path
 
 
-def _save_apparent_velocity_full_preview(
+def _save_apparent_velocity_state_diagnostics(
     output_directory: Path,
     channel_name: str,
     analysis: ChannelAnalysis,
@@ -985,7 +1281,7 @@ def _save_apparent_velocity_full_preview(
     profile: AnalysisProfile,
     event_start_time_s: float | None,
 ) -> Path:
-    path = output_directory / "apparent_velocity_full_preview.png"
+    path = output_directory / "apparent_velocity_state_diagnostics.png"
     relative_time_us = _plot_time_us(preview.time_s, event_start_time_s)
     series = _velocity_plot_series(analysis)
     preview_visible = np.where(
@@ -1098,6 +1394,33 @@ def _save_apparent_velocity_full_preview(
     axis.legend(loc="best")
     _save_figure(figure, path)
     return path
+
+
+def _build_reviewed_velocity_series(
+    analysis: ChannelAnalysis,
+    *,
+    consensus_event_time_s: float | None,
+) -> ReviewedVelocitySeries:
+    """Split the exact simple-export series without changing formal velocity."""
+    time_s = analysis.refined_result.time_s
+    simple_export = _simple_export_velocity_m_s(
+        analysis,
+        zero_before_time_s=consensus_event_time_s,
+    )
+    pre_event_zero = np.full(simple_export.shape, np.nan, dtype=np.float64)
+    post_event = np.full(simple_export.shape, np.nan, dtype=np.float64)
+    if consensus_event_time_s is None:
+        post_event[:] = simple_export
+    else:
+        pre_mask = time_s < consensus_event_time_s
+        pre_event_zero[pre_mask] = simple_export[pre_mask]
+        post_event[~pre_mask] = simple_export[~pre_mask]
+
+    return ReviewedVelocitySeries(
+        simple_export_velocity_m_s=simple_export,
+        pre_event_zero_velocity_m_s=pre_event_zero,
+        post_event_velocity_m_s=post_event,
+    )
 
 
 def _velocity_plot_series(
@@ -1329,6 +1652,533 @@ def _save_event_candidate_comparison(
     return path
 
 
+def _calibrate_detection_thresholds(
+    records: Mapping[str, SignalRecord],
+    *,
+    configuration: WorkflowConfiguration,
+) -> ThresholdCalibrationResult:
+    """Compare exactly the approved threshold pairs against a 10/3 baseline."""
+    baseline_pair = THRESHOLD_CALIBRATION_CANDIDATES_DB[0]
+    baseline_detection_config = _threshold_candidate_detection_config(
+        configuration.quality.signal_detection,
+        peak_to_background_db=baseline_pair[0],
+        peak_to_competitor_db=baseline_pair[1],
+    )
+    baseline_analyses = _analyze_threshold_candidate(
+        records,
+        configuration=configuration,
+        detection_config=baseline_detection_config,
+    )
+    baseline_profiles, baseline_cross = _threshold_candidate_consensus(
+        baseline_analyses,
+        configuration=configuration,
+    )
+
+    rows: list[dict[str, Any]] = []
+    summaries: list[dict[str, Any]] = []
+    for peak_to_background_db, peak_to_competitor_db in (
+        THRESHOLD_CALIBRATION_CANDIDATES_DB
+    ):
+        if (peak_to_background_db, peak_to_competitor_db) == baseline_pair:
+            candidate_analyses = baseline_analyses
+            candidate_profiles = baseline_profiles
+            candidate_cross = baseline_cross
+        else:
+            detection_config = _threshold_candidate_detection_config(
+                configuration.quality.signal_detection,
+                peak_to_background_db=peak_to_background_db,
+                peak_to_competitor_db=peak_to_competitor_db,
+            )
+            candidate_analyses = _analyze_threshold_candidate(
+                records,
+                configuration=configuration,
+                detection_config=detection_config,
+            )
+            candidate_profiles, candidate_cross = (
+                _threshold_candidate_consensus(
+                    candidate_analyses,
+                    configuration=configuration,
+                )
+            )
+        candidate_rows = _threshold_candidate_rows(
+            baseline_analyses,
+            candidate_analyses,
+            baseline_profile_consensus=baseline_profiles,
+            candidate_profile_consensus=candidate_profiles,
+            baseline_cross_profile_consensus=baseline_cross,
+            candidate_cross_profile_consensus=candidate_cross,
+            peak_to_background_db=peak_to_background_db,
+            peak_to_competitor_db=peak_to_competitor_db,
+        )
+        summary = _threshold_candidate_summary(
+            candidate_rows,
+            baseline_cross_profile_consensus=baseline_cross,
+            candidate_cross_profile_consensus=candidate_cross,
+            candidate_profile_consensus=candidate_profiles,
+            consensus_config=configuration.event_consensus,
+            minimum_consecutive_frames=(
+                configuration.quality.signal_detection.minimum_consecutive_frames
+            ),
+            peak_to_background_db=peak_to_background_db,
+            peak_to_competitor_db=peak_to_competitor_db,
+        )
+        for row in candidate_rows:
+            row["candidate_qualifies"] = summary["qualifies"]
+            row["candidate_rejection_reasons"] = "|".join(
+                summary["rejection_reasons"]
+            )
+        rows.extend(candidate_rows)
+        summaries.append(summary)
+
+    selected_background, selected_competitor, selection_status = (
+        _select_threshold_candidate(summaries)
+    )
+    selected_rows = tuple(
+        {
+            **row,
+            "selected": (
+                row["peak_to_background_threshold_db"]
+                == selected_background
+                and row["peak_to_competitor_threshold_db"]
+                == selected_competitor
+            ),
+        }
+        for row in rows
+    )
+    selected_summaries = tuple(
+        {
+            **summary,
+            "selected": (
+                summary["peak_to_background_threshold_db"]
+                == selected_background
+                and summary["peak_to_competitor_threshold_db"]
+                == selected_competitor
+            ),
+        }
+        for summary in summaries
+    )
+    selected_summary = next(
+        summary for summary in selected_summaries if summary["selected"]
+    )
+    return ThresholdCalibrationResult(
+        rows=selected_rows,
+        candidate_summaries=selected_summaries,
+        selected_peak_to_background_db=selected_background,
+        selected_peak_to_competitor_db=selected_competitor,
+        selection_status=selection_status,
+        baseline_consensus_event_time_s=(
+            baseline_cross.consensus_event_candidate_time_s
+        ),
+        selected_consensus_event_time_s=(
+            selected_summary["cross_profile_consensus_event_time_s"]
+        ),
+    )
+
+
+def _threshold_candidate_detection_config(
+    base: SignalDetectionConfig,
+    *,
+    peak_to_background_db: float,
+    peak_to_competitor_db: float,
+) -> SignalDetectionConfig:
+    """Change only the two approved spectral-contrast thresholds."""
+    return SignalDetectionConfig(
+        minimum_peak_to_background_db=peak_to_background_db,
+        minimum_peak_to_competitor_db=peak_to_competitor_db,
+        peak_exclusion_half_width_bins=base.peak_exclusion_half_width_bins,
+        minimum_consecutive_frames=base.minimum_consecutive_frames,
+        minimum_cycles_in_window=base.minimum_cycles_in_window,
+        enabled=base.enabled,
+    )
+
+
+def _analyze_threshold_candidate(
+    records: Mapping[str, SignalRecord],
+    *,
+    configuration: WorkflowConfiguration,
+    detection_config: SignalDetectionConfig,
+) -> dict[str, Mapping[str, ChannelAnalysis]]:
+    return {
+        profile.profile_id.value: analyze_profile(
+            records,
+            profile=profile,
+            analysis_start_time_s=(
+                configuration.analysis.analysis_start_time_s
+            ),
+            analysis_end_time_s=configuration.analysis.analysis_end_time_s,
+            manual_event_reference_time_s=(
+                configuration.analysis.manual_event_reference_time_s
+            ),
+            vacuum_wavelength_m=configuration.analysis.vacuum_wavelength_m,
+            detection_config=detection_config,
+            event_candidate_config=configuration.event_candidate,
+            background_guard_window_scale=(
+                configuration.quality.background_guard_window_scale
+            ),
+            minimum_background_bin_count=(
+                configuration.quality.minimum_background_bin_count
+            ),
+            assume_pre_event_zero_for_display=(
+                configuration.plot.assume_pre_event_zero_for_display
+            ),
+        )
+        for profile in configuration.analysis.profiles
+    }
+
+
+def _threshold_candidate_consensus(
+    analyses_by_profile: Mapping[str, Mapping[str, ChannelAnalysis]],
+    *,
+    configuration: WorkflowConfiguration,
+) -> tuple[dict[str, ProfileConsensusResult], CrossProfileConsensusResult]:
+    profile_consensus_results = {
+        profile_name: build_profile_consensus(
+            {
+                channel_name: analysis.stream_event_candidates
+                for channel_name, analysis in analyses.items()
+            },
+            profile_name=profile_name,
+            config=configuration.event_consensus,
+        )
+        for profile_name, analyses in analyses_by_profile.items()
+    }
+    cross_profile_consensus = build_cross_profile_consensus(
+        profile_consensus_results,
+        config=configuration.event_consensus,
+        manual_event_reference_time_s=(
+            configuration.analysis.manual_event_reference_time_s
+        ),
+    )
+    return profile_consensus_results, cross_profile_consensus
+
+
+def _threshold_candidate_rows(
+    baseline_analyses: Mapping[str, Mapping[str, ChannelAnalysis]],
+    candidate_analyses: Mapping[str, Mapping[str, ChannelAnalysis]],
+    *,
+    baseline_profile_consensus: Mapping[str, ProfileConsensusResult],
+    candidate_profile_consensus: Mapping[str, ProfileConsensusResult],
+    baseline_cross_profile_consensus: CrossProfileConsensusResult,
+    candidate_cross_profile_consensus: CrossProfileConsensusResult,
+    peak_to_background_db: float,
+    peak_to_competitor_db: float,
+) -> list[dict[str, Any]]:
+    baseline_time_s = (
+        baseline_cross_profile_consensus.consensus_event_candidate_time_s
+    )
+    candidate_time_s = (
+        candidate_cross_profile_consensus.consensus_event_candidate_time_s
+    )
+    consensus_change_s = (
+        None
+        if baseline_time_s is None or candidate_time_s is None
+        else candidate_time_s - baseline_time_s
+    )
+    rows: list[dict[str, Any]] = []
+    for profile_name in sorted(baseline_analyses):
+        baseline_profile = baseline_profile_consensus[profile_name]
+        candidate_profile = candidate_profile_consensus[profile_name]
+        for channel_name in sorted(baseline_analyses[profile_name]):
+            baseline = baseline_analyses[profile_name][channel_name]
+            candidate = candidate_analyses[profile_name][channel_name]
+            baseline_measured = _measured_mask(baseline)
+            candidate_measured = _measured_mask(candidate)
+            if not np.array_equal(
+                baseline.refined_result.time_s,
+                candidate.refined_result.time_s,
+            ):
+                raise RuntimeError(
+                    "Threshold scan candidates must retain the identical STFT axis."
+                )
+            reference_support = next(
+                (
+                    support
+                    for support in baseline_profile.supporting_channel_segments
+                    if support.channel_name == channel_name
+                ),
+                None,
+            )
+            reference_segment = (
+                _segment_by_id(baseline, reference_support.segment_id)
+                if reference_support is not None
+                else None
+            )
+            main_mask = np.zeros(baseline_measured.shape, dtype=np.bool_)
+            plateau_mask = np.zeros(baseline_measured.shape, dtype=np.bool_)
+            falling_mask = np.zeros(baseline_measured.shape, dtype=np.bool_)
+            tail_mask = np.zeros(baseline_measured.shape, dtype=np.bool_)
+            if reference_segment is not None:
+                start = reference_segment.start_frame_index
+                stop = reference_segment.end_frame_index + 1
+                split = start + (stop - start + 1) // 2
+                main_mask[start:stop] = True
+                plateau_mask[start:split] = True
+                falling_mask[split:stop] = True
+                for assessment in (
+                    baseline.stream_event_candidates.segment_assessments
+                ):
+                    segment = assessment.segment
+                    if segment.start_frame_index > reference_segment.end_frame_index:
+                        tail_mask[
+                            segment.start_frame_index : segment.end_frame_index + 1
+                        ] = True
+
+            pre_event_mask = (
+                np.zeros(baseline_measured.shape, dtype=np.bool_)
+                if baseline_time_s is None
+                else baseline.refined_result.time_s < baseline_time_s
+            )
+            post_event_mask = (
+                np.zeros(baseline_measured.shape, dtype=np.bool_)
+                if baseline_time_s is None
+                else baseline.refined_result.time_s >= baseline_time_s
+            )
+            main_baseline_count = int(np.count_nonzero(baseline_measured & main_mask))
+            main_retained_count = int(
+                np.count_nonzero(
+                    baseline_measured & candidate_measured & main_mask
+                )
+            )
+            plateau_baseline_count = int(
+                np.count_nonzero(baseline_measured & plateau_mask)
+            )
+            plateau_retained_count = int(
+                np.count_nonzero(
+                    baseline_measured & candidate_measured & plateau_mask
+                )
+            )
+            falling_baseline_count = int(
+                np.count_nonzero(baseline_measured & falling_mask)
+            )
+            falling_retained_count = int(
+                np.count_nonzero(
+                    baseline_measured & candidate_measured & falling_mask
+                )
+            )
+            tail_baseline_count = int(
+                np.count_nonzero(baseline_measured & tail_mask)
+            )
+            tail_retained_count = int(
+                np.count_nonzero(
+                    baseline_measured & candidate_measured & tail_mask
+                )
+            )
+            main_loss = baseline_measured & ~candidate_measured & main_mask
+            rows.append(
+                {
+                    "peak_to_background_threshold_db": peak_to_background_db,
+                    "peak_to_competitor_threshold_db": peak_to_competitor_db,
+                    "profile": profile_name,
+                    "channel": channel_name,
+                    "pre_event_measured_count": int(
+                        np.count_nonzero(candidate_measured & pre_event_mask)
+                    ),
+                    "main_event_baseline_count": main_baseline_count,
+                    "main_event_retained_count": main_retained_count,
+                    "main_event_retention_fraction": _retention_fraction(
+                        main_retained_count,
+                        main_baseline_count,
+                    ),
+                    "main_plateau_baseline_count": plateau_baseline_count,
+                    "main_plateau_retained_count": plateau_retained_count,
+                    "main_plateau_retention_fraction": _retention_fraction(
+                        plateau_retained_count,
+                        plateau_baseline_count,
+                    ),
+                    "falling_segment_baseline_count": falling_baseline_count,
+                    "falling_segment_retained_count": falling_retained_count,
+                    "falling_segment_retention_fraction": _retention_fraction(
+                        falling_retained_count,
+                        falling_baseline_count,
+                    ),
+                    "post_event_nan_count": int(
+                        np.count_nonzero(~candidate_measured & post_event_mask)
+                    ),
+                    "post_event_added_nan_count": int(
+                        np.count_nonzero(
+                            baseline_measured
+                            & ~candidate_measured
+                            & post_event_mask
+                        )
+                    ),
+                    "maximum_new_nan_gap_frames": _maximum_true_run(main_loss),
+                    "tail_unreviewed_baseline_count": tail_baseline_count,
+                    "tail_unreviewed_retained_count": tail_retained_count,
+                    "tail_unreviewed_retention_fraction": _retention_fraction(
+                        tail_retained_count,
+                        tail_baseline_count,
+                    ),
+                    "consensus_status": (
+                        candidate_profile.profile_consensus_status.value
+                    ),
+                    "cross_profile_consensus_status": (
+                        candidate_cross_profile_consensus
+                        .consensus_event_status.value
+                    ),
+                    "cross_profile_consensus_event_time_s": candidate_time_s,
+                    "cross_profile_consensus_time_change_s": consensus_change_s,
+                    "pre_event_reference_available": baseline_time_s is not None,
+                    "main_segment_reference_available": (
+                        reference_segment is not None
+                    ),
+                    "selected": False,
+                }
+            )
+    return rows
+
+
+def _threshold_candidate_summary(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    baseline_cross_profile_consensus: CrossProfileConsensusResult,
+    candidate_cross_profile_consensus: CrossProfileConsensusResult,
+    candidate_profile_consensus: Mapping[str, ProfileConsensusResult],
+    consensus_config: EventConsensusConfig,
+    minimum_consecutive_frames: int,
+    peak_to_background_db: float,
+    peak_to_competitor_db: float,
+) -> dict[str, Any]:
+    rejection_reasons: list[str] = []
+    if (
+        baseline_cross_profile_consensus.consensus_event_candidate_time_s
+        is None
+    ):
+        rejection_reasons.append("baseline_cross_profile_consensus_unavailable")
+    if any(int(row["pre_event_measured_count"]) != 0 for row in rows):
+        rejection_reasons.append("pre_event_measured_frames_remain")
+    if any(
+        not math.isfinite(float(row["main_event_retention_fraction"]))
+        or float(row["main_event_retention_fraction"])
+        < MAIN_EVENT_MINIMUM_RETENTION_FRACTION
+        for row in rows
+    ):
+        rejection_reasons.append("main_event_retention_below_98_percent")
+    if any(
+        int(row["maximum_new_nan_gap_frames"]) >= minimum_consecutive_frames
+        for row in rows
+    ):
+        rejection_reasons.append("new_long_nan_gap_in_main_event")
+    if any(
+        result.profile_consensus_status.value != "dual_channel_consensus"
+        for result in candidate_profile_consensus.values()
+    ):
+        rejection_reasons.append("profile_dual_channel_consensus_lost")
+    baseline_time_s = (
+        baseline_cross_profile_consensus.consensus_event_candidate_time_s
+    )
+    candidate_time_s = (
+        candidate_cross_profile_consensus.consensus_event_candidate_time_s
+    )
+    if baseline_time_s is None or candidate_time_s is None:
+        rejection_reasons.append("cross_profile_consensus_time_unavailable")
+    elif (
+        abs(candidate_time_s - baseline_time_s)
+        > consensus_config.cross_profile_time_tolerance_s
+    ):
+        rejection_reasons.append("cross_profile_consensus_time_drift")
+    if any(
+        int(row["tail_unreviewed_baseline_count"]) > 0
+        and int(row["tail_unreviewed_retained_count"]) == 0
+        for row in rows
+    ):
+        rejection_reasons.append("tail_unreviewed_branch_removed")
+    return {
+        "peak_to_background_threshold_db": peak_to_background_db,
+        "peak_to_competitor_threshold_db": peak_to_competitor_db,
+        "qualifies": not rejection_reasons,
+        "rejection_reasons": tuple(rejection_reasons),
+        "cross_profile_consensus_status": (
+            candidate_cross_profile_consensus.consensus_event_status.value
+        ),
+        "cross_profile_consensus_event_time_s": candidate_time_s,
+        "cross_profile_consensus_time_change_s": (
+            None
+            if baseline_time_s is None or candidate_time_s is None
+            else candidate_time_s - baseline_time_s
+        ),
+    }
+
+
+def _select_threshold_candidate(
+    candidate_summaries: Sequence[Mapping[str, Any]],
+) -> tuple[float, float, str]:
+    """Select the smallest approved qualifying pair, else retain 10/3."""
+    summaries_by_pair = {
+        (
+            float(summary["peak_to_background_threshold_db"]),
+            float(summary["peak_to_competitor_threshold_db"]),
+        ): summary
+        for summary in candidate_summaries
+    }
+    if set(summaries_by_pair) != set(THRESHOLD_CALIBRATION_CANDIDATES_DB):
+        raise ValueError("Threshold summaries must cover exactly the approved pairs.")
+    for pair in THRESHOLD_CALIBRATION_CANDIDATES_DB:
+        if bool(summaries_by_pair[pair]["qualifies"]):
+            return (*pair, "smallest_candidate_meeting_all_criteria")
+    return (
+        *THRESHOLD_CALIBRATION_CANDIDATES_DB[0],
+        "no_candidate_met_all_criteria_fallback_to_10_3",
+    )
+
+
+def _validate_configured_detection_thresholds(
+    detection_config: SignalDetectionConfig,
+    *,
+    calibration: ThresholdCalibrationResult,
+) -> None:
+    configured = (
+        detection_config.minimum_peak_to_background_db,
+        detection_config.minimum_peak_to_competitor_db,
+    )
+    selected = (
+        calibration.selected_peak_to_background_db,
+        calibration.selected_peak_to_competitor_db,
+    )
+    if configured != selected:
+        raise RuntimeError(
+            "Configured detection thresholds do not match deterministic "
+            f"calibration selection: configured={configured}, selected={selected}."
+        )
+
+
+def _measured_mask(
+    analysis: ChannelAnalysis,
+) -> np.ndarray[Any, np.dtype[np.bool_]]:
+    states = analysis.signal_detection_result.signal_states
+    return np.fromiter(
+        (state is SignalState.MEASURED for state in states),
+        dtype=np.bool_,
+        count=len(states),
+    )
+
+
+def _segment_by_id(analysis: ChannelAnalysis, segment_id: str) -> Any:
+    for assessment in analysis.stream_event_candidates.segment_assessments:
+        if assessment.segment.segment_id == segment_id:
+            return assessment.segment
+    raise RuntimeError(f"Consensus-supporting segment is absent: {segment_id}")
+
+
+def _retention_fraction(retained_count: int, baseline_count: int) -> float:
+    return (
+        float(retained_count / baseline_count)
+        if baseline_count > 0
+        else math.nan
+    )
+
+
+def _maximum_true_run(mask: np.ndarray[Any, np.dtype[np.bool_]]) -> int:
+    maximum = 0
+    current = 0
+    for value in mask:
+        if bool(value):
+            current += 1
+            maximum = max(maximum, current)
+        else:
+            current = 0
+    return maximum
+
+
 def _write_run_level_event_outputs(
     output_directory: Path,
     comparisons_directory: Path,
@@ -1337,6 +2187,7 @@ def _write_run_level_event_outputs(
     profile_consensus_results: Mapping[str, ProfileConsensusResult],
     cross_profile_consensus: CrossProfileConsensusResult,
     configuration: WorkflowConfiguration,
+    threshold_calibration: ThresholdCalibrationResult,
 ) -> list[Path]:
     segment_rows = _all_segment_rows(analyses_by_profile)
     measured_segments_path = comparisons_directory / "measured_segments.csv"
@@ -1361,6 +2212,18 @@ def _write_run_level_event_outputs(
             "event_consensus_config": _event_consensus_config_dict(
                 configuration.event_consensus
             ),
+            "detection_thresholds": {
+                "minimum_peak_to_background_db": (
+                    configuration.quality.signal_detection
+                    .minimum_peak_to_background_db
+                ),
+                "minimum_peak_to_competitor_db": (
+                    configuration.quality.signal_detection
+                    .minimum_peak_to_competitor_db
+                ),
+                "provenance": THRESHOLD_CALIBRATION_PROVENANCE,
+                "calibration_filename": THRESHOLD_CALIBRATION_FILENAME,
+            },
             "segments": segment_rows,
             "profile_consensus_results": {
                 name: _profile_consensus_dict(result)
@@ -1392,6 +2255,12 @@ def _write_run_level_event_outputs(
     threshold_path = comparisons_directory / "threshold_transferability_audit.csv"
     threshold_audit.to_csv(threshold_path, index=False)
 
+    calibration_path = comparisons_directory / THRESHOLD_CALIBRATION_FILENAME
+    pd.DataFrame(threshold_calibration.rows).to_csv(
+        calibration_path,
+        index=False,
+    )
+
     sensitivity_path = comparisons_directory / "event_candidate_sensitivity.csv"
     _event_candidate_sensitivity(
         analyses_by_profile,
@@ -1421,6 +2290,7 @@ def _write_run_level_event_outputs(
             ),
         ),
         threshold_path,
+        calibration_path,
         _save_spectral_contrast_distribution_comparison(
             comparisons_directory,
             analyses_by_profile,
@@ -2250,6 +3120,16 @@ def _profile_manifest(
                 "state-layered markers; invalid states are not connected as a "
                 "physical curve"
             ),
+            "overview_rendering": (
+                "complete fixed-band argmax preview in red over the unchanged "
+                "quality-gated formal series in blue; no state markers"
+            ),
+            "overview_time_reference": (
+                "cross-profile consensus event candidate when available"
+            ),
+            "state_diagnostics_filename": (
+                "apparent_velocity_state_diagnostics.png"
+            ),
             "legend": QUALITY_UNFILTERED_PREVIEW_LABEL,
             "lower_bound_note": LOWER_BOUND_ARGMAX_NOTE,
             "plot_pre_event_value": (
@@ -2369,10 +3249,11 @@ def _run_manifest(
     profile_manifests: Mapping[str, Mapping[str, Any]],
     profile_consensus_results: Mapping[str, ProfileConsensusResult],
     cross_profile_consensus: CrossProfileConsensusResult,
+    threshold_calibration: ThresholdCalibrationResult,
     expected_paths: Sequence[Path],
 ) -> dict[str, Any]:
     return {
-        "output_contract": "dual-profile-task013b-v5",
+        "output_contract": "dual-profile-task013c-r-v1",
         "root_entries": list(
             _production_root_entries(configuration.analysis.profiles)
         ),
@@ -2415,6 +3296,43 @@ def _run_manifest(
             "signal_detection": _detection_config_dict(
                 configuration.quality.signal_detection
             ),
+            "threshold_calibration": {
+                "candidate_pairs_db": [
+                    list(pair) for pair in THRESHOLD_CALIBRATION_CANDIDATES_DB
+                ],
+                "selected_peak_to_background_db": (
+                    threshold_calibration.selected_peak_to_background_db
+                ),
+                "selected_peak_to_competitor_db": (
+                    threshold_calibration.selected_peak_to_competitor_db
+                ),
+                "selection_status": threshold_calibration.selection_status,
+                "baseline_consensus_event_time_s": (
+                    threshold_calibration.baseline_consensus_event_time_s
+                ),
+                "selected_consensus_event_time_s": (
+                    threshold_calibration.selected_consensus_event_time_s
+                ),
+                "candidate_summaries": [
+                    dict(summary)
+                    for summary in threshold_calibration.candidate_summaries
+                ],
+                "minimum_main_event_retention_fraction": (
+                    MAIN_EVENT_MINIMUM_RETENTION_FRACTION
+                ),
+                "plateau_and_falling_definition": (
+                    "first and second time halves of each baseline "
+                    "consensus-supporting main segment"
+                ),
+                "pre_event_reference": (
+                    "fixed 10/3 cross-profile consensus time so a candidate "
+                    "cannot hide false peaks by shifting consensus"
+                ),
+                "provenance": THRESHOLD_CALIBRATION_PROVENANCE,
+                "filename": (
+                    f"comparisons/{THRESHOLD_CALIBRATION_FILENAME}"
+                ),
+            },
         },
         "event_candidate": _event_candidate_config_dict(
             configuration.event_candidate
@@ -2449,6 +3367,17 @@ def _run_manifest(
             "assume_pre_event_zero_for_display": (
                 configuration.plot.assume_pre_event_zero_for_display
             ),
+            "reviewed_display": {
+                "formal_array_modified": False,
+                "same_array_as_simple_export": True,
+                "pre_consensus_zero_semantics": (
+                    "all frames are zero by plotting convention"
+                ),
+                "post_consensus_semantics": (
+                    "formal apparent velocity with original NaN gaps"
+                ),
+                "interpolation_or_bridge": False,
+            },
         },
         "versions": {
             "python": platform.python_version(),
@@ -2463,15 +3392,26 @@ def _run_manifest(
             for path in expected_paths
         ],
         "simple_exports": {
-            "columns": ["time_s", "apparent_velocity_m_s"],
+            "columns": ["time_s", "velocity_m_s"],
+            "filename_pattern": "<profile>__<channel>__velocity_time.csv",
             "time_semantics": "absolute STFT frame-center time in seconds",
             "velocity_semantics": (
-                "formal quality-gated unsigned apparent velocity in m/s"
+                "pre-consensus plotting zero, followed by unchanged formal "
+                "quality-gated unsigned apparent velocity in m/s"
             ),
             "all_stft_frames_retained": True,
-            "unreliable_frames_remain_nan": True,
+            "post_consensus_unreliable_frames_remain_nan": True,
             "display_or_preview_values_used": False,
-            "interpolation_smoothing_or_zero_fill": False,
+            "pre_consensus_zero_fill": "unconditional for every frame",
+            "consensus_unavailable_fallback": (
+                "formal array unchanged; manual reference is not substituted"
+            ),
+            "zero_fill_is_measurement": False,
+            "zero_fill_requirements": [
+                "time_s < cross-profile consensus event candidate time",
+            ],
+            "interpolation_or_smoothing": False,
+            "formal_diagnostics_modified": False,
         },
         "detailed_diagnostic_csv_filenames": list(
             DETAILED_DIAGNOSTIC_FILENAMES
@@ -2771,6 +3711,12 @@ def _time_axis_label(reference_time_s: float | None) -> str:
     if reference_time_s is None:
         return "Time from first STFT frame (µs)"
     return "Time relative to manual event reference (µs)"
+
+
+def _consensus_time_axis_label(reference_time_s: float | None) -> str:
+    if reference_time_s is None:
+        return "Time from first STFT frame; consensus unavailable (µs)"
+    return "Time relative to cross-profile consensus event candidate (µs)"
 
 
 def _segment_frame_metadata(
