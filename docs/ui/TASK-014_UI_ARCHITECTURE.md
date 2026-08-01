@@ -464,3 +464,42 @@ QFileDialog
 
 中英文使用 `self.tr()`、`QTranslator`、`.ts/.qm` 和 `QSettings`。默认简体中文；
 “设置 → 语言”保存偏好，重启应用后生效。英文资源包含 129 条已完成翻译。
+
+## 17. TASK-015A 增量架构
+
+TASK-015A 不改变 TASK-014 的主窗口布局，只把原预留页面接到以下真实组件：
+
+| 组件 | 职责 |
+|---|---|
+| `native_icons.py` | 通过 `QFileIconProvider` 获取系统目录图标，失败时回退 `SP_DirOpenIcon` |
+| `analysis_range.py` | 管理 μs 数值控件中的范围草稿，仅在用户确认后发送 SI 秒端点 |
+| `raw_signal_view.py` | 增加受数据边界约束的 `LinearRegionItem`，与范围草稿双向同步 |
+| `analysis_session.py` | 保存当前源、只读 records、范围、profile、正式配置、通道结果、有效性和 generation id |
+| `analysis_adapter.py` | 在 `QThreadPool` worker 中只调用 public `analyze_profile`，向主线程发送 started/finished/failed |
+| `result_views.py` | 显示真实 STFT、三类脊线、formal/display velocity、双通道比较和质量统计 |
+| `main_window.py` | 组合状态、配置确认、后台任务和主线程 QWidget 更新，不包含科学算法 |
+
+### 17.1 范围与原始数据
+
+`SignalRecord` 从不裁剪、覆盖、平滑或重采样。图上双竖线与右侧 μs 数值框表示
+draft；只有“确认分析范围”“使用完整范围”或“使用当前显示范围”才创建
+`AnalysisRange(start_time_s, end_time_s)`。两个通道使用共同时间域交集，范围强制
+满足数据边界和 `start_time_s < end_time_s`。
+
+### 17.2 后台执行与取消语义
+
+完整 public workflow 在 `QRunnable` 中执行，所有 `QWidget` 更新仍在 GUI 主线程。
+运行期间禁止重复启动并显示不确定进度。core 当前没有 cooperative cancellation
+API，所以取消按钮保持禁用；参数变化或重新导入只增加 generation id，迟到结果会
+被忽略，但正在进行的 NumPy/SciPy 计算不会被伪装为已中断。
+
+### 17.3 状态和失效
+
+范围确认后进入 `RANGE_DEFINED`。完整结果返回后，主线程按真实聚合结果依次推进
+`STFT_READY`、`RIDGE_READY` 和 `RESULT_READY` 并启用对应页面。重新导入、确认新
+范围、切换 profile、改变真空波长或重新加载质量配置都会清空内存结果和视图，回到
+`DATA_LOADED` 或 `RANGE_DEFINED`。`RUNNING` 仍是独立 busy flag，不加入六阶段
+枚举。
+
+英文翻译资源在 TASK-015A 更新为 203 条完成翻译；新增范围、配置、分析、质量和
+失效提示均通过 Qt Linguist 资源提供。

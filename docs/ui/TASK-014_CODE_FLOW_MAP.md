@@ -264,3 +264,43 @@ Matplotlib/Pandas production writers、CLI 私有编排和历史审计实现
 设计可取消的后台 analysis adapter 和独立 public export service；在此之前保持
 STFT、Ridge、Velocity、Export 控件禁用，不用假数据或 private scripts 绕过边界。
 ```
+
+## 11. TASK-015A 增量：GUI 自动分析调用链
+
+TASK-015A 沿用上述边界，没有修改 `core/**`，实际 GUI 调用链更新为：
+
+```text
+当前 GUI 已加载的只读 Mapping[str, SignalRecord]
++ 用户确认的 AnalysisRange(start_time_s, end_time_s)
++ 显式 load_workflow_config 得到的 WorkflowConfiguration
++ 用户选择的正式 AnalysisProfile
++ 用户明确核对的 vacuum_wavelength_m
+-> AnalysisRequest(generation_id, records, range, configuration)
+-> QThreadPool / QRunnable 后台 worker
+-> public core.workflow.analyze_profile
+-> 每个通道独立 Mapping[str, ChannelAnalysis]
+-> GUI 主线程接收当前 generation 的结果
+-> STFT_READY -> RIDGE_READY -> RESULT_READY
+```
+
+配置文件中的 `input.path` 只用于说明原 workflow 配置，不会替换 GUI 当前加载的
+records。worker 传给 `analyze_profile` 的正式参数为 profile、分析起止时间、真空
+波长、`SignalDetectionConfig`、`EventCandidateConfig`、背景保护参数、人工事件参考
+时间和 display-only 事件前零平台开关。GUI 不展开或复制 STFT、脊线、检测、速度和
+连续性算法，也不导入 `scripts`。
+
+### 11.1 GUI 图与 public 结果字段
+
+| 视图 | 实际字段 | 显示转换 |
+|---|---|---|
+| Spectrogram | `ChannelAnalysis.stft_result.spectrum/time_s/frequency_hz` | s→μs、Hz→GHz；`20 log10(abs(spectrum) / channel_max)`，按配置 floor 截断，明确不是 SNR |
+| Ridge candidate | `ridge_result.frequency_hz` | Hz→GHz，散点，不平滑 |
+| Ridge refined | `refined_result.refined_frequency_hz` | Hz→GHz，`connect="finite"` |
+| Ridge formal | `signal_detection_result.refined_frequency_hz` | Hz→GHz，NaN 真实断线 |
+| Velocity formal | `signal_detection_result.apparent_velocity_m_s` | 保持 m/s；PyQtGraph 可显示 SI 前缀 |
+| Velocity display | `display_velocity_m_s` | 默认隐藏、虚线、明确为仅显示结果 |
+| Comparison | 各通道 formal apparent velocity | 只叠加，不融合、不择优 |
+| Quality | `signal_states`、`assessment_statuses`、`continuity_statuses` 和 formal velocity NaN | 枚举与数量直接统计 |
+
+当前仍没有 `corrected_velocity_m_s`、LiF 修正或 GUI public export service；相关入口
+继续禁用。

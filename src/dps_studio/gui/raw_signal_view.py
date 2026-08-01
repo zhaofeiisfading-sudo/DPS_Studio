@@ -17,6 +17,7 @@ class RawSignalView(QWidget):
 
     cursor_position_changed = Signal(float, float, str)
     channel_selection_changed = Signal(str)
+    analysis_region_changed = Signal(float, float)
 
     _COLORS = ("#0072B2", "#D55E00", "#009E73", "#CC79A7")
 
@@ -24,6 +25,7 @@ class RawSignalView(QWidget):
         super().__init__(parent)
         self._records: Mapping[str, SignalRecord] = {}
         self._curves: dict[str, Any] = {}
+        self._data_bounds_s: tuple[float, float] | None = None
 
         layout = QVBoxLayout(self)
         controls = QHBoxLayout()
@@ -44,6 +46,17 @@ class RawSignalView(QWidget):
         self.plot_widget.showGrid(x=True, y=True, alpha=0.22)
         self.plot_widget.addLegend(offset=(12, 12))
         self.plot_widget.setMouseEnabled(x=True, y=True)
+        self.analysis_region = pg.LinearRegionItem(
+            orientation=pg.LinearRegionItem.Vertical,
+            brush=pg.mkBrush(11, 111, 164, 35),
+            pen=pg.mkPen("#0b6fa4", width=1.0),
+            movable=True,
+        )
+        self.analysis_region.setObjectName("analysisTimeRegion")
+        self.analysis_region.setZValue(20)
+        self.analysis_region.setVisible(False)
+        self.analysis_region.sigRegionChanged.connect(self._on_region_changed)
+        self.plot_widget.addItem(self.analysis_region)
         self.plot_widget.scene().sigMouseMoved.connect(self._on_mouse_moved)
         layout.addWidget(self.plot_widget, 1)
 
@@ -52,6 +65,7 @@ class RawSignalView(QWidget):
         self._records = records
         self.plot_widget.clear()
         self.plot_widget.addLegend(offset=(12, 12))
+        self.plot_widget.addItem(self.analysis_region)
         self._curves.clear()
         self.channel_combo.blockSignals(True)
         self.channel_combo.clear()
@@ -70,7 +84,46 @@ class RawSignalView(QWidget):
         self.channel_combo.setEnabled(bool(records))
         self.channel_combo.blockSignals(False)
         self.plot_widget.enableAutoRange()
+        if records:
+            start_time_s = max(record.start_time_s for record in records.values())
+            end_time_s = min(record.end_time_s for record in records.values())
+            if start_time_s >= end_time_s:
+                raise ValueError("Loaded channels do not share a common time range.")
+            self._data_bounds_s = float(start_time_s), float(end_time_s)
+            self.analysis_region.setBounds(
+                (start_time_s * 1e6, end_time_s * 1e6)
+            )
+            self.set_analysis_region_s(start_time_s, end_time_s)
+            self.analysis_region.setVisible(True)
+        else:
+            self._data_bounds_s = None
+            self.analysis_region.setVisible(False)
         self._emit_channel_selection()
+
+    def set_analysis_region_s(self, start_time_s: float, end_time_s: float) -> None:
+        """Set the graphical draft using SI seconds."""
+        if self._data_bounds_s is None:
+            return
+        lower, upper = self._data_bounds_s
+        start = max(lower, min(float(start_time_s), upper))
+        end = max(lower, min(float(end_time_s), upper))
+        if start >= end:
+            return
+        self.analysis_region.blockSignals(True)
+        self.analysis_region.setRegion((start * 1e6, end * 1e6))
+        self.analysis_region.blockSignals(False)
+
+    def current_view_range_s(self) -> tuple[float, float]:
+        """Return the visible x range, clamped to the full data bounds."""
+        if self._data_bounds_s is None:
+            raise RuntimeError("No data are loaded.")
+        visible_us = self.plot_widget.plotItem.vb.viewRange()[0]
+        lower, upper = self._data_bounds_s
+        start = max(lower, float(visible_us[0]) * 1e-6)
+        end = min(upper, float(visible_us[1]) * 1e-6)
+        if start >= end:
+            return self._data_bounds_s
+        return start, end
 
     def _update_visible_curves(self, _index: int) -> None:
         selected = str(self.channel_combo.currentData())
@@ -96,6 +149,16 @@ class RawSignalView(QWidget):
             float(point.y()) * 1e-3,
             channel_name,
         )
+
+    def _on_region_changed(self) -> None:
+        if self._data_bounds_s is None:
+            return
+        start_us, end_us = self.analysis_region.getRegion()
+        lower, upper = self._data_bounds_s
+        start = max(lower, float(start_us) * 1e-6)
+        end = min(upper, float(end_us) * 1e-6)
+        if start < end:
+            self.analysis_region_changed.emit(start, end)
 
 
 __all__ = ["RawSignalView"]

@@ -193,3 +193,24 @@ English:
 ```text
 This feature is planned but is not connected in the current version.
 ```
+
+## 10. TASK-015A 新增固定术语
+
+| 中文 | English | 内部标识或说明 |
+|---|---|---|
+| 确认分析范围 | Confirm Analysis Range | `range_confirmed`；只有确认后写入 session |
+| 使用完整范围 | Use Full Range | 共同数据边界，内部单位 s |
+| 使用当前显示范围 | Use Current View Range | 显式确认操作，不自动跟随 zoom |
+| 完整自动分析 | Full Automatic Analysis | public `analyze_profile` 完整链 |
+| 后台自动分析 | Background Automatic Analysis | `QThreadPool` worker |
+| 当前有效结果 | Current Valid Results | `results_valid=True` 且 generation 相同 |
+| 迟到结果 | Late Result | 参数变化后返回的旧 generation 结果，必须忽略 |
+| 相对幅值 (dB) | Relative Magnitude (dB) | `20 log10(abs(STFT)/channel_max)`，不是 SNR |
+| 正式可信脊线 | Formal Measured Ridge | `signal_detection_result.refined_frequency_hz` |
+| 正式表观速度 | Formal Apparent Velocity | `signal_detection_result.apparent_velocity_m_s` |
+| 质量配置来源 | Quality Configuration Source | 显式 workflow TOML 路径 |
+| 核对真空波长 | Verify Vacuum Wavelength | 配置值不静默采用，运行前必须确认 |
+| 软失效 | Soft Invalidation | generation 改变并忽略迟到结果，不表示中断计算 |
+
+“显示速度”仍不能称为正式测量速度；“窗口修正尚未接入”不能简写为“修正速度”。
+不存在 cooperative cancellation 时不得使用“已终止计算”，应使用“迟到结果已忽略”。
