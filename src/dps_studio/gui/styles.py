@@ -18,6 +18,22 @@ QToolBar {
     border-bottom: 1px solid #d6dde3;
     spacing: 4px;
 }
+QSplitter::handle:horizontal {
+    background: #d6dde3;
+    width: 7px;
+    margin: 0 2px;
+}
+QSplitter::handle:horizontal:hover {
+    background: #0b6fa4;
+}
+QMainWindow::separator {
+    background: #d6dde3;
+    width: 7px;
+    height: 7px;
+}
+QMainWindow::separator:hover {
+    background: #0b6fa4;
+}
 QListWidget, QTabWidget::pane, QStackedWidget, QTableWidget,
 QPlainTextEdit, QGroupBox {
     background: #ffffff;

@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import pyqtgraph as pg  # type: ignore[import-untyped]
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from dps_studio.core.models import SignalRecord
@@ -18,6 +18,7 @@ class RawSignalView(QWidget):
     cursor_position_changed = Signal(float, float, str)
     channel_selection_changed = Signal(str)
     analysis_region_changed = Signal(float, float)
+    analysis_boundary_hovered = Signal(bool)
 
     _COLORS = ("#0072B2", "#D55E00", "#009E73", "#CC79A7")
 
@@ -26,6 +27,7 @@ class RawSignalView(QWidget):
         self._records: Mapping[str, SignalRecord] = {}
         self._curves: dict[str, Any] = {}
         self._data_bounds_s: tuple[float, float] | None = None
+        self._boundary_hovered = False
 
         layout = QVBoxLayout(self)
         controls = QHBoxLayout()
@@ -50,12 +52,18 @@ class RawSignalView(QWidget):
             orientation=pg.LinearRegionItem.Vertical,
             brush=pg.mkBrush(11, 111, 164, 35),
             pen=pg.mkPen("#0b6fa4", width=1.0),
+            hoverPen=pg.mkPen("#d55e00", width=4.0),
             movable=True,
         )
         self.analysis_region.setObjectName("analysisTimeRegion")
         self.analysis_region.setZValue(20)
         self.analysis_region.setVisible(False)
         self.analysis_region.sigRegionChanged.connect(self._on_region_changed)
+        boundary_tooltip = self.tr("拖动以调整分析范围")
+        for line in self.analysis_region.lines:
+            line.setCursor(Qt.CursorShape.SizeHorCursor)
+            line.setToolTip(boundary_tooltip)
+            line.addMarker("<|>", position=0.94, size=6.0)
         self.plot_widget.addItem(self.analysis_region)
         self.plot_widget.scene().sigMouseMoved.connect(self._on_mouse_moved)
         layout.addWidget(self.plot_widget, 1)
@@ -142,6 +150,7 @@ class RawSignalView(QWidget):
         self.channel_selection_changed.emit(label)
 
     def _on_mouse_moved(self, position: object) -> None:
+        self._update_boundary_hover_state(position)
         if not self._records:
             return
         point = self.plot_widget.plotItem.vb.mapSceneToView(position)
@@ -154,6 +163,20 @@ class RawSignalView(QWidget):
             float(point.y()) * 1e-3,
             channel_name,
         )
+
+    def _update_boundary_hover_state(self, scene_position: object) -> None:
+        """Use each native InfiniteLine hit shape to report boundary proximity."""
+        hovered = False
+        if self.analysis_region.isVisible():
+            for line in self.analysis_region.lines:
+                local_position = line.mapFromScene(scene_position)
+                if line.boundingRect().contains(local_position):
+                    hovered = True
+                    break
+        if hovered == self._boundary_hovered:
+            return
+        self._boundary_hovered = hovered
+        self.analysis_boundary_hovered.emit(hovered)
 
     def _on_region_changed(self) -> None:
         if self._data_bounds_s is None:

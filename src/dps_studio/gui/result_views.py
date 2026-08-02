@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 import pyqtgraph as pg  # type: ignore[import-untyped]
 from numpy.typing import NDArray
-from PySide6.QtCore import QRectF
+from PySide6.QtCore import QSignalBlocker, QRectF, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -26,6 +26,11 @@ from PySide6.QtWidgets import (
 
 from dps_studio.core.quality import SignalState
 from dps_studio.core.workflow import ChannelAnalysis
+from dps_studio.gui.display_preferences import (
+    DEFAULT_SPECTROGRAM_COLORMAP,
+    normalize_spectrogram_colormap,
+    spectrogram_colormap,
+)
 
 
 FloatArray = NDArray[np.float64]
@@ -210,8 +215,23 @@ class _ChannelView(QWidget):
 class SpectrogramView(_ChannelView):
     """Render a channel's exact STFT coefficients as relative magnitude dB."""
 
+    colormap_changed = Signal(str)
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        colormap_row = QHBoxLayout()
+        colormap_row.addWidget(QLabel(self.tr("色图")))
+        self.colormap_combo = QComboBox()
+        self.colormap_combo.setObjectName("spectrogramColormapSelector")
+        self.colormap_combo.addItem("Viridis", "viridis")
+        self.colormap_combo.addItem("Cividis", "cividis")
+        self.colormap_combo.addItem(self.tr("灰度"), "grayscale")
+        self.colormap_combo.currentIndexChanged.connect(
+            self._colormap_selected
+        )
+        colormap_row.addWidget(self.colormap_combo)
+        colormap_row.addStretch(1)
+        self.root_layout.addLayout(colormap_row)
         self.plot_widget = pg.PlotWidget(background="w")
         self.plot_widget.setObjectName("spectrogramPlot")
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
@@ -219,6 +239,26 @@ class SpectrogramView(_ChannelView):
         self.plot_widget.showGrid(x=True, y=True, alpha=0.18)
         self.image_item = pg.ImageItem(axisOrder="row-major")
         self.plot_widget.addItem(self.image_item)
+        self.current_colormap_name = DEFAULT_SPECTROGRAM_COLORMAP
+        self.color_bar = pg.ColorBarItem(
+            values=(self._floor_db, 0.0),
+            width=20,
+            colorMap=spectrogram_colormap(self.current_colormap_name),
+            label=self.tr("相对 STFT 幅值 (dB)"),
+            interactive=False,
+            colorMapMenu=False,
+        )
+        self.color_bar.setObjectName("spectrogramColorBar")
+        self.color_bar.setToolTip(
+            self.tr(
+                "20 log10(|STFT| / max|STFT|)；仅调整显示映射，"
+                "不是正式 SNR。"
+            )
+        )
+        self.color_bar.setImageItem(
+            self.image_item,
+            insert_in=self.plot_widget.plotItem,
+        )
         self.root_layout.addWidget(self.plot_widget, 1)
         self.definition_label = QLabel(
             self.tr("显示定义：20 log10(|STFT| / 通道全局最大值)，不是正式 SNR。")
@@ -227,6 +267,23 @@ class SpectrogramView(_ChannelView):
         self.root_layout.addWidget(self.definition_label)
         self.current_image_db: FloatArray | None = None
         self._search_lines: list[Any] = []
+
+    def set_colormap(self, name: str) -> None:
+        """Apply a display-only colormap without recomputing any array."""
+        normalized = normalize_spectrogram_colormap(name)
+        blocker = QSignalBlocker(self.colormap_combo)
+        index = self.colormap_combo.findData(normalized)
+        self.colormap_combo.setCurrentIndex(max(index, 0))
+        del blocker
+        self.current_colormap_name = normalized
+        self.color_bar.setColorMap(spectrogram_colormap(normalized))
+
+    def _colormap_selected(self, _index: int) -> None:
+        name = self.colormap_combo.currentData()
+        if not isinstance(name, str):
+            return
+        self.set_colormap(name)
+        self.colormap_changed.emit(self.current_colormap_name)
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         analysis = self._analyses[channel_name]
@@ -237,6 +294,7 @@ class SpectrogramView(_ChannelView):
             analysis,
             floor_db=self._floor_db,
         )
+        self.color_bar.setLevels((self._floor_db, 0.0))
         self._search_lines = _add_search_band(self.plot_widget, analysis)
         if fit_view:
             self.plot_widget.autoRange()
@@ -263,17 +321,30 @@ class RidgeView(_ChannelView):
         self.quality_label = QLabel(self.tr("尚无质量状态。"))
         self.quality_label.setObjectName("ridgeQualitySummary")
         self.root_layout.addWidget(self.quality_label)
+        self.current_colormap_name = DEFAULT_SPECTROGRAM_COLORMAP
+        self.image_item: Any | None = None
         self.candidate_curve: Any | None = None
         self.refined_curve: Any | None = None
         self.formal_curve: Any | None = None
+
+    def set_colormap(self, name: str) -> None:
+        """Apply the spectrogram background preference without rerunning science."""
+        self.current_colormap_name = normalize_spectrogram_colormap(name)
+        if self.image_item is not None:
+            self.image_item.setColorMap(
+                spectrogram_colormap(self.current_colormap_name)
+            )
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         analysis = self._analyses[channel_name]
         self.plot_widget.clear()
         self.plot_widget.addLegend(offset=(12, 12))
-        image_item = pg.ImageItem(axisOrder="row-major")
-        self.plot_widget.addItem(image_item)
-        _set_image(image_item, analysis, floor_db=self._floor_db)
+        self.image_item = pg.ImageItem(axisOrder="row-major")
+        self.image_item.setColorMap(
+            spectrogram_colormap(self.current_colormap_name)
+        )
+        self.plot_widget.addItem(self.image_item)
+        _set_image(self.image_item, analysis, floor_db=self._floor_db)
         _add_search_band(self.plot_widget, analysis)
         time_us = analysis.stft_result.time_s * 1e6
         self.candidate_curve = self.plot_widget.plot(
@@ -314,6 +385,7 @@ class RidgeView(_ChannelView):
     def _clear_plot(self) -> None:
         self.plot_widget.clear()
         self.quality_label.setText(self.tr("尚无质量状态。"))
+        self.image_item = None
         self.candidate_curve = None
         self.refined_curve = None
         self.formal_curve = None

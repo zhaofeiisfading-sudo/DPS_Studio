@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSignalBlocker, QSize, Qt
+from PySide6.QtCore import QByteArray, QSettings, QSignalBlocker, QSize, Qt
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QScrollArea,
+    QSizePolicy,
     QSplitter,
     QStackedWidget,
     QStatusBar,
@@ -53,6 +54,7 @@ from dps_studio.gui.analysis_range import AnalysisRangePanel
 from dps_studio.gui.analysis_session import AnalysisRange, AnalysisSession
 from dps_studio.gui.advanced_parameters_dialog import AdvancedParametersDialog
 from dps_studio.gui.data_controller import DataImportController
+from dps_studio.gui.display_preferences import DisplayPreferences
 from dps_studio.gui.i18n import (
     LANGUAGE_EN,
     LANGUAGE_ZH_CN,
@@ -75,6 +77,15 @@ from dps_studio.gui.result_views import (
 from dps_studio.gui.state import WorkflowState, state_reaches
 
 
+_LAYOUT_STATE_VERSION = 1
+_GEOMETRY_SETTINGS_KEY = "layout/main_window_geometry"
+_WINDOW_STATE_SETTINGS_KEY = "layout/main_window_state"
+_SPLITTER_STATE_SETTINGS_KEY = "layout/workspace_splitter_state"
+_DIAGNOSTICS_HEIGHT_SETTINGS_KEY = "layout/diagnostics_dock_height"
+_DEFAULT_WORKSPACE_SIZES = (220, 830, 340)
+_DEFAULT_DIAGNOSTICS_HEIGHT = 210
+
+
 class MainWindow(QMainWindow):
     """Compose the first runnable workstation and its explicit UI states."""
 
@@ -83,9 +94,12 @@ class MainWindow(QMainWindow):
         parent: QWidget | None = None,
         *,
         translation_manager: TranslationManager | None = None,
+        settings: QSettings | None = None,
     ) -> None:
         super().__init__(parent)
         self._translation_manager = translation_manager
+        self._settings = settings if settings is not None else QSettings()
+        self._display_preferences = DisplayPreferences(self._settings)
         self._data_controller = DataImportController()
         self._load_result: DelimitedSignalLoadResult | None = None
         self._repository_root = Path(__file__).resolve().parents[3]
@@ -109,7 +123,16 @@ class MainWindow(QMainWindow):
         self._create_workspace()
         self._create_diagnostics_dock()
         self._create_status_bar()
+        self._default_geometry = QByteArray(self.saveGeometry())
+        self._default_window_state = QByteArray(
+            self.saveState(_LAYOUT_STATE_VERSION)
+        )
         self._connect_signals()
+        self._set_spectrogram_colormap(
+            self._display_preferences.spectrogram_colormap(),
+            persist=False,
+        )
+        self._restore_layout_settings()
         self._restore_default_parameters(initial=True)
         self._apply_state()
         self._append_log(self.tr("工作台已启动；当前未加载数据。"))
@@ -292,6 +315,14 @@ class MainWindow(QMainWindow):
             "actionRestoreDefaultAnalysisParameters"
         )
 
+        self.action_restore_default_layout = QAction(
+            self.tr("恢复默认布局"),
+            self,
+        )
+        self.action_restore_default_layout.setObjectName(
+            "actionRestoreDefaultLayout"
+        )
+
         self.action_language_zh = QAction(self.tr("简体中文"), self)
         self.action_language_zh.setCheckable(True)
         self.action_language_zh.setObjectName("actionLanguageZh")
@@ -320,6 +351,10 @@ class MainWindow(QMainWindow):
         self.analysis_menu.setObjectName("analysisMenu")
         self.analysis_menu.addAction(self.action_automatic)
         self.analysis_menu.addAction(self.action_guided)
+
+        self.view_menu = self.menuBar().addMenu(self.tr("视图"))
+        self.view_menu.setObjectName("viewMenu")
+        self.view_menu.addAction(self.action_restore_default_layout)
 
         self.settings_menu = self.menuBar().addMenu(self.tr("设置"))
         self.settings_menu.setObjectName("settingsMenu")
@@ -362,9 +397,11 @@ class MainWindow(QMainWindow):
         self.workspace_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.workspace_splitter.setObjectName("workspaceSplitter")
         self.workspace_splitter.setChildrenCollapsible(False)
+        self.workspace_splitter.setHandleWidth(7)
 
-        navigation_panel = QWidget()
-        navigation_layout = QVBoxLayout(navigation_panel)
+        self.navigation_panel = QWidget()
+        self.navigation_panel.setObjectName("workflowNavigationPanel")
+        navigation_layout = QVBoxLayout(self.navigation_panel)
         navigation_layout.addWidget(self._section_title(self.tr("处理流程")))
         self.workflow_navigation = QListWidget()
         self.workflow_navigation.setObjectName("workflowNavigation")
@@ -380,11 +417,20 @@ class MainWindow(QMainWindow):
             self.workflow_navigation.addItem(QListWidgetItem(label))
         self.workflow_navigation.setCurrentRow(0)
         navigation_layout.addWidget(self.workflow_navigation, 1)
-        navigation_panel.setMinimumWidth(210)
+        self.navigation_panel.setMinimumWidth(150)
+        navigation_policy = self.navigation_panel.sizePolicy()
+        navigation_policy.setHorizontalPolicy(QSizePolicy.Policy.Ignored)
+        navigation_policy.setVerticalPolicy(QSizePolicy.Policy.Ignored)
+        self.navigation_panel.setSizePolicy(navigation_policy)
 
         self.science_tabs = QTabWidget()
         self.science_tabs.setObjectName("scienceTabs")
         self.science_tabs.setDocumentMode(True)
+        self.science_tabs.setMinimumWidth(360)
+        science_policy = self.science_tabs.sizePolicy()
+        science_policy.setHorizontalPolicy(QSizePolicy.Policy.Ignored)
+        science_policy.setVerticalPolicy(QSizePolicy.Policy.Ignored)
+        self.science_tabs.setSizePolicy(science_policy)
         self.raw_signal_view = RawSignalView()
         self.science_tabs.addTab(self.raw_signal_view, self.tr("原始信号"))
         self.spectrogram_view = SpectrogramView()
@@ -396,8 +442,9 @@ class MainWindow(QMainWindow):
         self.comparison_view = ComparisonView()
         self.science_tabs.addTab(self.comparison_view, self.tr("结果比较"))
 
-        parameter_panel = QWidget()
-        parameter_layout = QVBoxLayout(parameter_panel)
+        self.parameter_panel = QWidget()
+        self.parameter_panel.setObjectName("analysisParameterPanel")
+        parameter_layout = QVBoxLayout(self.parameter_panel)
         parameter_layout.addWidget(self._section_title(self.tr("当前参数")))
         self.common_analysis_panel = self._build_common_analysis_panel()
         parameter_layout.addWidget(self.common_analysis_panel)
@@ -405,15 +452,24 @@ class MainWindow(QMainWindow):
         self.parameter_stack.setObjectName("parameterStack")
         self._build_parameter_pages()
         parameter_layout.addWidget(self.parameter_stack, 1)
-        parameter_panel.setMinimumWidth(310)
+        self.parameter_panel.setMinimumWidth(240)
+        parameter_policy = self.parameter_panel.sizePolicy()
+        parameter_policy.setHorizontalPolicy(QSizePolicy.Policy.Ignored)
+        parameter_policy.setVerticalPolicy(QSizePolicy.Policy.Ignored)
+        self.parameter_panel.setSizePolicy(parameter_policy)
 
-        self.workspace_splitter.addWidget(navigation_panel)
+        splitter_policy = self.workspace_splitter.sizePolicy()
+        splitter_policy.setVerticalPolicy(QSizePolicy.Policy.Ignored)
+        self.workspace_splitter.setSizePolicy(splitter_policy)
+        self.workspace_splitter.addWidget(self.navigation_panel)
         self.workspace_splitter.addWidget(self.science_tabs)
-        self.workspace_splitter.addWidget(parameter_panel)
+        self.workspace_splitter.addWidget(self.parameter_panel)
+        for index in range(3):
+            self.workspace_splitter.setCollapsible(index, False)
         self.workspace_splitter.setStretchFactor(0, 0)
         self.workspace_splitter.setStretchFactor(1, 1)
         self.workspace_splitter.setStretchFactor(2, 0)
-        self.workspace_splitter.setSizes([220, 830, 340])
+        self.workspace_splitter.setSizes(list(_DEFAULT_WORKSPACE_SIZES))
         self.setCentralWidget(self.workspace_splitter)
 
     def _build_common_analysis_panel(self) -> QWidget:
@@ -609,8 +665,16 @@ class MainWindow(QMainWindow):
             Qt.DockWidgetArea.BottomDockWidgetArea
             | Qt.DockWidgetArea.TopDockWidgetArea
         )
+        self.diagnostics_dock.setFeatures(
+            QDockWidget.DockWidgetFeature.DockWidgetClosable
+            | QDockWidget.DockWidgetFeature.DockWidgetMovable
+            | QDockWidget.DockWidgetFeature.DockWidgetFloatable
+        )
         self.diagnostics_tabs = QTabWidget()
         self.diagnostics_tabs.setObjectName("diagnosticsTabs")
+        diagnostics_policy = self.diagnostics_tabs.sizePolicy()
+        diagnostics_policy.setVerticalPolicy(QSizePolicy.Policy.Ignored)
+        self.diagnostics_tabs.setSizePolicy(diagnostics_policy)
 
         self.quality_summary = QualitySummaryWidget()
         self.quality_label = self.quality_summary.notice
@@ -639,7 +703,11 @@ class MainWindow(QMainWindow):
             Qt.DockWidgetArea.BottomDockWidgetArea,
             self.diagnostics_dock,
         )
-        self.resizeDocks([self.diagnostics_dock], [210], Qt.Orientation.Vertical)
+        self.resizeDocks(
+            [self.diagnostics_dock],
+            [_DEFAULT_DIAGNOSTICS_HEIGHT],
+            Qt.Orientation.Vertical,
+        )
 
     def _create_status_bar(self) -> None:
         status_bar = QStatusBar()
@@ -677,6 +745,9 @@ class MainWindow(QMainWindow):
         self.action_restore_default_parameters.triggered.connect(
             lambda: self._restore_default_parameters()
         )
+        self.action_restore_default_layout.triggered.connect(
+            self._reset_default_layout
+        )
         self.action_exit.triggered.connect(self.close)
         self.action_about.triggered.connect(self._show_about)
         self.action_language_zh.triggered.connect(
@@ -696,6 +767,9 @@ class MainWindow(QMainWindow):
         )
         self.raw_signal_view.analysis_region_changed.connect(
             self.analysis_range_panel.set_draft_range_s
+        )
+        self.raw_signal_view.analysis_boundary_hovered.connect(
+            self._analysis_boundary_hovered
         )
         self.analysis_range_panel.draft_range_changed.connect(
             self.raw_signal_view.set_analysis_region_s
@@ -725,6 +799,9 @@ class MainWindow(QMainWindow):
         self.velocity_view.display_velocity_check.toggled.connect(
             self._display_velocity_toggled
         )
+        self.spectrogram_view.colormap_changed.connect(
+            self._spectrogram_colormap_changed
+        )
         for control in (
             self.window_length_spin,
             self.overlap_spin,
@@ -742,6 +819,112 @@ class MainWindow(QMainWindow):
         self._analysis_adapter.finished.connect(self._analysis_finished)
         self._analysis_adapter.failed.connect(self._analysis_failed)
         self._analysis_adapter.busy_changed.connect(self._busy_changed)
+
+    def _spectrogram_colormap_changed(self, name: str) -> None:
+        self._set_spectrogram_colormap(name, persist=True)
+
+    def _set_spectrogram_colormap(
+        self,
+        name: str,
+        *,
+        persist: bool,
+    ) -> None:
+        normalized = (
+            self._display_preferences.set_spectrogram_colormap(name)
+            if persist
+            else name
+        )
+        self.spectrogram_view.set_colormap(normalized)
+        self.ridge_view.set_colormap(normalized)
+
+    def _analysis_boundary_hovered(self, hovered: bool) -> None:
+        message = self.tr("拖动以调整分析范围")
+        if hovered:
+            self.statusBar().showMessage(message)
+        elif self.statusBar().currentMessage() == message:
+            self.statusBar().clearMessage()
+
+    @staticmethod
+    def _as_byte_array(value: object) -> QByteArray | None:
+        if isinstance(value, QByteArray):
+            return value
+        if isinstance(value, bytes):
+            return QByteArray(value)
+        return None
+
+    def _restore_layout_settings(self) -> None:
+        """Restore stable layout keys, falling back on each invalid value."""
+        geometry = self._as_byte_array(
+            self._settings.value(_GEOMETRY_SETTINGS_KEY)
+        )
+        if geometry is not None and not self.restoreGeometry(geometry):
+            self.restoreGeometry(self._default_geometry)
+
+        window_state = self._as_byte_array(
+            self._settings.value(_WINDOW_STATE_SETTINGS_KEY)
+        )
+        if window_state is not None and not self.restoreState(
+            window_state,
+            _LAYOUT_STATE_VERSION,
+        ):
+            self.restoreState(
+                self._default_window_state,
+                _LAYOUT_STATE_VERSION,
+            )
+
+        splitter_state = self._as_byte_array(
+            self._settings.value(_SPLITTER_STATE_SETTINGS_KEY)
+        )
+        if splitter_state is not None and not self.workspace_splitter.restoreState(
+            splitter_state
+        ):
+            self.workspace_splitter.setSizes(list(_DEFAULT_WORKSPACE_SIZES))
+
+        dock_height = self._settings.value(_DIAGNOSTICS_HEIGHT_SETTINGS_KEY)
+        if isinstance(dock_height, int) and dock_height > 0:
+            self.resizeDocks(
+                [self.diagnostics_dock],
+                [dock_height],
+                Qt.Orientation.Vertical,
+            )
+
+    def _save_layout_settings(self) -> None:
+        self._settings.setValue(_GEOMETRY_SETTINGS_KEY, self.saveGeometry())
+        self._settings.setValue(
+            _WINDOW_STATE_SETTINGS_KEY,
+            self.saveState(_LAYOUT_STATE_VERSION),
+        )
+        self._settings.setValue(
+            _SPLITTER_STATE_SETTINGS_KEY,
+            self.workspace_splitter.saveState(),
+        )
+        self._settings.setValue(
+            _DIAGNOSTICS_HEIGHT_SETTINGS_KEY,
+            self.diagnostics_dock.height(),
+        )
+        self._settings.sync()
+
+    def _reset_default_layout(self) -> None:
+        """Restore the initial geometry, dock placement, and splitter sizes."""
+        self.restoreGeometry(self._default_geometry)
+        self.restoreState(
+            self._default_window_state,
+            _LAYOUT_STATE_VERSION,
+        )
+        self.diagnostics_dock.setFloating(False)
+        self.addDockWidget(
+            Qt.DockWidgetArea.BottomDockWidgetArea,
+            self.diagnostics_dock,
+        )
+        self.diagnostics_dock.show()
+        self.workspace_splitter.setSizes(list(_DEFAULT_WORKSPACE_SIZES))
+        self.resizeDocks(
+            [self.diagnostics_dock],
+            [_DEFAULT_DIAGNOSTICS_HEIGHT],
+            Qt.Orientation.Vertical,
+        )
+        self._save_layout_settings()
+        self.statusBar().showMessage(self.tr("已恢复默认布局。"), 3000)
 
     def _open_data(self) -> None:
         selected_path, _selected_filter = QFileDialog.getOpenFileName(
@@ -1604,6 +1787,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Close without claiming to interrupt an active numerical worker."""
+        self._save_layout_settings()
         event.accept()
 
     def _planned_view(self, text: str) -> QWidget:
