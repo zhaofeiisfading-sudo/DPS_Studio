@@ -9,7 +9,11 @@ from dataclasses import dataclass
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 
 from dps_studio.core.models import SignalRecord
-from dps_studio.core.workflow import ChannelAnalysis, analyze_profile
+from dps_studio.core.workflow import (
+    ChannelAnalysis,
+    analyze_configuration,
+    analyze_profile,
+)
 from dps_studio.gui.analysis_session import (
     AnalysisRange,
     AnalysisRunConfiguration,
@@ -53,27 +57,63 @@ class _AnalysisWorker(QRunnable):
         self.signals.started.emit(request.generation_id)
         try:
             configuration = request.configuration
-            analyses = analyze_profile(
-                request.records,
-                profile=configuration.profile,
-                analysis_start_time_s=request.analysis_range.start_time_s,
-                analysis_end_time_s=request.analysis_range.end_time_s,
-                manual_event_reference_time_s=(
-                    configuration.manual_event_reference_time_s
-                ),
-                vacuum_wavelength_m=configuration.vacuum_wavelength_m,
-                detection_config=configuration.detection_config,
-                event_candidate_config=configuration.event_candidate_config,
-                background_guard_window_scale=(
-                    configuration.background_guard_window_scale
-                ),
-                minimum_background_bin_count=(
-                    configuration.minimum_background_bin_count
-                ),
-                assume_pre_event_zero_for_display=(
-                    configuration.assume_pre_event_zero_for_display
-                ),
-            )
+            if configuration.profile is not None:
+                analyses = analyze_profile(
+                    request.records,
+                    profile=configuration.profile,
+                    analysis_start_time_s=request.analysis_range.start_time_s,
+                    analysis_end_time_s=request.analysis_range.end_time_s,
+                    manual_event_reference_time_s=(
+                        configuration.event_reference_time_s
+                    ),
+                    vacuum_wavelength_m=configuration.vacuum_wavelength_m,
+                    detection_config=configuration.detection_config,
+                    event_candidate_config=configuration.event_candidate_config,
+                    background_guard_window_scale=(
+                        configuration.background_guard_window_scale
+                    ),
+                    minimum_background_bin_count=(
+                        configuration.minimum_background_bin_count
+                    ),
+                    assume_pre_event_zero_for_display=(
+                        configuration.enable_pre_event_display
+                    ),
+                    pre_event_display_velocity_m_s=(
+                        configuration.pre_event_display_velocity_m_s
+                    ),
+                )
+            else:
+                parameters = configuration.parameters
+                analyses = analyze_configuration(
+                    request.records,
+                    window_length_samples=parameters.window_length_samples,
+                    overlap_samples=parameters.overlap_samples,
+                    nfft=parameters.nfft,
+                    window_name=parameters.window_name,
+                    minimum_frequency_hz=parameters.minimum_frequency_hz,
+                    maximum_frequency_hz=parameters.maximum_frequency_hz,
+                    profile_name=parameters.provenance_name,
+                    analysis_start_time_s=request.analysis_range.start_time_s,
+                    analysis_end_time_s=request.analysis_range.end_time_s,
+                    manual_event_reference_time_s=(
+                        configuration.event_reference_time_s
+                    ),
+                    vacuum_wavelength_m=configuration.vacuum_wavelength_m,
+                    detection_config=configuration.detection_config,
+                    event_candidate_config=configuration.event_candidate_config,
+                    background_guard_window_scale=(
+                        configuration.background_guard_window_scale
+                    ),
+                    minimum_background_bin_count=(
+                        configuration.minimum_background_bin_count
+                    ),
+                    assume_pre_event_zero_for_display=(
+                        configuration.enable_pre_event_display
+                    ),
+                    pre_event_display_velocity_m_s=(
+                        configuration.pre_event_display_velocity_m_s
+                    ),
+                )
         except Exception as exc:
             self.signals.failed.emit(
                 request.generation_id,

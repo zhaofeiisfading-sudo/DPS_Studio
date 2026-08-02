@@ -5,9 +5,12 @@ from dps_studio.core.analysis_profiles import (
     DEFAULT_ANALYSIS_PROFILE,
     DEFAULT_OUTPUT_MODE,
     HIGH_TIME_RESOLUTION_PROFILE,
+    AnalysisParameterOverrides,
     AnalysisProfile,
     AnalysisProfileId,
+    AnalysisRunParameters,
     OutputMode,
+    build_analysis_run_parameters,
     get_analysis_profile,
 )
 from dps_studio.core.event_candidates import (
@@ -54,6 +57,8 @@ from dps_studio.core.quality import (
 __all__ = [
     "AnalysisProfile",
     "AnalysisProfileId",
+    "AnalysisParameterOverrides",
+    "AnalysisRunParameters",
     "AnalysisConfiguration",
     "BALANCED_PROFILE",
     "ChannelAnalysis",
@@ -86,6 +91,7 @@ __all__ = [
     "analyze_profile",
     "assess_event_segments",
     "build_cross_profile_consensus",
+    "build_analysis_run_parameters",
     "build_profile_consensus",
     "build_stream_event_candidates",
     "derive_background_exclusion_half_width_hz",

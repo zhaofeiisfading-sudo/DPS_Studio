@@ -8,11 +8,20 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from types import MappingProxyType
 
-from dps_studio.core.analysis_profiles import AnalysisProfile
+from dps_studio.core.analysis_profiles import (
+    AnalysisParameterOverrides,
+    AnalysisProfile,
+    AnalysisRunParameters,
+    build_analysis_run_parameters,
+)
 from dps_studio.core.event_candidates import EventCandidateConfig
 from dps_studio.core.models import SignalRecord
 from dps_studio.core.quality import SignalDetectionConfig
-from dps_studio.core.workflow import ChannelAnalysis, WorkflowConfiguration
+from dps_studio.core.workflow import (
+    ChannelAnalysis,
+    WorkflowConfiguration,
+    configure_channel_event_reference,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,16 +42,56 @@ class AnalysisRange:
 class AnalysisRunConfiguration:
     """Exact public-workflow arguments selected for the next GUI run."""
 
-    profile: AnalysisProfile
-    vacuum_wavelength_m: float
+    parameters: AnalysisRunParameters
     detection_config: SignalDetectionConfig
     event_candidate_config: EventCandidateConfig
     background_guard_window_scale: float
     minimum_background_bin_count: int
-    manual_event_reference_time_s: float | None
-    assume_pre_event_zero_for_display: bool
+    event_reference_time_s: float | None
+    enable_pre_event_display: bool
+    pre_event_display_velocity_m_s: float
     relative_db_floor: float
     source_path: Path
+
+    @property
+    def base_profile(self) -> AnalysisProfile:
+        """Return the immutable preset on which this run is based."""
+        return self.parameters.base_profile
+
+    @property
+    def profile(self) -> AnalysisProfile | None:
+        """Return the exact preset only when no custom overrides are active."""
+        return None if self.parameters.is_custom else self.parameters.base_profile
+
+    @property
+    def preset_name(self) -> str:
+        """Return the immutable base preset name for provenance."""
+        return self.parameters.preset_name
+
+    @property
+    def custom_status(self) -> bool:
+        """Return whether the current run has explicit per-session overrides."""
+        return self.parameters.is_custom
+
+    @property
+    def custom_overrides(self) -> Mapping[str, int | float]:
+        """Return immutable explicit override values."""
+        return self.parameters.custom_overrides
+
+    @property
+    def final_run_configuration(self) -> AnalysisRunParameters:
+        """Return the validated values captured by the next request."""
+        return self.parameters
+
+    @property
+    def vacuum_wavelength_m(self) -> float:
+        """Return the validated per-run wavelength in SI metres."""
+        return self.parameters.vacuum_wavelength_m
+
+    @property
+    def manual_event_reference_time_s(self) -> float | None:
+        """Compatibility alias used only when calling the current core API."""
+        return self.event_reference_time_s
 
 
 def _empty_records() -> Mapping[str, SignalRecord]:
@@ -67,6 +116,8 @@ class AnalysisSession:
     )
     results_valid: bool = False
     generation_id: int = 0
+    event_reference_source: str | None = None
+    rejected_event_reference_time_s: float | None = None
 
     def load_records(
         self,
@@ -83,6 +134,7 @@ class AnalysisSession:
         self.source_path = Path(source_path)
         self.records = MappingProxyType(dict(records))
         self.analysis_range = None
+        self._reset_event_reference_for_current_records()
         self._invalidate()
 
     def set_analysis_range(self, value: AnalysisRange) -> None:
@@ -103,6 +155,7 @@ class AnalysisSession:
         if normalized == self.analysis_range:
             return
         self.analysis_range = normalized
+        self._clear_reference_outside_current_domain()
         self._invalidate()
 
     def set_workflow_configuration(
@@ -118,8 +171,12 @@ class AnalysisSession:
             raise ValueError("profile must be present in the workflow configuration.")
         self.workflow_configuration = configuration
         self.run_configuration = AnalysisRunConfiguration(
-            profile=profile,
-            vacuum_wavelength_m=configuration.analysis.vacuum_wavelength_m,
+            parameters=build_analysis_run_parameters(
+                base_profile=profile,
+                base_vacuum_wavelength_m=(
+                    configuration.analysis.vacuum_wavelength_m
+                ),
+            ),
             detection_config=configuration.quality.signal_detection,
             event_candidate_config=configuration.event_candidate,
             background_guard_window_scale=(
@@ -128,41 +185,168 @@ class AnalysisSession:
             minimum_background_bin_count=(
                 configuration.quality.minimum_background_bin_count
             ),
-            manual_event_reference_time_s=(
-                configuration.analysis.manual_event_reference_time_s
+            event_reference_time_s=(
+                configuration.analysis.event_reference_time_s
             ),
-            assume_pre_event_zero_for_display=(
+            enable_pre_event_display=(
                 configuration.plot.assume_pre_event_zero_for_display
+            ),
+            pre_event_display_velocity_m_s=(
+                configuration.plot.pre_event_display_velocity_m_s
             ),
             relative_db_floor=configuration.plot.relative_db_floor,
             source_path=configuration.config_path,
         )
+        self.event_reference_source = (
+            "configuration"
+            if configuration.analysis.event_reference_time_s is not None
+            else None
+        )
+        self.rejected_event_reference_time_s = None
+        self._reset_event_reference_for_current_records()
         self._invalidate()
 
     def set_profile(self, profile: AnalysisProfile) -> None:
-        """Change the formal profile and invalidate every downstream result."""
+        """Restore one immutable profile and clear all per-run overrides."""
         if self.workflow_configuration is None or self.run_configuration is None:
             return
         if profile not in self.workflow_configuration.analysis.profiles:
             raise ValueError("profile must be present in the workflow configuration.")
-        if profile == self.run_configuration.profile:
+        parameters = build_analysis_run_parameters(
+            base_profile=profile,
+            base_vacuum_wavelength_m=(
+                self.workflow_configuration.analysis.vacuum_wavelength_m
+            ),
+        )
+        if parameters == self.run_configuration.parameters:
             return
-        self.run_configuration = replace(self.run_configuration, profile=profile)
+        self.run_configuration = replace(
+            self.run_configuration,
+            parameters=parameters,
+        )
         self._invalidate()
 
+    def set_analysis_overrides(
+        self,
+        overrides: AnalysisParameterOverrides,
+    ) -> bool:
+        """Resolve explicit session overrides without mutating their base preset."""
+        if self.run_configuration is None:
+            return False
+        if not isinstance(overrides, AnalysisParameterOverrides):
+            raise TypeError("overrides must be an AnalysisParameterOverrides.")
+        current = self.run_configuration.parameters
+        parameters = build_analysis_run_parameters(
+            base_profile=current.base_profile,
+            base_vacuum_wavelength_m=current.base_vacuum_wavelength_m,
+            overrides=overrides,
+        )
+        if parameters == current:
+            return False
+        self.run_configuration = replace(
+            self.run_configuration,
+            parameters=parameters,
+        )
+        self._invalidate()
+        return True
+
     def set_vacuum_wavelength_m(self, value: float) -> None:
-        """Change the explicit wavelength and invalidate downstream results."""
+        """Compatibility helper for one explicit wavelength override."""
         if self.run_configuration is None:
             return
         if not math.isfinite(value) or value <= 0.0:
             raise ValueError("vacuum wavelength must be finite and positive.")
-        if value == self.run_configuration.vacuum_wavelength_m:
-            return
+        current = self.run_configuration.parameters.overrides
+        self.set_analysis_overrides(
+            replace(current, vacuum_wavelength_m=float(value)),
+        )
+
+    def set_display_velocity_configuration(
+        self,
+        *,
+        enabled: bool,
+        pre_event_display_velocity_m_s: float,
+    ) -> bool:
+        """Refresh only display arrays without invalidating formal results."""
+        if self.run_configuration is None:
+            return False
+        if not isinstance(enabled, bool):
+            raise TypeError("enabled must be a boolean.")
+        if (
+            isinstance(pre_event_display_velocity_m_s, bool)
+            or not math.isfinite(pre_event_display_velocity_m_s)
+        ):
+            raise ValueError(
+                "pre-event display velocity must be a finite value in m/s."
+            )
+        value = float(pre_event_display_velocity_m_s)
+        changed = (
+            enabled != self.run_configuration.enable_pre_event_display
+            or value
+            != self.run_configuration.pre_event_display_velocity_m_s
+        )
+        if not changed:
+            return False
         self.run_configuration = replace(
             self.run_configuration,
-            vacuum_wavelength_m=float(value),
+            enable_pre_event_display=enabled,
+            pre_event_display_velocity_m_s=value,
         )
-        self._invalidate()
+        self._refresh_display_results()
+        return True
+
+    @property
+    def event_reference_time_s(self) -> float | None:
+        """Return the current validated per-experiment event reference."""
+        if self.run_configuration is None:
+            return None
+        return self.run_configuration.event_reference_time_s
+
+    def set_event_reference_time_s(
+        self,
+        value: float,
+        *,
+        source: str = "manual",
+    ) -> bool:
+        """Set a validated display/review reference without rerunning STFT."""
+        if self.run_configuration is None:
+            raise RuntimeError("Analysis configuration is not loaded.")
+        if isinstance(value, bool) or not math.isfinite(value):
+            raise ValueError("Event reference time must be finite seconds.")
+        if not isinstance(source, str) or not source.strip():
+            raise ValueError("Event reference source must be a non-empty string.")
+        reference = float(value)
+        if not self._reference_is_valid_for_current_records(reference):
+            raise ValueError(
+                "Event reference time must stay inside the current data and "
+                "confirmed analysis ranges."
+            )
+        changed = reference != self.run_configuration.event_reference_time_s
+        self.run_configuration = replace(
+            self.run_configuration,
+            event_reference_time_s=reference,
+        )
+        self.event_reference_source = source.strip()
+        self.rejected_event_reference_time_s = None
+        if changed:
+            self._refresh_display_results()
+        return changed
+
+    def clear_event_reference(self) -> bool:
+        """Unset the display/review reference without changing formal results."""
+        if self.run_configuration is None:
+            return False
+        previous = self.run_configuration.event_reference_time_s
+        if previous is None:
+            return False
+        self.run_configuration = replace(
+            self.run_configuration,
+            event_reference_time_s=None,
+        )
+        self.event_reference_source = None
+        self.rejected_event_reference_time_s = None
+        self._refresh_display_results()
+        return True
 
     def accept_results(
         self,
@@ -179,6 +363,7 @@ class AnalysisSession:
             raise ValueError("Analysis results must match every loaded channel.")
         self.channel_analyses = MappingProxyType(dict(analyses))
         self.results_valid = True
+        self._refresh_display_results()
         return True
 
     def invalidate_results(self) -> None:
@@ -199,6 +384,92 @@ class AnalysisSession:
         self.generation_id += 1
         self.channel_analyses = _empty_analyses()
         self.results_valid = False
+
+    def _refresh_display_results(self) -> None:
+        configuration = self.run_configuration
+        if not self.results_valid or configuration is None:
+            return
+        self.channel_analyses = MappingProxyType(
+            {
+                channel_name: configure_channel_event_reference(
+                    analysis,
+                    event_reference_time_s=(
+                        configuration.event_reference_time_s
+                    ),
+                    enable_pre_event_display=(
+                        configuration.enable_pre_event_display
+                    ),
+                    pre_event_display_velocity_m_s=(
+                        configuration.pre_event_display_velocity_m_s
+                    ),
+                )
+                for channel_name, analysis in self.channel_analyses.items()
+            }
+        )
+
+    def _reset_event_reference_for_current_records(self) -> None:
+        configuration = self.workflow_configuration
+        run_configuration = self.run_configuration
+        if configuration is None or run_configuration is None:
+            self.event_reference_source = None
+            self.rejected_event_reference_time_s = None
+            return
+        configured = configuration.analysis.event_reference_time_s
+        if configured is None:
+            self.run_configuration = replace(
+                run_configuration,
+                event_reference_time_s=None,
+            )
+            self.event_reference_source = None
+            self.rejected_event_reference_time_s = None
+            return
+        if self.records and not self._reference_is_valid_for_current_records(
+            configured
+        ):
+            self.run_configuration = replace(
+                run_configuration,
+                event_reference_time_s=None,
+            )
+            self.event_reference_source = None
+            self.rejected_event_reference_time_s = configured
+            return
+        self.run_configuration = replace(
+            run_configuration,
+            event_reference_time_s=configured,
+        )
+        self.event_reference_source = "configuration"
+        self.rejected_event_reference_time_s = None
+
+    def _clear_reference_outside_current_domain(self) -> None:
+        run_configuration = self.run_configuration
+        if run_configuration is None:
+            return
+        reference = run_configuration.event_reference_time_s
+        if reference is None or self._reference_is_valid_for_current_records(
+            reference
+        ):
+            return
+        self.run_configuration = replace(
+            run_configuration,
+            event_reference_time_s=None,
+        )
+        self.event_reference_source = None
+        self.rejected_event_reference_time_s = reference
+
+    def _reference_is_valid_for_current_records(self, value: float) -> bool:
+        if not self.records:
+            return True
+        start, end = self.data_bounds_s()
+        tolerance = max(abs(end - start), 1.0) * 1e-12
+        if value < start - tolerance or value > end + tolerance:
+            return False
+        if self.analysis_range is None:
+            return True
+        return (
+            self.analysis_range.start_time_s - tolerance
+            <= value
+            <= self.analysis_range.end_time_s + tolerance
+        )
 
 
 __all__ = [

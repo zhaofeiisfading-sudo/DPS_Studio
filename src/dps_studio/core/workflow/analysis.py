@@ -31,6 +31,7 @@ from dps_studio.core.ridge import (
     refine_peak_ridge_subbin,
 )
 from dps_studio.core.time_frequency import compute_stft
+from dps_studio.core.workflow.display import build_display_velocity
 from dps_studio.core.workflow.models import ChannelAnalysis, FloatArray
 from dps_studio.core.workflow.quality_parameters import (
     derive_bin_guard_half_width_hz,
@@ -51,6 +52,7 @@ def analyze_profile(
     background_guard_window_scale: float = 2.0,
     minimum_background_bin_count: int = 2,
     assume_pre_event_zero_for_display: bool = False,
+    pre_event_display_velocity_m_s: float = 0.0,
 ) -> Mapping[str, ChannelAnalysis]:
     """Analyze every channel independently with one formal profile."""
     if not isinstance(profile, AnalysisProfile):
@@ -74,6 +76,7 @@ def analyze_profile(
         background_guard_window_scale=background_guard_window_scale,
         minimum_background_bin_count=minimum_background_bin_count,
         assume_pre_event_zero_for_display=assume_pre_event_zero_for_display,
+        pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
     )
 
 
@@ -97,6 +100,7 @@ def analyze_configuration(
     background_guard_window_scale: float = 2.0,
     minimum_background_bin_count: int = 2,
     assume_pre_event_zero_for_display: bool = False,
+    pre_event_display_velocity_m_s: float = 0.0,
 ) -> Mapping[str, ChannelAnalysis]:
     """Run STFT through continuity diagnostics without paths, plots, or writes."""
     if not isinstance(records, Mapping) or not records:
@@ -220,14 +224,17 @@ def analyze_configuration(
         refined_velocity_m_s = (
             signal_detection_result.apparent_velocity_m_s.copy()
         )
-        display_velocity_m_s, velocity_origins = _display_velocity(
+        display_velocity_m_s, velocity_origins = build_display_velocity(
             stft_result.time_s,
             signal_detection_result.signal_states,
             refined_velocity_m_s,
             manual_event_reference_time_s=manual_reference,
-            assume_pre_event_zero_for_display=(
+            analysis_start_time_s=analysis_start,
+            analysis_end_time_s=analysis_end,
+            enable_pre_event_display=(
                 assume_pre_event_zero_for_display
             ),
+            pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
         )
         continuity_result = assess_ridge_continuity(refined_result)
         stream_event_candidates = build_stream_event_candidates(
@@ -310,33 +317,6 @@ def _convert_refined_velocity(
         )
         velocity_m_s[index] = converted.apparent_velocity_m_s[0]
     return velocity_m_s
-
-
-def _display_velocity(
-    time_s: FloatArray,
-    signal_states: tuple[SignalState, ...],
-    refined_velocity_m_s: FloatArray,
-    *,
-    manual_event_reference_time_s: float | None,
-    assume_pre_event_zero_for_display: bool,
-) -> tuple[FloatArray, tuple[str, ...]]:
-    display = refined_velocity_m_s.copy()
-    origins: list[str] = []
-    for index, state in enumerate(signal_states):
-        if (
-            assume_pre_event_zero_for_display
-            and manual_event_reference_time_s is not None
-            and time_s[index] < manual_event_reference_time_s
-        ):
-            display[index] = 0.0
-            origins.append("assumed_pre_event_zero_display_only")
-        elif state is SignalState.MEASURED:
-            origins.append("quality_gated_measurement")
-        elif state is SignalState.OUTSIDE_ANALYSIS_WINDOW:
-            origins.append("outside_analysis_window")
-        else:
-            origins.append(state.value)
-    return display, tuple(origins)
 
 
 def _manual_reference(

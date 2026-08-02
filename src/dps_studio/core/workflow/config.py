@@ -60,6 +60,7 @@ class AnalysisConfiguration:
     """Formal profiles and shared experiment-time analysis parameters."""
 
     profiles: tuple[AnalysisProfile, ...]
+    default_profile: AnalysisProfile
     analysis_start_time_s: float | None
     analysis_end_time_s: float | None
     manual_event_reference_time_s: float | None
@@ -68,6 +69,11 @@ class AnalysisConfiguration:
     @property
     def event_start_time_s(self) -> float | None:
         """Deprecated compatibility alias for the display-only manual reference."""
+        return self.manual_event_reference_time_s
+
+    @property
+    def event_reference_time_s(self) -> float | None:
+        """Return the explicit per-experiment display/review reference."""
         return self.manual_event_reference_time_s
 
 
@@ -90,6 +96,7 @@ class PlotConfiguration:
     event_detail_before_s: float
     event_detail_after_s: float
     assume_pre_event_zero_for_display: bool
+    pre_event_display_velocity_m_s: float
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -208,6 +215,7 @@ def load_workflow_config(
     profiles = _profiles(
         _required(analysis_table, "profiles", parent="analysis")
     )
+    default_profile = _default_profile(analysis_table, profiles=profiles)
     analysis_start_time_s = _optional_table_float(
         analysis_table,
         "analysis_start_time_s",
@@ -230,6 +238,7 @@ def load_workflow_config(
         )
     analysis_configuration = AnalysisConfiguration(
         profiles=profiles,
+        default_profile=default_profile,
         analysis_start_time_s=analysis_start_time_s,
         analysis_end_time_s=analysis_end_time_s,
         manual_event_reference_time_s=manual_reference,
@@ -427,6 +436,10 @@ def load_workflow_config(
             ),
             field_name="plot.assume_pre_event_zero_for_display",
         ),
+        pre_event_display_velocity_m_s=_finite_float(
+            plot_table.get("pre_event_display_velocity_m_s", 0.0),
+            field_name="plot.pre_event_display_velocity_m_s",
+        ),
     )
 
     output_configuration = OutputConfiguration(
@@ -481,6 +494,28 @@ def _profiles(value: object) -> tuple[AnalysisProfile, ...]:
             "'high_time_resolution'] in that order for formal production."
         )
     return tuple(profiles)
+
+
+def _default_profile(
+    analysis_table: Mapping[str, Any],
+    *,
+    profiles: tuple[AnalysisProfile, ...],
+) -> AnalysisProfile:
+    value = analysis_table.get("default_profile")
+    if value is None:
+        return profiles[0]
+    identifier = _string(value, field_name="analysis.default_profile")
+    try:
+        profile = get_analysis_profile(identifier)
+    except (TypeError, ValueError) as exc:
+        raise WorkflowConfigurationError(
+            f"analysis.default_profile is invalid: {identifier!r}."
+        ) from exc
+    if profile not in profiles:
+        raise WorkflowConfigurationError(
+            "analysis.default_profile must also be listed in analysis.profiles."
+        )
+    return profile
 
 
 def _channel_columns(table: Mapping[str, Any]) -> dict[str, int]:

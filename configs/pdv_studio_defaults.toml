@@ -1,5 +1,8 @@
+# Built-in scientific defaults for the PDV Studio desktop application.
+# The GUI always analyzes records explicitly imported by the user; input.path is
+# retained only because this file uses the shared WorkflowConfiguration schema.
 [input]
-path = "data/raw/20260607.csv"
+path = "."
 time_column = 0
 delimiter = ","
 has_header = false
@@ -15,23 +18,21 @@ pdv_channel_1 = 1.0
 pdv_channel_2 = 1.0
 
 [analysis]
+default_profile = "balanced"
 profiles = ["balanced", "high_time_resolution"]
-# The analysis window explicitly covers the complete current raw record.
+# Preferred laboratory acquisition window. The GUI uses it only when it lies
+# completely inside the records currently imported by the user; otherwise it
+# falls back to the complete common channel range.
 analysis_start_time_s = 5.5396025426e-4
 analysis_end_time_s = 5.5596022926e-4
-# Optional plotting/review reference only; it never gates ridge or quality work.
+# Optional display/review reference; it never gates ridge extraction.
 manual_event_reference_time_s = 5.54668e-4
-# Demonstration value only; not confirmed against the experiment record.
+# User-confirmed vacuum wavelength of the laboratory PDV laser.
 vacuum_wavelength_m = 1.55e-6
 
 [quality]
-# Retained for legacy descriptive scripts; formal detection uses the bin guard below.
 background_guard_window_scale = 2.0
 minimum_background_bin_count = 2
-# TASK-013C-R development calibration compared exactly (10,3), (12,4),
-# (14,5), and (16,6) dB. No stricter pair met every retention/continuity
-# criterion, so the deterministic fallback retains 10/3 dB.
-# This is not an absolute experimental standard.
 minimum_peak_to_background_db = 10.0
 minimum_peak_to_competitor_db = 3.0
 peak_exclusion_half_width_bins = 12
@@ -40,16 +41,11 @@ minimum_cycles_in_window = 1.0
 enabled = true
 
 [event_candidate]
-# Independent development defaults for segment-level event eligibility.
-# Duration is first-to-last STFT frame-center span, not window coverage.
 minimum_segment_frames = 8
 minimum_segment_duration_s = 2.0e-8
 maximum_adjacent_frequency_step_hz = 1.0e8
-# Optional median contrast gates are deliberately omitted. The per-frame
-# 10 dB / 3 dB rules are not silently duplicated at the event level.
 
 [event_consensus]
-# Consensus metadata only; no raw-voltage, frequency, or velocity fusion.
 channel_start_time_tolerance_s = 2.5e-8
 minimum_interval_overlap_fraction = 0.5
 channel_start_frequency_tolerance_hz = 1.5e8

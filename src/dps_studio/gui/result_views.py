@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections import Counter
 from collections.abc import Mapping
 from typing import Any
@@ -29,6 +30,50 @@ from dps_studio.core.workflow import ChannelAnalysis
 
 FloatArray = NDArray[np.float64]
 _COLORS = ("#0072B2", "#D55E00", "#009E73", "#CC79A7")
+
+
+def analysis_view_range_us(analysis: ChannelAnalysis) -> tuple[float, float]:
+    """Return the confirmed analysis range in display microseconds."""
+    detection = analysis.signal_detection_result
+    start_s = detection.analysis_start_time_s
+    end_s = detection.analysis_end_time_s
+    if start_s is None:
+        start_s = float(analysis.stft_result.time_s[0])
+    if end_s is None:
+        end_s = float(analysis.stft_result.time_s[-1])
+    if start_s >= end_s:
+        raise ValueError("Analysis view range must be strictly ordered.")
+    return start_s * 1e6, end_s * 1e6
+
+
+def finite_velocity_view_range(
+    arrays: tuple[FloatArray, ...],
+    *,
+    padding_fraction: float = 0.075,
+) -> tuple[float, float] | None:
+    """Return a padded range from finite plotted values only."""
+    finite_min = math.inf
+    finite_max = -math.inf
+    for values in arrays:
+        finite = np.asarray(values, dtype=np.float64)
+        finite = finite[np.isfinite(finite)]
+        if finite.size:
+            finite_min = min(finite_min, float(np.min(finite)))
+            finite_max = max(finite_max, float(np.max(finite)))
+    if not math.isfinite(finite_min) or not math.isfinite(finite_max):
+        return None
+    span = finite_max - finite_min
+    padding = (
+        span * padding_fraction
+        if span > 0.0
+        else max(abs(finite_min) * padding_fraction, 1.0)
+    )
+    return finite_min - padding, finite_max + padding
+
+
+def _fit_analysis_x(plot_widget: Any, analysis: ChannelAnalysis) -> None:
+    start_us, end_us = analysis_view_range_us(analysis)
+    plot_widget.setXRange(start_us, end_us, padding=0.0)
 
 
 def relative_magnitude_db(
@@ -93,6 +138,8 @@ def _add_search_band(plot_widget: Any, analysis: ChannelAnalysis) -> list[Any]:
 class _ChannelView(QWidget):
     """Small shared channel selector for independent analysis results."""
 
+    plot_widget: Any
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._analyses: Mapping[str, ChannelAnalysis] = {}
@@ -104,6 +151,12 @@ class _ChannelView(QWidget):
         self.channel_combo.setObjectName("analysisChannelSelector")
         self.channel_combo.currentIndexChanged.connect(self._channel_changed)
         controls.addWidget(self.channel_combo)
+        self.fit_analysis_range_button = QPushButton(
+            self.tr("适合分析范围")
+        )
+        self.fit_analysis_range_button.setObjectName("fitAnalysisRangeButton")
+        self.fit_analysis_range_button.clicked.connect(self.fit_analysis_range)
+        controls.addWidget(self.fit_analysis_range_button)
         controls.addStretch(1)
         self.root_layout.addLayout(controls)
 
@@ -124,7 +177,7 @@ class _ChannelView(QWidget):
         self.channel_combo.setEnabled(bool(analyses))
         if analyses:
             self.channel_combo.setCurrentIndex(0)
-            self._render_channel(next(iter(analyses)))
+            self._render_channel(next(iter(analyses)), fit_view=True)
 
     def clear_results(self) -> None:
         """Remove old arrays after any upstream invalidation."""
@@ -136,9 +189,18 @@ class _ChannelView(QWidget):
     def _channel_changed(self, _index: int) -> None:
         channel_name = self.channel_combo.currentData()
         if isinstance(channel_name, str) and channel_name in self._analyses:
-            self._render_channel(channel_name)
+            self._render_channel(channel_name, fit_view=True)
 
-    def _render_channel(self, channel_name: str) -> None:
+    def fit_analysis_range(self) -> None:
+        """Restore X to the confirmed analysis range for the current channel."""
+        channel_name = self.channel_combo.currentData()
+        if isinstance(channel_name, str) and channel_name in self._analyses:
+            self._fit_current_view(self._analyses[channel_name])
+
+    def _fit_current_view(self, analysis: ChannelAnalysis) -> None:
+        _fit_analysis_x(self.plot_widget, analysis)
+
+    def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         raise NotImplementedError
 
     def _clear_plot(self) -> None:
@@ -166,7 +228,7 @@ class SpectrogramView(_ChannelView):
         self.current_image_db: FloatArray | None = None
         self._search_lines: list[Any] = []
 
-    def _render_channel(self, channel_name: str) -> None:
+    def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         analysis = self._analyses[channel_name]
         self.plot_widget.clear()
         self.plot_widget.addItem(self.image_item)
@@ -176,7 +238,9 @@ class SpectrogramView(_ChannelView):
             floor_db=self._floor_db,
         )
         self._search_lines = _add_search_band(self.plot_widget, analysis)
-        self.plot_widget.autoRange()
+        if fit_view:
+            self.plot_widget.autoRange()
+            self._fit_current_view(analysis)
 
     def _clear_plot(self) -> None:
         self.plot_widget.clear()
@@ -203,7 +267,7 @@ class RidgeView(_ChannelView):
         self.refined_curve: Any | None = None
         self.formal_curve: Any | None = None
 
-    def _render_channel(self, channel_name: str) -> None:
+    def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         analysis = self._analyses[channel_name]
         self.plot_widget.clear()
         self.plot_widget.addLegend(offset=(12, 12))
@@ -243,7 +307,9 @@ class RidgeView(_ChannelView):
         self.quality_label.setText(
             self.tr("逐帧质量状态：{summary}").format(summary=summary)
         )
-        self.plot_widget.autoRange()
+        if fit_view:
+            self.plot_widget.autoRange()
+            self._fit_current_view(analysis)
 
     def _clear_plot(self) -> None:
         self.plot_widget.clear()
@@ -259,7 +325,7 @@ class VelocityView(_ChannelView):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         option_row = QHBoxLayout()
-        self.display_velocity_check = QCheckBox(self.tr("显示显示速度（非正式结果）"))
+        self.display_velocity_check = QCheckBox(self.tr("显示速度（非正式结果）"))
         self.display_velocity_check.setObjectName("displayVelocityCheck")
         self.display_velocity_check.setChecked(False)
         self.display_velocity_check.toggled.connect(self._rerender)
@@ -279,13 +345,24 @@ class VelocityView(_ChannelView):
         self.formal_curve: Any | None = None
         self.display_curve: Any | None = None
 
+    def refresh_display_results(
+        self,
+        analyses: Mapping[str, ChannelAnalysis],
+    ) -> None:
+        """Replace display-only arrays while preserving channel selection."""
+        self._analyses = analyses
+        channel_name = self.channel_combo.currentData()
+        if isinstance(channel_name, str) and channel_name in analyses:
+            self._render_channel(channel_name, fit_view=False)
+
     def _rerender(self, _checked: bool) -> None:
         channel_name = self.channel_combo.currentData()
         if isinstance(channel_name, str) and channel_name in self._analyses:
-            self._render_channel(channel_name)
+            self._render_channel(channel_name, fit_view=False)
 
-    def _render_channel(self, channel_name: str) -> None:
+    def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         analysis = self._analyses[channel_name]
+        previous_range = self.plot_widget.plotItem.vb.viewRange()
         self.plot_widget.clear()
         self.plot_widget.addLegend(offset=(12, 12))
         time_us = analysis.stft_result.time_s * 1e6
@@ -306,7 +383,21 @@ class VelocityView(_ChannelView):
                 connect="finite",
                 name=self.tr("显示速度（仅显示）"),
             )
-        self.plot_widget.autoRange()
+        if fit_view:
+            self.plot_widget.autoRange()
+            self._fit_current_view(analysis)
+        else:
+            self.plot_widget.setXRange(*previous_range[0], padding=0.0)
+            self.plot_widget.setYRange(*previous_range[1], padding=0.0)
+
+    def _fit_current_view(self, analysis: ChannelAnalysis) -> None:
+        super()._fit_current_view(analysis)
+        arrays = [analysis.signal_detection_result.apparent_velocity_m_s]
+        if self.display_velocity_check.isChecked():
+            arrays.append(analysis.display_velocity_m_s)
+        bounds = finite_velocity_view_range(tuple(arrays))
+        if bounds is not None:
+            self.plot_widget.setYRange(*bounds, padding=0.0)
 
     def _clear_plot(self) -> None:
         self.plot_widget.clear()
@@ -323,6 +414,17 @@ class ComparisonView(QWidget):
         self._checks: dict[str, QCheckBox] = {}
         self.curves: dict[str, Any] = {}
         layout = QVBoxLayout(self)
+        fit_row = QHBoxLayout()
+        self.fit_analysis_range_button = QPushButton(
+            self.tr("适合分析范围")
+        )
+        self.fit_analysis_range_button.setObjectName(
+            "fitComparisonAnalysisRangeButton"
+        )
+        self.fit_analysis_range_button.clicked.connect(self.fit_analysis_range)
+        fit_row.addWidget(self.fit_analysis_range_button)
+        fit_row.addStretch(1)
+        layout.addLayout(fit_row)
         self.controls = QHBoxLayout()
         layout.addLayout(self.controls)
         self.plot_widget = pg.PlotWidget(background="w")
@@ -353,6 +455,21 @@ class ComparisonView(QWidget):
             self.curves[channel_name] = curve
         self.controls.addStretch(1)
         self.plot_widget.autoRange()
+        self.fit_analysis_range()
+
+    def fit_analysis_range(self) -> None:
+        """Restore analysis X and finite visible-channel velocity Y ranges."""
+        if not self._analyses:
+            return
+        _fit_analysis_x(self.plot_widget, next(iter(self._analyses.values())))
+        arrays = tuple(
+            analysis.signal_detection_result.apparent_velocity_m_s
+            for channel_name, analysis in self._analyses.items()
+            if self._checks[channel_name].isChecked()
+        )
+        bounds = finite_velocity_view_range(arrays)
+        if bounds is not None:
+            self.plot_widget.setYRange(*bounds, padding=0.0)
 
     def clear_results(self) -> None:
         """Remove every stale channel curve and visibility control."""
@@ -456,5 +573,7 @@ __all__ = [
     "RidgeView",
     "SpectrogramView",
     "VelocityView",
+    "analysis_view_range_us",
+    "finite_velocity_view_range",
     "relative_magnitude_db",
 ]

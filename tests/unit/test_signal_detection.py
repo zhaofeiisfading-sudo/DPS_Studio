@@ -55,6 +55,7 @@ def _analyze_voltage(
     maximum_frequency_hz: float = 800.0e6,
     manual_event_reference_time_s: float | None = None,
     assume_pre_event_zero_for_display: bool = False,
+    pre_event_display_velocity_m_s: float = 0.0,
 ) -> object:
     time_s = np.arange(voltage_v.size, dtype=np.float64) / SAMPLE_RATE_HZ
     records = {
@@ -77,6 +78,7 @@ def _analyze_voltage(
         detection_config=config or _detection_config(),
         minimum_background_bin_count=2,
         assume_pre_event_zero_for_display=assume_pre_event_zero_for_display,
+        pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
     )["pdv_channel_1"]
 
 
@@ -302,7 +304,7 @@ def test_manual_reference_changes_no_formal_detection_values() -> None:
     )
 
 
-def test_explicit_pre_event_zero_changes_display_only() -> None:
+def test_explicit_pre_event_platform_preserves_measured_frames() -> None:
     time_s = np.arange(4096, dtype=np.float64) / SAMPLE_RATE_HZ
     voltage = np.sin(2.0 * np.pi * 200.0e6 * time_s)
     reference_s = 0.5e-6
@@ -312,12 +314,22 @@ def test_explicit_pre_event_zero_changes_display_only() -> None:
         assume_pre_event_zero_for_display=True,
     )
     before = analysis.stft_result.time_s < reference_s
+    measured = np.asarray(
+        [
+            state is SignalState.MEASURED
+            for state in analysis.signal_detection_result.signal_states
+        ]
+    )
     assert before.any()
-    assert np.equal(analysis.display_velocity_m_s[before], 0.0).all()
-    assert np.isfinite(analysis.refined_velocity_m_s[before]).all()
-    assert np.equal(analysis.refined_velocity_m_s[before], 0.0).sum() == 0
-    assert set(np.asarray(analysis.velocity_origins, dtype=object)[before]) == {
-        "assumed_pre_event_zero_display_only"
+    assert measured[before].all()
+    np.testing.assert_array_equal(
+        analysis.display_velocity_m_s[before],
+        analysis.refined_velocity_m_s[before],
+    )
+    assert set(
+        np.asarray(analysis.velocity_origins, dtype=object)[before]
+    ) == {
+        "quality_gated_measurement"
     }
 
 

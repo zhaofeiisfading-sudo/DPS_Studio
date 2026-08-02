@@ -503,3 +503,85 @@ API，所以取消按钮保持禁用；参数变化或重新导入只增加 gene
 
 英文翻译资源在 TASK-015A 更新为 203 条完成翻译；新增范围、配置、分析、质量和
 失效提示均通过 Qt Linguist 资源提供。
+
+## 18. TASK-015C display velocity 与未来导出契约
+
+事件前显示速度（Pre-event Display Velocity）是 display-only 参数，内部字段为
+`pre_event_display_velocity_m_s`，单位 m/s，默认 0.0。事件前边界只使用现有 public
+`manual_event_reference_time_s`：仅参考时刻之前的非 `MEASURED` 帧可采用配置平台；
+`MEASURED` 帧继续使用正式表观速度，参考时刻之后的所有非可信状态继续为 NaN。
+
+修改该参数只通过 public display transformer 重建每个通道各自的
+`ChannelAnalysis.display_velocity_m_s` 和 origin，不改变 STFT、ridge、SignalState、
+formal frequency、`apparent_velocity_m_s`、`refined_velocity_m_s` 或 generation。
+
+未来 TASK-016 的 public GUI export service 必须将下列字段分开：
+
+```text
+apparent_velocity_m_s
+display_velocity_m_s
+signal_state
+```
+
+参数快照或 manifest 必须另行记录：
+
+```text
+pre_event_display_velocity_m_s
+```
+
+未来 GUI 导出选项名称为“包含事件前显示平台”，默认包含。该选项只能决定
+`display_velocity_m_s` 的事件前展示/导出行为；无论是否包含，
+`apparent_velocity_m_s` 的所有非 `MEASURED` 帧仍必须为 NaN。禁止把 display velocity
+字段命名为 apparent velocity。本 TASK 不实现该 checkbox、writer 或 export service。
+
+## 19. TASK-015C-R 每次实验事件参考与视图范围
+
+GUI 使用 `event_reference_time_s` 作为每次实验的运行时名称，并继续映射到 public
+core 的 `manual_event_reference_time_s`，没有建立第二套事件模型。每次导入 records
+时，session 都从当前配置重新验证参考：只有同时落在完整共同时间域和确认 analysis
+range 内才可启用；越界值保留为 rejected audit 值，实际运行参考改为 `None`，界面
+明确显示未设置，display platform 不生成。用户手工确认或显式采用某通道
+`detected_event_candidate_time_s` 后，只更新 review/display metadata 和 display 数组，
+不重跑 STFT、ridge 或 formal velocity。检测候选永远是建议，不自动覆盖人工参考。
+
+三个时间范围严格分开：Raw Signal 默认使用 Full Data Range；Analysis Range 页面在
+完整记录上叠加确认区间；Spectrogram、Ridge、Velocity 和 Comparison 的默认 X view
+使用 `analysis_start_time_s → analysis_end_time_s`，不裁剪任何 core 数组。结果视图的
+“适合分析范围”恢复该 X 范围。Velocity/Comparison 的 Y fit 只统计当前实际绘制的
+有限值并增加 7.5% padding；新结果和通道切换时 fit，普通 repaint 和 display-only
+刷新保留用户 zoom。
+
+## 20. TASK-015D 不可变预设与单次运行覆写
+
+正式 `BALANCED_PROFILE`、`HIGH_TIME_RESOLUTION_PROFILE` 继续是 frozen identity
+objects，数值和配置文件不因 GUI 编辑改变。运行参数使用以下单向结构：
+
+```text
+immutable AnalysisProfile
++ configuration vacuum_wavelength_m
++ AnalysisParameterOverrides（当前 session）
+-> build_analysis_run_parameters
+-> immutable AnalysisRunParameters（final validated values + provenance）
+-> AnalysisRunConfiguration
+-> AnalysisRequest
+```
+
+`AnalysisRunParameters` 同时保留 `base_profile`、`preset_name`、规范化
+`custom_overrides` 和最终 SI 值。没有覆写时 adapter 继续调用 `analyze_profile`；存在
+覆写时用同一组最终值调用 public `analyze_configuration`。GUI 不包含 Balanced/High
+数值分支，也不写 preset TOML。
+
+主面板可编辑真空波长、window length、overlap、nfft 和搜索频带。窗函数沿用正式
+profile 的 `hann` 并保持只读；quality 和 display 参数不进入 scientific preset。
+hop 没有 override 字段，始终由 `window_length_samples - overlap_samples` 派生。
+
+静态验证复用 `AnalysisProfile` 构造器的正式约束：window 至少 2、
+`0 <= overlap < window`、nfft 只要求整数且 `nfft >= window`、搜索上限大于下限，
+不添加 2 的幂规则。加载 records 后由 core `AnalysisRunParameters.validate_for_records`
+检查样本数、均匀采样、odd/even nfft 对应的真实 one-sided FFT grid 和正式质量链需要
+的至少两个搜索频点。GUI 只负责 nm→m、GHz→Hz 和呈现 core 错误，不夹值、不改写
+nfft、不自动贴 Nyquist。
+
+科学参数变化会增加 generation、清除正式结果并要求重跑；display-only 事件前平台
+参数继续只刷新显示数组。动态下拉状态为“自定义（基于 …）”，重新选择正式预设或
+点击“恢复预设值”会清空该 session 的 overrides 并恢复原始值。

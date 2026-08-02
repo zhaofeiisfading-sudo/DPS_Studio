@@ -103,11 +103,11 @@ def test_real_reader_keeps_source_and_channels_independent_and_switches_page(
     window = MainWindow(translation_manager=translation_manager())
     try:
         window.set_loaded_result(result)
-        assert window.workflow_state is WorkflowState.DATA_LOADED
+        assert window.workflow_state is WorkflowState.RANGE_DEFINED
         assert window.load_result is result
         assert window.select_workflow_step(1)
         assert window.parameter_stack.currentIndex() == 1
-        assert not window.select_workflow_step(2)
+        assert window.select_workflow_step(2)
         assert source.read_bytes() == before
     finally:
         window.close()

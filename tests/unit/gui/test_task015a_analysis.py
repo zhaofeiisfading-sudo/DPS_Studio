@@ -75,7 +75,6 @@ def _prepare_window(
     window.set_loaded_result(result)
     window.set_analysis_configuration(_configuration())
     window.analysis_range_panel.use_full_range()
-    window.wavelength_confirm_check.setChecked(True)
     qapp.processEvents()
     return window, source_before
 
@@ -253,6 +252,16 @@ def test_full_gui_analysis_uses_real_core_arrays_and_reaches_result_ready(
             for record in window.load_result.records.values()
         )
         assert window.load_result.source_path.read_bytes() == source_before
+        generation = window.analysis_session.generation_id
+        window.vacuum_wavelength_spin.setValue(1550.12)
+        qapp.processEvents()
+        assert window.analysis_session.generation_id > generation
+        assert not window.analysis_session.results_valid
+        assert window.workflow_state is WorkflowState.RANGE_DEFINED
+        assert window.analysis_session.run_configuration is not None
+        assert window.analysis_session.run_configuration.vacuum_wavelength_m == (
+            pytest.approx(1.55012e-6)
+        )
     finally:
         window.close()
         qapp.processEvents()
@@ -332,9 +341,8 @@ def test_gui_imports_no_scripts_and_adapter_uses_public_workflow() -> None:
     for source_path in gui_root.glob("*.py"):
         assert forbidden.search(source_path.read_text(encoding="utf-8")) is None
     adapter_source = (gui_root / "analysis_adapter.py").read_text(encoding="utf-8")
-    assert "from dps_studio.core.workflow import ChannelAnalysis, analyze_profile" in (
-        adapter_source
-    )
+    assert "analyze_configuration," in adapter_source
+    assert "analyze_profile," in adapter_source
 
 
 def test_repository_raw_data_hash_is_stable_during_gui_tests() -> None:
@@ -355,7 +363,7 @@ def test_english_translation_covers_new_range_and_analysis_controls(
             "Confirm Analysis Range"
         )
         assert window.run_analysis_button.text() == "Run Full Automatic Analysis"
-        assert window.wavelength_confirm_check.text().startswith("I have verified")
+        assert "1550 nm" in window.vacuum_wavelength_spin.toolTip()
     finally:
         window.close()
         manager.install("zh_CN")

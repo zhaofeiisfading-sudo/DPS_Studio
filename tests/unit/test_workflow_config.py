@@ -58,6 +58,7 @@ analysis_display_maximum_frequency_hz = 2.0e9
 event_detail_before_s = 1.0e-7
 event_detail_after_s = 2.0e-7
 assume_pre_event_zero_for_display = false
+pre_event_display_velocity_m_s = 0.0
 [output]
 root = "outputs/production_runs"
 """
@@ -81,13 +82,16 @@ def test_toml_loads_relative_paths_profiles_and_immutable_mappings(
         BALANCED_PROFILE,
         HIGH_TIME_RESOLUTION_PROFILE,
     )
+    assert configuration.analysis.default_profile is BALANCED_PROFILE
     assert configuration.analysis.manual_event_reference_time_s == 5.54668e-4
+    assert configuration.analysis.event_reference_time_s == 5.54668e-4
     assert configuration.analysis.event_start_time_s == 5.54668e-4
     assert configuration.quality.signal_detection.minimum_consecutive_frames == 3
     assert configuration.event_candidate.minimum_segment_frames == 8
     assert configuration.event_candidate.minimum_median_peak_to_background_db is None
     assert configuration.event_consensus.minimum_interval_overlap_fraction == 0.5
     assert configuration.plot.assume_pre_event_zero_for_display is False
+    assert configuration.plot.pre_event_display_velocity_m_s == 0.0
     with pytest.raises(FrozenInstanceError):
         configuration.analysis.vacuum_wavelength_m = 1064e-9  # type: ignore[misc]
     with pytest.raises(TypeError):
@@ -95,6 +99,27 @@ def test_toml_loads_relative_paths_profiles_and_immutable_mappings(
     columns = dict(configuration.input.voltage_columns)
     columns["pdv_channel_1"] = 9
     assert configuration.input.voltage_columns["pdv_channel_1"] == 1
+
+
+def test_explicit_default_profile_is_loaded_and_validated(tmp_path: Path) -> None:
+    text = _valid_toml().replace(
+        "[analysis]\n",
+        '[analysis]\ndefault_profile = "high_time_resolution"\n',
+        1,
+    )
+    configuration = _load(tmp_path, text)
+    assert configuration.analysis.default_profile is HIGH_TIME_RESOLUTION_PROFILE
+
+    invalid = text.replace(
+        'default_profile = "high_time_resolution"',
+        'default_profile = "unknown"',
+        1,
+    )
+    with pytest.raises(
+        WorkflowConfigurationError,
+        match=r"analysis\.default_profile",
+    ):
+        _load(tmp_path, invalid)
 
 
 @pytest.mark.parametrize(
@@ -126,6 +151,7 @@ def test_toml_loads_relative_paths_profiles_and_immutable_mappings(
         ("cross_profile_time_tolerance_s = 2.5e-8", "cross_profile_time_tolerance_s = 0.0", "event_consensus.cross_profile_time_tolerance_s"),
         ("analysis_display_maximum_frequency_hz = 2.0e9", "analysis_display_maximum_frequency_hz = 0.0", "plot.analysis_display_maximum_frequency_hz"),
         ("event_detail_before_s = 1.0e-7", "event_detail_before_s = -1.0e-7", "plot.event_detail_before_s"),
+        ("pre_event_display_velocity_m_s = 0.0", "pre_event_display_velocity_m_s = nan", "plot.pre_event_display_velocity_m_s"),
     ],
 )
 def test_invalid_config_reports_specific_field(

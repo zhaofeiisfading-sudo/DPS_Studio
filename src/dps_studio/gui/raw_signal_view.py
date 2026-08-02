@@ -83,7 +83,7 @@ class RawSignalView(QWidget):
         self.channel_combo.setCurrentIndex(0)
         self.channel_combo.setEnabled(bool(records))
         self.channel_combo.blockSignals(False)
-        self.plot_widget.enableAutoRange()
+        self.plot_widget.autoRange()
         if records:
             start_time_s = max(record.start_time_s for record in records.values())
             end_time_s = min(record.end_time_s for record in records.values())
@@ -95,6 +95,11 @@ class RawSignalView(QWidget):
             )
             self.set_analysis_region_s(start_time_s, end_time_s)
             self.analysis_region.setVisible(True)
+            self.plot_widget.setXRange(
+                start_time_s * 1e6,
+                end_time_s * 1e6,
+                padding=0.02,
+            )
         else:
             self._data_bounds_s = None
             self.analysis_region.setVisible(False)

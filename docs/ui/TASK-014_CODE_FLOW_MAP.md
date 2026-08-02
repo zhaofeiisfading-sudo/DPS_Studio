@@ -130,8 +130,10 @@ GUI 接入结论含义：
 - 正式精修表观速度是 `ChannelAnalysis.refined_velocity_m_s`，与
   `SignalDetectionResult.apparent_velocity_m_s` 完全相等；离散正式速度另存于
   `formal_discrete_velocity_m_s`。
-- `display_velocity_m_s` 是单独显示数组。只有显式启用显示约定时才可写入
-  event 前零值；它不覆盖正式速度。
+- `display_velocity_m_s` 是单独显示数组。只有显式启用显示约定时，才可在
+  `manual_event_reference_time_s` 之前的非 `MEASURED` 帧写入配置的
+  `pre_event_display_velocity_m_s`；`MEASURED` 帧始终使用正式表观速度，事件后
+  非可信帧始终保持 NaN。该数组不覆盖正式速度。
 - `ApparentVelocityResult` 只有 unsigned apparent velocity。当前没有
   `corrected_velocity_m_s`、LiF/折射率/入射角修正或有符号速度。
 - 每个 profile 内 `for channel_name, record in records.items()` 独立完成整条链。
@@ -304,3 +306,48 @@ records。worker 传给 `analyze_profile` 的正式参数为 profile、分析起
 
 当前仍没有 `corrected_velocity_m_s`、LiF 修正或 GUI public export service；相关入口
 继续禁用。
+
+## 12. TASK-015C-R 跨文件参考与结果视图调用链
+
+```text
+新 DelimitedSignalLoadResult
+-> AnalysisSession.load_records
+-> 重新验证 configuration.analysis.event_reference_time_s
+   -> 当前 data + analysis range 内：作为初始参考
+   -> 越界：run_configuration.event_reference_time_s=None + rejected audit value
+-> 用户可手工确认，或在结果返回后显式采用某通道 detected candidate
+-> configure_channel_event_reference（仅 metadata/display）
+-> build_display_velocity（analysis start <= time < event reference）
+-> formal apparent velocity / SignalState / STFT 保持不变
+```
+
+结果视图从 `SignalDetectionResult.analysis_start_time_s` 和
+`analysis_end_time_s` 取得 X view；Velocity/Comparison 从当前可见有限速度计算一次性 Y
+fit。PyQtGraph repaint 和 display-only refresh 不重新 auto-range，避免覆盖用户 zoom。
+
+## 13. TASK-015D preset + overrides 调用链
+
+```text
+PresetRepository.configuration.analysis.profiles
+-> 用户选择 immutable AnalysisProfile
+-> MainWindow 从 profile/public run model 填充可编辑字段
+-> 用户修改 scientific field
+-> AnalysisParameterOverrides（nm→m、GHz→Hz）
+-> core build_analysis_run_parameters
+   -> 复用 AnalysisProfile 正式静态 validator
+   -> hop = window - overlap
+   -> 规范化 explicit overrides
+-> AnalysisRunParameters.validate_for_records
+   -> sample count + uniform sampling
+   -> 当前 sample rate/nfft 的真实 one-sided FFT grid
+   -> search band 至少包含两个正式质量频点
+-> AnalysisSession.run_configuration
+-> generation 失效并清除旧 formal result
+-> AnalysisRequest 捕获同一 immutable final_run_configuration
+-> unchanged preset: analyze_profile
+   custom run: analyze_configuration(final values)
+-> 每个通道独立 ChannelAnalysis
+```
+
+display-only 参数不经过该 scientific invalidation 链。GUI 不导入 time-frequency/ridge
+私有 validator，不复制 preset 数字，不修改任何 TOML 或 `data/raw`。

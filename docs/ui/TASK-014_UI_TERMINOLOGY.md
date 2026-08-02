@@ -214,3 +214,43 @@ This feature is planned but is not connected in the current version.
 
 “显示速度”仍不能称为正式测量速度；“窗口修正尚未接入”不能简写为“修正速度”。
 不存在 cooperative cancellation 时不得使用“已终止计算”，应使用“迟到结果已忽略”。
+
+## 11. TASK-015C 新增固定术语
+
+| 中文 | English | 内部标识或说明 |
+|---|---|---|
+| 事件前显示速度 | Pre-event Display Velocity | `pre_event_display_velocity_m_s`，m/s，默认 0.0 |
+| 显示速度（非正式结果） | Display Velocity (Non-formal Result) | `display_velocity_m_s`，与正式数组分离 |
+| 包含事件前显示平台 | Include Pre-event Display Platform | TASK-016 未来导出选项，默认包含；本 TASK 不实现 |
+
+“事件前显示速度”只影响 display velocity。不得将其称为实际速度、正式速度、修正
+速度或 apparent velocity；不得用其填充事件后非可信帧。
+
+## 12. TASK-015C-R 新增固定术语
+
+| 中文 | English | 内部标识或说明 |
+|---|---|---|
+| 事件参考时刻 | Event Reference Time | GUI/session `event_reference_time_s`；映射到 core `manual_event_reference_time_s` |
+| 检测候选（仅供参考） | Detected Candidates (Reference Only) | `detected_event_candidate_time_s`；不得称为已确认冲击到时 |
+| 采用该候选 | Use This Candidate | 必须由用户显式点击，不自动覆盖人工参考 |
+| 适合分析范围 | Fit Analysis Range | 恢复结果视图 X，并在速度图恢复有限绘制值 Y |
+| 完整数据范围 | Full Data Range | 原始记录共同时间域，不等于 analysis/view range |
+| 视图范围 | View Range | 只影响坐标显示，不裁剪任何科学数组 |
+
+配置中的旧绝对参考不得跨时间轴平移或静默继承。检测候选只能称为候选参考，不能称为
+真实冲击时刻、冲击到时或确认事件。
+
+## 13. TASK-015D 新增固定术语
+
+| 中文 | English | 内部标识或说明 |
+|---|---|---|
+| 基础预设 | Base Preset | `base_profile`；不可变正式 `AnalysisProfile` |
+| 自定义（基于 Balanced） | Custom (based on Balanced) | 当前 session 存在显式覆写，绝不表示修改了 Balanced |
+| 自定义（基于 High time resolution） | Custom (based on High time resolution) | 保留 High 作为 provenance 基线 |
+| 显式覆写 | Explicit Overrides | `AnalysisParameterOverrides` 中相对基线真正变化的字段 |
+| 最终运行配置 | Final Run Configuration | `AnalysisRunParameters`，SI 单位且已经 core 验证 |
+| 恢复预设值 | Restore Preset Values | 清除当前 session overrides，不写配置文件 |
+
+“Custom”必须同时标明基础预设；不得将 per-run override 称为已保存预设。hop 是派生
+值，不称为第三个独立窗参数。事件前显示速度仍属于 Display，不属于 Balanced/High
+scientific preset。
