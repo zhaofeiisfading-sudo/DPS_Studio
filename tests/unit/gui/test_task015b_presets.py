@@ -58,7 +58,7 @@ def test_startup_loads_traceable_balanced_defaults_without_data(
         assert window.workflow_state is WorkflowState.EMPTY
         assert window.profile_combo.currentData() is BALANCED_PROFILE
         assert window.profile_combo.currentText() == "平衡"
-        assert window.profile_combo.count() == 3
+        assert window.profile_combo.count() == 5
         assert window.profile_combo.findData(CUSTOM_PRESET_ID) == -1
         assert window.vacuum_wavelength_spin.value() == pytest.approx(1550.0)
         assert window.analysis_session.run_configuration is not None
@@ -117,7 +117,9 @@ def test_editing_selected_preset_creates_custom_based_on_that_preset(
         assert run_configuration.base_profile is HIGH_TIME_RESOLUTION_PROFILE
         assert run_configuration.parameters.nfft == 8192
 
-        window.profile_combo.setCurrentIndex(0)
+        balanced_index = window.profile_combo.findData(BALANCED_PROFILE)
+        assert balanced_index >= 0
+        window.profile_combo.setCurrentIndex(balanced_index)
         qapp.processEvents()
         restored = window.analysis_session.run_configuration
         assert restored is not None

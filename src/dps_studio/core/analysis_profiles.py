@@ -6,7 +6,9 @@ frequency-estimate stability, and noise robustness.  The explicit
 current 40 GHz dataset) at the cost of frequency stability and plateau
 jitter. ``HIGH_FREQUENCY_RESOLUTION_PROFILE`` uses the repository's audited
 1024-sample, fixed-hop configuration for longer time support and a narrower
-window-limited frequency scale. Neither profile is a higher-accuracy claim.
+window-limited frequency scale.  The two ``VERY_HIGH_*`` profiles extend that
+same fixed-hop axis for experimental inspection only.  None is a
+higher-accuracy claim.
 Profiles are never selected or switched from signal contents.
 
 Dataset-specific values such as wavelength, event start, and analysis end are
@@ -37,6 +39,12 @@ class AnalysisProfileId(str, Enum):
     BALANCED = "balanced"
     HIGH_TIME_RESOLUTION = "high_time_resolution"
     HIGH_FREQUENCY_RESOLUTION = "high_frequency_resolution"
+    VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL = (
+        "very_high_time_resolution_experimental"
+    )
+    VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL = (
+        "very_high_frequency_resolution_experimental"
+    )
 
 
 class OutputMode(str, Enum):
@@ -484,6 +492,40 @@ HIGH_FREQUENCY_RESOLUTION_PROFILE = AnalysisProfile(
     ),
 )
 
+VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE = AnalysisProfile(
+    profile_id=AnalysisProfileId.VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL,
+    display_name="Very High Time Resolution (Experimental)",
+    window_name="hann",
+    window_length_samples=256,
+    overlap_samples=128,
+    hop_samples=128,
+    nfft=4096,
+    minimum_frequency_hz=0.05e9,
+    maximum_frequency_hz=2.0e9,
+    ridge_refinement=RIDGE_REFINEMENT_METHOD,
+    tradeoff_note=(
+        "Experimental: shorter time support improves local time response but "
+        "weakens finite-window frequency resolution."
+    ),
+)
+
+VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE = AnalysisProfile(
+    profile_id=AnalysisProfileId.VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL,
+    display_name="Very High Frequency Resolution (Experimental)",
+    window_name="hann",
+    window_length_samples=2048,
+    overlap_samples=1920,
+    hop_samples=128,
+    nfft=4096,
+    minimum_frequency_hz=0.05e9,
+    maximum_frequency_hz=2.0e9,
+    ridge_refinement=RIDGE_REFINEMENT_METHOD,
+    tradeoff_note=(
+        "Experimental: longer time support improves finite-window frequency "
+        "resolution but weakens fast-transient time localization."
+    ),
+)
+
 DEFAULT_ANALYSIS_PROFILE = BALANCED_PROFILE
 DEFAULT_OUTPUT_MODE = OutputMode.PRODUCTION
 
@@ -492,6 +534,12 @@ _PROFILES = {
     AnalysisProfileId.HIGH_TIME_RESOLUTION: HIGH_TIME_RESOLUTION_PROFILE,
     AnalysisProfileId.HIGH_FREQUENCY_RESOLUTION: (
         HIGH_FREQUENCY_RESOLUTION_PROFILE
+    ),
+    AnalysisProfileId.VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL: (
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE
+    ),
+    AnalysisProfileId.VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL: (
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE
     ),
 }
 
@@ -527,6 +575,8 @@ __all__ = [
     "DEFAULT_OUTPUT_MODE",
     "HIGH_TIME_RESOLUTION_PROFILE",
     "HIGH_FREQUENCY_RESOLUTION_PROFILE",
+    "VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE",
+    "VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE",
     "OutputMode",
     "build_analysis_run_parameters",
     "get_analysis_profile",

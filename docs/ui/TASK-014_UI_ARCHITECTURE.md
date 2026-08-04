@@ -654,3 +654,20 @@ Automatic。Guided 正式时间域严格为最左到最右控制点；域外正�
 hop=128、nfft=4096、search band=0.05--2.0 GHz。原有 Balanced 与 High Time
 Resolution 数值保持不变。三个预设都是不可变分析起点，只表示不同时间--频率取舍，不
 承诺最佳或普适。
+## TASK-016R2 增补：按通道保存的 Guided 能力
+
+Guided 不再以单个全局“结果有效/过期”布尔值表达。`AnalysisSession` 为每个
+已加载通道分别保存走廊、Guided 正式结果及其 valid/stale 状态；编辑或清除一个
+通道的走廊只会使该通道的 Guided 结果过期，绝不会删除或使其他通道的 STFT、
+Automatic 或 Guided 结果失效。运行 Guided 时，`SpectrogramView` 当前下拉框的
+真实 channel data 是唯一请求目标，因此同一时刻仍只有一个 worker，但结果可以
+逐通道积累。
+
+“自动/引导”提取方式以 `RidgeExtractionMode` 枚举和 `QButtonGroup` 的稳定整数
+ID 表示。radio button 只负责呈现和触发，不从 `isChecked()` 反推业务语义，避免
+反复切换后出现 Automatic/Guided 状态反转。
+
+结果页由能力而非 Automatic 专属状态解锁：任意有效正式结果（Automatic 或至少
+一个 Guided 通道）均可进入速度结果和结果比较。Velocity 的来源下拉框只列出
+真实存在的来源；选择已有来源但缺少结果的已加载通道时，页面保留可用并显示明确
+提示，而不是伪造结果或禁用通道选择。

@@ -6,7 +6,10 @@ from dps_studio.core import (
     BALANCED_PROFILE,
     DEFAULT_ANALYSIS_PROFILE,
     DEFAULT_OUTPUT_MODE,
+    HIGH_FREQUENCY_RESOLUTION_PROFILE,
     HIGH_TIME_RESOLUTION_PROFILE,
+    VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE,
+    VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE,
     AnalysisProfile,
     AnalysisProfileId,
     OutputMode,
@@ -42,6 +45,35 @@ def test_formal_profiles_have_exact_parameters() -> None:
     assert HIGH_TIME_RESOLUTION_PROFILE.minimum_frequency_hz == 0.05e9
     assert HIGH_TIME_RESOLUTION_PROFILE.maximum_frequency_hz == 2.0e9
 
+    assert (
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.profile_id
+        is AnalysisProfileId.VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL
+    )
+    assert (
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.window_length_samples,
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.overlap_samples,
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.hop_samples,
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.nfft,
+    ) == (256, 128, 128, 4096)
+    assert (
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE.profile_id
+        is AnalysisProfileId.VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL
+    )
+    assert (
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE.window_length_samples,
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE.overlap_samples,
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE.hop_samples,
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE.nfft,
+    ) == (2048, 1920, 128, 4096)
+    for profile in (
+        HIGH_FREQUENCY_RESOLUTION_PROFILE,
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE,
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE,
+    ):
+        assert profile.minimum_frequency_hz == 0.05e9
+        assert profile.maximum_frequency_hz == 2.0e9
+        assert profile.hop_samples == profile.window_length_samples - profile.overlap_samples
+
 
 def test_defaults_are_balanced_production_and_profiles_are_identity_objects() -> None:
     assert DEFAULT_ANALYSIS_PROFILE is BALANCED_PROFILE
@@ -50,6 +82,12 @@ def test_defaults_are_balanced_production_and_profiles_are_identity_objects() ->
     assert (
         get_analysis_profile(AnalysisProfileId.HIGH_TIME_RESOLUTION)
         is HIGH_TIME_RESOLUTION_PROFILE
+    )
+    assert (
+        get_analysis_profile(
+            AnalysisProfileId.VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL
+        )
+        is VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE
     )
 
 
@@ -118,3 +156,12 @@ def test_high_time_profile_is_not_named_or_described_as_high_accuracy() -> None:
     assert "high accuracy" not in HIGH_TIME_RESOLUTION_PROFILE.display_name.lower()
     assert "higher-accuracy claim" in HIGH_TIME_RESOLUTION_PROFILE.tradeoff_note
     assert "frequency stability" in HIGH_TIME_RESOLUTION_PROFILE.tradeoff_note
+
+
+def test_experimental_profiles_describe_tradeoffs_without_accuracy_claims() -> None:
+    for profile in (
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE,
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE,
+    ):
+        assert "Experimental" in profile.display_name
+        assert "higher-accuracy claim" not in profile.tradeoff_note

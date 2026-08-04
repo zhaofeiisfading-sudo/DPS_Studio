@@ -9,6 +9,7 @@ from PySide6.QtCore import QByteArray, QSettings, QSignalBlocker, QSize, Qt
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QButtonGroup,
     QDockWidget,
     QFileDialog,
     QComboBox,
@@ -68,6 +69,7 @@ from dps_studio.gui.analysis_session import (
     AnalysisRange,
     AnalysisRunConfiguration,
     AnalysisSession,
+    RidgeExtractionMode,
 )
 from dps_studio.gui.advanced_parameters_dialog import AdvancedParametersDialog
 from dps_studio.gui.data_controller import DataImportController
@@ -101,6 +103,8 @@ _SPLITTER_STATE_SETTINGS_KEY = "layout/workspace_splitter_state"
 _DIAGNOSTICS_HEIGHT_SETTINGS_KEY = "layout/diagnostics_dock_height"
 _DEFAULT_WORKSPACE_SIZES = (220, 830, 340)
 _DEFAULT_DIAGNOSTICS_HEIGHT = 210
+_AUTOMATIC_MODE_BUTTON_ID = 101
+_GUIDED_MODE_BUTTON_ID = 102
 
 
 class MainWindow(QMainWindow):
@@ -173,6 +177,11 @@ class MainWindow(QMainWindow):
         """Return the current in-memory analysis session."""
         return self._session
 
+    @property
+    def ridge_extraction_mode(self) -> RidgeExtractionMode:
+        """Return the explicit model value selected by the Ridge controls."""
+        return self._session.ridge_extraction_mode
+
     def set_loaded_result(self, result: DelimitedSignalLoadResult) -> None:
         """Present a public core load result and enter ``DATA_LOADED``."""
         if not isinstance(result, DelimitedSignalLoadResult):
@@ -220,9 +229,7 @@ class MainWindow(QMainWindow):
             self.profile_combo.addItem(self._profile_display_name(profile), profile)
             self.profile_combo.setItemData(
                 self.profile_combo.count() - 1,
-                self.tr(
-                    "不同预设代表不同时间—频率分辨率取舍。结果仍需结合频谱和质量状态复核。"
-                ),
+                self._profile_tooltip(profile),
                 Qt.ItemDataRole.ToolTipRole,
             )
         default_index = next(
@@ -299,8 +306,29 @@ class MainWindow(QMainWindow):
             AnalysisProfileId.BALANCED: self.tr("平衡"),
             AnalysisProfileId.HIGH_TIME_RESOLUTION: self.tr("高时间分辨率"),
             AnalysisProfileId.HIGH_FREQUENCY_RESOLUTION: self.tr("高频率分辨率"),
+            AnalysisProfileId.VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL: self.tr(
+                "极高时间分辨率（实验）"
+            ),
+            AnalysisProfileId.VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL: self.tr(
+                "极高频率分辨率（实验）"
+            ),
         }
         return labels[profile.profile_id]
+
+    def _profile_tooltip(self, profile: AnalysisProfile) -> str:
+        """Describe the physical time--frequency trade-off of each profile."""
+        tooltips = {
+            AnalysisProfileId.VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL: self.tr(
+                "使用更短时间窗，提高局部时间响应能力，但有限窗频率分辨能力更弱。"
+            ),
+            AnalysisProfileId.VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL: self.tr(
+                "使用更长时间窗，提高有限窗频率分辨能力，但会牺牲快速瞬态的时间定位能力。"
+            ),
+        }
+        return tooltips.get(
+            profile.profile_id,
+            self.tr("不同预设代表不同时间—频率分辨率取舍。结果仍需结合频谱和质量状态复核。"),
+        )
 
     def _create_actions(self) -> None:
         self.action_open_data = QAction(
@@ -671,6 +699,16 @@ class MainWindow(QMainWindow):
         self.guided_mode_radio = QRadioButton(self.tr("引导"))
         self.guided_mode_radio.setEnabled(False)
         self.guided_mode_radio.setToolTip(self.tr("请先计算当前 STFT。"))
+        self.ridge_mode_button_group = QButtonGroup(ridge_mode_group)
+        self.ridge_mode_button_group.setExclusive(True)
+        self.ridge_mode_button_group.addButton(
+            self.automatic_mode_radio,
+            _AUTOMATIC_MODE_BUTTON_ID,
+        )
+        self.ridge_mode_button_group.addButton(
+            self.guided_mode_radio,
+            _GUIDED_MODE_BUTTON_ID,
+        )
         ridge_mode_layout.addWidget(self.automatic_mode_radio)
         ridge_mode_layout.addWidget(self.guided_mode_radio)
         guided_layout.addWidget(ridge_mode_group)
@@ -1001,8 +1039,9 @@ class MainWindow(QMainWindow):
             self._corridor_drawing_state_changed
         )
         corridor_controller.message.connect(self.guided_status_label.setText)
-        self.automatic_mode_radio.toggled.connect(self._ridge_mode_toggled)
-        self.guided_mode_radio.toggled.connect(self._ridge_mode_toggled)
+        self.ridge_mode_button_group.idToggled.connect(
+            self._ridge_mode_button_toggled
+        )
         self.draw_corridor_button.clicked.connect(self._draw_or_finish_corridor)
         self.undo_corridor_button.clicked.connect(self._undo_corridor_point)
         self.clear_corridor_button.clicked.connect(self._clear_current_corridor)
@@ -1654,9 +1693,49 @@ class MainWindow(QMainWindow):
                 self.tr("请先计算当前 STFT。")
             )
             return
-        blocker = QSignalBlocker(self.guided_mode_radio)
-        self.guided_mode_radio.setChecked(True)
-        del blocker
+        self._set_ridge_extraction_mode(RidgeExtractionMode.GUIDED)
+
+    def _ridge_mode_button_toggled(self, button_id: int, checked: bool) -> None:
+        """Map explicit stable button ids to the only Ridge mode model."""
+        if not checked:
+            return
+        mode_by_id = {
+            _AUTOMATIC_MODE_BUTTON_ID: RidgeExtractionMode.AUTOMATIC,
+            _GUIDED_MODE_BUTTON_ID: RidgeExtractionMode.GUIDED,
+        }
+        mode = mode_by_id.get(button_id)
+        if mode is not None:
+            self._set_ridge_extraction_mode(mode, sync_button=False)
+
+    def _set_ridge_extraction_mode(
+        self,
+        mode: RidgeExtractionMode,
+        *,
+        sync_button: bool = True,
+    ) -> None:
+        """Synchronize mode buttons, session model, and visible parameter group."""
+        if sync_button:
+            button_id = (
+                _GUIDED_MODE_BUTTON_ID
+                if mode is RidgeExtractionMode.GUIDED
+                else _AUTOMATIC_MODE_BUTTON_ID
+            )
+            button = self.ridge_mode_button_group.button(button_id)
+            if button is not None and not button.isChecked():
+                blocker = QSignalBlocker(self.ridge_mode_button_group)
+                button.setChecked(True)
+                del blocker
+        self._session.set_ridge_extraction_mode(mode)
+        guided = mode is RidgeExtractionMode.GUIDED
+        self.automatic_ridge_panel.setVisible(not guided)
+        self.guided_ridge_panel.setVisible(guided)
+        if guided:
+            self._show_guided_controls()
+        else:
+            self._sync_guided_panel()
+
+    def _show_guided_controls(self) -> None:
+        """Present the current displayed channel's Guided controls."""
         self.automatic_ridge_panel.setVisible(False)
         self.guided_ridge_panel.setVisible(True)
         self.select_workflow_step(3)
@@ -1665,13 +1744,6 @@ class MainWindow(QMainWindow):
             self.spectrogram_view.fit_search_region()
             self._guided_auto_fit_done = True
         self._sync_guided_panel()
-
-    def _ridge_mode_toggled(self, _checked: bool) -> None:
-        guided = self.guided_mode_radio.isChecked()
-        self.automatic_ridge_panel.setVisible(not guided)
-        self.guided_ridge_panel.setVisible(guided)
-        if guided:
-            self._activate_guided_analysis()
 
     def _undo_corridor_point(self) -> None:
         if self.spectrogram_view.corridor_controller.undo_last_point():
@@ -1696,6 +1768,17 @@ class MainWindow(QMainWindow):
             del blocker
         self._sync_guided_panel()
 
+    def _current_guided_channel_name(self) -> str | None:
+        """Use the Spectrogram selector as the single current Guided channel."""
+        displayed = self.spectrogram_view.channel_combo.currentData()
+        if (
+            isinstance(displayed, str)
+            and displayed in self._session.stft_results
+        ):
+            self._current_guided_channel = displayed
+            return displayed
+        return self._current_guided_channel
+
     def _draw_or_finish_corridor(self) -> None:
         controller = self.spectrogram_view.corridor_controller
         if controller.drawing:
@@ -1706,7 +1789,7 @@ class MainWindow(QMainWindow):
         )
 
     def _clear_current_corridor(self) -> None:
-        channel_name = self._current_guided_channel
+        channel_name = self._current_guided_channel_name()
         if channel_name is None:
             return
         controller = self.spectrogram_view.corridor_controller
@@ -1716,7 +1799,7 @@ class MainWindow(QMainWindow):
             self._ridge_constraint_cleared(channel_name)
 
     def _corridor_half_width_changed(self, value_mhz: float) -> None:
-        channel_name = self._current_guided_channel
+        channel_name = self._current_guided_channel_name()
         if channel_name is None or channel_name not in self._session.ridge_constraints:
             return
         self.spectrogram_view.corridor_controller.set_half_width_hz(
@@ -1776,14 +1859,15 @@ class MainWindow(QMainWindow):
 
     def _corridor_drawing_state_changed(self, drawing: bool) -> None:
         self.draw_corridor_button.setText(self.tr("绘制 / 编辑走廊"))
+        channel_name = self._current_guided_channel_name()
         self.run_guided_button.setEnabled(
-            bool(self._session.ridge_constraints)
+            channel_name in self._session.ridge_constraints
             and self._session.stft_valid
             and not self._analysis_adapter.busy
         )
 
     def _sync_guided_panel(self) -> None:
-        channel_name = self._current_guided_channel
+        channel_name = self._current_guided_channel_name()
         if channel_name is None and self._session.stft_results:
             channel_name = next(iter(self._session.stft_results))
             self._current_guided_channel = channel_name
@@ -1817,9 +1901,13 @@ class MainWindow(QMainWindow):
             del blocker
         if not self._session.stft_valid:
             status = self.tr("请先计算当前 STFT。")
-        elif self._session.guided_results_stale:
+        elif channel_name is not None and self._session.guided_result_is_stale(
+            channel_name
+        ):
             status = self.tr("当前约束已修改，请重新运行引导分析")
-        elif self._session.guided_results_valid:
+        elif channel_name is not None and self._session.guided_result_is_valid(
+            channel_name
+        ):
             status = self.tr("当前引导结果有效")
         elif constraint is not None:
             status = self.tr("约束已创建；请运行引导分析。")
@@ -1832,9 +1920,7 @@ class MainWindow(QMainWindow):
         if configuration is None:
             return
         guided = (
-            self._session.guided_channel_analyses
-            if self._session.guided_results_valid
-            else {}
+            self._session.valid_guided_channel_analyses
         )
         self.ridge_view.set_result_sets(
             self._session.channel_analyses,
@@ -1848,43 +1934,43 @@ class MainWindow(QMainWindow):
             guided,
             relative_db_floor=configuration.relative_db_floor,
             fit_view=not preserve_view,
+            available_channel_names=tuple(self._session.records),
         )
         self.comparison_view.set_result_sets(
             self._session.channel_analyses,
             guided,
         )
 
-    def _guided_validation_error(self) -> str | None:
+    def _guided_validation_error(self, channel_name: str | None = None) -> str | None:
         configuration = self._session.run_configuration
         analysis_range = self._session.analysis_range
         if configuration is None or analysis_range is None:
             return self.tr("分析配置或分析范围尚未就绪。")
-        if not self._session.ridge_constraints:
-            return self.tr("请至少为一个通道创建脊线走廊。")
-        for channel_name, constraint in self._session.ridge_constraints.items():
-            stft_result = self._session.stft_results.get(channel_name)
-            if stft_result is None:
-                return self.tr("通道 {channel} 没有当前有效 STFT。").format(
-                    channel=channel_name
-                )
-            try:
-                validate_ridge_corridor_for_stft(
-                    constraint,
-                    stft_result,
-                    minimum_frequency_hz=(
-                        configuration.parameters.minimum_frequency_hz
-                    ),
-                    maximum_frequency_hz=(
-                        configuration.parameters.maximum_frequency_hz
-                    ),
-                    analysis_start_time_s=analysis_range.start_time_s,
-                    analysis_end_time_s=analysis_range.end_time_s,
-                )
-            except RidgeConfigurationError as exc:
-                return self.tr("通道 {channel} 的约束无效：{reason}").format(
-                    channel=channel_name,
-                    reason=exc,
-                )
+        target = channel_name or self._current_guided_channel_name()
+        if target is None:
+            return self.tr("请先选择当前 STFT 通道。")
+        constraint = self._session.ridge_constraints.get(target)
+        if constraint is None:
+            return self.tr("请先为当前通道创建脊线走廊。")
+        stft_result = self._session.stft_results.get(target)
+        if stft_result is None:
+            return self.tr("通道 {channel} 没有当前有效 STFT。").format(
+                channel=target
+            )
+        try:
+            validate_ridge_corridor_for_stft(
+                constraint,
+                stft_result,
+                minimum_frequency_hz=configuration.parameters.minimum_frequency_hz,
+                maximum_frequency_hz=configuration.parameters.maximum_frequency_hz,
+                analysis_start_time_s=analysis_range.start_time_s,
+                analysis_end_time_s=analysis_range.end_time_s,
+            )
+        except RidgeConfigurationError as exc:
+            return self.tr("通道 {channel} 的约束无效：{reason}").format(
+                channel=target,
+                reason=exc,
+            )
         return None
 
     def run_guided_analysis(self) -> bool:
@@ -1897,7 +1983,14 @@ class MainWindow(QMainWindow):
             return False
         configuration = self._session.run_configuration
         analysis_range = self._session.analysis_range
-        error = self._guided_validation_error()
+        channel_name = self._current_guided_channel_name()
+        error = self._guided_validation_error(channel_name)
+        if channel_name is None:
+            self.guided_status_label.setText(
+                error or self.tr("请先选择当前 STFT 通道。")
+            )
+            self._apply_state()
+            return False
         if (
             not self._session.stft_valid
             or configuration is None
@@ -1911,15 +2004,19 @@ class MainWindow(QMainWindow):
             return False
         request = AnalysisRequest(
             generation_id=self._session.guided_generation_id,
-            records=self._session.records,
             analysis_range=analysis_range,
             configuration=configuration,
             result_source=AnalysisResultSource.GUIDED,
-            ridge_constraints=self._session.ridge_constraints,
+            ridge_constraints={
+                channel_name: self._session.ridge_constraints[channel_name]
+            }
+            if channel_name is not None
+            and channel_name in self._session.ridge_constraints
+            else {},
             stft_results={
-                name: self._session.stft_results[name]
-                for name in self._session.ridge_constraints
+                channel_name: self._session.stft_results[channel_name]
             },
+            records={channel_name: self._session.records[channel_name]},
         )
         self._pending_analysis_source = AnalysisResultSource.GUIDED
         started = self._analysis_adapter.start(request)
@@ -2010,9 +2107,7 @@ class MainWindow(QMainWindow):
             analysis_range=analysis_range,
             configuration=configuration,
         )
-        blocker = QSignalBlocker(self.automatic_mode_radio)
-        self.automatic_mode_radio.setChecked(True)
-        del blocker
+        self._set_ridge_extraction_mode(RidgeExtractionMode.AUTOMATIC)
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
         started = self._analysis_adapter.start(request)
         if not started:
@@ -2145,6 +2240,8 @@ class MainWindow(QMainWindow):
         self,
         analyses: Mapping[str, ChannelAnalysis],
     ) -> None:
+        valid_guided = self._session.valid_guided_channel_analyses
+        self._sync_workflow_state_from_capabilities()
         self._refresh_result_source_views()
         ridge_guided_index = self.ridge_view.result_source_combo.findData("guided")
         velocity_guided_index = self.velocity_view.result_source_combo.findData(
@@ -2156,17 +2253,22 @@ class MainWindow(QMainWindow):
             self.velocity_view.result_source_combo.setCurrentIndex(
                 velocity_guided_index
             )
-        self.quality_summary.set_analyses(analyses)
+        self.quality_summary.set_analyses(valid_guided)
         self.analysis_status_label.setText(
-            self.tr("引导分析完成；自动结果仍保持有效。")
+            (
+                self.tr("引导分析完成；自动结果仍保持有效。")
+                if self._session.automatic_results_available
+                else self.tr("引导分析完成；当前已获得引导正式结果。")
+            )
         )
         self.guided_status_label.setText(self.tr("当前引导结果有效"))
+        self.formal_velocity_status_label.setText(self.tr("当前正式结果有效"))
         self.diagnostics_tabs.setCurrentWidget(self.quality_summary)
         self._sync_guided_panel()
         self._apply_state()
         self._append_log(
-            self.tr("引导分析完成：{channels} 个独立通道；自动结果未覆盖。").format(
-                channels=len(analyses)
+            self.tr("引导分析完成：{channels} 个当前有效通道；自动结果未覆盖。").format(
+                channels=len(valid_guided)
             )
         )
 
@@ -2287,10 +2389,21 @@ class MainWindow(QMainWindow):
             )
 
     def _sync_workflow_state_after_invalidation(self) -> None:
+        self._sync_workflow_state_from_capabilities()
+
+    def _sync_workflow_state_from_capabilities(self) -> None:
+        """Derive availability from independent STFT/Automatic/Guided capabilities."""
         if not self._session.records:
             self._workflow_state = WorkflowState.EMPTY
         elif self._session.analysis_range is None:
             self._workflow_state = WorkflowState.DATA_LOADED
+        elif self._session.any_formal_results_available:
+            self._workflow_state = WorkflowState.RESULT_READY
+        elif (
+            self._session.automatic_results_available
+            or self._session.guided_results_available
+        ):
+            self._workflow_state = WorkflowState.RIDGE_READY
         elif self._session.stft_valid:
             self._workflow_state = WorkflowState.STFT_READY
         else:
@@ -2432,12 +2545,14 @@ class MainWindow(QMainWindow):
         )
         self.clear_corridor_button.setEnabled(
             can_use_guided
-            and self._current_guided_channel in self._session.ridge_constraints
+            and self._current_guided_channel_name()
+            in self._session.ridge_constraints
         )
         self.corridor_half_width_spin.setEnabled(can_use_guided)
         self.run_guided_button.setEnabled(
             can_use_guided
-            and bool(self._session.ridge_constraints)
+            and self._current_guided_channel_name()
+            in self._session.ridge_constraints
         )
         self.extract_automatic_ridge_button.setEnabled(can_use_guided)
         self.action_run_ridge.setEnabled(can_use_guided)

@@ -122,14 +122,18 @@ def test_reselect_and_restore_button_restore_immutable_preset(
         window.nfft_spin.setValue(8192)
         qapp.processEvents()
         assert window.profile_combo.currentData() == CUSTOM_PRESET_ID
-        window.profile_combo.setCurrentIndex(0)
+        balanced_index = window.profile_combo.findData(BALANCED_PROFILE)
+        assert balanced_index >= 0
+        window.profile_combo.setCurrentIndex(balanced_index)
         qapp.processEvents()
         configuration = window.analysis_session.run_configuration
         assert configuration is not None
         assert configuration.profile is BALANCED_PROFILE
         assert window.nfft_spin.value() == BALANCED_PROFILE.nfft
 
-        window.profile_combo.setCurrentIndex(1)
+        high_time_index = window.profile_combo.findData(HIGH_TIME_RESOLUTION_PROFILE)
+        assert high_time_index >= 0
+        window.profile_combo.setCurrentIndex(high_time_index)
         window.window_length_spin.setValue(640)
         qapp.processEvents()
         assert "高时间分辨率" in window.profile_combo.currentText()

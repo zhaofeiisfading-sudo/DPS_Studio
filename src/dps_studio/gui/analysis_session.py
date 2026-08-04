@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field, replace
+from enum import Enum
 from pathlib import Path
 from types import MappingProxyType
 
@@ -38,6 +39,13 @@ class AnalysisRange:
             raise ValueError("Analysis range endpoints must be finite seconds.")
         if self.start_time_s >= self.end_time_s:
             raise ValueError("start_time_s must be smaller than end_time_s.")
+
+
+class RidgeExtractionMode(str, Enum):
+    """The explicit GUI-selected source for the ridge workspace."""
+
+    AUTOMATIC = "automatic"
+    GUIDED = "guided"
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,6 +145,9 @@ class AnalysisSession:
     results_valid: bool = False
     guided_results_valid: bool = False
     guided_results_stale: bool = False
+    guided_result_valid_channels: frozenset[str] = field(default_factory=frozenset)
+    guided_result_stale_channels: frozenset[str] = field(default_factory=frozenset)
+    ridge_extraction_mode: RidgeExtractionMode = RidgeExtractionMode.AUTOMATIC
     generation_id: int = 0
     guided_generation_id: int = 0
     event_reference_source: str | None = None
@@ -425,6 +436,49 @@ class AnalysisSession:
         """Return formal automatic results under an explicit source name."""
         return self.channel_analyses
 
+    @property
+    def valid_guided_channel_analyses(self) -> Mapping[str, ChannelAnalysis]:
+        """Return only channels whose current Guided result is still valid."""
+        return MappingProxyType(
+            {
+                channel_name: analysis
+                for channel_name, analysis in self.guided_channel_analyses.items()
+                if channel_name in self.guided_result_valid_channels
+            }
+        )
+
+    @property
+    def automatic_results_available(self) -> bool:
+        """Return whether a complete current automatic result set exists."""
+        return self.results_valid and bool(self.channel_analyses)
+
+    @property
+    def guided_results_available(self) -> bool:
+        """Return whether any channel has a current Guided result."""
+        return bool(self.guided_result_valid_channels)
+
+    @property
+    def any_formal_results_available(self) -> bool:
+        """Return whether either independent result source is currently usable."""
+        return self.automatic_results_available or self.guided_results_available
+
+    def guided_result_is_valid(self, channel_name: str) -> bool:
+        """Return whether one channel has a current Guided result."""
+        return channel_name in self.guided_result_valid_channels
+
+    def guided_result_is_stale(self, channel_name: str) -> bool:
+        """Return whether one channel's prior Guided result needs rerunning."""
+        return channel_name in self.guided_result_stale_channels
+
+    def set_ridge_extraction_mode(self, value: RidgeExtractionMode) -> bool:
+        """Store the mode selected by the Ridge UI without changing science data."""
+        if not isinstance(value, RidgeExtractionMode):
+            raise TypeError("value must be a RidgeExtractionMode.")
+        if value is self.ridge_extraction_mode:
+            return False
+        self.ridge_extraction_mode = value
+        return True
+
     def accept_guided_results(
         self,
         *,
@@ -438,9 +492,14 @@ class AnalysisSession:
             isinstance(value, ChannelAnalysis) for value in analyses.values()
         ):
             raise ValueError("Guided results must match constrained loaded channels.")
-        self.guided_channel_analyses = MappingProxyType(dict(analyses))
-        self.guided_results_valid = True
-        self.guided_results_stale = False
+        merged = dict(self.guided_channel_analyses)
+        merged.update(analyses)
+        self.guided_channel_analyses = MappingProxyType(merged)
+        valid_channels = set(self.guided_result_valid_channels)
+        valid_channels.update(analyses)
+        stale_channels = set(self.guided_result_stale_channels)
+        stale_channels.difference_update(analyses)
+        self._set_guided_result_state(valid_channels, stale_channels)
         return True
 
     def set_ridge_constraint(
@@ -459,7 +518,7 @@ class AnalysisSession:
         constraints = dict(self.ridge_constraints)
         constraints[channel_name] = constraint
         self.ridge_constraints = MappingProxyType(constraints)
-        self._stale_guided_results()
+        self._stale_guided_result(channel_name)
         return True
 
     def clear_ridge_constraint(self, channel_name: str) -> bool:
@@ -471,7 +530,7 @@ class AnalysisSession:
         constraints = dict(self.ridge_constraints)
         del constraints[channel_name]
         self.ridge_constraints = MappingProxyType(constraints)
-        self._stale_guided_results()
+        self._stale_guided_result(channel_name)
         return True
 
     def invalidate_results(self) -> None:
@@ -496,8 +555,7 @@ class AnalysisSession:
         self.guided_channel_analyses = _empty_analyses()
         self.stft_valid = False
         self.results_valid = False
-        self.guided_results_valid = False
-        self.guided_results_stale = False
+        self._set_guided_result_state((), ())
 
     def _invalidate_downstream(self) -> None:
         """Invalidate ridge/velocity products while preserving reusable STFT."""
@@ -506,13 +564,38 @@ class AnalysisSession:
         self.channel_analyses = _empty_analyses()
         self.guided_channel_analyses = _empty_analyses()
         self.results_valid = False
-        self.guided_results_valid = False
-        self.guided_results_stale = False
+        self._set_guided_result_state((), ())
 
     def _stale_guided_results(self) -> None:
+        """Mark every extant Guided result stale after a shared dependency change."""
         self.guided_generation_id += 1
-        self.guided_results_stale = bool(self.guided_channel_analyses)
-        self.guided_results_valid = False
+        self._set_guided_result_state(
+            (),
+            self.guided_channel_analyses,
+        )
+
+    def _stale_guided_result(self, channel_name: str) -> None:
+        """Invalidate one channel without hiding independent Guided channels."""
+        self.guided_generation_id += 1
+        valid_channels = set(self.guided_result_valid_channels)
+        valid_channels.discard(channel_name)
+        stale_channels = set(self.guided_result_stale_channels)
+        if channel_name in self.guided_channel_analyses:
+            stale_channels.add(channel_name)
+        self._set_guided_result_state(valid_channels, stale_channels)
+
+    def _set_guided_result_state(
+        self,
+        valid_channels: Iterable[str],
+        stale_channels: Iterable[str],
+    ) -> None:
+        """Synchronize legacy aggregate flags with channel-local status sets."""
+        valid = frozenset(valid_channels)
+        stale = frozenset(stale_channels)
+        self.guided_result_valid_channels = valid
+        self.guided_result_stale_channels = stale
+        self.guided_results_valid = bool(valid)
+        self.guided_results_stale = bool(stale)
 
     def _refresh_display_results(self) -> None:
         configuration = self.run_configuration

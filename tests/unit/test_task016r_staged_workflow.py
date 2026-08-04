@@ -8,6 +8,8 @@ from dps_studio.core import (
     BALANCED_PROFILE,
     HIGH_FREQUENCY_RESOLUTION_PROFILE,
     HIGH_TIME_RESOLUTION_PROFILE,
+    VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE,
+    VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE,
 )
 from dps_studio.core.models import SignalRecord
 from dps_studio.core.ridge import RidgeCorridorConstraint
@@ -108,7 +110,7 @@ def test_guided_domain_is_local_nan_and_never_falls_back_to_automatic(
     assert guided.signal_detection_result.analysis_end_time_s == constraint.end_time_s
 
 
-def test_formal_profiles_preserve_old_values_and_add_one_audited_long_window() -> None:
+def test_profiles_preserve_old_values_and_add_validated_experimental_extremes() -> None:
     assert (
         BALANCED_PROFILE.window_length_samples,
         BALANCED_PROFILE.overlap_samples,
@@ -129,4 +131,15 @@ def test_formal_profiles_preserve_old_values_and_add_one_audited_long_window() -
     ) == (1024, 896, 128, 4096)
     assert HIGH_FREQUENCY_RESOLUTION_PROFILE.minimum_frequency_hz == 0.05e9
     assert HIGH_FREQUENCY_RESOLUTION_PROFILE.maximum_frequency_hz == 2.0e9
-
+    assert (
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.window_length_samples,
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.overlap_samples,
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.hop_samples,
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.nfft,
+    ) == (256, 128, 128, 4096)
+    assert (
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE.window_length_samples,
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE.overlap_samples,
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE.hop_samples,
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE.nfft,
+    ) == (2048, 1920, 128, 4096)

@@ -9,6 +9,8 @@ from dps_studio.core import (
     BALANCED_PROFILE,
     HIGH_FREQUENCY_RESOLUTION_PROFILE,
     HIGH_TIME_RESOLUTION_PROFILE,
+    VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE,
+    VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE,
 )
 from dps_studio.core.workflow import (
     WorkflowConfigurationError,
@@ -32,7 +34,8 @@ pdv_channel_2 = 2
 pdv_channel_1 = 1.0
 pdv_channel_2 = 1.0
 [analysis]
-profiles = ["balanced", "high_time_resolution", "high_frequency_resolution"]
+default_profile = "balanced"
+profiles = ["very_high_time_resolution_experimental", "high_time_resolution", "balanced", "high_frequency_resolution", "very_high_frequency_resolution_experimental"]
 analysis_start_time_s = 5.54650e-4
 analysis_end_time_s = 5.5545e-4
 manual_event_reference_time_s = 5.54668e-4
@@ -83,9 +86,11 @@ def test_toml_loads_relative_paths_profiles_and_immutable_mappings(
         tmp_path / "outputs" / "production_runs"
     ).resolve()
     assert configuration.analysis.profiles == (
-        BALANCED_PROFILE,
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE,
         HIGH_TIME_RESOLUTION_PROFILE,
+        BALANCED_PROFILE,
         HIGH_FREQUENCY_RESOLUTION_PROFILE,
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE,
     )
     assert configuration.analysis.default_profile is BALANCED_PROFILE
     assert configuration.analysis.manual_event_reference_time_s == 5.54668e-4
@@ -108,8 +113,8 @@ def test_toml_loads_relative_paths_profiles_and_immutable_mappings(
 
 def test_explicit_default_profile_is_loaded_and_validated(tmp_path: Path) -> None:
     text = _valid_toml().replace(
-        "[analysis]\n",
-        '[analysis]\ndefault_profile = "high_time_resolution"\n',
+        'default_profile = "balanced"',
+        'default_profile = "high_time_resolution"',
         1,
     )
     configuration = _load(tmp_path, text)
@@ -131,7 +136,7 @@ def test_explicit_default_profile_is_loaded_and_validated(tmp_path: Path) -> Non
     ("old", "new", "field_name"),
     [
         (
-            'profiles = ["balanced", "high_time_resolution", "high_frequency_resolution"]',
+            'profiles = ["very_high_time_resolution_experimental", "high_time_resolution", "balanced", "high_frequency_resolution", "very_high_frequency_resolution_experimental"]',
             'profiles = ["balanced"]',
             "analysis.profiles",
         ),

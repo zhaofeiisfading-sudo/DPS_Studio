@@ -82,6 +82,43 @@ def finite_velocity_view_range(
     return finite_min - padding, finite_max + padding
 
 
+def display_velocity_connector_points(
+    analysis: ChannelAnalysis,
+) -> tuple[FloatArray, FloatArray] | None:
+    """Return a display-only pre-event-to-first-formal two-point connector.
+
+    The formal array is only read here.  In particular, no NaN is filled and
+    no intermediate sample is synthesized for scientific data.
+    """
+    reference_s = analysis.signal_detection_result.manual_event_reference_time_s
+    if reference_s is None:
+        return None
+    time_s = analysis.stft_result.time_s
+    display_velocity = analysis.display_velocity_m_s
+    formal_velocity = analysis.signal_detection_result.apparent_velocity_m_s
+    platform_indices = np.flatnonzero(
+        (time_s < reference_s) & np.isfinite(display_velocity)
+    )
+    formal_indices = np.flatnonzero(
+        (time_s >= reference_s) & np.isfinite(formal_velocity)
+    )
+    if platform_indices.size == 0 or formal_indices.size == 0:
+        return None
+    platform_index = int(platform_indices[-1])
+    formal_index = int(formal_indices[0])
+    return (
+        np.asarray(
+            [reference_s, time_s[formal_index]],
+            dtype=np.float64,
+        )
+        * 1.0e6,
+        np.asarray(
+            [display_velocity[platform_index], formal_velocity[formal_index]],
+            dtype=np.float64,
+        ),
+    )
+
+
 def _fit_analysis_x(plot_widget: Any, analysis: ChannelAnalysis) -> None:
     start_us, end_us = analysis_view_range_us(analysis)
     plot_widget.setXRange(start_us, end_us, padding=0.0)
@@ -465,7 +502,7 @@ class SpectrogramView(_ChannelView):
         if not refresh:
             return
         channel_name = self.channel_combo.currentData()
-        if isinstance(channel_name, str) and channel_name in self._analyses:
+        if isinstance(channel_name, str) and channel_name in self._stft_results:
             self._render_channel(channel_name, fit_view=False)
 
     def set_colormap(self, name: str) -> None:
@@ -609,7 +646,8 @@ class RidgeView(_ChannelView):
         self._corridors = corridors
         blocker = QSignalBlocker(self.result_source_combo)
         self.result_source_combo.clear()
-        self.result_source_combo.addItem(self.tr("自动结果"), "automatic")
+        if automatic_analyses:
+            self.result_source_combo.addItem(self.tr("自动结果"), "automatic")
         if guided_analyses:
             self.result_source_combo.addItem(self.tr("引导结果"), "guided")
         index = self.result_source_combo.findData(previous)
@@ -759,8 +797,15 @@ class VelocityView(_ChannelView):
         self.root_layout.addWidget(self.plot_widget, 1)
         self.formal_curve: Any | None = None
         self.display_curve: Any | None = None
+        self.display_connector: Any | None = None
         self._automatic_analyses: Mapping[str, ChannelAnalysis] = {}
         self._guided_analyses: Mapping[str, ChannelAnalysis] = {}
+        self._available_channel_names: tuple[str, ...] = ()
+        self.source_notice = QLabel()
+        self.source_notice.setObjectName("velocityResultSourceNotice")
+        self.source_notice.setWordWrap(True)
+        self.source_notice.hide()
+        self.root_layout.addWidget(self.source_notice)
 
     @property
     def result_source(self) -> str:
@@ -777,6 +822,7 @@ class VelocityView(_ChannelView):
             analyses,
             {},
             relative_db_floor=relative_db_floor,
+            available_channel_names=tuple(analyses),
         )
 
     def set_result_sets(
@@ -786,13 +832,20 @@ class VelocityView(_ChannelView):
         *,
         relative_db_floor: float,
         fit_view: bool = True,
+        available_channel_names: tuple[str, ...] | None = None,
     ) -> None:
         previous = self.result_source
         self._automatic_analyses = automatic_analyses
         self._guided_analyses = guided_analyses
+        self._available_channel_names = (
+            tuple(available_channel_names)
+            if available_channel_names is not None
+            else tuple(dict.fromkeys((*automatic_analyses, *guided_analyses)))
+        )
         blocker = QSignalBlocker(self.result_source_combo)
         self.result_source_combo.clear()
-        self.result_source_combo.addItem(self.tr("自动结果"), "automatic")
+        if automatic_analyses:
+            self.result_source_combo.addItem(self.tr("自动结果"), "automatic")
         if guided_analyses:
             self.result_source_combo.addItem(self.tr("引导结果"), "guided")
         index = self.result_source_combo.findData(previous)
@@ -806,7 +859,10 @@ class VelocityView(_ChannelView):
     def clear_results(self) -> None:
         self._automatic_analyses = {}
         self._guided_analyses = {}
+        self._available_channel_names = ()
         self.result_source_combo.clear()
+        self.source_notice.clear()
+        self.source_notice.hide()
         super().clear_results()
 
     def _result_source_changed(self, _index: int) -> None:
@@ -824,13 +880,63 @@ class VelocityView(_ChannelView):
             if self.result_source == "guided"
             else self._automatic_analyses
         )
-        super().set_analyses(
+        self._set_source_channels(
             analyses,
             relative_db_floor=relative_db_floor,
+            fit_view=fit_view,
         )
         if analyses and not fit_view:
             self.plot_widget.setXRange(*previous_range[0], padding=0.0)
             self.plot_widget.setYRange(*previous_range[1], padding=0.0)
+
+    def _set_source_channels(
+        self,
+        analyses: Mapping[str, ChannelAnalysis],
+        *,
+        relative_db_floor: float,
+        fit_view: bool,
+    ) -> None:
+        """Keep all loaded channels selectable even when one source is absent."""
+        previous_channel = self.channel_combo.currentData()
+        self._analyses = analyses
+        self._floor_db = float(relative_db_floor)
+        blocker = QSignalBlocker(self.channel_combo)
+        self.channel_combo.clear()
+        for channel_name in self._available_channel_names:
+            self.channel_combo.addItem(channel_name, channel_name)
+        index = self.channel_combo.findData(previous_channel)
+        self.channel_combo.setCurrentIndex(max(index, 0))
+        self.channel_combo.setEnabled(bool(self._available_channel_names))
+        del blocker
+        channel_name = self.channel_combo.currentData()
+        if isinstance(channel_name, str) and channel_name in analyses:
+            self._render_channel(channel_name, fit_view=fit_view)
+            self.channel_selection_changed.emit(channel_name)
+        elif isinstance(channel_name, str):
+            self._render_missing_channel(channel_name)
+
+    def _channel_changed(self, _index: int) -> None:
+        channel_name = self.channel_combo.currentData()
+        if isinstance(channel_name, str) and channel_name in self._analyses:
+            self._render_channel(channel_name, fit_view=True)
+            self.channel_selection_changed.emit(channel_name)
+        elif isinstance(channel_name, str):
+            self._render_missing_channel(channel_name)
+
+    def _render_missing_channel(self, channel_name: str) -> None:
+        """Show a source-specific absence message without disabling Velocity."""
+        source = self.result_source
+        source_name = (
+            self.tr("引导结果") if source == "guided" else self.tr("自动结果")
+        )
+        self.source_notice.setText(
+            self.tr("当前通道尚无{source}：{channel}").format(
+                source=source_name,
+                channel=channel_name,
+            )
+        )
+        self.source_notice.show()
+        self._clear_plot()
 
     def refresh_display_results(
         self,
@@ -853,6 +959,8 @@ class VelocityView(_ChannelView):
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         analysis = self._analyses[channel_name]
+        self.source_notice.clear()
+        self.source_notice.hide()
         previous_range = self.plot_widget.plotItem.vb.viewRange()
         self.plot_widget.clear()
         self.plot_widget.addLegend(offset=(12, 12))
@@ -866,6 +974,7 @@ class VelocityView(_ChannelView):
             name=self.tr("正式表观速度"),
         )
         self.display_curve = None
+        self.display_connector = None
         if self.display_velocity_check.isChecked():
             self.display_curve = self.plot_widget.plot(
                 time_us,
@@ -874,6 +983,22 @@ class VelocityView(_ChannelView):
                 connect="finite",
                 name=self.tr("显示速度（仅显示）"),
             )
+            connector = display_velocity_connector_points(analysis)
+            if connector is not None:
+                connector_time_us, connector_velocity_m_s = connector
+                self.display_connector = self.plot_widget.plot(
+                    connector_time_us,
+                    connector_velocity_m_s,
+                    pen=pg.mkPen(
+                        "#777777",
+                        width=1.0,
+                        style=pg.QtCore.Qt.DashLine,
+                    ),
+                    connect="all",
+                )
+                self.display_connector.setToolTip(
+                    self.tr("显示速度（仅显示）")
+                )
         if fit_view:
             self.plot_widget.autoRange()
             self._fit_current_view(analysis)
@@ -894,6 +1019,7 @@ class VelocityView(_ChannelView):
         self.plot_widget.clear()
         self.formal_curve = None
         self.display_curve = None
+        self.display_connector = None
 
 
 class ComparisonView(QWidget):
@@ -919,6 +1045,11 @@ class ComparisonView(QWidget):
         layout.addLayout(fit_row)
         self.controls = QHBoxLayout()
         layout.addLayout(self.controls)
+        self.notice = QLabel()
+        self.notice.setObjectName("comparisonResultNotice")
+        self.notice.setWordWrap(True)
+        self.notice.hide()
+        layout.addWidget(self.notice)
         self.plot_widget = pg.PlotWidget(background="w")
         self.plot_widget.setObjectName("comparisonPlot")
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
@@ -980,6 +1111,12 @@ class ComparisonView(QWidget):
             self.curves[series_key] = curve
             self._series[series_key] = analysis
         self.controls.addStretch(1)
+        if len(series) == 1:
+            self.notice.setText(self.tr("当前只有一个可比较结果。"))
+            self.notice.show()
+        else:
+            self.notice.clear()
+            self.notice.hide()
         self.plot_widget.autoRange()
         self.fit_analysis_range()
 
@@ -1011,6 +1148,8 @@ class ComparisonView(QWidget):
                 widget.deleteLater()
         self._checks.clear()
         self.curves.clear()
+        self.notice.clear()
+        self.notice.hide()
 
 
 class QualitySummaryWidget(QWidget):
@@ -1096,6 +1235,7 @@ class QualitySummaryWidget(QWidget):
 
 __all__ = [
     "ComparisonView",
+    "display_velocity_connector_points",
     "QualitySummaryWidget",
     "RidgeView",
     "SpectrogramView",

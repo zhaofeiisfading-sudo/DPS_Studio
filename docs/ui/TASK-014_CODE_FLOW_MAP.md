@@ -434,3 +434,20 @@ Guided 请求只包含具有合法约束的通道。对每个此类通道，work
 `[min(control_times), max(control_times)]`；候选频点是逐帧 corridor 与 global search band
 的离散交集。域外经原有 signal detection、quality gate 和 velocity conversion 得到 NaN，
 不会拼接 Automatic 曲线。
+## TASK-016R2 增补：当前通道 Guided 请求与显示分离
+
+```text
+Spectrogram 当前 channel combo data
+  -> AnalysisSession.ridge_constraints[current_channel]
+  -> AnalysisRequest(records={current_channel}, stft_results={current_channel})
+  -> public analyze_stft_results / existing worker
+  -> accept_guided_results(): merge current channel only
+  -> valid_guided_channel_analyses
+  -> Ridge / Velocity / Comparison source views
+```
+
+上图中的 `records`、缓存 `STFTResult` 和 corridor 都是单通道映射；没有走廊的其他
+通道不构成 Guided worker 的前置条件。`accept_guided_results` 合并新返回的通道而不
+覆盖既有 Guided 映射。正式速度数组保持 core 的 `apparent_velocity_m_s`；Velocity
+视图可额外绘制仅显示的两点虚线连接，A 为事件参考时刻的 display 平台值，B 为
+Guided 有效域中的首个 finite 正式速度点。该连接不写回任何 core 数组。

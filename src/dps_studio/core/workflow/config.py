@@ -16,6 +16,8 @@ from dps_studio.core.analysis_profiles import (
     BALANCED_PROFILE,
     HIGH_FREQUENCY_RESOLUTION_PROFILE,
     HIGH_TIME_RESOLUTION_PROFILE,
+    VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE,
+    VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE,
     AnalysisProfile,
     get_analysis_profile,
 )
@@ -493,11 +495,23 @@ def _profiles(value: object) -> tuple[AnalysisProfile, ...]:
         *legacy_required,
         HIGH_FREQUENCY_RESOLUTION_PROFILE.profile_id.value,
     )
-    if tuple(identifiers) not in (legacy_required, expanded_required):
+    experimental_required = (
+        VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.profile_id.value,
+        HIGH_TIME_RESOLUTION_PROFILE.profile_id.value,
+        BALANCED_PROFILE.profile_id.value,
+        HIGH_FREQUENCY_RESOLUTION_PROFILE.profile_id.value,
+        VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE.profile_id.value,
+    )
+    if tuple(identifiers) not in (
+        legacy_required,
+        expanded_required,
+        experimental_required,
+    ):
         raise WorkflowConfigurationError(
             "analysis.profiles must be the ordered legacy pair ['balanced', "
             "'high_time_resolution'] or that pair followed by "
-            "'high_frequency_resolution'."
+            "'high_frequency_resolution', or the ordered five-profile "
+            "experimental time-to-frequency sequence."
         )
     return tuple(profiles)
 

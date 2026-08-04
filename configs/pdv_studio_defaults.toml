@@ -19,7 +19,7 @@ pdv_channel_2 = 1.0
 
 [analysis]
 default_profile = "balanced"
-profiles = ["balanced", "high_time_resolution", "high_frequency_resolution"]
+profiles = ["very_high_time_resolution_experimental", "high_time_resolution", "balanced", "high_frequency_resolution", "very_high_frequency_resolution_experimental"]
 # Preferred laboratory acquisition window. The GUI uses it only when it lies
 # completely inside the records currently imported by the user; otherwise it
 # falls back to the complete common channel range.

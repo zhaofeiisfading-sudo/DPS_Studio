@@ -74,6 +74,67 @@ QPushButton:default {
     color: #ffffff;
     border: 1px solid #07577f;
 }
+QRadioButton {
+    min-height: 26px;
+    padding: 2px 12px;
+    spacing: 7px;
+    background: #ffffff;
+    border: 1px solid #d6dde3;
+    color: #263746;
+}
+QRadioButton:checked {
+    background: #dceaf4;
+    border-color: #0b6fa4;
+    color: #173a52;
+    font-weight: 600;
+}
+QRadioButton:hover:unchecked {
+    background: #edf5fa;
+    border-color: #82b4ce;
+}
+QRadioButton:hover:checked {
+    background: #c9e2f1;
+    border-color: #07577f;
+}
+QRadioButton:pressed {
+    background: #bdd9ea;
+}
+QRadioButton:disabled {
+    background: #f1f3f5;
+    border-color: #e0e5e9;
+    color: #8a98a3;
+}
+QRadioButton::indicator {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #607583;
+    border-radius: 8px;
+    background: #ffffff;
+}
+QRadioButton::indicator:unchecked:hover {
+    border-color: #0b6fa4;
+    background: #edf5fa;
+}
+QRadioButton::indicator:checked {
+    border: 2px solid #07577f;
+    border-radius: 8px;
+    background: #0b6fa4;
+}
+QRadioButton::indicator:checked:hover {
+    border-color: #064364;
+    background: #07577f;
+}
+QRadioButton::indicator:checked:pressed {
+    background: #064364;
+}
+QRadioButton::indicator:disabled:unchecked {
+    border-color: #aab5bd;
+    background: #f1f3f5;
+}
+QRadioButton::indicator:disabled:checked {
+    border-color: #719ab1;
+    background: #8ab5cc;
+}
 QLabel#sectionTitle {
     color: #173a52;
     font-weight: 600;
