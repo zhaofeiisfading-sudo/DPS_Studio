@@ -22,6 +22,7 @@ from dps_studio.core.quality import (
 )
 from dps_studio.core.ridge import (
     RefinedRidgeResult,
+    RidgeCorridorConstraint,
     RidgeQualityFlag,
     RidgeRefinementStatus,
     RidgeResult,
@@ -29,13 +30,58 @@ from dps_studio.core.ridge import (
     assess_ridge_spectral_quality,
     extract_peak_ridge,
     refine_peak_ridge_subbin,
+    validate_ridge_corridor_for_stft,
 )
-from dps_studio.core.time_frequency import compute_stft
+from dps_studio.core.time_frequency import STFTResult, compute_stft
 from dps_studio.core.workflow.display import build_display_velocity
 from dps_studio.core.workflow.models import ChannelAnalysis, FloatArray
 from dps_studio.core.workflow.quality_parameters import (
     derive_bin_guard_half_width_hz,
 )
+
+
+def compute_profile_stfts(
+    records: Mapping[str, SignalRecord],
+    *,
+    profile: AnalysisProfile,
+) -> Mapping[str, STFTResult]:
+    """Compute reusable per-channel STFT results for one immutable profile."""
+    if not isinstance(profile, AnalysisProfile):
+        raise TypeError("profile must be an AnalysisProfile.")
+    return compute_configuration_stfts(
+        records,
+        window_length_samples=profile.window_length_samples,
+        overlap_samples=profile.overlap_samples,
+        nfft=profile.nfft,
+        window_name=profile.window_name,
+    )
+
+
+def compute_configuration_stfts(
+    records: Mapping[str, SignalRecord],
+    *,
+    window_length_samples: int,
+    overlap_samples: int,
+    nfft: int,
+    window_name: str,
+) -> Mapping[str, STFTResult]:
+    """Compute only STFT, without ridge, detection, or velocity work."""
+    if not isinstance(records, Mapping) or not records:
+        raise TypeError("records must be a non-empty mapping of SignalRecord values.")
+    results: dict[str, STFTResult] = {}
+    for channel_name, record in records.items():
+        if not isinstance(channel_name, str) or not channel_name:
+            raise TypeError("Every records key must be a non-empty string.")
+        if not isinstance(record, SignalRecord):
+            raise TypeError(f"records[{channel_name!r}] must be a SignalRecord.")
+        results[channel_name] = compute_stft(
+            record,
+            window_length_samples=window_length_samples,
+            overlap_samples=overlap_samples,
+            nfft=nfft,
+            window_name=window_name,
+        )
+    return MappingProxyType(results)
 
 
 def analyze_profile(
@@ -53,6 +99,7 @@ def analyze_profile(
     minimum_background_bin_count: int = 2,
     assume_pre_event_zero_for_display: bool = False,
     pre_event_display_velocity_m_s: float = 0.0,
+    ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
 ) -> Mapping[str, ChannelAnalysis]:
     """Analyze every channel independently with one formal profile."""
     if not isinstance(profile, AnalysisProfile):
@@ -77,6 +124,7 @@ def analyze_profile(
         minimum_background_bin_count=minimum_background_bin_count,
         assume_pre_event_zero_for_display=assume_pre_event_zero_for_display,
         pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
+        ridge_constraints=ridge_constraints,
     )
 
 
@@ -101,10 +149,71 @@ def analyze_configuration(
     minimum_background_bin_count: int = 2,
     assume_pre_event_zero_for_display: bool = False,
     pre_event_display_velocity_m_s: float = 0.0,
+    ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
 ) -> Mapping[str, ChannelAnalysis]:
     """Run STFT through continuity diagnostics without paths, plots, or writes."""
-    if not isinstance(records, Mapping) or not records:
-        raise TypeError("records must be a non-empty mapping of SignalRecord values.")
+    stft_results = compute_configuration_stfts(
+        records,
+        window_length_samples=window_length_samples,
+        overlap_samples=overlap_samples,
+        nfft=nfft,
+        window_name=window_name,
+    )
+    return analyze_stft_results(
+        stft_results,
+        minimum_frequency_hz=minimum_frequency_hz,
+        maximum_frequency_hz=maximum_frequency_hz,
+        event_start_time_s=event_start_time_s,
+        analysis_start_time_s=analysis_start_time_s,
+        analysis_end_time_s=analysis_end_time_s,
+        manual_event_reference_time_s=manual_event_reference_time_s,
+        vacuum_wavelength_m=vacuum_wavelength_m,
+        detection_config=detection_config,
+        event_candidate_config=event_candidate_config,
+        profile_name=profile_name,
+        background_guard_window_scale=background_guard_window_scale,
+        minimum_background_bin_count=minimum_background_bin_count,
+        assume_pre_event_zero_for_display=assume_pre_event_zero_for_display,
+        pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
+        ridge_constraints=ridge_constraints,
+    )
+
+
+def analyze_stft_results(
+    stft_results: Mapping[str, STFTResult],
+    *,
+    minimum_frequency_hz: float,
+    maximum_frequency_hz: float,
+    event_start_time_s: float | None = None,
+    analysis_start_time_s: float | None = None,
+    analysis_end_time_s: float | None = None,
+    manual_event_reference_time_s: float | None = None,
+    vacuum_wavelength_m: float,
+    detection_config: SignalDetectionConfig | None = None,
+    event_candidate_config: EventCandidateConfig | None = None,
+    profile_name: str = "custom",
+    background_guard_window_scale: float = 2.0,
+    minimum_background_bin_count: int = 2,
+    assume_pre_event_zero_for_display: bool = False,
+    pre_event_display_velocity_m_s: float = 0.0,
+    ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
+) -> Mapping[str, ChannelAnalysis]:
+    """Run post-STFT science while preserving the supplied STFT objects.
+
+    A guided corridor defines a channel-local closed time domain.  Frames
+    outside that domain are formally outside the guided analysis window and
+    therefore remain NaN; they never fall back to the automatic ridge.
+    """
+    if not isinstance(stft_results, Mapping) or not stft_results:
+        raise TypeError("stft_results must be a non-empty mapping of STFTResult values.")
+    for channel_name, stft_result in stft_results.items():
+        if not isinstance(channel_name, str) or not channel_name:
+            raise TypeError("Every stft_results key must be a non-empty string.")
+        if not isinstance(stft_result, STFTResult):
+            raise TypeError(
+                f"stft_results[{channel_name!r}] must be an STFTResult."
+            )
+    constraints = _validated_ridge_constraints(stft_results, ridge_constraints)
     if not math.isfinite(vacuum_wavelength_m) or vacuum_wavelength_m <= 0.0:
         raise ValueError("vacuum_wavelength_m must be finite and strictly positive.")
     manual_reference = _manual_reference(
@@ -154,24 +263,33 @@ def analyze_configuration(
         raise ValueError("minimum_background_bin_count must be a positive integer.")
 
     analyses: dict[str, ChannelAnalysis] = {}
-    for channel_name, record in records.items():
-        if not isinstance(channel_name, str) or not channel_name:
-            raise TypeError("Every records key must be a non-empty string.")
-        if not isinstance(record, SignalRecord):
-            raise TypeError(f"records[{channel_name!r}] must be a SignalRecord.")
-        stft_result = compute_stft(
-            record,
-            window_length_samples=window_length_samples,
-            overlap_samples=overlap_samples,
-            nfft=nfft,
-            window_name=window_name,
-        )
+    for channel_name, stft_result in stft_results.items():
+        ridge_constraint = constraints.get(channel_name)
+        channel_analysis_start = analysis_start
+        channel_analysis_end = analysis_end
+        if ridge_constraint is not None:
+            validate_ridge_corridor_for_stft(
+                ridge_constraint,
+                stft_result,
+                minimum_frequency_hz=minimum_frequency_hz,
+                maximum_frequency_hz=maximum_frequency_hz,
+                analysis_start_time_s=analysis_start,
+                analysis_end_time_s=analysis_end,
+            )
+            channel_analysis_start = ridge_constraint.start_time_s
+            channel_analysis_end = ridge_constraint.end_time_s
         ridge_result = extract_peak_ridge(
             stft_result,
             minimum_frequency_hz=minimum_frequency_hz,
             maximum_frequency_hz=maximum_frequency_hz,
             event_start_time_s=None,
-            analysis_end_time_s=None,
+            analysis_start_time_s=(
+                channel_analysis_start if ridge_constraint is not None else None
+            ),
+            analysis_end_time_s=(
+                channel_analysis_end if ridge_constraint is not None else None
+            ),
+            ridge_constraint=ridge_constraint,
         )
         refined_result = refine_peak_ridge_subbin(stft_result, ridge_result)
         provisional_discrete_velocity_result = convert_ridge_to_apparent_velocity(
@@ -199,8 +317,8 @@ def analyze_configuration(
             spectral_quality_result,
             detection_config=detection_config,
             vacuum_wavelength_m=vacuum_wavelength_m,
-            analysis_start_time_s=analysis_start,
-            analysis_end_time_s=analysis_end,
+            analysis_start_time_s=channel_analysis_start,
+            analysis_end_time_s=channel_analysis_end,
             manual_event_reference_time_s=manual_reference,
         )
         measured_mask = np.fromiter(
@@ -229,8 +347,8 @@ def analyze_configuration(
             signal_detection_result.signal_states,
             refined_velocity_m_s,
             manual_event_reference_time_s=manual_reference,
-            analysis_start_time_s=analysis_start,
-            analysis_end_time_s=analysis_end,
+            analysis_start_time_s=channel_analysis_start,
+            analysis_end_time_s=channel_analysis_end,
             enable_pre_event_display=(
                 assume_pre_event_zero_for_display
             ),
@@ -258,6 +376,33 @@ def analyze_configuration(
             stream_event_candidates=stream_event_candidates,
         )
     return MappingProxyType(analyses)
+
+
+def _validated_ridge_constraints(
+    sources: Mapping[str, object],
+    value: Mapping[str, RidgeCorridorConstraint] | None,
+) -> Mapping[str, RidgeCorridorConstraint]:
+    if value is None:
+        return MappingProxyType({})
+    if not isinstance(value, Mapping):
+        raise TypeError(
+            "ridge_constraints must be a channel mapping or None."
+        )
+    constraints: dict[str, RidgeCorridorConstraint] = {}
+    for channel_name, constraint in value.items():
+        if not isinstance(channel_name, str) or not channel_name:
+            raise TypeError("Every ridge constraint key must be a channel name.")
+        if channel_name not in sources:
+            raise ValueError(
+                f"ridge_constraints contains unknown channel {channel_name!r}."
+            )
+        if not isinstance(constraint, RidgeCorridorConstraint):
+            raise TypeError(
+                f"ridge_constraints[{channel_name!r}] must be a "
+                "RidgeCorridorConstraint."
+            )
+        constraints[channel_name] = constraint
+    return MappingProxyType(constraints)
 
 
 def _convert_refined_velocity(
@@ -354,4 +499,10 @@ def _optional_finite_time(value: object, *, field_name: str) -> float | None:
     return converted
 
 
-__all__ = ["analyze_configuration", "analyze_profile"]
+__all__ = [
+    "analyze_configuration",
+    "analyze_profile",
+    "analyze_stft_results",
+    "compute_configuration_stfts",
+    "compute_profile_stfts",
+]

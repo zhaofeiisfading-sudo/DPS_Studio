@@ -1,6 +1,12 @@
 """Public formal workflow API with no GUI, plotting, or file-output dependency."""
 
-from dps_studio.core.workflow.analysis import analyze_configuration, analyze_profile
+from dps_studio.core.workflow.analysis import (
+    analyze_configuration,
+    analyze_profile,
+    analyze_stft_results,
+    compute_configuration_stfts,
+    compute_profile_stfts,
+)
 from dps_studio.core.workflow.config import (
     AnalysisConfiguration,
     InputConfiguration,
@@ -35,7 +41,10 @@ __all__ = [
     "PRE_EVENT_DISPLAY_ORIGIN",
     "analyze_configuration",
     "analyze_profile",
+    "analyze_stft_results",
     "build_display_velocity",
+    "compute_configuration_stfts",
+    "compute_profile_stfts",
     "configure_channel_event_reference",
     "configure_channel_display_velocity",
     "derive_background_exclusion_half_width_hz",

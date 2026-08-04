@@ -11,6 +11,10 @@ from dps_studio.core.ridge.exceptions import (
     RidgeConfigurationError,
     RidgeExtractionError,
 )
+from dps_studio.core.ridge.guidance import (
+    RidgeCorridorConstraint,
+    validate_ridge_corridor_for_stft,
+)
 from dps_studio.core.ridge.models import RidgeQualityFlag, RidgeResult
 from dps_studio.core.time_frequency import STFTResult
 
@@ -23,6 +27,7 @@ def extract_peak_ridge(
     event_start_time_s: float | None = None,
     analysis_start_time_s: float | None = None,
     analysis_end_time_s: float | None = None,
+    ridge_constraint: RidgeCorridorConstraint | None = None,
 ) -> RidgeResult:
     """Extract the largest discrete-bin magnitude in each candidate frame.
 
@@ -31,8 +36,10 @@ def extract_peak_ridge(
     ``event_start_time_s`` is retained as a validated compatibility-only manual
     reference and never gates peak extraction. Use ``analysis_start_time_s`` and
     ``analysis_end_time_s`` only when an explicit analysis range is required.
-    No smoothing, continuity constraint, sub-bin interpolation, or physical
-    conversion is applied.
+    An optional ridge corridor intersects the global search band only on its
+    own closed time domain. Frames with no allowed bin retain NaN and an
+    explicit flag. No smoothing, continuity constraint, sub-bin interpolation,
+    or physical conversion is applied.
     """
     if not isinstance(stft_result, STFTResult):
         raise RidgeConfigurationError(
@@ -84,6 +91,15 @@ def extract_peak_ridge(
             "analysis_start_time_s must be less than or equal to "
             "analysis_end_time_s."
         )
+    if ridge_constraint is not None:
+        validate_ridge_corridor_for_stft(
+            ridge_constraint,
+            stft_result,
+            minimum_frequency_hz=minimum,
+            maximum_frequency_hz=maximum,
+            analysis_start_time_s=analysis_start,
+            analysis_end_time_s=analysis_end,
+        )
 
     band_mask = (stft_result.frequency_hz >= minimum) & (
         stft_result.frequency_hz <= maximum
@@ -120,7 +136,7 @@ def extract_peak_ridge(
         quality_flags[int(index)] = RidgeQualityFlag.OUTSIDE_ANALYSIS_WINDOW
 
     candidate_indices = np.flatnonzero(candidate_mask)
-    if candidate_indices.size:
+    if candidate_indices.size and ridge_constraint is None:
         try:
             magnitude = np.abs(stft_result.spectrum)
             search_band_magnitude = magnitude[np.ix_(band_indices, candidate_indices)]
@@ -135,6 +151,38 @@ def extract_peak_ridge(
             raise RidgeExtractionError(
                 "Could not extract the baseline peak-bin ridge from the validated "
                 "STFT result and search configuration."
+            ) from exc
+    elif candidate_indices.size:
+        try:
+            assert ridge_constraint is not None
+            magnitude = np.abs(stft_result.spectrum)
+            frequency_axis = stft_result.frequency_hz
+            for raw_frame_index in candidate_indices:
+                frame_index = int(raw_frame_index)
+                corridor_band = ridge_constraint.allowed_band_hz(
+                    float(stft_result.time_s[frame_index])
+                )
+                allowed_indices = band_indices
+                if corridor_band is not None:
+                    corridor_minimum, corridor_maximum = corridor_band
+                    allowed_indices = band_indices[
+                        (frequency_axis[band_indices] >= corridor_minimum)
+                        & (frequency_axis[band_indices] <= corridor_maximum)
+                    ]
+                if allowed_indices.size == 0:
+                    quality_flags[frame_index] = RidgeQualityFlag.NO_ALLOWED_BINS
+                    continue
+                allowed_magnitudes = magnitude[allowed_indices, frame_index]
+                relative_peak_index = int(np.argmax(allowed_magnitudes))
+                frequency_index = int(allowed_indices[relative_peak_index])
+                frequency_hz[frame_index] = frequency_axis[frequency_index]
+                peak_magnitude[frame_index] = allowed_magnitudes[
+                    relative_peak_index
+                ]
+        except Exception as exc:
+            raise RidgeExtractionError(
+                "Could not extract the corridor-constrained peak-bin ridge from "
+                "the validated STFT result and search configuration."
             ) from exc
 
     return RidgeResult(

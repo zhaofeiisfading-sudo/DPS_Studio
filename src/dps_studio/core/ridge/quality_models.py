@@ -28,6 +28,7 @@ class RidgeSpectralQualityStatus(str, Enum):
 
     PRE_EVENT = "pre_event"
     OUTSIDE_ANALYSIS_WINDOW = "outside_analysis_window"
+    NO_CANDIDATE = "no_candidate"
     ASSESSED = "assessed"
     INSUFFICIENT_BACKGROUND_BINS = "insufficient_background_bins"
     INVALID_PEAK_MAGNITUDE = "invalid_peak_magnitude"
@@ -308,6 +309,22 @@ def _validate_frame_values(
             ):
                 raise RidgeConfigurationError(
                     "OUTSIDE frames must retain matching refinement and assessment statuses."
+                )
+            _require_masked_frame(
+                discrete=float(discrete[index]),
+                refined=float(refined[index]),
+                bin_index=int(bin_indices[index]),
+                background_count=int(background_counts[index]),
+                quality_values=quality_values,
+            )
+            continue
+        if flag is RidgeQualityFlag.NO_ALLOWED_BINS:
+            if (
+                refinement_status is not RidgeRefinementStatus.NO_CANDIDATE
+                or assessment_status is not RidgeSpectralQualityStatus.NO_CANDIDATE
+            ):
+                raise RidgeConfigurationError(
+                    "NO_ALLOWED_BINS frames must retain no-candidate statuses."
                 )
             _require_masked_frame(
                 discrete=float(discrete[index]),

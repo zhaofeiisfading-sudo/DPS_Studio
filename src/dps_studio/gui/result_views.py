@@ -25,11 +25,17 @@ from PySide6.QtWidgets import (
 )
 
 from dps_studio.core.quality import SignalState
+from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import ChannelAnalysis
 from dps_studio.gui.display_preferences import (
     DEFAULT_SPECTROGRAM_COLORMAP,
     normalize_spectrogram_colormap,
     spectrogram_colormap,
+)
+from dps_studio.gui.ridge_corridor import (
+    RidgeCorridorController,
+    draw_static_corridor,
 )
 
 
@@ -87,7 +93,16 @@ def relative_magnitude_db(
     floor_db: float,
 ) -> FloatArray:
     """Return exact ``20 log10(|spectrum| / max|spectrum|)`` display values."""
-    magnitude = np.abs(analysis.stft_result.spectrum)
+    return relative_stft_magnitude_db(analysis.stft_result, floor_db=floor_db)
+
+
+def relative_stft_magnitude_db(
+    stft_result: STFTResult,
+    *,
+    floor_db: float,
+) -> FloatArray:
+    """Return display-only relative magnitude for one reusable STFT result."""
+    magnitude = np.abs(stft_result.spectrum)
     reference = float(np.max(magnitude))
     if reference <= 0.0:
         return np.full(magnitude.shape, floor_db, dtype=np.float64)
@@ -102,8 +117,16 @@ def _set_image(
     *,
     floor_db: float,
 ) -> FloatArray:
-    stft = analysis.stft_result
-    display = relative_magnitude_db(analysis, floor_db=floor_db)
+    return _set_stft_image(image_item, analysis.stft_result, floor_db=floor_db)
+
+
+def _set_stft_image(
+    image_item: Any,
+    stft: STFTResult,
+    *,
+    floor_db: float,
+) -> FloatArray:
+    display = relative_stft_magnitude_db(stft, floor_db=floor_db)
     image_item.setImage(display, autoLevels=False, levels=(floor_db, 0.0))
     time_us = stft.time_s * 1e6
     frequency_ghz = stft.frequency_hz * 1e-9
@@ -128,8 +151,20 @@ def _set_image(
 
 def _add_search_band(plot_widget: Any, analysis: ChannelAnalysis) -> list[Any]:
     ridge = analysis.ridge_result
+    return _add_search_band_limits(
+        plot_widget,
+        ridge.minimum_frequency_hz,
+        ridge.maximum_frequency_hz,
+    )
+
+
+def _add_search_band_limits(
+    plot_widget: Any,
+    minimum_frequency_hz: float,
+    maximum_frequency_hz: float,
+) -> list[Any]:
     lines = []
-    for frequency_hz in (ridge.minimum_frequency_hz, ridge.maximum_frequency_hz):
+    for frequency_hz in (minimum_frequency_hz, maximum_frequency_hz):
         line = pg.InfiniteLine(
             pos=frequency_hz * 1e-9,
             angle=0,
@@ -144,26 +179,64 @@ class _ChannelView(QWidget):
     """Small shared channel selector for independent analysis results."""
 
     plot_widget: Any
+    channel_selection_changed = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._analyses: Mapping[str, ChannelAnalysis] = {}
         self._floor_db = -60.0
+        self._view_analysis_range_s: tuple[float, float] | None = None
+        self._view_search_band_hz: tuple[float, float] | None = None
         self.root_layout = QVBoxLayout(self)
-        controls = QHBoxLayout()
-        controls.addWidget(QLabel(self.tr("显示通道")))
+        self.controls_layout = QHBoxLayout()
+        self.controls_layout.addWidget(QLabel(self.tr("显示通道")))
         self.channel_combo = QComboBox()
         self.channel_combo.setObjectName("analysisChannelSelector")
         self.channel_combo.currentIndexChanged.connect(self._channel_changed)
-        controls.addWidget(self.channel_combo)
+        self.controls_layout.addWidget(self.channel_combo)
         self.fit_analysis_range_button = QPushButton(
             self.tr("适合分析范围")
         )
         self.fit_analysis_range_button.setObjectName("fitAnalysisRangeButton")
         self.fit_analysis_range_button.clicked.connect(self.fit_analysis_range)
-        controls.addWidget(self.fit_analysis_range_button)
-        controls.addStretch(1)
-        self.root_layout.addLayout(controls)
+        self.controls_layout.addWidget(self.fit_analysis_range_button)
+        self.controls_layout.addStretch(1)
+        self.root_layout.addLayout(self.controls_layout)
+
+    def add_spectral_view_controls(self) -> None:
+        """Add the two display-only frequency shortcuts used by STFT views."""
+        self.fit_search_region_button = QPushButton(self.tr("适合搜索区域"))
+        self.fit_search_region_button.setObjectName("fitSearchRegionButton")
+        self.fit_search_region_button.clicked.connect(self.fit_search_region)
+        self.show_full_spectrum_button = QPushButton(self.tr("显示完整频谱"))
+        self.show_full_spectrum_button.setObjectName("showFullSpectrumButton")
+        self.show_full_spectrum_button.clicked.connect(self.show_full_spectrum)
+        self.controls_layout.insertWidget(
+            self.controls_layout.count() - 1,
+            self.fit_search_region_button,
+        )
+        self.controls_layout.insertWidget(
+            self.controls_layout.count() - 1,
+            self.show_full_spectrum_button,
+        )
+
+    def set_view_configuration(
+        self,
+        *,
+        analysis_start_time_s: float,
+        analysis_end_time_s: float,
+        minimum_frequency_hz: float,
+        maximum_frequency_hz: float,
+    ) -> None:
+        """Store display ranges without altering any scientific array."""
+        self._view_analysis_range_s = (
+            float(analysis_start_time_s),
+            float(analysis_end_time_s),
+        )
+        self._view_search_band_hz = (
+            float(minimum_frequency_hz),
+            float(maximum_frequency_hz),
+        )
 
     def set_analyses(
         self,
@@ -182,7 +255,9 @@ class _ChannelView(QWidget):
         self.channel_combo.setEnabled(bool(analyses))
         if analyses:
             self.channel_combo.setCurrentIndex(0)
-            self._render_channel(next(iter(analyses)), fit_view=True)
+            channel_name = next(iter(analyses))
+            self._render_channel(channel_name, fit_view=True)
+            self.channel_selection_changed.emit(channel_name)
 
     def clear_results(self) -> None:
         """Remove old arrays after any upstream invalidation."""
@@ -195,6 +270,7 @@ class _ChannelView(QWidget):
         channel_name = self.channel_combo.currentData()
         if isinstance(channel_name, str) and channel_name in self._analyses:
             self._render_channel(channel_name, fit_view=True)
+            self.channel_selection_changed.emit(channel_name)
 
     def fit_analysis_range(self) -> None:
         """Restore X to the confirmed analysis range for the current channel."""
@@ -203,7 +279,52 @@ class _ChannelView(QWidget):
             self._fit_current_view(self._analyses[channel_name])
 
     def _fit_current_view(self, analysis: ChannelAnalysis) -> None:
-        _fit_analysis_x(self.plot_widget, analysis)
+        if self._view_analysis_range_s is None:
+            _fit_analysis_x(self.plot_widget, analysis)
+            return
+        self.plot_widget.setXRange(
+            self._view_analysis_range_s[0] * 1.0e6,
+            self._view_analysis_range_s[1] * 1.0e6,
+            padding=0.0,
+        )
+
+    def fit_search_region(self) -> None:
+        """Fit X to analysis range and Y to the scientific search band."""
+        if self._view_analysis_range_s is not None:
+            self.plot_widget.setXRange(
+                self._view_analysis_range_s[0] * 1.0e6,
+                self._view_analysis_range_s[1] * 1.0e6,
+                padding=0.0,
+            )
+        if self._view_search_band_hz is not None:
+            self.plot_widget.setYRange(
+                self._view_search_band_hz[0] * 1.0e-9,
+                self._view_search_band_hz[1] * 1.0e-9,
+                padding=0.0,
+            )
+
+    def show_full_spectrum(self) -> None:
+        """Restore the complete frequency extent of the current STFT."""
+        stft_result = self._current_stft_result()
+        if stft_result is None:
+            return
+        if self._view_analysis_range_s is not None:
+            self.plot_widget.setXRange(
+                self._view_analysis_range_s[0] * 1.0e6,
+                self._view_analysis_range_s[1] * 1.0e6,
+                padding=0.0,
+            )
+        self.plot_widget.setYRange(
+            float(stft_result.frequency_hz[0]) * 1.0e-9,
+            float(stft_result.frequency_hz[-1]) * 1.0e-9,
+            padding=0.0,
+        )
+
+    def _current_stft_result(self) -> STFTResult | None:
+        channel_name = self.channel_combo.currentData()
+        if isinstance(channel_name, str) and channel_name in self._analyses:
+            return self._analyses[channel_name].stft_result
+        return None
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         raise NotImplementedError
@@ -219,6 +340,8 @@ class SpectrogramView(_ChannelView):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.add_spectral_view_controls()
+        self.fit_analysis_range_button.setVisible(False)
         colormap_row = QHBoxLayout()
         colormap_row.addWidget(QLabel(self.tr("色图")))
         self.colormap_combo = QComboBox()
@@ -267,6 +390,83 @@ class SpectrogramView(_ChannelView):
         self.root_layout.addWidget(self.definition_label)
         self.current_image_db: FloatArray | None = None
         self._search_lines: list[Any] = []
+        self._corridors: Mapping[str, RidgeCorridorConstraint] = {}
+        self._stft_results: Mapping[str, STFTResult] = {}
+        self.corridor_controller = RidgeCorridorController(
+            self.plot_widget,
+            self,
+        )
+
+    def set_stft_results(
+        self,
+        stft_results: Mapping[str, STFTResult],
+        *,
+        relative_db_floor: float,
+    ) -> None:
+        """Present independent STFT results before any ridge exists."""
+        self._analyses = {}
+        self._stft_results = stft_results
+        self._floor_db = float(relative_db_floor)
+        blocker = QSignalBlocker(self.channel_combo)
+        self.channel_combo.clear()
+        for channel_name in stft_results:
+            self.channel_combo.addItem(channel_name, channel_name)
+        self.channel_combo.setEnabled(bool(stft_results))
+        del blocker
+        if stft_results:
+            channel_name = next(iter(stft_results))
+            self.channel_combo.setCurrentIndex(0)
+            self._render_channel(channel_name, fit_view=True)
+            self.channel_selection_changed.emit(channel_name)
+
+    def set_analyses(
+        self,
+        analyses: Mapping[str, ChannelAnalysis],
+        *,
+        relative_db_floor: float,
+    ) -> None:
+        self._stft_results = {
+            name: analysis.stft_result for name, analysis in analyses.items()
+        }
+        super().set_analyses(analyses, relative_db_floor=relative_db_floor)
+
+    def clear_results(self) -> None:
+        self._stft_results = {}
+        super().clear_results()
+
+    def _channel_changed(self, _index: int) -> None:
+        channel_name = self.channel_combo.currentData()
+        if isinstance(channel_name, str) and channel_name in self._stft_results:
+            self._render_channel(channel_name, fit_view=True)
+            self.channel_selection_changed.emit(channel_name)
+
+    def _current_stft_result(self) -> STFTResult | None:
+        channel_name = self.channel_combo.currentData()
+        if isinstance(channel_name, str):
+            return self._stft_results.get(channel_name)
+        return None
+
+    def fit_analysis_range(self) -> None:
+        if self._view_analysis_range_s is not None:
+            self.plot_widget.setXRange(
+                self._view_analysis_range_s[0] * 1.0e6,
+                self._view_analysis_range_s[1] * 1.0e6,
+                padding=0.0,
+            )
+
+    def set_corridors(
+        self,
+        corridors: Mapping[str, RidgeCorridorConstraint],
+        *,
+        refresh: bool = True,
+    ) -> None:
+        """Store channel-local constraints and refresh only the current overlay."""
+        self._corridors = corridors
+        if not refresh:
+            return
+        channel_name = self.channel_combo.currentData()
+        if isinstance(channel_name, str) and channel_name in self._analyses:
+            self._render_channel(channel_name, fit_view=False)
 
     def set_colormap(self, name: str) -> None:
         """Apply a display-only colormap without recomputing any array."""
@@ -286,25 +486,56 @@ class SpectrogramView(_ChannelView):
         self.colormap_changed.emit(self.current_colormap_name)
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
-        analysis = self._analyses[channel_name]
+        stft_result = self._stft_results[channel_name]
         self.plot_widget.clear()
         self.plot_widget.addItem(self.image_item)
-        self.current_image_db = _set_image(
+        self.current_image_db = _set_stft_image(
             self.image_item,
-            analysis,
+            stft_result,
             floor_db=self._floor_db,
         )
         self.color_bar.setLevels((self._floor_db, 0.0))
-        self._search_lines = _add_search_band(self.plot_widget, analysis)
+        self._search_lines = []
+        if self._view_search_band_hz is not None:
+            self._search_lines = _add_search_band_limits(
+                self.plot_widget,
+                *self._view_search_band_hz,
+            )
+        analysis = self._analyses.get(channel_name)
+        analysis_start = (
+            self._view_analysis_range_s[0]
+            if self._view_analysis_range_s is not None
+            else None
+        )
+        analysis_end = (
+            self._view_analysis_range_s[1]
+            if self._view_analysis_range_s is not None
+            else None
+        )
+        self.corridor_controller.set_context(
+            channel_name,
+            stft_result,
+            self._corridors.get(channel_name),
+            analysis_start_time_s=analysis_start,
+            analysis_end_time_s=analysis_end,
+        )
         if fit_view:
             self.plot_widget.autoRange()
-            self._fit_current_view(analysis)
+            if analysis is not None:
+                self._fit_current_view(analysis)
+            elif self._view_analysis_range_s is not None:
+                self.plot_widget.setXRange(
+                    self._view_analysis_range_s[0] * 1.0e6,
+                    self._view_analysis_range_s[1] * 1.0e6,
+                    padding=0.0,
+                )
 
     def _clear_plot(self) -> None:
         self.plot_widget.clear()
         self.plot_widget.addItem(self.image_item)
         self.current_image_db = None
         self._search_lines = []
+        self.corridor_controller.detach_context()
 
 
 class RidgeView(_ChannelView):
@@ -312,6 +543,18 @@ class RidgeView(_ChannelView):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.add_spectral_view_controls()
+        self.fit_analysis_range_button.setVisible(False)
+        source_row = QHBoxLayout()
+        source_row.addWidget(QLabel(self.tr("结果来源")))
+        self.result_source_combo = QComboBox()
+        self.result_source_combo.setObjectName("ridgeResultSourceSelector")
+        self.result_source_combo.currentIndexChanged.connect(
+            self._result_source_changed
+        )
+        source_row.addWidget(self.result_source_combo)
+        source_row.addStretch(1)
+        self.root_layout.addLayout(source_row)
         self.plot_widget = pg.PlotWidget(background="w")
         self.plot_widget.setObjectName("ridgePlot")
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
@@ -326,6 +569,86 @@ class RidgeView(_ChannelView):
         self.candidate_curve: Any | None = None
         self.refined_curve: Any | None = None
         self.formal_curve: Any | None = None
+        self._automatic_analyses: Mapping[str, ChannelAnalysis] = {}
+        self._guided_analyses: Mapping[str, ChannelAnalysis] = {}
+        self._corridors: Mapping[str, RidgeCorridorConstraint] = {}
+        self._corridor_items: tuple[Any, Any, Any] | None = None
+
+    @property
+    def result_source(self) -> str:
+        source = self.result_source_combo.currentData()
+        return source if isinstance(source, str) else "automatic"
+
+    def set_analyses(
+        self,
+        analyses: Mapping[str, ChannelAnalysis],
+        *,
+        relative_db_floor: float,
+    ) -> None:
+        """Compatibility entry: install an automatic-only result set."""
+        self.set_result_sets(
+            analyses,
+            {},
+            corridors={},
+            relative_db_floor=relative_db_floor,
+        )
+
+    def set_result_sets(
+        self,
+        automatic_analyses: Mapping[str, ChannelAnalysis],
+        guided_analyses: Mapping[str, ChannelAnalysis],
+        *,
+        corridors: Mapping[str, RidgeCorridorConstraint],
+        relative_db_floor: float,
+        fit_view: bool = True,
+    ) -> None:
+        """Install independent automatic/guided results with explicit switching."""
+        previous = self.result_source
+        self._automatic_analyses = automatic_analyses
+        self._guided_analyses = guided_analyses
+        self._corridors = corridors
+        blocker = QSignalBlocker(self.result_source_combo)
+        self.result_source_combo.clear()
+        self.result_source_combo.addItem(self.tr("自动结果"), "automatic")
+        if guided_analyses:
+            self.result_source_combo.addItem(self.tr("引导结果"), "guided")
+        index = self.result_source_combo.findData(previous)
+        self.result_source_combo.setCurrentIndex(max(index, 0))
+        del blocker
+        self._apply_result_source(
+            relative_db_floor=relative_db_floor,
+            fit_view=fit_view,
+        )
+
+    def clear_results(self) -> None:
+        self._automatic_analyses = {}
+        self._guided_analyses = {}
+        self._corridors = {}
+        self.result_source_combo.clear()
+        super().clear_results()
+
+    def _result_source_changed(self, _index: int) -> None:
+        self._apply_result_source(relative_db_floor=self._floor_db, fit_view=True)
+
+    def _apply_result_source(
+        self,
+        *,
+        relative_db_floor: float,
+        fit_view: bool,
+    ) -> None:
+        previous_range = self.plot_widget.plotItem.vb.viewRange()
+        analyses = (
+            self._guided_analyses
+            if self.result_source == "guided"
+            else self._automatic_analyses
+        )
+        super().set_analyses(
+            analyses,
+            relative_db_floor=relative_db_floor,
+        )
+        if analyses and not fit_view:
+            self.plot_widget.setXRange(*previous_range[0], padding=0.0)
+            self.plot_widget.setYRange(*previous_range[1], padding=0.0)
 
     def set_colormap(self, name: str) -> None:
         """Apply the spectrogram background preference without rerunning science."""
@@ -346,6 +669,15 @@ class RidgeView(_ChannelView):
         self.plot_widget.addItem(self.image_item)
         _set_image(self.image_item, analysis, floor_db=self._floor_db)
         _add_search_band(self.plot_widget, analysis)
+        self._corridor_items = None
+        if self.result_source == "guided":
+            constraint = self._corridors.get(channel_name)
+            if constraint is not None:
+                self._corridor_items = draw_static_corridor(
+                    self.plot_widget,
+                    constraint,
+                    center_name=self.tr("脊线走廊中心"),
+                )
         time_us = analysis.stft_result.time_s * 1e6
         self.candidate_curve = self.plot_widget.plot(
             time_us,
@@ -389,6 +721,7 @@ class RidgeView(_ChannelView):
         self.candidate_curve = None
         self.refined_curve = None
         self.formal_curve = None
+        self._corridor_items = None
 
 
 class VelocityView(_ChannelView):
@@ -396,6 +729,16 @@ class VelocityView(_ChannelView):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        source_row = QHBoxLayout()
+        source_row.addWidget(QLabel(self.tr("结果来源")))
+        self.result_source_combo = QComboBox()
+        self.result_source_combo.setObjectName("velocityResultSourceSelector")
+        self.result_source_combo.currentIndexChanged.connect(
+            self._result_source_changed
+        )
+        source_row.addWidget(self.result_source_combo)
+        source_row.addStretch(1)
+        self.root_layout.addLayout(source_row)
         option_row = QHBoxLayout()
         self.display_velocity_check = QCheckBox(self.tr("显示速度（非正式结果）"))
         self.display_velocity_check.setObjectName("displayVelocityCheck")
@@ -416,12 +759,88 @@ class VelocityView(_ChannelView):
         self.root_layout.addWidget(self.plot_widget, 1)
         self.formal_curve: Any | None = None
         self.display_curve: Any | None = None
+        self._automatic_analyses: Mapping[str, ChannelAnalysis] = {}
+        self._guided_analyses: Mapping[str, ChannelAnalysis] = {}
+
+    @property
+    def result_source(self) -> str:
+        source = self.result_source_combo.currentData()
+        return source if isinstance(source, str) else "automatic"
+
+    def set_analyses(
+        self,
+        analyses: Mapping[str, ChannelAnalysis],
+        *,
+        relative_db_floor: float,
+    ) -> None:
+        self.set_result_sets(
+            analyses,
+            {},
+            relative_db_floor=relative_db_floor,
+        )
+
+    def set_result_sets(
+        self,
+        automatic_analyses: Mapping[str, ChannelAnalysis],
+        guided_analyses: Mapping[str, ChannelAnalysis],
+        *,
+        relative_db_floor: float,
+        fit_view: bool = True,
+    ) -> None:
+        previous = self.result_source
+        self._automatic_analyses = automatic_analyses
+        self._guided_analyses = guided_analyses
+        blocker = QSignalBlocker(self.result_source_combo)
+        self.result_source_combo.clear()
+        self.result_source_combo.addItem(self.tr("自动结果"), "automatic")
+        if guided_analyses:
+            self.result_source_combo.addItem(self.tr("引导结果"), "guided")
+        index = self.result_source_combo.findData(previous)
+        self.result_source_combo.setCurrentIndex(max(index, 0))
+        del blocker
+        self._apply_result_source(
+            relative_db_floor=relative_db_floor,
+            fit_view=fit_view,
+        )
+
+    def clear_results(self) -> None:
+        self._automatic_analyses = {}
+        self._guided_analyses = {}
+        self.result_source_combo.clear()
+        super().clear_results()
+
+    def _result_source_changed(self, _index: int) -> None:
+        self._apply_result_source(relative_db_floor=self._floor_db, fit_view=True)
+
+    def _apply_result_source(
+        self,
+        *,
+        relative_db_floor: float,
+        fit_view: bool,
+    ) -> None:
+        previous_range = self.plot_widget.plotItem.vb.viewRange()
+        analyses = (
+            self._guided_analyses
+            if self.result_source == "guided"
+            else self._automatic_analyses
+        )
+        super().set_analyses(
+            analyses,
+            relative_db_floor=relative_db_floor,
+        )
+        if analyses and not fit_view:
+            self.plot_widget.setXRange(*previous_range[0], padding=0.0)
+            self.plot_widget.setYRange(*previous_range[1], padding=0.0)
 
     def refresh_display_results(
         self,
         analyses: Mapping[str, ChannelAnalysis],
     ) -> None:
         """Replace display-only arrays while preserving channel selection."""
+        if self.result_source == "guided":
+            self._guided_analyses = analyses
+        else:
+            self._automatic_analyses = analyses
         self._analyses = analyses
         channel_name = self.channel_combo.currentData()
         if isinstance(channel_name, str) and channel_name in analyses:
@@ -483,6 +902,7 @@ class ComparisonView(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._analyses: Mapping[str, ChannelAnalysis] = {}
+        self._series: dict[str, ChannelAnalysis] = {}
         self._checks: dict[str, QCheckBox] = {}
         self.curves: dict[str, Any] = {}
         layout = QVBoxLayout(self)
@@ -508,11 +928,44 @@ class ComparisonView(QWidget):
 
     def set_analyses(self, analyses: Mapping[str, ChannelAnalysis]) -> None:
         """Plot each real channel separately and expose visibility controls."""
+        self.set_result_sets(analyses, {})
+
+    def set_result_sets(
+        self,
+        automatic_analyses: Mapping[str, ChannelAnalysis],
+        guided_analyses: Mapping[str, ChannelAnalysis],
+    ) -> None:
+        """Compare sources without claiming either result is more correct."""
         self.clear_results()
-        self._analyses = analyses
+        self._analyses = automatic_analyses or guided_analyses
         self.plot_widget.addLegend(offset=(12, 12))
-        for index, (channel_name, analysis) in enumerate(analyses.items()):
-            check = QCheckBox(channel_name)
+        series: list[tuple[str, str, ChannelAnalysis]] = []
+        for channel_name, analysis in automatic_analyses.items():
+            series_key = (
+                f"automatic:{channel_name}" if guided_analyses else channel_name
+            )
+            label = (
+                self.tr("{channel} — 自动结果").format(channel=channel_name)
+                if guided_analyses
+                else channel_name
+            )
+            series.append(
+                (
+                    series_key,
+                    label,
+                    analysis,
+                )
+            )
+        for channel_name, analysis in guided_analyses.items():
+            series.append(
+                (
+                    f"guided:{channel_name}",
+                    self.tr("{channel} — 引导结果").format(channel=channel_name),
+                    analysis,
+                )
+            )
+        for index, (series_key, label, analysis) in enumerate(series):
+            check = QCheckBox(label)
             check.setChecked(True)
             self.controls.addWidget(check)
             curve = self.plot_widget.plot(
@@ -520,11 +973,12 @@ class ComparisonView(QWidget):
                 analysis.signal_detection_result.apparent_velocity_m_s,
                 pen=pg.mkPen(_COLORS[index % len(_COLORS)], width=1.8),
                 connect="finite",
-                name=channel_name,
+                name=label,
             )
             check.toggled.connect(curve.setVisible)
-            self._checks[channel_name] = check
-            self.curves[channel_name] = curve
+            self._checks[series_key] = check
+            self.curves[series_key] = curve
+            self._series[series_key] = analysis
         self.controls.addStretch(1)
         self.plot_widget.autoRange()
         self.fit_analysis_range()
@@ -536,8 +990,8 @@ class ComparisonView(QWidget):
         _fit_analysis_x(self.plot_widget, next(iter(self._analyses.values())))
         arrays = tuple(
             analysis.signal_detection_result.apparent_velocity_m_s
-            for channel_name, analysis in self._analyses.items()
-            if self._checks[channel_name].isChecked()
+            for series_key, analysis in self._series.items()
+            if self._checks[series_key].isChecked()
         )
         bounds = finite_velocity_view_range(arrays)
         if bounds is not None:
@@ -546,6 +1000,7 @@ class ComparisonView(QWidget):
     def clear_results(self) -> None:
         """Remove every stale channel curve and visibility control."""
         self._analyses = {}
+        self._series.clear()
         self.plot_widget.clear()
         while self.controls.count():
             item = self.controls.takeAt(0)

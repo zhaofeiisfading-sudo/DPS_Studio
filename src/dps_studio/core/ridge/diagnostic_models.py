@@ -440,6 +440,17 @@ def _validate_continuity_frames(
             ):
                 raise RidgeConfigurationError("Invalid OUTSIDE continuity frame.")
             continue
+        if flag is RidgeQualityFlag.NO_ALLOWED_BINS:
+            if (
+                refinement_status is not RidgeRefinementStatus.NO_CANDIDATE
+                or status is not RidgeContinuityStatus.REFINEMENT_UNAVAILABLE
+                or not math.isnan(refined_value)
+                or not _all_nan(*derived)
+            ):
+                raise RidgeConfigurationError(
+                    "Invalid no-candidate continuity frame."
+                )
+            continue
         if refinement_status is not RidgeRefinementStatus.REFINED:
             if (
                 status is not RidgeContinuityStatus.REFINEMENT_UNAVAILABLE
@@ -448,7 +459,7 @@ def _validate_continuity_frames(
             ):
                 raise RidgeConfigurationError(
                     "Unavailable candidate refinements must have NaN continuity values."
-                )
+            )
             continue
         if not math.isfinite(refined_value) or not (
             minimum_frequency_hz <= refined_value <= maximum_frequency_hz
@@ -543,6 +554,23 @@ def _validate_related_frames(
             ):
                 raise RidgeConfigurationError("Invalid OUTSIDE related-frequency frame.")
             continue
+        if flag is RidgeQualityFlag.NO_ALLOWED_BINS:
+            if (
+                refinement_status is not RidgeRefinementStatus.NO_CANDIDATE
+                or spectral_status is not RidgeSpectralQualityStatus.NO_CANDIDATE
+                or double_status
+                is not RelatedFrequencyEvidenceStatus.REFINEMENT_UNAVAILABLE
+                or half_status
+                is not RelatedFrequencyEvidenceStatus.REFINEMENT_UNAVAILABLE
+                or int(bin_indices[index]) != -1
+                or not math.isnan(refined_value)
+                or not math.isnan(main_value)
+                or not _all_nan(*double_values, *half_values)
+            ):
+                raise RidgeConfigurationError(
+                    "Invalid no-candidate related-frequency frame."
+                )
+            continue
         if int(bin_indices[index]) < 0:
             raise RidgeConfigurationError(
                 "CANDIDATE related-frequency frames require a non-negative bin index."
@@ -559,7 +587,7 @@ def _validate_related_frames(
             ):
                 raise RidgeConfigurationError(
                     "Unavailable refinements must have NaN related-frequency values."
-                )
+            )
             continue
         if not math.isfinite(refined_value) or not (
             minimum_frequency_hz <= refined_value <= maximum_frequency_hz

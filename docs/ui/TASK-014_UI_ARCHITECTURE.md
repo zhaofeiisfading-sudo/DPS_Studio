@@ -585,3 +585,72 @@ nfft、不自动贴 Nyquist。
 科学参数变化会增加 generation、清除正式结果并要求重跑；display-only 事件前平台
 参数继续只刷新显示数组。动态下拉状态为“自定义（基于 …）”，重新选择正式预设或
 点击“恢复预设值”会清空该 session 的 overrides 并恢复原始值。
+
+## 21. TASK-016 引导分析与双结果架构
+
+TASK-016 将原来的引导分析占位入口接入正式 workflow，但没有建立第二套科学算法。
+`RidgeCorridorConstraint` 是 core 中 GUI 无关、不可变的 SI 坐标约束；一个通道最多
+保存一个 active corridor。控制点定义分段线性中心 `f_center(t)`，在首末控制点的闭
+时间域内允许带为 `[f_center(t)-Δf, f_center(t)+Δf]`，并与 profile 的全局闭搜索带
+取交集。时间域外继续执行原 automatic search。
+
+人工走廊只约束离散候选搜索。亚频点精修、谱质量、信号存在检测、连续性诊断、正式
+频率和表观速度转换仍由原 public core 链执行。允许带无离散频点时返回
+`NO_ALLOWED_BINS/NO_CANDIDATE + NaN`；走廊中只有噪声时，原质量门仍可令正式频率
+和表观速度为 NaN。中心线从不成为测量结果，因此必须保持：
+
+```text
+manual constraint != manual result
+```
+
+session 同时保存：
+
+```text
+automatic_channel_analyses + generation_id
+guided_channel_analyses + guided_generation_id
+ridge_constraints[channel_name]
+```
+
+编辑或清除 corridor 只令 Guided Result stale；Automatic Result 保持有效。修改范围、
+profile、wavelength、STFT 或搜索带等 scientific 参数时，两套结果共同失效；
+display-only 刷新重建两套显示数组但不令科学结果 stale。Ridge 和 Velocity 各自提供
+Automatic/Guided 来源切换，Comparison 同时叠加两个来源，不融合通道也不声称哪一
+结果更正确。
+
+`RidgeCorridorController` 使用 PyQtGraph `PolyLineROI`、原生 handle 和 segment API。
+点击/双击或显式完成创建控制点，handle 可拖动，segment 可添加点，handle 可删除；
+半透明允许带只用于显示。每次编辑完成立即把 plot 的 μs/GHz 转回 s/Hz 并写入 core
+model，resize 和 view range 变化不改变物理坐标。绘制时限制到当前 STFT/analysis
+范围，core 仍独立验证范围、频谱上限及与全局搜索带的交集。
+
+Automatic 与 Guided 共用 `AutomaticAnalysisAdapter` 所拥有的同一个
+`QThreadPool/QRunnable` 机制；`AnalysisRequest.result_source` 和
+`ridge_constraints` 区分请求，worker 不操作 QWidget。开发初始半宽是当前 STFT 的
+5 个频率 bin spacing；对当前 40 GHz、nfft=4096 数据为约 48.828 MHz。它只用于 GUI
+development initial value，不是实验标定值或最佳值。
+
+## 22. TASK-016R 分步时频与脊线工作流
+
+正式依赖关系现为 `Data -> Range -> STFT_READY -> RIDGE_READY -> Velocity ->
+RESULT_READY`。第 3 步只显示科学分析配置和“计算时频图”，独立产生并缓存每个通道的
+`STFTResult`；第 4 步只显示 Automatic/Guided 提取方式及各自操作；第 5 步只显示正式
+表观速度、显示速度、事件前显示平台与尚未接入的修正状态。顶部保留一键自动分析作为
+`Data -> Range -> STFT -> Automatic Ridge -> Velocity` 的便捷路径，Guided 不再是同级
+大按钮。
+
+右侧三个步骤使用独立的可滚动内容页，长内容超高时仅出现垂直滚动条；标签允许换行，
+输入控件不使用压缩字号解决重叠。1280×720 和 Windows 125% DPI 均保留主要操作入口。
+STFT 与 Ridge 图只提供“适合搜索区域”和“显示完整频谱”两个快速视图操作，它们只修改
+PyQtGraph `ViewBox`，不修改科学数组或配置。第一次进入 Guided 时自动适合一次搜索区域；
+后续 repaint、hover、控制点编辑均保留用户 zoom/pan。
+
+走廊在两个合法控制点出现后即形成可运行约束，不再强制“完成走廊”步骤。中心线、
+`center + half_width`、`center - half_width` 和低透明度填充共用同一个 SI
+`RidgeCorridorConstraint`。撤回、清除与半宽编辑只令 Guided 失效，保留缓存 STFT 和
+Automatic。Guided 正式时间域严格为最左到最右控制点；域外正式频率和表观速度为 NaN，
+不回退为 Automatic。
+
+正式预设增加 `High Frequency Resolution`：Hann、window=1024、overlap=896、
+hop=128、nfft=4096、search band=0.05--2.0 GHz。原有 Balanced 与 High Time
+Resolution 数值保持不变。三个预设都是不可变分析起点，只表示不同时间--频率取舍，不
+承诺最佳或普适。

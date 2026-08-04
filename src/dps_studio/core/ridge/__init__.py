@@ -15,6 +15,10 @@ from dps_studio.core.ridge.diagnostics import (
     assess_related_frequency_evidence,
     assess_ridge_continuity,
 )
+from dps_studio.core.ridge.guidance import (
+    RidgeCorridorConstraint,
+    validate_ridge_corridor_for_stft,
+)
 from dps_studio.core.ridge.models import (
     RefinedRidgeResult,
     RidgeQualityFlag,
@@ -38,6 +42,7 @@ __all__ = [
     "RelatedFrequencyEvidenceStatus",
     "RidgeContinuityResult",
     "RidgeContinuityStatus",
+    "RidgeCorridorConstraint",
     "RidgeQualityFlag",
     "RidgeRefinementStatus",
     "RidgeResult",
@@ -48,4 +53,5 @@ __all__ = [
     "assess_ridge_spectral_quality",
     "extract_peak_ridge",
     "refine_peak_ridge_subbin",
+    "validate_ridge_corridor_for_stft",
 ]

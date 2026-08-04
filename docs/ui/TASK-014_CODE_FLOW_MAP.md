@@ -351,3 +351,86 @@ PresetRepository.configuration.analysis.profiles
 
 display-only 参数不经过该 scientific invalidation 链。GUI 不导入 time-frequency/ridge
 私有 validator，不复制 preset 数字，不修改任何 TOML 或 `data/raw`。
+
+## 14. TASK-016 Ridge Corridor 调用链
+
+```text
+真实 STFT（Automatic Result 中当前通道）
+-> Spectrogram RidgeCorridorController / PolyLineROI
+-> plot μs/GHz 立即转换为 SI s/Hz
+-> immutable RidgeCorridorConstraint
+-> AnalysisSession.ridge_constraints[channel_name]
+-> guided_generation_id 增加；仅 Guided Result stale
+-> AnalysisRequest(result_source=GUIDED, ridge_constraints=...)
+-> 同一 QThreadPool / QRunnable adapter
+-> public analyze_profile 或 analyze_configuration
+-> 每通道独立 validate_ridge_corridor_for_stft
+-> extract_peak_ridge
+   corridor 外：原 global closed-band argmax
+   corridor 内：global search band ∩ corridor band
+   空离散交集：NO_ALLOWED_BINS + NaN（不 fallback）
+-> 原 refine_peak_ridge_subbin
+-> 原 assess_ridge_spectral_quality
+-> 原 detect_beat_signal / quality gating
+-> 原 formal frequency / apparent velocity / display transformer
+-> guided_channel_analyses（不覆盖 automatic_channel_analyses）
+-> Ridge/Velocity source selector + Comparison overlay
+```
+
+无 constraint 时 `extract_peak_ridge` 保留原 vectorized search 路径，workflow 的 STFT、
+candidate、refined、formal、apparent velocity、SignalState、quality status 逐元素回归
+相同。只为某一通道提供 constraint 时，其他通道仍走完全相同的 Automatic 路径。
+
+结果失效关系：
+
+| 操作 | Automatic Result | Guided Result | Constraint |
+|---|---|---|---|
+| 编辑/清除 corridor | 保持有效 | stale | 更新/清除当前通道 |
+| 修改 scientific 参数或 analysis range | 失效 | 失效 | 保留；新数据导入时清除 |
+| 修改 display-only 参数 | 保持有效并刷新 display | 保持有效并刷新 display | 不变 |
+| Guided worker 返回 | 不覆盖 | 按 guided generation 接受 | 不变 |
+
+新增的 public core 接口为 `RidgeCorridorConstraint`、
+`validate_ridge_corridor_for_stft`，以及 `analyze_profile`/
+`analyze_configuration` 的可选 per-channel `ridge_constraints` mapping。GUI 仍不调用
+`scripts/**`，core 仍不依赖 GUI。
+
+## 15. TASK-016R staged STFT / Ridge 调用链
+
+```text
+SignalRecord + AnalysisRange + AnalysisRunConfiguration
+-> compute_configuration_stfts
+-> Mapping[channel_name, STFTResult]
+-> AnalysisSession.accept_stft_results
+-> STFT_READY
+   -> SpectrogramView.set_stft_results
+   -> Automatic: analyze_stft_results(stft_results, no constraint)
+   -> Guided: analyze_stft_results(stft_results, per-channel corridor)
+-> Mapping[channel_name, ChannelAnalysis]
+-> RIDGE_READY -> RESULT_READY
+```
+
+`compute_profile_stfts`/`compute_configuration_stfts` 是公开的第一阶段接口；
+`analyze_stft_results` 是复用既有 STFT 的第二阶段接口。`analyze_profile` 和
+`analyze_configuration` 继续作为一键兼容接口，内部按相同两阶段组合，因此旧 Automatic
+结果与分步 Automatic 逐元素一致。adapter 的 `SPECTROGRAM` 请求只计算 STFT，Automatic
+或 Guided 请求可携带缓存的 `stft_results`，worker 不重新调用 STFT。
+
+```text
+STFT-affecting change
+-> stft_valid=False
+-> Automatic stale + Guided stale + Velocity stale
+
+search/wavelength downstream change
+-> keep stft_results
+-> Automatic stale + Guided stale + Velocity stale
+
+corridor/control-point/half-width change
+-> keep stft_results + keep Automatic
+-> Guided stale only
+```
+
+Guided 请求只包含具有合法约束的通道。对每个此类通道，workflow 将 analysis bounds 设为
+`[min(control_times), max(control_times)]`；候选频点是逐帧 corridor 与 global search band
+的离散交集。域外经原有 signal detection、quality gate 和 velocity conversion 得到 NaN，
+不会拼接 Automatic 曲线。

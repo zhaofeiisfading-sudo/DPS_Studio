@@ -54,6 +54,9 @@ def refine_peak_ridge_subbin(
             if flag is RidgeQualityFlag.OUTSIDE_ANALYSIS_WINDOW:
                 statuses.append(RidgeRefinementStatus.OUTSIDE_ANALYSIS_WINDOW)
                 continue
+            if flag is RidgeQualityFlag.NO_ALLOWED_BINS:
+                statuses.append(RidgeRefinementStatus.NO_CANDIDATE)
+                continue
 
             discrete_frequency = float(ridge_result.frequency_hz[frame_index])
             frequency_index = int(np.searchsorted(frequency_axis, discrete_frequency))

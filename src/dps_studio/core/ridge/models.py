@@ -23,6 +23,7 @@ class RidgeQualityFlag(str, Enum):
 
     PRE_EVENT = "pre_event"
     CANDIDATE = "candidate"
+    NO_ALLOWED_BINS = "no_allowed_bins"
     OUTSIDE_ANALYSIS_WINDOW = "outside_analysis_window"
 
 
@@ -31,6 +32,7 @@ class RidgeRefinementStatus(str, Enum):
 
     PRE_EVENT = "pre_event"
     OUTSIDE_ANALYSIS_WINDOW = "outside_analysis_window"
+    NO_CANDIDATE = "no_candidate"
     REFINED = "refined"
     BOUNDARY_PEAK = "boundary_peak"
     INVALID_LOCAL_PEAK = "invalid_local_peak"
@@ -360,6 +362,8 @@ def _validate_refined_frame_values(
             expected_status = RidgeRefinementStatus.PRE_EVENT
         elif flag is RidgeQualityFlag.OUTSIDE_ANALYSIS_WINDOW:
             expected_status = RidgeRefinementStatus.OUTSIDE_ANALYSIS_WINDOW
+        elif flag is RidgeQualityFlag.NO_ALLOWED_BINS:
+            expected_status = RidgeRefinementStatus.NO_CANDIDATE
         else:
             expected_status = None
 
@@ -427,14 +431,21 @@ def _validate_frame_values(
     analysis_end_time_s: float | None,
 ) -> None:
     for index, flag in enumerate(quality_flags):
-        expected_flag = RidgeQualityFlag.CANDIDATE
+        expected_flag: RidgeQualityFlag | None = None
         if event_start_time_s is not None and time_s[index] < event_start_time_s:
             expected_flag = RidgeQualityFlag.PRE_EVENT
         elif analysis_end_time_s is not None and time_s[index] > analysis_end_time_s:
             expected_flag = RidgeQualityFlag.OUTSIDE_ANALYSIS_WINDOW
-        if flag is not expected_flag:
+        if expected_flag is not None and flag is not expected_flag:
             raise RidgeConfigurationError(
                 "quality_flags are inconsistent with the configured time window."
+            )
+        if expected_flag is None and flag not in {
+            RidgeQualityFlag.CANDIDATE,
+            RidgeQualityFlag.NO_ALLOWED_BINS,
+        }:
+            raise RidgeConfigurationError(
+                "Unmasked ridge frames must be CANDIDATE or NO_ALLOWED_BINS."
             )
 
         frequency = frequency_hz[index]

@@ -254,3 +254,45 @@ This feature is planned but is not connected in the current version.
 “Custom”必须同时标明基础预设；不得将 per-run override 称为已保存预设。hop 是派生
 值，不称为第三个独立窗参数。事件前显示速度仍属于 Display，不属于 Balanced/High
 scientific preset。
+
+## 14. TASK-016 新增固定术语
+
+| 中文 | English | 内部标识或说明 |
+|---|---|---|
+| 引导分析 | Guided Analysis | 原 public workflow 加可选人工候选搜索约束 |
+| 脊线走廊 | Ridge Corridor | `RidgeCorridorConstraint`；不是最终脊线 |
+| 绘制脊线走廊 | Draw Ridge Corridor | 在真实 STFT 上创建物理控制点 |
+| 完成脊线走廊 | Finish Ridge Corridor | 结束当前 control-point drawing |
+| 走廊半宽 | Corridor Half Width | `half_width_hz`；GUI 显示 MHz，内部 Hz |
+| 自动结果 | Automatic Result | `automatic_channel_analyses` |
+| 引导结果 | Guided Result | `guided_channel_analyses` |
+| 清除约束 | Clear Constraint | 只清除当前通道 corridor，不清除 Automatic Result |
+| 当前引导结果有效 | Current Guided Result Is Valid | guided generation 与当前 constraint 一致 |
+| 当前约束已修改，请重新运行引导分析 | The current constraint has changed. Re-run guided analysis. | Guided Result stale，Automatic Result 仍有效 |
+| 无允许频点 | No Allowed Bins | global band 与逐帧 corridor band 的离散交集为空 |
+
+必须使用“人工约束”而不是“人工结果”。走廊中心不得称为测量脊线、正式频率或人工
+速度；Guided Velocity 仅指正式 guided frequency 经现有 apparent velocity core 转换
+后的结果。Automatic/Guided 只描述结果来源，不包含“更正确”或“已修正”的判断。
+
+## 15. TASK-016R 新增与修订术语
+
+| 中文 | English | 内部标识或说明 |
+|---|---|---|
+| 计算时频图 | Compute Spectrogram | 独立产生并缓存 `STFTResult`，到达 `STFT_READY` |
+| 提取方式 | Ridge Extraction Mode | 第 4 步的 Automatic/Guided 选择 |
+| 自动 | Automatic | 无 corridor 的完整独立结果来源 |
+| 引导 | Guided | 仅在显式 corridor 时间域内定义的结果来源 |
+| 绘制 / 编辑走廊 | Draw / Edit Corridor | 两个合法点即形成可运行约束 |
+| 撤回上一点 | Undo Last Point | `Ctrl+Z`、`Backspace` 或按钮，移除最后新增点 |
+| 清除走廊 | Clear Corridor | 清除线、边界、填充、控制点、draft 和 session constraint |
+| 引导范围 | Guided Range | 最左与最右控制点决定的闭时间域 |
+| 引导起点 | Guided Start | `min(control_times)` |
+| 引导终点 | Guided End | `max(control_times)` |
+| 适合搜索区域 | Fit Search Region | X=analysis range，Y=current scientific search band；仅视图操作 |
+| 显示完整频谱 | Show Full Spectrum | Y=当前 `STFTResult` 实际频率范围；不重算 STFT |
+| 高频率分辨率 | High Frequency Resolution | 更长有限时间窗的正式不可变预设；不等同于只增大 nfft |
+
+“完整频谱”只指当前计算结果包含的频率轴，不表示更宽的科学搜索带。“引导范围外”必须
+表示 Guided formal frequency 与 Guided apparent velocity 为 NaN，不能称为自动补全或
+混合结果。所有预设名称只描述取舍方向，不能写成“最佳参数”“万能参数”或“保证正确”。

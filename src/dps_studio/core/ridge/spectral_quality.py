@@ -99,6 +99,11 @@ def assess_ridge_spectral_quality(
                     RidgeSpectralQualityStatus.OUTSIDE_ANALYSIS_WINDOW
                 )
                 continue
+            if flag is RidgeQualityFlag.NO_ALLOWED_BINS:
+                assessment_statuses.append(
+                    RidgeSpectralQualityStatus.NO_CANDIDATE
+                )
+                continue
 
             peak_bin_index = int(
                 refined_ridge_result.discrete_frequency_bin_index[frame_index]
@@ -285,10 +290,18 @@ def _validate_inputs(
             raise RidgeConfigurationError(
                 "RefinedRidgeResult statuses contain invalid values."
             )
-        if flag is not expected_flag:
+        if expected_flag is not RidgeQualityFlag.CANDIDATE and flag is not expected_flag:
             raise RidgeConfigurationError(
                 "RefinedRidgeResult analysis time range and quality_flags are "
                 f"inconsistent at frame {frame_index}."
+            )
+        if expected_flag is RidgeQualityFlag.CANDIDATE and flag not in {
+            RidgeQualityFlag.CANDIDATE,
+            RidgeQualityFlag.NO_ALLOWED_BINS,
+        }:
+            raise RidgeConfigurationError(
+                "Unmasked refined ridge frames must be candidates or explicitly "
+                "have no allowed bins."
             )
         bin_index = int(
             refined_ridge_result.discrete_frequency_bin_index[frame_index]
@@ -344,11 +357,14 @@ def _validate_inputs(
                     "Failed candidate refinements must retain NaN refined frequency."
                 )
         else:
-            expected_refinement_status = (
-                RidgeRefinementStatus.PRE_EVENT
-                if flag is RidgeQualityFlag.PRE_EVENT
-                else RidgeRefinementStatus.OUTSIDE_ANALYSIS_WINDOW
-            )
+            if flag is RidgeQualityFlag.PRE_EVENT:
+                expected_refinement_status = RidgeRefinementStatus.PRE_EVENT
+            elif flag is RidgeQualityFlag.OUTSIDE_ANALYSIS_WINDOW:
+                expected_refinement_status = (
+                    RidgeRefinementStatus.OUTSIDE_ANALYSIS_WINDOW
+                )
+            else:
+                expected_refinement_status = RidgeRefinementStatus.NO_CANDIDATE
             if refinement_status is not expected_refinement_status:
                 raise RidgeConfigurationError(
                     "Masked quality flags and refinement statuses must match."

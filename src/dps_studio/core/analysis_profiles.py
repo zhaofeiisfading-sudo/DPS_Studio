@@ -4,8 +4,10 @@
 frequency-estimate stability, and noise robustness.  The explicit
 ``HIGH_TIME_RESOLUTION_PROFILE`` shortens the window support (12.8 ns for the
 current 40 GHz dataset) at the cost of frequency stability and plateau
-jitter; it is not a higher-accuracy claim.  Profiles are never selected or
-switched from signal contents.
+jitter. ``HIGH_FREQUENCY_RESOLUTION_PROFILE`` uses the repository's audited
+1024-sample, fixed-hop configuration for longer time support and a narrower
+window-limited frequency scale. Neither profile is a higher-accuracy claim.
+Profiles are never selected or switched from signal contents.
 
 Dataset-specific values such as wavelength, event start, and analysis end are
 deliberately absent and must remain explicit run parameters.
@@ -34,6 +36,7 @@ class AnalysisProfileId(str, Enum):
 
     BALANCED = "balanced"
     HIGH_TIME_RESOLUTION = "high_time_resolution"
+    HIGH_FREQUENCY_RESOLUTION = "high_frequency_resolution"
 
 
 class OutputMode(str, Enum):
@@ -464,12 +467,32 @@ HIGH_TIME_RESOLUTION_PROFILE = AnalysisProfile(
     ),
 )
 
+HIGH_FREQUENCY_RESOLUTION_PROFILE = AnalysisProfile(
+    profile_id=AnalysisProfileId.HIGH_FREQUENCY_RESOLUTION,
+    display_name="High frequency resolution",
+    window_name="hann",
+    window_length_samples=1024,
+    overlap_samples=896,
+    hop_samples=128,
+    nfft=4096,
+    minimum_frequency_hz=0.05e9,
+    maximum_frequency_hz=2.0e9,
+    ridge_refinement=RIDGE_REFINEMENT_METHOD,
+    tradeoff_note=(
+        "Longer time support and a narrower window-limited frequency scale at "
+        "the cost of time localization; this is not a higher-accuracy claim."
+    ),
+)
+
 DEFAULT_ANALYSIS_PROFILE = BALANCED_PROFILE
 DEFAULT_OUTPUT_MODE = OutputMode.PRODUCTION
 
 _PROFILES = {
     AnalysisProfileId.BALANCED: BALANCED_PROFILE,
     AnalysisProfileId.HIGH_TIME_RESOLUTION: HIGH_TIME_RESOLUTION_PROFILE,
+    AnalysisProfileId.HIGH_FREQUENCY_RESOLUTION: (
+        HIGH_FREQUENCY_RESOLUTION_PROFILE
+    ),
 }
 
 
@@ -503,6 +526,7 @@ __all__ = [
     "DEFAULT_ANALYSIS_PROFILE",
     "DEFAULT_OUTPUT_MODE",
     "HIGH_TIME_RESOLUTION_PROFILE",
+    "HIGH_FREQUENCY_RESOLUTION_PROFILE",
     "OutputMode",
     "build_analysis_run_parameters",
     "get_analysis_profile",

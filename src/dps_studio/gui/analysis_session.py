@@ -17,6 +17,8 @@ from dps_studio.core.analysis_profiles import (
 from dps_studio.core.event_candidates import EventCandidateConfig
 from dps_studio.core.models import SignalRecord
 from dps_studio.core.quality import SignalDetectionConfig
+from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import (
     ChannelAnalysis,
     WorkflowConfiguration,
@@ -102,6 +104,14 @@ def _empty_analyses() -> Mapping[str, ChannelAnalysis]:
     return MappingProxyType({})
 
 
+def _empty_constraints() -> Mapping[str, RidgeCorridorConstraint]:
+    return MappingProxyType({})
+
+
+def _empty_stft_results() -> Mapping[str, STFTResult]:
+    return MappingProxyType({})
+
+
 @dataclass(slots=True)
 class AnalysisSession:
     """Own the current source, configuration, results, and generation id."""
@@ -111,11 +121,24 @@ class AnalysisSession:
     analysis_range: AnalysisRange | None = None
     workflow_configuration: WorkflowConfiguration | None = None
     run_configuration: AnalysisRunConfiguration | None = None
+    stft_results: Mapping[str, STFTResult] = field(
+        default_factory=_empty_stft_results
+    )
     channel_analyses: Mapping[str, ChannelAnalysis] = field(
         default_factory=_empty_analyses
     )
+    guided_channel_analyses: Mapping[str, ChannelAnalysis] = field(
+        default_factory=_empty_analyses
+    )
+    ridge_constraints: Mapping[str, RidgeCorridorConstraint] = field(
+        default_factory=_empty_constraints
+    )
+    stft_valid: bool = False
     results_valid: bool = False
+    guided_results_valid: bool = False
+    guided_results_stale: bool = False
     generation_id: int = 0
+    guided_generation_id: int = 0
     event_reference_source: str | None = None
     rejected_event_reference_time_s: float | None = None
 
@@ -134,6 +157,7 @@ class AnalysisSession:
         self.source_path = Path(source_path)
         self.records = MappingProxyType(dict(records))
         self.analysis_range = None
+        self.ridge_constraints = _empty_constraints()
         self._reset_event_reference_for_current_records()
         self._invalidate()
 
@@ -247,7 +271,16 @@ class AnalysisSession:
             self.run_configuration,
             parameters=parameters,
         )
-        self._invalidate()
+        stft_fields = (
+            "window_length_samples",
+            "overlap_samples",
+            "nfft",
+            "window_name",
+        )
+        if any(getattr(parameters, name) != getattr(current, name) for name in stft_fields):
+            self._invalidate()
+        else:
+            self._invalidate_downstream()
         return True
 
     def set_vacuum_wavelength_m(self, value: float) -> None:
@@ -362,8 +395,83 @@ class AnalysisSession:
         ):
             raise ValueError("Analysis results must match every loaded channel.")
         self.channel_analyses = MappingProxyType(dict(analyses))
+        self.stft_results = MappingProxyType(
+            {name: analysis.stft_result for name, analysis in analyses.items()}
+        )
+        self.stft_valid = True
         self.results_valid = True
         self._refresh_display_results()
+        return True
+
+    def accept_stft_results(
+        self,
+        *,
+        generation_id: int,
+        stft_results: Mapping[str, STFTResult],
+    ) -> bool:
+        """Accept only complete STFT results from the current generation."""
+        if generation_id != self.generation_id:
+            return False
+        if set(stft_results) != set(self.records) or not all(
+            isinstance(value, STFTResult) for value in stft_results.values()
+        ):
+            raise ValueError("STFT results must match every loaded channel.")
+        self.stft_results = MappingProxyType(dict(stft_results))
+        self.stft_valid = True
+        return True
+
+    @property
+    def automatic_channel_analyses(self) -> Mapping[str, ChannelAnalysis]:
+        """Return formal automatic results under an explicit source name."""
+        return self.channel_analyses
+
+    def accept_guided_results(
+        self,
+        *,
+        generation_id: int,
+        analyses: Mapping[str, ChannelAnalysis],
+    ) -> bool:
+        """Accept guided results without replacing the automatic result set."""
+        if generation_id != self.guided_generation_id:
+            return False
+        if not analyses or not set(analyses).issubset(self.records) or not all(
+            isinstance(value, ChannelAnalysis) for value in analyses.values()
+        ):
+            raise ValueError("Guided results must match constrained loaded channels.")
+        self.guided_channel_analyses = MappingProxyType(dict(analyses))
+        self.guided_results_valid = True
+        self.guided_results_stale = False
+        return True
+
+    def set_ridge_constraint(
+        self,
+        channel_name: str,
+        constraint: RidgeCorridorConstraint,
+    ) -> bool:
+        """Set one channel-local corridor and stale only guided results."""
+        if channel_name not in self.records:
+            raise ValueError(f"Unknown channel {channel_name!r}.")
+        if not isinstance(constraint, RidgeCorridorConstraint):
+            raise TypeError("constraint must be a RidgeCorridorConstraint.")
+        previous = self.ridge_constraints.get(channel_name)
+        if previous is constraint:
+            return False
+        constraints = dict(self.ridge_constraints)
+        constraints[channel_name] = constraint
+        self.ridge_constraints = MappingProxyType(constraints)
+        self._stale_guided_results()
+        return True
+
+    def clear_ridge_constraint(self, channel_name: str) -> bool:
+        """Remove one channel-local corridor and stale only guided results."""
+        if channel_name not in self.records:
+            raise ValueError(f"Unknown channel {channel_name!r}.")
+        if channel_name not in self.ridge_constraints:
+            return False
+        constraints = dict(self.ridge_constraints)
+        del constraints[channel_name]
+        self.ridge_constraints = MappingProxyType(constraints)
+        self._stale_guided_results()
         return True
 
     def invalidate_results(self) -> None:
@@ -382,30 +490,70 @@ class AnalysisSession:
 
     def _invalidate(self) -> None:
         self.generation_id += 1
+        self.guided_generation_id += 1
+        self.stft_results = _empty_stft_results()
         self.channel_analyses = _empty_analyses()
+        self.guided_channel_analyses = _empty_analyses()
+        self.stft_valid = False
         self.results_valid = False
+        self.guided_results_valid = False
+        self.guided_results_stale = False
+
+    def _invalidate_downstream(self) -> None:
+        """Invalidate ridge/velocity products while preserving reusable STFT."""
+        self.generation_id += 1
+        self.guided_generation_id += 1
+        self.channel_analyses = _empty_analyses()
+        self.guided_channel_analyses = _empty_analyses()
+        self.results_valid = False
+        self.guided_results_valid = False
+        self.guided_results_stale = False
+
+    def _stale_guided_results(self) -> None:
+        self.guided_generation_id += 1
+        self.guided_results_stale = bool(self.guided_channel_analyses)
+        self.guided_results_valid = False
 
     def _refresh_display_results(self) -> None:
         configuration = self.run_configuration
-        if not self.results_valid or configuration is None:
+        if configuration is None:
             return
-        self.channel_analyses = MappingProxyType(
-            {
-                channel_name: configure_channel_event_reference(
-                    analysis,
-                    event_reference_time_s=(
-                        configuration.event_reference_time_s
-                    ),
-                    enable_pre_event_display=(
-                        configuration.enable_pre_event_display
-                    ),
-                    pre_event_display_velocity_m_s=(
-                        configuration.pre_event_display_velocity_m_s
-                    ),
-                )
-                for channel_name, analysis in self.channel_analyses.items()
-            }
-        )
+        if self.channel_analyses:
+            self.channel_analyses = MappingProxyType(
+                {
+                    channel_name: configure_channel_event_reference(
+                        analysis,
+                        event_reference_time_s=(
+                            configuration.event_reference_time_s
+                        ),
+                        enable_pre_event_display=(
+                            configuration.enable_pre_event_display
+                        ),
+                        pre_event_display_velocity_m_s=(
+                            configuration.pre_event_display_velocity_m_s
+                        ),
+                    )
+                    for channel_name, analysis in self.channel_analyses.items()
+                }
+            )
+        if self.guided_channel_analyses:
+            self.guided_channel_analyses = MappingProxyType(
+                {
+                    channel_name: configure_channel_event_reference(
+                        analysis,
+                        event_reference_time_s=(
+                            configuration.event_reference_time_s
+                        ),
+                        enable_pre_event_display=(
+                            configuration.enable_pre_event_display
+                        ),
+                        pre_event_display_velocity_m_s=(
+                            configuration.pre_event_display_velocity_m_s
+                        ),
+                    )
+                    for channel_name, analysis in self.guided_channel_analyses.items()
+                }
+            )
 
     def _reset_event_reference_for_current_records(self) -> None:
         configuration = self.workflow_configuration

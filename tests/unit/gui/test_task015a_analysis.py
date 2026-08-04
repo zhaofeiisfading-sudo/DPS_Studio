@@ -257,7 +257,7 @@ def test_full_gui_analysis_uses_real_core_arrays_and_reaches_result_ready(
         qapp.processEvents()
         assert window.analysis_session.generation_id > generation
         assert not window.analysis_session.results_valid
-        assert window.workflow_state is WorkflowState.RANGE_DEFINED
+        assert window.workflow_state is WorkflowState.STFT_READY
         assert window.analysis_session.run_configuration is not None
         assert window.analysis_session.run_configuration.vacuum_wavelength_m == (
             pytest.approx(1.55012e-6)
@@ -293,6 +293,7 @@ def test_profile_change_invalidates_and_hides_old_results(
     window, _source_before = _prepare_window(qapp, tmp_path)
     try:
         _run_window_analysis(window)
+        # This fixture intentionally loads configs/demo_dual_profile.toml.
         assert window.profile_combo.count() == 2
         assert (
             window.profile_combo.itemData(1).profile_id
@@ -362,7 +363,7 @@ def test_english_translation_covers_new_range_and_analysis_controls(
         assert window.analysis_range_panel.apply_button.text() == (
             "Confirm Analysis Range"
         )
-        assert window.run_analysis_button.text() == "Run Full Automatic Analysis"
+        assert window.run_analysis_button.text() == "Compute Spectrogram"
         assert "1550 nm" in window.vacuum_wavelength_spin.toolTip()
     finally:
         window.close()

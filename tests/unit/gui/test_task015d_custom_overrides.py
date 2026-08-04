@@ -92,7 +92,7 @@ def test_window_and_overlap_edits_create_custom_and_update_derived_hop(
         assert configuration.base_profile is BALANCED_PROFILE
         assert configuration.custom_overrides == {"window_length_samples": 1024}
         assert window.profile_combo.currentData() == CUSTOM_PRESET_ID
-        assert window.profile_combo.currentText() == "自定义（基于 Balanced）"
+        assert window.profile_combo.currentText() == "自定义（基于 平衡）"
         assert window.hop_label.text().startswith("384")
 
         window.overlap_spin.setValue(768)
@@ -132,7 +132,7 @@ def test_reselect_and_restore_button_restore_immutable_preset(
         window.profile_combo.setCurrentIndex(1)
         window.window_length_spin.setValue(640)
         qapp.processEvents()
-        assert "High time resolution" in window.profile_combo.currentText()
+        assert "高时间分辨率" in window.profile_combo.currentText()
         window.restore_preset_button.click()
         qapp.processEvents()
         configuration = window.analysis_session.run_configuration

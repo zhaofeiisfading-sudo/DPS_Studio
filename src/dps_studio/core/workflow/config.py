@@ -14,6 +14,7 @@ from typing import Any, cast
 
 from dps_studio.core.analysis_profiles import (
     BALANCED_PROFILE,
+    HIGH_FREQUENCY_RESOLUTION_PROFILE,
     HIGH_TIME_RESOLUTION_PROFILE,
     AnalysisProfile,
     get_analysis_profile,
@@ -484,14 +485,19 @@ def _profiles(value: object) -> tuple[AnalysisProfile, ...]:
         profiles.append(profile)
     if len(set(identifiers)) != len(identifiers):
         raise WorkflowConfigurationError("analysis.profiles must not contain duplicates.")
-    required = (
+    legacy_required = (
         BALANCED_PROFILE.profile_id.value,
         HIGH_TIME_RESOLUTION_PROFILE.profile_id.value,
     )
-    if tuple(identifiers) != required:
+    expanded_required = (
+        *legacy_required,
+        HIGH_FREQUENCY_RESOLUTION_PROFILE.profile_id.value,
+    )
+    if tuple(identifiers) not in (legacy_required, expanded_required):
         raise WorkflowConfigurationError(
-            "analysis.profiles must be exactly ['balanced', "
-            "'high_time_resolution'] in that order for formal production."
+            "analysis.profiles must be the ordered legacy pair ['balanced', "
+            "'high_time_resolution'] or that pair followed by "
+            "'high_frequency_resolution'."
         )
     return tuple(profiles)
 
