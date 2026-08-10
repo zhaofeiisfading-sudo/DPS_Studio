@@ -21,11 +21,13 @@ from dps_studio.core.quality import (
     detect_beat_signal,
 )
 from dps_studio.core.ridge import (
+    EventAwareContinuityConfig,
     RefinedRidgeResult,
     RidgeCorridorConstraint,
     RidgeQualityFlag,
     RidgeRefinementStatus,
     RidgeResult,
+    assess_event_aware_ridge_continuity,
     assess_ridge_continuity,
     assess_ridge_spectral_quality,
     extract_peak_ridge,
@@ -354,12 +356,40 @@ def analyze_stft_results(
             ),
             pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
         )
-        continuity_result = assess_ridge_continuity(refined_result)
         stream_event_candidates = build_stream_event_candidates(
             signal_detection_result,
             profile_name=profile_name,
             channel_name=channel_name,
             config=event_candidate_config,
+        )
+        continuity_result = assess_ridge_continuity(refined_result)
+        continuity_event_time_s: float | None
+        continuity_event_source: str | None
+        if manual_reference is not None:
+            continuity_event_time_s = manual_reference
+            continuity_event_source = "manual_event_reference"
+        else:
+            continuity_event_time_s = stream_event_candidates.primary_candidate_time_s
+            continuity_event_source = (
+                "event_level_primary_candidate"
+                if continuity_event_time_s is not None
+                else None
+            )
+        event_aware_continuity_result = assess_event_aware_ridge_continuity(
+            refined_result,
+            event_reference_time_s=continuity_event_time_s,
+            event_reference_source=continuity_event_source,
+            stft_window_duration_s=(
+                stft_result.window_length_samples / stft_result.sample_rate_hz
+            ),
+            config=EventAwareContinuityConfig(
+                isolated_jump_threshold_hz=(
+                    event_candidate_config.maximum_adjacent_frequency_step_hz
+                ),
+                neighbor_recovery_tolerance_hz=(
+                    stft_result.sample_rate_hz / stft_result.window_length_samples
+                ),
+            ),
         )
         analyses[channel_name] = ChannelAnalysis(
             stft_result=stft_result,
@@ -372,6 +402,7 @@ def analyze_stft_results(
             velocity_origins=velocity_origins,
             spectral_quality_result=spectral_quality_result,
             continuity_result=continuity_result,
+            event_aware_continuity_result=event_aware_continuity_result,
             signal_detection_result=signal_detection_result,
             stream_event_candidates=stream_event_candidates,
         )

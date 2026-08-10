@@ -31,6 +31,11 @@ class RidgeContinuityStatus(str, Enum):
     REFINEMENT_UNAVAILABLE = "refinement_unavailable"
     INVALID_TIME_INTERVAL = "invalid_time_interval"
     INPUT_MISMATCH = "input_mismatch"
+    NORMAL_CONTINUITY = "normal_continuity"
+    EVENT_TRANSITION = "event_transition"
+    ISOLATED_JUMP = "isolated_jump"
+    GAP = "gap"
+    INSUFFICIENT_CONTEXT = "insufficient_context"
 
 
 class RelatedFrequencyEvidenceStatus(str, Enum):

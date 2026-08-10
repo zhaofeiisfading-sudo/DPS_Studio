@@ -9,6 +9,7 @@ from numbers import Real
 import numpy as np
 
 from dps_studio.core.quality import SignalState
+from dps_studio.core.ridge import assess_event_aware_ridge_continuity
 from dps_studio.core.workflow.models import ChannelAnalysis, FloatArray
 
 
@@ -135,10 +136,11 @@ def configure_channel_event_reference(
     analysis: ChannelAnalysis,
     *,
     event_reference_time_s: float | None,
+    event_reference_source: str | None = None,
     enable_pre_event_display: bool,
     pre_event_display_velocity_m_s: float,
 ) -> ChannelAnalysis:
-    """Update display/review reference metadata without changing formal arrays."""
+    """Update display/review and diagnostic reference metadata only."""
     if not isinstance(analysis, ChannelAnalysis):
         raise TypeError("analysis must be a ChannelAnalysis.")
     reference = _optional_finite_reference(
@@ -149,7 +151,37 @@ def configure_channel_event_reference(
         analysis.signal_detection_result,
         manual_event_reference_time_s=reference,
     )
-    updated = replace(analysis, signal_detection_result=detection)
+    if reference is None:
+        continuity_reference = (
+            analysis.stream_event_candidates.primary_candidate_time_s
+        )
+        continuity_source = (
+            "event_level_primary_candidate"
+            if continuity_reference is not None
+            else None
+        )
+    else:
+        continuity_reference = reference
+        continuity_source = (
+            event_reference_source.strip()
+            if isinstance(event_reference_source, str)
+            and event_reference_source.strip()
+            else "display_event_reference"
+        )
+    continuity = assess_event_aware_ridge_continuity(
+        analysis.refined_result,
+        event_reference_time_s=continuity_reference,
+        event_reference_source=continuity_source,
+        stft_window_duration_s=(
+            analysis.event_aware_continuity_result.stft_window_duration_s
+        ),
+        config=analysis.event_aware_continuity_result.config,
+    )
+    updated = replace(
+        analysis,
+        signal_detection_result=detection,
+        event_aware_continuity_result=continuity,
+    )
     return configure_channel_display_velocity(
         updated,
         enable_pre_event_display=enable_pre_event_display,

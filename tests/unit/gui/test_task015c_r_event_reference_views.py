@@ -157,6 +157,25 @@ def test_gui_reference_candidates_and_result_view_fit(
         assert window.analysis_session.event_reference_time_s == pytest.approx(
             manual_reference_s
         )
+        assert all(
+            analysis.event_aware_continuity_result.event_reference_time_s
+            == pytest.approx(manual_reference_s)
+            for analysis in analyses.values()
+        )
+        assert all(
+            analysis.event_aware_continuity_result.event_reference_source == "manual"
+            for analysis in analyses.values()
+        )
+        assert window.analysis_session.set_event_reference_time_s(
+            manual_reference_s,
+            source="manual_review",
+        )
+        analyses = window.analysis_session.channel_analyses
+        assert all(
+            analysis.event_aware_continuity_result.event_reference_source
+            == "manual_review"
+            for analysis in analyses.values()
+        )
         assert set(window.analysis_range_panel.candidate_buttons) == set(analyses)
         candidate_tooltip = next(
             iter(window.analysis_range_panel.candidate_buttons.values())

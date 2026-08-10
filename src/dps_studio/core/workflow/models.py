@@ -11,6 +11,7 @@ from dps_studio.core.event_candidates import StreamEventCandidates
 from dps_studio.core.physics import ApparentVelocityResult
 from dps_studio.core.quality import SignalDetectionResult
 from dps_studio.core.ridge import (
+    EventAwareContinuityResult,
     RefinedRidgeResult,
     RidgeContinuityResult,
     RidgeResult,
@@ -36,6 +37,7 @@ class ChannelAnalysis:
     velocity_origins: tuple[str, ...]
     spectral_quality_result: RidgeSpectralQualityResult
     continuity_result: RidgeContinuityResult
+    event_aware_continuity_result: EventAwareContinuityResult
     signal_detection_result: SignalDetectionResult
     stream_event_candidates: StreamEventCandidates
 

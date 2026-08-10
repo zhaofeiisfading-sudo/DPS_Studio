@@ -11,6 +11,11 @@ from dps_studio.core.ridge.diagnostic_models import (
     RidgeContinuityResult,
     RidgeContinuityStatus,
 )
+from dps_studio.core.ridge.continuity import assess_event_aware_ridge_continuity
+from dps_studio.core.ridge.continuity_models import (
+    EventAwareContinuityConfig,
+    EventAwareContinuityResult,
+)
 from dps_studio.core.ridge.diagnostics import (
     assess_related_frequency_evidence,
     assess_ridge_continuity,
@@ -38,6 +43,8 @@ __all__ = [
     "RidgeError",
     "RidgeExtractionError",
     "RefinedRidgeResult",
+    "EventAwareContinuityConfig",
+    "EventAwareContinuityResult",
     "RelatedFrequencyEvidenceResult",
     "RelatedFrequencyEvidenceStatus",
     "RidgeContinuityResult",
@@ -49,6 +56,7 @@ __all__ = [
     "RidgeSpectralQualityResult",
     "RidgeSpectralQualityStatus",
     "assess_related_frequency_evidence",
+    "assess_event_aware_ridge_continuity",
     "assess_ridge_continuity",
     "assess_ridge_spectral_quality",
     "extract_peak_ridge",

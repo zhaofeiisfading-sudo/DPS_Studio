@@ -365,16 +365,20 @@ class AnalysisSession:
                 "Event reference time must stay inside the current data and "
                 "confirmed analysis ranges."
             )
-        changed = reference != self.run_configuration.event_reference_time_s
+        reference_changed = (
+            reference != self.run_configuration.event_reference_time_s
+        )
+        normalized_source = source.strip()
+        source_changed = normalized_source != self.event_reference_source
         self.run_configuration = replace(
             self.run_configuration,
             event_reference_time_s=reference,
         )
-        self.event_reference_source = source.strip()
+        self.event_reference_source = normalized_source
         self.rejected_event_reference_time_s = None
-        if changed:
+        if reference_changed or source_changed:
             self._refresh_display_results()
-        return changed
+        return reference_changed or source_changed
 
     def clear_event_reference(self) -> bool:
         """Unset the display/review reference without changing formal results."""
@@ -609,6 +613,7 @@ class AnalysisSession:
                         event_reference_time_s=(
                             configuration.event_reference_time_s
                         ),
+                        event_reference_source=self.event_reference_source,
                         enable_pre_event_display=(
                             configuration.enable_pre_event_display
                         ),
@@ -627,6 +632,7 @@ class AnalysisSession:
                         event_reference_time_s=(
                             configuration.event_reference_time_s
                         ),
+                        event_reference_source=self.event_reference_source,
                         enable_pre_event_display=(
                             configuration.enable_pre_event_display
                         ),

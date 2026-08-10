@@ -1,0 +1,1112 @@
+{
+  "analysis": {
+    "analysis_end_time_s": 0.000554673,
+    "analysis_start_time_s": 0.00055465,
+    "event_reference_source": "manual_review_reference_only",
+    "manual_event_reference_time_s": 0.000554668,
+    "vacuum_wavelength_m": 1.55e-06,
+    "wavelength_status": "demonstration value; not confirmed by experiment records"
+  },
+  "config_path": "D:\\Code\\Python_Projects\\DPS_Studio\\.pytest_tmp\\task018a_final_noargv_temp\\pytest-of-89484\\pytest-0\\dual_profile_production0\\config.toml",
+  "cross_profile_consensus": {
+    "candidate_time_method": "none_without_profile_consensus",
+    "candidate_time_spread_s": null,
+    "consensus_event_candidate_time_s": null,
+    "consensus_event_status": "no_profile_consensus",
+    "reference_time_difference_s": null,
+    "reference_time_role": "diagnostic only; never used for selection",
+    "rejection_reason": "no_profile_has_dual_channel_support",
+    "supporting_channels": [],
+    "supporting_profiles": []
+  },
+  "detailed_diagnostic_csv_filenames": [
+    "apparent_velocity_diagnostics.csv"
+  ],
+  "event_candidate": {
+    "default_status": "development defaults; event-level synthetic behavior verified; experimental calibration remains required",
+    "duration_definition": "last STFT frame center minus first STFT frame center",
+    "formal_per_frame_arrays_modified": false,
+    "maximum_adjacent_frequency_step_hz": 100000000.0,
+    "minimum_median_peak_to_background_db": null,
+    "minimum_median_peak_to_competitor_db": null,
+    "minimum_segment_duration_s": 2e-08,
+    "minimum_segment_frames": 8
+  },
+  "event_consensus_config": {
+    "channel_start_frequency_tolerance_hz": 150000000.0,
+    "channel_start_time_tolerance_s": 2.5e-08,
+    "cross_profile_time_tolerance_s": 2.5e-08,
+    "default_status": "development defaults; consensus metadata only; no voltage or velocity fusion",
+    "frequency_agreement_metric": "absolute difference between supporting segment start-frame refined frequencies",
+    "manual_reference_used_for_selection": false,
+    "minimum_interval_overlap_fraction": 0.5,
+    "voltage_or_velocity_fusion": false
+  },
+  "generated_files": [
+    "balanced/pdv_channel_1/apparent_velocity_diagnostics.csv",
+    "balanced/pdv_channel_1/stft_full_band.png",
+    "balanced/pdv_channel_1/stft_analysis_band_with_ridge.png",
+    "balanced/pdv_channel_1/apparent_velocity_full_overview.png",
+    "balanced/pdv_channel_1/apparent_velocity_full_time_reviewed.png",
+    "balanced/pdv_channel_1/apparent_velocity_full_time_formal.png",
+    "balanced/pdv_channel_1/apparent_velocity_event_detail.png",
+    "balanced/pdv_channel_1/apparent_velocity_state_diagnostics.png",
+    "balanced/pdv_channel_1/signal_detection_diagnostics.png",
+    "balanced/pdv_channel_2/apparent_velocity_diagnostics.csv",
+    "balanced/pdv_channel_2/stft_full_band.png",
+    "balanced/pdv_channel_2/stft_analysis_band_with_ridge.png",
+    "balanced/pdv_channel_2/apparent_velocity_full_overview.png",
+    "balanced/pdv_channel_2/apparent_velocity_full_time_reviewed.png",
+    "balanced/pdv_channel_2/apparent_velocity_full_time_formal.png",
+    "balanced/pdv_channel_2/apparent_velocity_event_detail.png",
+    "balanced/pdv_channel_2/apparent_velocity_state_diagnostics.png",
+    "balanced/pdv_channel_2/signal_detection_diagnostics.png",
+    "balanced/quality_summary.csv",
+    "balanced/detected_event_candidates.png",
+    "balanced/profile_manifest.json",
+    "high_time_resolution/pdv_channel_1/apparent_velocity_diagnostics.csv",
+    "high_time_resolution/pdv_channel_1/stft_full_band.png",
+    "high_time_resolution/pdv_channel_1/stft_analysis_band_with_ridge.png",
+    "high_time_resolution/pdv_channel_1/apparent_velocity_full_overview.png",
+    "high_time_resolution/pdv_channel_1/apparent_velocity_full_time_reviewed.png",
+    "high_time_resolution/pdv_channel_1/apparent_velocity_full_time_formal.png",
+    "high_time_resolution/pdv_channel_1/apparent_velocity_event_detail.png",
+    "high_time_resolution/pdv_channel_1/apparent_velocity_state_diagnostics.png",
+    "high_time_resolution/pdv_channel_1/signal_detection_diagnostics.png",
+    "high_time_resolution/pdv_channel_2/apparent_velocity_diagnostics.csv",
+    "high_time_resolution/pdv_channel_2/stft_full_band.png",
+    "high_time_resolution/pdv_channel_2/stft_analysis_band_with_ridge.png",
+    "high_time_resolution/pdv_channel_2/apparent_velocity_full_overview.png",
+    "high_time_resolution/pdv_channel_2/apparent_velocity_full_time_reviewed.png",
+    "high_time_resolution/pdv_channel_2/apparent_velocity_full_time_formal.png",
+    "high_time_resolution/pdv_channel_2/apparent_velocity_event_detail.png",
+    "high_time_resolution/pdv_channel_2/apparent_velocity_state_diagnostics.png",
+    "high_time_resolution/pdv_channel_2/signal_detection_diagnostics.png",
+    "high_time_resolution/quality_summary.csv",
+    "high_time_resolution/detected_event_candidates.png",
+    "high_time_resolution/profile_manifest.json",
+    "README.txt",
+    "event_consensus.json",
+    "run.log",
+    "run_manifest.json",
+    "comparisons/all_measured_segments_timeline.png",
+    "comparisons/band_boundary_fraction_comparison.png",
+    "comparisons/cross_profile_consensus.png",
+    "comparisons/event_candidate_sensitivity.csv",
+    "comparisons/measured_segments.csv",
+    "comparisons/spectral_contrast_distribution_comparison.png",
+    "comparisons/threshold_calibration.csv",
+    "comparisons/threshold_transferability_audit.csv",
+    "simple_exports/README.txt",
+    "simple_exports/balanced__pdv_channel_1__velocity_time.csv",
+    "simple_exports/balanced__pdv_channel_2__velocity_time.csv",
+    "simple_exports/high_time_resolution__pdv_channel_1__velocity_time.csv",
+    "simple_exports/high_time_resolution__pdv_channel_2__velocity_time.csv"
+  ],
+  "git_head": "48407dccea8763fc892111cd2a2f5135ee09d31d",
+  "git_worktree_dirty": true,
+  "input": {
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "has_header": false,
+    "time_column": 0,
+    "time_scale": 1.0,
+    "voltage_columns": {
+      "pdv_channel_1": 1,
+      "pdv_channel_2": 2
+    },
+    "voltage_scales": {
+      "pdv_channel_1": 1.0,
+      "pdv_channel_2": 1.0
+    }
+  },
+  "interpretation_guards": [
+    "unsigned apparent velocity",
+    "configured wavelength is a demonstration value not confirmed by experiment records",
+    "no LiF, refractive-index, or incidence-angle correction",
+    "no channel selection, averaging, or fusion",
+    "no profile selection, averaging, or fusion",
+    "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+    "pre-event display zero is disabled by default; if enabled it is display-only",
+    "high-overlap frames are not independent measurements",
+    "high-time profile is not a higher-accuracy claim",
+    "quality metrics do not automatically validate physical branch identity",
+    "MEASURED means spectrally qualified; physical branch identity remains unreviewed",
+    "quality-unfiltered argmax preview is not a measurement",
+    "lower-bound argmax is not zero velocity",
+    "event candidates and consensus do not modify formal per-frame arrays",
+    "display-only bridge has two endpoints and writes no intermediate CSV data",
+    "simple-export zero is a pre-consensus plotting convention and not measured"
+  ],
+  "measured_semantics": "MEASURED means spectrally qualified under the configured detection rules. It does not confirm the physical identity of the selected branch.",
+  "output_contract": "dual-profile-task013c-r-v1",
+  "physical_branch_review_status": "unreviewed",
+  "plot": {
+    "analysis_display_maximum_frequency_hz": 2000000000.0,
+    "analysis_display_minimum_frequency_hz": 0.0,
+    "assume_pre_event_zero_for_display": false,
+    "event_detail_after_s": 2e-07,
+    "event_detail_before_s": 1e-07,
+    "relative_db_floor": -60.0,
+    "reviewed_display": {
+      "formal_array_modified": false,
+      "interpolation_or_bridge": false,
+      "post_consensus_semantics": "formal apparent velocity with original NaN gaps",
+      "pre_consensus_zero_semantics": "all frames are zero by plotting convention",
+      "same_array_as_simple_export": true
+    }
+  },
+  "profile_consensus_results": {
+    "balanced": {
+      "candidate_time_method": "none_without_dual_channel_support",
+      "channel_start_time_difference_s": null,
+      "frequency_agreement_metric_hz": null,
+      "interval_overlap_fraction": null,
+      "profile_consensus_candidate_time_s": null,
+      "profile_consensus_status": "no_eligible_segments",
+      "profile_name": "balanced",
+      "rejection_reason": "no_event_level_eligible_segments",
+      "supporting_channel_segments": []
+    },
+    "high_time_resolution": {
+      "candidate_time_method": "none_without_dual_channel_support",
+      "channel_start_time_difference_s": null,
+      "frequency_agreement_metric_hz": null,
+      "interval_overlap_fraction": null,
+      "profile_consensus_candidate_time_s": null,
+      "profile_consensus_status": "no_eligible_segments",
+      "profile_name": "high_time_resolution",
+      "rejection_reason": "no_event_level_eligible_segments",
+      "supporting_channel_segments": []
+    }
+  },
+  "profile_manifests": {
+    "balanced": {
+      "analysis_display_frequency_range_hz": [
+        0.0,
+        2000000000.0
+      ],
+      "analysis_end_time_s": 0.000554673,
+      "analysis_runtime_s": 3.437873199931346,
+      "analysis_start_time_s": 0.00055465,
+      "channel_summaries": {
+        "pdv_channel_1": {
+          "ambiguous_peak_frame_count": 0,
+          "candidate_frame_count": 7,
+          "channel_name": "pdv_channel_1",
+          "detected_event_candidate_segment_id": null,
+          "detected_event_candidate_source": "event_level_eligible_measured_segment",
+          "detected_event_candidate_time_s": null,
+          "event_level_eligible_segment_count": 0,
+          "finite_continuity_step_count": 6,
+          "first_candidate_apparent_velocity_m_s": 488.25104330229493,
+          "first_candidate_discrete_frequency_hz": 634765624.7835412,
+          "first_candidate_peak_magnitude": 0.4973131928969732,
+          "first_candidate_peak_to_background_db": 77.17701324327845,
+          "first_candidate_peak_to_competitor_db": 31.42922514835648,
+          "first_candidate_refined_frequency_hz": 630001346.1965096,
+          "first_candidate_time_relative_s": -8.399999996792917e-09,
+          "insufficient_cycles_frame_count": 0,
+          "legacy_task013_first_measured_run_frame_count": 5,
+          "legacy_task013_first_measured_run_source": "first_final_measured_run_compatibility_metadata",
+          "legacy_task013_first_measured_run_time_s": 0.0005546596000000032,
+          "manual_event_reference_time_s": 0.000554668,
+          "maximum_absolute_frequency_step_hz": 451.9035449028015,
+          "measured_frame_count": 5,
+          "measured_segment_count": 1,
+          "measured_semantics": "spectrally qualified under configured detection rules; physical branch identity is not confirmed",
+          "minimum_candidate_apparent_velocity_m_s": 488.24988801999814,
+          "minimum_candidate_refined_frequency_hz": 629999855.509675,
+          "no_detectable_beat_frame_count": 0,
+          "outside_analysis_window_frame_count": 2,
+          "outside_frame_count": 0,
+          "peak_at_band_boundary_frame_count": 0,
+          "peak_to_background_db_median": 77.17308357802878,
+          "peak_to_background_db_p05": 77.16682548571431,
+          "peak_to_competitor_db_median": 31.430514185172903,
+          "peak_to_competitor_db_p05": 31.429399706503638,
+          "physical_branch_review_status": "unreviewed",
+          "pre_event_frame_count": 0,
+          "profile_id": "balanced",
+          "refined_frame_count": 7,
+          "refinement_failed_frame_count": 0,
+          "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\.pytest_tmp\\task018a_final_noargv_temp\\pytest-of-89484\\pytest-0\\dual_profile_production0\\source.csv",
+          "source_sha256": "781f41d55e7aef132a179ee1b5102074b188506680f338dcaaac333f575e3b97",
+          "total_frame_count": 7,
+          "unstable_detection_frame_count": 0
+        },
+        "pdv_channel_2": {
+          "ambiguous_peak_frame_count": 0,
+          "candidate_frame_count": 7,
+          "channel_name": "pdv_channel_2",
+          "detected_event_candidate_segment_id": null,
+          "detected_event_candidate_source": "event_level_eligible_measured_segment",
+          "detected_event_candidate_time_s": null,
+          "event_level_eligible_segment_count": 0,
+          "finite_continuity_step_count": 6,
+          "first_candidate_apparent_velocity_m_s": 511.4981986005185,
+          "first_candidate_discrete_frequency_hz": 664062499.7735507,
+          "first_candidate_peak_magnitude": 0.49804562548654047,
+          "first_candidate_peak_to_background_db": 76.07229308487271,
+          "first_candidate_peak_to_competitor_db": 31.43338286245704,
+          "first_candidate_refined_frequency_hz": 659997675.6135722,
+          "first_candidate_time_relative_s": -8.399999996792917e-09,
+          "insufficient_cycles_frame_count": 0,
+          "legacy_task013_first_measured_run_frame_count": 5,
+          "legacy_task013_first_measured_run_source": "first_final_measured_run_compatibility_metadata",
+          "legacy_task013_first_measured_run_time_s": 0.0005546596000000032,
+          "manual_event_reference_time_s": 0.000554668,
+          "maximum_absolute_frequency_step_hz": 1375.840690612793,
+          "measured_frame_count": 5,
+          "measured_segment_count": 1,
+          "measured_semantics": "spectrally qualified under configured detection rules; physical branch identity is not confirmed",
+          "minimum_candidate_apparent_velocity_m_s": 511.49714983756263,
+          "minimum_candidate_refined_frequency_hz": 659996322.3710486,
+          "no_detectable_beat_frame_count": 0,
+          "outside_analysis_window_frame_count": 2,
+          "outside_frame_count": 0,
+          "peak_at_band_boundary_frame_count": 0,
+          "peak_to_background_db_median": 76.07229308487271,
+          "peak_to_background_db_p05": 75.85502725303763,
+          "peak_to_competitor_db_median": 31.43338286245704,
+          "peak_to_competitor_db_p05": 31.433298965981354,
+          "physical_branch_review_status": "unreviewed",
+          "pre_event_frame_count": 0,
+          "profile_id": "balanced",
+          "refined_frame_count": 7,
+          "refinement_failed_frame_count": 0,
+          "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\.pytest_tmp\\task018a_final_noargv_temp\\pytest-of-89484\\pytest-0\\dual_profile_production0\\source.csv",
+          "source_sha256": "781f41d55e7aef132a179ee1b5102074b188506680f338dcaaac333f575e3b97",
+          "total_frame_count": 7,
+          "unstable_detection_frame_count": 0
+        }
+      },
+      "detection_capability_by_channel": {
+        "pdv_channel_1": {
+          "corresponding_apparent_velocity_m_s": 40.36458331956877,
+          "detected_event_candidate_source": "event_level_eligible_measured_segment",
+          "detected_event_candidate_time_s": null,
+          "hop_duration_s": 3.200000001091219e-09,
+          "legacy_task013_first_measured_run_time_s": 0.0005546596000000032,
+          "minimum_resolvable_frequency_by_cycle_rule_hz": 52083333.31557261,
+          "window_duration_s": 1.9200000006547313e-08
+        },
+        "pdv_channel_2": {
+          "corresponding_apparent_velocity_m_s": 40.36458331956877,
+          "detected_event_candidate_source": "event_level_eligible_measured_segment",
+          "detected_event_candidate_time_s": null,
+          "hop_duration_s": 3.200000001091219e-09,
+          "legacy_task013_first_measured_run_time_s": 0.0005546596000000032,
+          "minimum_resolvable_frequency_by_cycle_rule_hz": 52083333.31557261,
+          "window_duration_s": 1.9200000006547313e-08
+        }
+      },
+      "event_candidate": {
+        "default_status": "development defaults; event-level synthetic behavior verified; experimental calibration remains required",
+        "duration_definition": "last STFT frame center minus first STFT frame center",
+        "formal_per_frame_arrays_modified": false,
+        "maximum_adjacent_frequency_step_hz": 100000000.0,
+        "minimum_median_peak_to_background_db": null,
+        "minimum_median_peak_to_competitor_db": null,
+        "minimum_segment_duration_s": 2e-08,
+        "minimum_segment_frames": 8
+      },
+      "event_consensus_config": {
+        "channel_start_frequency_tolerance_hz": 150000000.0,
+        "channel_start_time_tolerance_s": 2.5e-08,
+        "cross_profile_time_tolerance_s": 2.5e-08,
+        "default_status": "development defaults; consensus metadata only; no voltage or velocity fusion",
+        "frequency_agreement_metric": "absolute difference between supporting segment start-frame refined frequencies",
+        "manual_reference_used_for_selection": false,
+        "minimum_interval_overlap_fraction": 0.5,
+        "voltage_or_velocity_fusion": false
+      },
+      "event_onset_diagnostics": {
+        "pdv_channel_1": {
+          "first_candidate_window_center_s": 0.0005546596000000032,
+          "first_candidate_window_support_crosses_event_start": true,
+          "first_candidate_window_support_end_s": 0.0005546692000000065,
+          "first_candidate_window_support_start_s": 0.00055465,
+          "spectral_evidence": {
+            "post_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 78124999.97335891,
+                "local_peak_magnitude": 0.0001609190245081382,
+                "local_peak_time_relative_s": 1.2000000064807392e-09,
+                "squared_magnitude_sum": 2.588966003745169e-07
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 634765624.7835412,
+                "local_peak_magnitude": 0.49730914963503664,
+                "local_peak_time_relative_s": 1.2000000064807392e-09,
+                "squared_magnitude_sum": 7.999770106205087
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 29296874.99000959,
+                "local_peak_magnitude": 0.00014407139971326244,
+                "local_peak_time_relative_s": 1.2000000064807392e-09,
+                "squared_magnitude_sum": 2.0344670334377233e-07
+              }
+            },
+            "pre_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 3,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 78124999.97335891,
+                "local_peak_magnitude": 0.0001822521130323571,
+                "local_peak_time_relative_s": -8.399999996792917e-09,
+                "squared_magnitude_sum": 2.660149349060253e-07
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 3,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 634765624.7835412,
+                "local_peak_magnitude": 0.4973131928969732,
+                "local_peak_time_relative_s": -8.399999996792917e-09,
+                "squared_magnitude_sum": 5.9998276050222294
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 3,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 29296874.99000959,
+                "local_peak_magnitude": 0.00016581014918917093,
+                "local_peak_time_relative_s": -8.399999996792917e-09,
+                "squared_magnitude_sum": 2.1833260321276244e-07
+              }
+            }
+          },
+          "stft_window_duration_s": 1.9200000006547313e-08,
+          "stft_window_half_support_s": 9.600000003273657e-09
+        },
+        "pdv_channel_2": {
+          "first_candidate_window_center_s": 0.0005546596000000032,
+          "first_candidate_window_support_crosses_event_start": true,
+          "first_candidate_window_support_end_s": 0.0005546692000000065,
+          "first_candidate_window_support_start_s": 0.00055465,
+          "spectral_evidence": {
+            "post_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 58593749.98001918,
+                "local_peak_magnitude": 0.00013685961760945078,
+                "local_peak_time_relative_s": 4.400000007571958e-09,
+                "squared_magnitude_sum": 1.5031015173293186e-07
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 664062499.7735507,
+                "local_peak_magnitude": 0.4980497611474394,
+                "local_peak_time_relative_s": 4.400000007571958e-09,
+                "squared_magnitude_sum": 7.999508376477867
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 0.0,
+                "local_peak_magnitude": 0.00013191336189003605,
+                "local_peak_time_relative_s": 4.400000007571958e-09,
+                "squared_magnitude_sum": 1.5865289622073888e-07
+              }
+            },
+            "pre_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 3,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 58593749.98001918,
+                "local_peak_magnitude": 0.00012428509091426783,
+                "local_peak_time_relative_s": -8.399999996792917e-09,
+                "squared_magnitude_sum": 9.700207307683837e-08
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 3,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 664062499.7735507,
+                "local_peak_magnitude": 0.49804562548654047,
+                "local_peak_time_relative_s": -8.399999996792917e-09,
+                "squared_magnitude_sum": 5.999631427807234
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 3,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 0.0,
+                "local_peak_magnitude": 0.00011575044903322467,
+                "local_peak_time_relative_s": -8.399999996792917e-09,
+                "squared_magnitude_sum": 9.25513471175729e-08
+              }
+            }
+          },
+          "stft_window_duration_s": 1.9200000006547313e-08,
+          "stft_window_half_support_s": 9.600000003273657e-09
+        }
+      },
+      "event_reference_source": "manual_review_reference_only",
+      "full_band_frequency_range_hz_by_channel": {
+        "pdv_channel_1": [
+          0.0,
+          19999999993.179882
+        ],
+        "pdv_channel_2": [
+          0.0,
+          19999999993.179882
+        ]
+      },
+      "full_range_preview": {
+        "formal_quality_gate_applied": false,
+        "frame_scope": "complete_stft_time_axis",
+        "frequency_range_hz": [
+          50000000.0,
+          2000000000.0
+        ],
+        "frequency_selection": "strongest discrete argmax in the fixed search band for every frame",
+        "legend": "quality-unfiltered argmax preview; not a measurement",
+        "lower_bound_note": "lower-bound argmax is not zero velocity",
+        "overview_rendering": "complete fixed-band argmax preview in red over the unchanged quality-gated formal series in blue; no state markers",
+        "overview_time_reference": "cross-profile consensus event candidate when available",
+        "plot_pre_event_value": "disabled",
+        "rendering": "state-layered markers; invalid states are not connected as a physical curve",
+        "state_diagnostics_filename": "apparent_velocity_state_diagnostics.png",
+        "status": "quality-unfiltered argmax preview; not a measurement"
+      },
+      "generated_files": [
+        "pdv_channel_1/apparent_velocity_diagnostics.csv",
+        "pdv_channel_1/stft_full_band.png",
+        "pdv_channel_1/stft_analysis_band_with_ridge.png",
+        "pdv_channel_1/apparent_velocity_full_overview.png",
+        "pdv_channel_1/apparent_velocity_full_time_reviewed.png",
+        "pdv_channel_1/apparent_velocity_full_time_formal.png",
+        "pdv_channel_1/apparent_velocity_event_detail.png",
+        "pdv_channel_1/apparent_velocity_state_diagnostics.png",
+        "pdv_channel_1/signal_detection_diagnostics.png",
+        "pdv_channel_2/apparent_velocity_diagnostics.csv",
+        "pdv_channel_2/stft_full_band.png",
+        "pdv_channel_2/stft_analysis_band_with_ridge.png",
+        "pdv_channel_2/apparent_velocity_full_overview.png",
+        "pdv_channel_2/apparent_velocity_full_time_reviewed.png",
+        "pdv_channel_2/apparent_velocity_full_time_formal.png",
+        "pdv_channel_2/apparent_velocity_event_detail.png",
+        "pdv_channel_2/apparent_velocity_state_diagnostics.png",
+        "pdv_channel_2/signal_detection_diagnostics.png",
+        "quality_summary.csv",
+        "detected_event_candidates.png",
+        "profile_manifest.json"
+      ],
+      "interpretation_guards": [
+        "unsigned apparent velocity",
+        "configured wavelength is a demonstration value not confirmed by experiment records",
+        "no LiF, refractive-index, or incidence-angle correction",
+        "no channel selection, averaging, or fusion",
+        "no profile selection, averaging, or fusion",
+        "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+        "pre-event display zero is disabled by default; if enabled it is display-only",
+        "high-overlap frames are not independent measurements",
+        "high-time profile is not a higher-accuracy claim",
+        "quality metrics do not automatically validate physical branch identity",
+        "MEASURED means spectrally qualified; physical branch identity remains unreviewed",
+        "quality-unfiltered argmax preview is not a measurement",
+        "lower-bound argmax is not zero velocity",
+        "event candidates and consensus do not modify formal per-frame arrays",
+        "display-only bridge has two endpoints and writes no intermediate CSV data",
+        "simple-export zero is a pre-consensus plotting convention and not measured"
+      ],
+      "manual_event_reference_time_s": 0.000554668,
+      "measured_semantics": "MEASURED means spectrally qualified under the configured detection rules. It does not confirm the physical identity of the selected branch.",
+      "nyquist_frequency_hz_by_channel": {
+        "pdv_channel_1": 19999999993.179882,
+        "pdv_channel_2": 19999999993.179882
+      },
+      "physical_branch_review_status": "unreviewed",
+      "profile": {
+        "display_name": "Balanced",
+        "hop_samples": 128,
+        "maximum_frequency_hz": 2000000000.0,
+        "minimum_frequency_hz": 50000000.0,
+        "nfft": 4096,
+        "overlap_samples": 640,
+        "ridge_refinement": "log_magnitude_three_point_quadratic",
+        "tradeoff_note": "Default profile prioritizing plateau stability, frequency-estimate stability, and noise robustness.",
+        "window_length_samples": 768,
+        "window_name": "hann"
+      },
+      "profile_consensus": {
+        "candidate_time_method": "none_without_dual_channel_support",
+        "channel_start_time_difference_s": null,
+        "frequency_agreement_metric_hz": null,
+        "interval_overlap_fraction": null,
+        "profile_consensus_candidate_time_s": null,
+        "profile_consensus_status": "no_eligible_segments",
+        "profile_name": "balanced",
+        "rejection_reason": "no_event_level_eligible_segments",
+        "supporting_channel_segments": []
+      },
+      "profile_consensus_candidate_time_s": null,
+      "profile_id": "balanced",
+      "quality": {
+        "background_guard_window_scale": 2.0,
+        "guard_status": "configured descriptive diagnostic; not a universal validated standard",
+        "minimum_background_bin_count": 2,
+        "signal_detection": {
+          "default_status": "development defaults; synthetic behavior verified; experimental threshold validation remains required",
+          "enabled": true,
+          "minimum_consecutive_frames": 3,
+          "minimum_cycles_in_window": 1.0,
+          "minimum_peak_to_background_db": 10.0,
+          "minimum_peak_to_competitor_db": 3.0,
+          "peak_exclusion_half_width_bins": 12
+        }
+      },
+      "search_frequency_range_hz": [
+        50000000.0,
+        2000000000.0
+      ],
+      "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\.pytest_tmp\\task018a_final_noargv_temp\\pytest-of-89484\\pytest-0\\dual_profile_production0\\source.csv",
+      "source_sha256": "781f41d55e7aef132a179ee1b5102074b188506680f338dcaaac333f575e3b97",
+      "vacuum_wavelength_m": 1.55e-06,
+      "wavelength_status": "demonstration value; not confirmed by experiment records"
+    },
+    "high_time_resolution": {
+      "analysis_display_frequency_range_hz": [
+        0.0,
+        2000000000.0
+      ],
+      "analysis_end_time_s": 0.000554673,
+      "analysis_runtime_s": 3.6771245999261737,
+      "analysis_start_time_s": 0.00055465,
+      "channel_summaries": {
+        "pdv_channel_1": {
+          "ambiguous_peak_frame_count": 0,
+          "candidate_frame_count": 9,
+          "channel_name": "pdv_channel_1",
+          "detected_event_candidate_segment_id": null,
+          "detected_event_candidate_source": "event_level_eligible_measured_segment",
+          "detected_event_candidate_time_s": null,
+          "event_level_eligible_segment_count": 0,
+          "finite_continuity_step_count": 8,
+          "first_candidate_apparent_velocity_m_s": 488.2590345262284,
+          "first_candidate_discrete_frequency_hz": 634765624.7835412,
+          "first_candidate_peak_magnitude": 0.49882064099576934,
+          "first_candidate_peak_to_background_db": 66.37014490837215,
+          "first_candidate_peak_to_competitor_db": 17.182048383833916,
+          "first_candidate_refined_frequency_hz": 630011657.453198,
+          "first_candidate_time_relative_s": -1.1599999997884136e-08,
+          "insufficient_cycles_frame_count": 0,
+          "legacy_task013_first_measured_run_frame_count": 6,
+          "legacy_task013_first_measured_run_source": "first_final_measured_run_compatibility_metadata",
+          "legacy_task013_first_measured_run_time_s": 0.0005546564000000021,
+          "manual_event_reference_time_s": 0.000554668,
+          "maximum_absolute_frequency_step_hz": 2587.6981959342957,
+          "measured_frame_count": 6,
+          "measured_segment_count": 1,
+          "measured_semantics": "spectrally qualified under configured detection rules; physical branch identity is not confirmed",
+          "minimum_candidate_apparent_velocity_m_s": 488.2514529636962,
+          "minimum_candidate_refined_frequency_hz": 630001874.7918661,
+          "no_detectable_beat_frame_count": 0,
+          "outside_analysis_window_frame_count": 3,
+          "outside_frame_count": 0,
+          "peak_at_band_boundary_frame_count": 0,
+          "peak_to_background_db_median": 66.21079633105259,
+          "peak_to_background_db_p05": 65.96462216931987,
+          "peak_to_competitor_db_median": 17.183886041498084,
+          "peak_to_competitor_db_p05": 17.182281016561436,
+          "physical_branch_review_status": "unreviewed",
+          "pre_event_frame_count": 0,
+          "profile_id": "high_time_resolution",
+          "refined_frame_count": 9,
+          "refinement_failed_frame_count": 0,
+          "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\.pytest_tmp\\task018a_final_noargv_temp\\pytest-of-89484\\pytest-0\\dual_profile_production0\\source.csv",
+          "source_sha256": "781f41d55e7aef132a179ee1b5102074b188506680f338dcaaac333f575e3b97",
+          "total_frame_count": 9,
+          "unstable_detection_frame_count": 0
+        },
+        "pdv_channel_2": {
+          "ambiguous_peak_frame_count": 0,
+          "candidate_frame_count": 9,
+          "channel_name": "pdv_channel_2",
+          "detected_event_candidate_segment_id": null,
+          "detected_event_candidate_source": "event_level_eligible_measured_segment",
+          "detected_event_candidate_time_s": null,
+          "event_level_eligible_segment_count": 0,
+          "finite_continuity_step_count": 8,
+          "first_candidate_apparent_velocity_m_s": 511.5078711226535,
+          "first_candidate_discrete_frequency_hz": 664062499.7735507,
+          "first_candidate_peak_magnitude": 0.4991236052438206,
+          "first_candidate_peak_to_background_db": 64.62659863394357,
+          "first_candidate_peak_to_competitor_db": 17.46002711492959,
+          "first_candidate_refined_frequency_hz": 660010156.2872949,
+          "first_candidate_time_relative_s": -1.1599999997884136e-08,
+          "insufficient_cycles_frame_count": 0,
+          "legacy_task013_first_measured_run_frame_count": 6,
+          "legacy_task013_first_measured_run_source": "first_final_measured_run_compatibility_metadata",
+          "legacy_task013_first_measured_run_time_s": 0.0005546564000000021,
+          "manual_event_reference_time_s": 0.000554668,
+          "maximum_absolute_frequency_step_hz": 15486.94582438469,
+          "measured_frame_count": 6,
+          "measured_segment_count": 1,
+          "measured_semantics": "spectrally qualified under configured detection rules; physical branch identity is not confirmed",
+          "minimum_candidate_apparent_velocity_m_s": 511.49161896429877,
+          "minimum_candidate_refined_frequency_hz": 659989185.7603855,
+          "no_detectable_beat_frame_count": 0,
+          "outside_analysis_window_frame_count": 3,
+          "outside_frame_count": 0,
+          "peak_at_band_boundary_frame_count": 0,
+          "peak_to_background_db_median": 64.62986354530747,
+          "peak_to_background_db_p05": 64.60803455820825,
+          "peak_to_competitor_db_median": 17.462190602488796,
+          "peak_to_competitor_db_p05": 17.460100978892534,
+          "physical_branch_review_status": "unreviewed",
+          "pre_event_frame_count": 0,
+          "profile_id": "high_time_resolution",
+          "refined_frame_count": 9,
+          "refinement_failed_frame_count": 0,
+          "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\.pytest_tmp\\task018a_final_noargv_temp\\pytest-of-89484\\pytest-0\\dual_profile_production0\\source.csv",
+          "source_sha256": "781f41d55e7aef132a179ee1b5102074b188506680f338dcaaac333f575e3b97",
+          "total_frame_count": 9,
+          "unstable_detection_frame_count": 0
+        }
+      },
+      "detection_capability_by_channel": {
+        "pdv_channel_1": {
+          "corresponding_apparent_velocity_m_s": 60.546874979353156,
+          "detected_event_candidate_source": "event_level_eligible_measured_segment",
+          "detected_event_candidate_time_s": null,
+          "hop_duration_s": 3.200000001091219e-09,
+          "legacy_task013_first_measured_run_time_s": 0.0005546564000000021,
+          "minimum_resolvable_frequency_by_cycle_rule_hz": 78124999.97335891,
+          "window_duration_s": 1.2800000004364875e-08
+        },
+        "pdv_channel_2": {
+          "corresponding_apparent_velocity_m_s": 60.546874979353156,
+          "detected_event_candidate_source": "event_level_eligible_measured_segment",
+          "detected_event_candidate_time_s": null,
+          "hop_duration_s": 3.200000001091219e-09,
+          "legacy_task013_first_measured_run_time_s": 0.0005546564000000021,
+          "minimum_resolvable_frequency_by_cycle_rule_hz": 78124999.97335891,
+          "window_duration_s": 1.2800000004364875e-08
+        }
+      },
+      "event_candidate": {
+        "default_status": "development defaults; event-level synthetic behavior verified; experimental calibration remains required",
+        "duration_definition": "last STFT frame center minus first STFT frame center",
+        "formal_per_frame_arrays_modified": false,
+        "maximum_adjacent_frequency_step_hz": 100000000.0,
+        "minimum_median_peak_to_background_db": null,
+        "minimum_median_peak_to_competitor_db": null,
+        "minimum_segment_duration_s": 2e-08,
+        "minimum_segment_frames": 8
+      },
+      "event_consensus_config": {
+        "channel_start_frequency_tolerance_hz": 150000000.0,
+        "channel_start_time_tolerance_s": 2.5e-08,
+        "cross_profile_time_tolerance_s": 2.5e-08,
+        "default_status": "development defaults; consensus metadata only; no voltage or velocity fusion",
+        "frequency_agreement_metric": "absolute difference between supporting segment start-frame refined frequencies",
+        "manual_reference_used_for_selection": false,
+        "minimum_interval_overlap_fraction": 0.5,
+        "voltage_or_velocity_fusion": false
+      },
+      "event_onset_diagnostics": {
+        "pdv_channel_1": {
+          "first_candidate_window_center_s": 0.0005546564000000021,
+          "first_candidate_window_support_crosses_event_start": false,
+          "first_candidate_window_support_end_s": 0.0005546628000000043,
+          "first_candidate_window_support_start_s": 0.00055465,
+          "spectral_evidence": {
+            "post_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 58593749.98001918,
+                "local_peak_magnitude": 0.00041039714249580927,
+                "local_peak_time_relative_s": 1.2000000064807392e-09,
+                "squared_magnitude_sum": 1.40737178488281e-06
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 634765624.7835412,
+                "local_peak_magnitude": 0.49880876329003904,
+                "local_peak_time_relative_s": 1.2000000064807392e-09,
+                "squared_magnitude_sum": 11.99699068807407
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 39062499.98667946,
+                "local_peak_magnitude": 0.0005135027673086178,
+                "local_peak_time_relative_s": 1.2000000064807392e-09,
+                "squared_magnitude_sum": 2.8419078059581197e-06
+              }
+            },
+            "pre_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 58593749.98001918,
+                "local_peak_magnitude": 0.00046804739434558995,
+                "local_peak_time_relative_s": -1.1599999997884136e-08,
+                "squared_magnitude_sum": 2.0040016313591647e-06
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 634765624.7835412,
+                "local_peak_magnitude": 0.49882064099576934,
+                "local_peak_time_relative_s": -1.1599999997884136e-08,
+                "squared_magnitude_sum": 11.996994672719506
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 39062499.98667946,
+                "local_peak_magnitude": 0.0006064565939260102,
+                "local_peak_time_relative_s": -1.1599999997884136e-08,
+                "squared_magnitude_sum": 4.474088749452677e-06
+              }
+            }
+          },
+          "stft_window_duration_s": 1.2800000004364875e-08,
+          "stft_window_half_support_s": 6.400000002182438e-09
+        },
+        "pdv_channel_2": {
+          "first_candidate_window_center_s": 0.0005546564000000021,
+          "first_candidate_window_support_crosses_event_start": false,
+          "first_candidate_window_support_end_s": 0.0005546628000000043,
+          "first_candidate_window_support_start_s": 0.00055465,
+          "spectral_evidence": {
+            "post_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 78124999.97335891,
+                "local_peak_magnitude": 0.0005638684931118019,
+                "local_peak_time_relative_s": 4.400000007571958e-09,
+                "squared_magnitude_sum": 2.84581306400809e-06
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 664062499.7735507,
+                "local_peak_magnitude": 0.49913396753860373,
+                "local_peak_time_relative_s": 1.0800000009754396e-08,
+                "squared_magnitude_sum": 11.99462240692547
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 0.0,
+                "local_peak_magnitude": 0.0005163083372398431,
+                "local_peak_time_relative_s": 4.400000007571958e-09,
+                "squared_magnitude_sum": 1.6184379835613025e-06
+              }
+            },
+            "pre_event_one_window": {
+              "0_05_to_0_1_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 5,
+                "local_peak_frequency_hz": 78124999.97335891,
+                "local_peak_magnitude": 0.000568630129116565,
+                "local_peak_time_relative_s": -1.1599999997884136e-08,
+                "squared_magnitude_sum": 2.676280858506477e-06
+              },
+              "0_1_to_0_8_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 71,
+                "local_peak_frequency_hz": 664062499.7735507,
+                "local_peak_magnitude": 0.49913289527243426,
+                "local_peak_time_relative_s": -5.1999999957016985e-09,
+                "squared_magnitude_sum": 11.994621104227257
+              },
+              "0_to_0_05_ghz": {
+                "frame_count": 4,
+                "frequency_bin_count": 6,
+                "local_peak_frequency_hz": 0.0,
+                "local_peak_magnitude": 0.000521283941373144,
+                "local_peak_time_relative_s": -1.1599999997884136e-08,
+                "squared_magnitude_sum": 1.505425448122943e-06
+              }
+            }
+          },
+          "stft_window_duration_s": 1.2800000004364875e-08,
+          "stft_window_half_support_s": 6.400000002182438e-09
+        }
+      },
+      "event_reference_source": "manual_review_reference_only",
+      "full_band_frequency_range_hz_by_channel": {
+        "pdv_channel_1": [
+          0.0,
+          19999999993.179882
+        ],
+        "pdv_channel_2": [
+          0.0,
+          19999999993.179882
+        ]
+      },
+      "full_range_preview": {
+        "formal_quality_gate_applied": false,
+        "frame_scope": "complete_stft_time_axis",
+        "frequency_range_hz": [
+          50000000.0,
+          2000000000.0
+        ],
+        "frequency_selection": "strongest discrete argmax in the fixed search band for every frame",
+        "legend": "quality-unfiltered argmax preview; not a measurement",
+        "lower_bound_note": "lower-bound argmax is not zero velocity",
+        "overview_rendering": "complete fixed-band argmax preview in red over the unchanged quality-gated formal series in blue; no state markers",
+        "overview_time_reference": "cross-profile consensus event candidate when available",
+        "plot_pre_event_value": "disabled",
+        "rendering": "state-layered markers; invalid states are not connected as a physical curve",
+        "state_diagnostics_filename": "apparent_velocity_state_diagnostics.png",
+        "status": "quality-unfiltered argmax preview; not a measurement"
+      },
+      "generated_files": [
+        "pdv_channel_1/apparent_velocity_diagnostics.csv",
+        "pdv_channel_1/stft_full_band.png",
+        "pdv_channel_1/stft_analysis_band_with_ridge.png",
+        "pdv_channel_1/apparent_velocity_full_overview.png",
+        "pdv_channel_1/apparent_velocity_full_time_reviewed.png",
+        "pdv_channel_1/apparent_velocity_full_time_formal.png",
+        "pdv_channel_1/apparent_velocity_event_detail.png",
+        "pdv_channel_1/apparent_velocity_state_diagnostics.png",
+        "pdv_channel_1/signal_detection_diagnostics.png",
+        "pdv_channel_2/apparent_velocity_diagnostics.csv",
+        "pdv_channel_2/stft_full_band.png",
+        "pdv_channel_2/stft_analysis_band_with_ridge.png",
+        "pdv_channel_2/apparent_velocity_full_overview.png",
+        "pdv_channel_2/apparent_velocity_full_time_reviewed.png",
+        "pdv_channel_2/apparent_velocity_full_time_formal.png",
+        "pdv_channel_2/apparent_velocity_event_detail.png",
+        "pdv_channel_2/apparent_velocity_state_diagnostics.png",
+        "pdv_channel_2/signal_detection_diagnostics.png",
+        "quality_summary.csv",
+        "detected_event_candidates.png",
+        "profile_manifest.json"
+      ],
+      "interpretation_guards": [
+        "unsigned apparent velocity",
+        "configured wavelength is a demonstration value not confirmed by experiment records",
+        "no LiF, refractive-index, or incidence-angle correction",
+        "no channel selection, averaging, or fusion",
+        "no profile selection, averaging, or fusion",
+        "no smoothing, interpolation, filtering, resampling, or invented low-speed data",
+        "pre-event display zero is disabled by default; if enabled it is display-only",
+        "high-overlap frames are not independent measurements",
+        "high-time profile is not a higher-accuracy claim",
+        "quality metrics do not automatically validate physical branch identity",
+        "MEASURED means spectrally qualified; physical branch identity remains unreviewed",
+        "quality-unfiltered argmax preview is not a measurement",
+        "lower-bound argmax is not zero velocity",
+        "event candidates and consensus do not modify formal per-frame arrays",
+        "display-only bridge has two endpoints and writes no intermediate CSV data",
+        "simple-export zero is a pre-consensus plotting convention and not measured"
+      ],
+      "manual_event_reference_time_s": 0.000554668,
+      "measured_semantics": "MEASURED means spectrally qualified under the configured detection rules. It does not confirm the physical identity of the selected branch.",
+      "nyquist_frequency_hz_by_channel": {
+        "pdv_channel_1": 19999999993.179882,
+        "pdv_channel_2": 19999999993.179882
+      },
+      "physical_branch_review_status": "unreviewed",
+      "profile": {
+        "display_name": "High time resolution",
+        "hop_samples": 128,
+        "maximum_frequency_hz": 2000000000.0,
+        "minimum_frequency_hz": 50000000.0,
+        "nfft": 4096,
+        "overlap_samples": 384,
+        "ridge_refinement": "log_magnitude_three_point_quadratic",
+        "tradeoff_note": "Shorter time support at the cost of frequency stability and plateau jitter; this is not a higher-accuracy claim.",
+        "window_length_samples": 512,
+        "window_name": "hann"
+      },
+      "profile_consensus": {
+        "candidate_time_method": "none_without_dual_channel_support",
+        "channel_start_time_difference_s": null,
+        "frequency_agreement_metric_hz": null,
+        "interval_overlap_fraction": null,
+        "profile_consensus_candidate_time_s": null,
+        "profile_consensus_status": "no_eligible_segments",
+        "profile_name": "high_time_resolution",
+        "rejection_reason": "no_event_level_eligible_segments",
+        "supporting_channel_segments": []
+      },
+      "profile_consensus_candidate_time_s": null,
+      "profile_id": "high_time_resolution",
+      "quality": {
+        "background_guard_window_scale": 2.0,
+        "guard_status": "configured descriptive diagnostic; not a universal validated standard",
+        "minimum_background_bin_count": 2,
+        "signal_detection": {
+          "default_status": "development defaults; synthetic behavior verified; experimental threshold validation remains required",
+          "enabled": true,
+          "minimum_consecutive_frames": 3,
+          "minimum_cycles_in_window": 1.0,
+          "minimum_peak_to_background_db": 10.0,
+          "minimum_peak_to_competitor_db": 3.0,
+          "peak_exclusion_half_width_bins": 12
+        }
+      },
+      "search_frequency_range_hz": [
+        50000000.0,
+        2000000000.0
+      ],
+      "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\.pytest_tmp\\task018a_final_noargv_temp\\pytest-of-89484\\pytest-0\\dual_profile_production0\\source.csv",
+      "source_sha256": "781f41d55e7aef132a179ee1b5102074b188506680f338dcaaac333f575e3b97",
+      "vacuum_wavelength_m": 1.55e-06,
+      "wavelength_status": "demonstration value; not confirmed by experiment records"
+    }
+  },
+  "profiles": [
+    "balanced",
+    "high_time_resolution"
+  ],
+  "quality": {
+    "background_guard_window_scale": 2.0,
+    "minimum_background_bin_count": 2,
+    "signal_detection": {
+      "default_status": "development defaults; synthetic behavior verified; experimental threshold validation remains required",
+      "enabled": true,
+      "minimum_consecutive_frames": 3,
+      "minimum_cycles_in_window": 1.0,
+      "minimum_peak_to_background_db": 10.0,
+      "minimum_peak_to_competitor_db": 3.0,
+      "peak_exclusion_half_width_bins": 12
+    },
+    "threshold_calibration": {
+      "baseline_consensus_event_time_s": null,
+      "candidate_pairs_db": [
+        [
+          10.0,
+          3.0
+        ],
+        [
+          12.0,
+          4.0
+        ],
+        [
+          14.0,
+          5.0
+        ],
+        [
+          16.0,
+          6.0
+        ]
+      ],
+      "candidate_summaries": [
+        {
+          "cross_profile_consensus_event_time_s": null,
+          "cross_profile_consensus_status": "no_profile_consensus",
+          "cross_profile_consensus_time_change_s": null,
+          "peak_to_background_threshold_db": 10.0,
+          "peak_to_competitor_threshold_db": 3.0,
+          "qualifies": false,
+          "rejection_reasons": [
+            "baseline_cross_profile_consensus_unavailable",
+            "main_event_retention_below_98_percent",
+            "profile_dual_channel_consensus_lost",
+            "cross_profile_consensus_time_unavailable"
+          ],
+          "selected": true
+        },
+        {
+          "cross_profile_consensus_event_time_s": null,
+          "cross_profile_consensus_status": "no_profile_consensus",
+          "cross_profile_consensus_time_change_s": null,
+          "peak_to_background_threshold_db": 12.0,
+          "peak_to_competitor_threshold_db": 4.0,
+          "qualifies": false,
+          "rejection_reasons": [
+            "baseline_cross_profile_consensus_unavailable",
+            "main_event_retention_below_98_percent",
+            "profile_dual_channel_consensus_lost",
+            "cross_profile_consensus_time_unavailable"
+          ],
+          "selected": false
+        },
+        {
+          "cross_profile_consensus_event_time_s": null,
+          "cross_profile_consensus_status": "no_profile_consensus",
+          "cross_profile_consensus_time_change_s": null,
+          "peak_to_background_threshold_db": 14.0,
+          "peak_to_competitor_threshold_db": 5.0,
+          "qualifies": false,
+          "rejection_reasons": [
+            "baseline_cross_profile_consensus_unavailable",
+            "main_event_retention_below_98_percent",
+            "profile_dual_channel_consensus_lost",
+            "cross_profile_consensus_time_unavailable"
+          ],
+          "selected": false
+        },
+        {
+          "cross_profile_consensus_event_time_s": null,
+          "cross_profile_consensus_status": "no_profile_consensus",
+          "cross_profile_consensus_time_change_s": null,
+          "peak_to_background_threshold_db": 16.0,
+          "peak_to_competitor_threshold_db": 6.0,
+          "qualifies": false,
+          "rejection_reasons": [
+            "baseline_cross_profile_consensus_unavailable",
+            "main_event_retention_below_98_percent",
+            "profile_dual_channel_consensus_lost",
+            "cross_profile_consensus_time_unavailable"
+          ],
+          "selected": false
+        }
+      ],
+      "filename": "comparisons/threshold_calibration.csv",
+      "minimum_main_event_retention_fraction": 0.98,
+      "plateau_and_falling_definition": "first and second time halves of each baseline consensus-supporting main segment",
+      "pre_event_reference": "fixed 10/3 cross-profile consensus time so a candidate cannot hide false peaks by shifting consensus",
+      "provenance": "development-calibrated for the current production record; not an absolute experimental standard",
+      "selected_consensus_event_time_s": null,
+      "selected_peak_to_background_db": 10.0,
+      "selected_peak_to_competitor_db": 3.0,
+      "selection_status": "no_candidate_met_all_criteria_fallback_to_10_3"
+    }
+  },
+  "root_entries": [
+    "balanced",
+    "high_time_resolution",
+    "README.txt",
+    "comparisons",
+    "event_consensus.json",
+    "run.log",
+    "run_manifest.json",
+    "simple_exports"
+  ],
+  "simple_exports": {
+    "all_stft_frames_retained": true,
+    "columns": [
+      "time_s",
+      "velocity_m_s"
+    ],
+    "consensus_unavailable_fallback": "formal array unchanged; manual reference is not substituted",
+    "display_or_preview_values_used": false,
+    "filename_pattern": "<profile>__<channel>__velocity_time.csv",
+    "formal_diagnostics_modified": false,
+    "interpolation_or_smoothing": false,
+    "post_consensus_unreliable_frames_remain_nan": true,
+    "pre_consensus_zero_fill": "unconditional for every frame",
+    "time_semantics": "absolute STFT frame-center time in seconds",
+    "velocity_semantics": "pre-consensus plotting zero, followed by unchanged formal quality-gated unsigned apparent velocity in m/s",
+    "zero_fill_is_measurement": false,
+    "zero_fill_requirements": [
+      "time_s < cross-profile consensus event candidate time"
+    ]
+  },
+  "source_path": "D:\\Code\\Python_Projects\\DPS_Studio\\.pytest_tmp\\task018a_final_noargv_temp\\pytest-of-89484\\pytest-0\\dual_profile_production0\\source.csv",
+  "source_sha256": "781f41d55e7aef132a179ee1b5102074b188506680f338dcaaac333f575e3b97",
+  "versions": {
+    "dps-studio": "0.1.0",
+    "numpy": "2.5.1",
+    "python": "3.12.13",
+    "scipy": "1.18.0"
+  }
+}
