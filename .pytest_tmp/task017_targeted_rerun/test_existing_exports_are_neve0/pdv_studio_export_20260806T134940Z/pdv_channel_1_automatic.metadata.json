@@ -1,0 +1,76 @@
+{
+  "analysis_mode": "automatic",
+  "analysis_profile_name": "task017-test",
+  "analysis_time_range_s": {
+    "end_time_s": 9e-07,
+    "start_time_s": 1e-07
+  },
+  "data_file": "pdv_channel_1_automatic.csv",
+  "dps_studio_version": "0.1.0",
+  "event_reference_time_s": 4e-07,
+  "export_schema_version": "pdv-studio-formal-result-v1",
+  "exported_at_utc": "2026-08-06T13:49:40.512272Z",
+  "pre_event_display": {
+    "configured_velocity_m_s": 12.5,
+    "display_only_origin": "configured_pre_event_display_velocity_only",
+    "enabled": true,
+    "formal_measurement_modified": false,
+    "included_in_csv": true
+  },
+  "quality_configuration": {
+    "detection_method": "per-frame unmodified STFT magnitude peak; median background and strongest competitor outside an inclusive bin guard; ordered quality gates; exact consecutive-frame runs without interpolation or smoothing",
+    "enabled": true,
+    "minimum_consecutive_frames": 3,
+    "minimum_cycles_in_window": 1.0,
+    "minimum_peak_to_background_db": 10.0,
+    "minimum_peak_to_competitor_db": 3.0,
+    "peak_exclusion_half_width_bins": 12
+  },
+  "result_counts": {
+    "exported_pre_event_display_only_row_count": 8,
+    "exported_row_count": 31,
+    "measured_frame_count": 14,
+    "pre_event_display_only_frame_count": 8,
+    "ridge_quality_flag_counts": {
+      "candidate": 31
+    },
+    "ridge_refinement_status_counts": {
+      "boundary_peak": 17,
+      "refined": 14
+    },
+    "signal_state_counts": {
+      "measured": 14,
+      "no_detectable_beat": 11,
+      "outside_analysis_window": 6
+    },
+    "stft_frame_count": 31
+  },
+  "result_status": {
+    "channel_fusion_applied_by_export": false,
+    "display_column": "display_velocity_m_s",
+    "formal_measurement_column": "apparent_velocity_m_s",
+    "formal_measurement_preserved": true,
+    "interpolation_or_smoothing_applied_by_export": false,
+    "unreliable_formal_values_preserved_as_nan": true
+  },
+  "ridge_configuration": {
+    "refinement_method": "log-magnitude three-point quadratic peak interpolation",
+    "search_maximum_frequency_hz": 800000000.0,
+    "search_minimum_frequency_hz": 20000000.0
+  },
+  "source_channel": "pdv_channel_1",
+  "source_file": "D:\\Code\\Python_Projects\\DPS_Studio\\.pytest_tmp\\task017_targeted_rerun\\test_existing_exports_are_neve0\\source.csv",
+  "stft_configuration": {
+    "boundary_padding_applied": false,
+    "detrend_applied": false,
+    "hop_samples": 128,
+    "nfft": 1024,
+    "one_sided": true,
+    "overlap_samples": 128,
+    "sample_rate_hz": 3999999999.9996996,
+    "scaling": "spectrum",
+    "window_length_samples": 256,
+    "window_name": "hann"
+  },
+  "vacuum_wavelength_m": 1.55e-06
+}

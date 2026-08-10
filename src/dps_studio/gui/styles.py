@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QPushButton, QToolButton, QWidget
 
 
 APPLICATION_STYLE_SHEET = """
@@ -68,11 +69,41 @@ QTabBar::tab:selected {
 QPushButton {
     min-height: 26px;
     padding: 2px 10px;
+    background: #ffffff;
+    border: 1px solid #d6dde3;
+    color: #263746;
+}
+QPushButton:hover:enabled {
+    background: #edf0f2;
+    border-color: #c5d0d7;
+}
+QPushButton:pressed:enabled {
+    background: #dfe5e9;
+    border-color: #afbec8;
+}
+QPushButton:focus:enabled {
+    border-color: #0b6fa4;
+}
+QPushButton:disabled {
+    background: #f1f3f5;
+    border-color: #e0e5e9;
+    color: #8a98a3;
 }
 QPushButton:default {
     background: #0b6fa4;
     color: #ffffff;
     border: 1px solid #07577f;
+}
+QPushButton:default:hover:enabled {
+    background: #07577f;
+    border-color: #064364;
+}
+QPushButton:default:pressed:enabled {
+    background: #064364;
+    border-color: #04364f;
+}
+QPushButton:default:focus:enabled {
+    border-color: #04364f;
 }
 QRadioButton {
     min-height: 26px;
@@ -87,6 +118,9 @@ QRadioButton:checked {
     border-color: #0b6fa4;
     color: #173a52;
     font-weight: 600;
+}
+QRadioButton:focus:enabled {
+    border-color: #07577f;
 }
 QRadioButton:hover:unchecked {
     background: #edf5fa;
@@ -155,4 +189,43 @@ def apply_application_style(application: QApplication) -> None:
     application.setStyleSheet(APPLICATION_STYLE_SHEET)
 
 
-__all__ = ["apply_application_style"]
+def _set_action_button_cursor(button: QPushButton | QToolButton) -> None:
+    """Use a click cursor only while a discrete action is available."""
+    cursor = (
+        Qt.CursorShape.PointingHandCursor
+        if button.isEnabled()
+        else Qt.CursorShape.ArrowCursor
+    )
+    button.setCursor(cursor)
+
+
+class _ActionButtonCursorFilter(QObject):
+    """Keep action-button cursors synchronized with enabled state changes."""
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if isinstance(watched, (QPushButton, QToolButton)) and (
+            event.type() is QEvent.Type.EnabledChange
+        ):
+            _set_action_button_cursor(watched)
+        return super().eventFilter(watched, event)
+
+
+_ACTION_BUTTON_CURSOR_FILTER = _ActionButtonCursorFilter()
+
+
+def configure_action_button_cursors(root: QWidget) -> None:
+    """Apply enabled-state-aware click cursors to discrete action buttons."""
+    buttons: list[QPushButton | QToolButton] = [
+        *root.findChildren(QPushButton),
+        *root.findChildren(QToolButton),
+    ]
+    if isinstance(root, (QPushButton, QToolButton)):
+        buttons.append(root)
+    for button in buttons:
+        if not bool(button.property("actionButtonCursorConfigured")):
+            button.setProperty("actionButtonCursorConfigured", True)
+            button.installEventFilter(_ACTION_BUTTON_CURSOR_FILTER)
+        _set_action_button_cursor(button)
+
+
+__all__ = ["apply_application_style", "configure_action_button_cursors"]

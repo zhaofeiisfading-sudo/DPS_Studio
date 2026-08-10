@@ -1,5 +1,17 @@
 """Public core configuration APIs."""
 
+from dps_studio.core.export import (
+    EXPORT_SCHEMA_VERSION,
+    ExportedChannelResult,
+    ResultAnalysisMode,
+    ResultExportError,
+    ResultExportOptions,
+    ResultExportReport,
+    ResultExportValidationError,
+    ResultExportWriteError,
+    export_formal_results,
+)
+
 from dps_studio.core.analysis_profiles import (
     BALANCED_PROFILE,
     DEFAULT_ANALYSIS_PROFILE,
@@ -62,6 +74,8 @@ from dps_studio.core.quality import (
 )
 
 __all__ = [
+    "EXPORT_SCHEMA_VERSION",
+    "ExportedChannelResult",
     "AnalysisProfile",
     "AnalysisProfileId",
     "AnalysisParameterOverrides",
@@ -84,6 +98,12 @@ __all__ = [
     "InputConfiguration",
     "OutputConfiguration",
     "OutputMode",
+    "ResultAnalysisMode",
+    "ResultExportError",
+    "ResultExportOptions",
+    "ResultExportReport",
+    "ResultExportValidationError",
+    "ResultExportWriteError",
     "PhysicalBranchReviewStatus",
     "PlotConfiguration",
     "ProfileConsensusResult",
@@ -112,6 +132,7 @@ __all__ = [
     "derive_bin_guard_half_width_hz",
     "detect_beat_signal",
     "enumerate_measured_segments",
+    "export_formal_results",
     "get_analysis_profile",
     "load_workflow_config",
 ]

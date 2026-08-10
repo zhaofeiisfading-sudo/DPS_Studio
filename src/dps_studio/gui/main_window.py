@@ -10,6 +10,7 @@ from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
+    QCheckBox,
     QDockWidget,
     QFileDialog,
     QComboBox,
@@ -46,6 +47,12 @@ from dps_studio.core.analysis_profiles import (
     AnalysisProfile,
     AnalysisProfileId,
     AnalysisRunParameters,
+)
+from dps_studio.core.export import (
+    ResultAnalysisMode,
+    ResultExportError,
+    ResultExportOptions,
+    export_formal_results,
 )
 from dps_studio.core.io import DelimitedSignalLoadResult
 from dps_studio.core.ridge import (
@@ -94,6 +101,7 @@ from dps_studio.gui.result_views import (
     VelocityView,
 )
 from dps_studio.gui.state import WorkflowState, state_reaches
+from dps_studio.gui.styles import configure_action_button_cursors
 
 
 _LAYOUT_STATE_VERSION = 1
@@ -131,6 +139,7 @@ class MainWindow(QMainWindow):
         self._current_guided_channel: str | None = None
         self._corridor_width_initialized = False
         self._guided_auto_fit_done = False
+        self._export_output_directory: Path | None = None
         self._workflow_state = WorkflowState.EMPTY
         self._unsaved_changes = False
         self._parameters_valid = False
@@ -148,6 +157,7 @@ class MainWindow(QMainWindow):
         self._create_workspace()
         self._create_diagnostics_dock()
         self._create_status_bar()
+        configure_action_button_cursors(self)
         self._default_geometry = QByteArray(self.saveGeometry())
         self._default_window_state = QByteArray(
             self.saveState(_LAYOUT_STATE_VERSION)
@@ -384,11 +394,11 @@ class MainWindow(QMainWindow):
         self.action_velocity.setObjectName("actionVelocity")
         self.action_velocity.setEnabled(False)
         self.action_velocity.setToolTip(planned_tooltip)
-        self.action_export = QAction(self.tr("导出结果"), self)
+        self.action_export = QAction(self.tr("复核与导出"), self)
         self.action_export.setObjectName("actionExport")
         self.action_export.setEnabled(False)
         self.action_export.setToolTip(
-            self.tr("尚未接入：当前没有可供 GUI 使用的 public core 导出接口。")
+            self.tr("查看当前有效结果并设置导出参数。")
         )
 
         self.action_import_analysis_config = QAction(
@@ -435,6 +445,7 @@ class MainWindow(QMainWindow):
         self.file_menu = self.menuBar().addMenu(self.tr("文件"))
         self.file_menu.setObjectName("fileMenu")
         self.file_menu.addAction(self.action_open_data)
+        self.file_menu.addAction(self.action_export)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.action_exit)
 
@@ -869,15 +880,60 @@ class MainWindow(QMainWindow):
         self.velocity_parameter_scroll.setWidget(velocity_page)
         self.parameter_stack.addWidget(self.velocity_parameter_scroll)
 
-        self.parameter_stack.addWidget(
-            self._planned_parameters(
-                self.tr("复核与导出"),
-                self.tr(
-                    "当前提供双通道正式表观速度比较和质量复核。正式导出保持"
-                    "禁用，production 脚本未作为 GUI 运行依赖。"
-                ),
+        self.parameter_stack.addWidget(self._build_export_parameters_page())
+
+    def _build_export_parameters_page(self) -> QWidget:
+        """Build controls for one current, independently analyzed result."""
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.addWidget(self._section_title(self.tr("复核与导出")))
+        self.export_availability_label = self._notice(
+            self.tr("当前没有可导出的有效正式结果。")
+        )
+        self.export_availability_label.setObjectName("exportAvailabilityStatus")
+        layout.addWidget(self.export_availability_label)
+        form = QFormLayout()
+        self.export_mode_combo = QComboBox()
+        self.export_mode_combo.setObjectName("exportAnalysisModeCombo")
+        self.export_mode_combo.setEnabled(False)
+        self.export_channel_combo = QComboBox()
+        self.export_channel_combo.setObjectName("exportChannelCombo")
+        self.export_channel_combo.setEnabled(False)
+        form.addRow(self.tr("分析结果"), self.export_mode_combo)
+        form.addRow(self.tr("导出通道"), self.export_channel_combo)
+        layout.addLayout(form)
+        self.export_directory_button = QPushButton(self.tr("选择导出目录…"))
+        self.export_directory_button.setObjectName("chooseExportDirectoryButton")
+        self.export_directory_button.setEnabled(False)
+        layout.addWidget(self.export_directory_button)
+        self.export_directory_label = self._notice(self.tr("尚未选择导出目录。"))
+        self.export_directory_label.setObjectName("exportDirectoryStatus")
+        layout.addWidget(self.export_directory_label)
+        self.export_include_pre_event_check = QCheckBox(
+            self.tr("包含事件前 display-only 平台")
+        )
+        self.export_include_pre_event_check.setObjectName("includePreEventDisplayRows")
+        self.export_include_pre_event_check.setChecked(True)
+        self.export_include_pre_event_check.setToolTip(
+            self.tr(
+                "仅控制 CSV 行范围；不会把显示平台写入正式表观速度，"
+                "也不会修改内存中的分析结果。"
             )
         )
+        self.export_include_pre_event_check.setEnabled(False)
+        layout.addWidget(self.export_include_pre_event_check)
+        self.export_description_label = self._notice(
+            self.tr("将导出时间—速度数据、详细诊断数据和分析参数记录。")
+        )
+        self.export_description_label.setObjectName("exportDescription")
+        layout.addWidget(self.export_description_label)
+        self.export_button = QPushButton(self.tr("导出结果"))
+        self.export_button.setObjectName("exportFormalResultsButton")
+        self.export_button.setDefault(True)
+        self.export_button.setEnabled(False)
+        layout.addWidget(self.export_button)
+        layout.addStretch(1)
+        return page
 
     def _create_diagnostics_dock(self) -> None:
         self.diagnostics_dock = QDockWidget(self.tr("诊断与数据"), self)
@@ -958,6 +1014,7 @@ class MainWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         self.action_open_data.triggered.connect(self._open_data)
+        self.action_export.triggered.connect(self._show_review_and_export)
         self.action_automatic.triggered.connect(self.run_automatic_analysis)
         self.action_guided.triggered.connect(self._activate_guided_analysis)
         self.action_run_stft.triggered.connect(self.run_stft_analysis)
@@ -1075,6 +1132,11 @@ class MainWindow(QMainWindow):
             self._show_advanced_parameters
         )
         self.compute_stft_button.clicked.connect(self.run_stft_analysis)
+        self.export_mode_combo.currentIndexChanged.connect(
+            self._export_mode_changed
+        )
+        self.export_directory_button.clicked.connect(self._choose_export_directory)
+        self.export_button.clicked.connect(self._export_current_result)
         self._analysis_adapter.started.connect(self._analysis_started)
         self._analysis_adapter.finished.connect(self._analysis_finished)
         self._analysis_adapter.failed.connect(self._analysis_failed)
@@ -2338,6 +2400,219 @@ class MainWindow(QMainWindow):
         )
         self._apply_state()
 
+    def _exportable_result_sets(self) -> dict[
+        ResultAnalysisMode,
+        Mapping[str, ChannelAnalysis],
+    ]:
+        """Return only results that remain valid in the current session."""
+        available: dict[ResultAnalysisMode, Mapping[str, ChannelAnalysis]] = {}
+        if self._session.automatic_results_available:
+            available[ResultAnalysisMode.AUTOMATIC] = (
+                self._session.automatic_channel_analyses
+            )
+        if self._session.guided_results_available:
+            available[ResultAnalysisMode.GUIDED] = (
+                self._session.valid_guided_channel_analyses
+            )
+        return available
+
+    def _refresh_export_controls(self) -> None:
+        """Reflect only the current valid Automatic/Guided result sets."""
+        available = self._exportable_result_sets()
+        selected_mode = self._selected_export_mode()
+        mode_blocker = QSignalBlocker(self.export_mode_combo)
+        self.export_mode_combo.clear()
+        labels = {
+            ResultAnalysisMode.AUTOMATIC: self.tr("自动分析"),
+            ResultAnalysisMode.GUIDED: self.tr("引导分析"),
+        }
+        for mode in (ResultAnalysisMode.AUTOMATIC, ResultAnalysisMode.GUIDED):
+            if mode in available:
+                self.export_mode_combo.addItem(labels[mode], mode.value)
+        if selected_mode in available:
+            index = self.export_mode_combo.findData(selected_mode.value)
+            self.export_mode_combo.setCurrentIndex(index)
+        elif self.export_mode_combo.count():
+            self.export_mode_combo.setCurrentIndex(0)
+        del mode_blocker
+        self._refresh_export_channels(available)
+
+        result_available = bool(available)
+        busy = self._analysis_adapter.busy
+        directory_selected = self._export_output_directory is not None
+        current_mode = self._selected_export_mode()
+        current_channel = self.export_channel_combo.currentData()
+        selection_valid = (
+            isinstance(current_mode, ResultAnalysisMode)
+            and isinstance(current_channel, str)
+            and current_channel in available.get(current_mode, {})
+        )
+        if not result_available:
+            availability_text = self.tr("当前没有可导出的有效正式结果。")
+            action_tooltip = self.tr("请先获得当前有效的 Automatic 或 Guided 结果。")
+        else:
+            modes = " / ".join(labels[mode] for mode in available)
+            availability_text = self.tr("可导出的当前有效结果：{modes}。").format(
+                modes=modes
+            ) + self.tr("Automatic 与 Guided 将保持独立导出。")
+            action_tooltip = self.tr("打开复核与导出页面，检查当前结果和导出参数。")
+        self.export_availability_label.setText(availability_text)
+        self.export_mode_combo.setEnabled(result_available and not busy)
+        self.export_channel_combo.setEnabled(selection_valid and not busy)
+        self.export_directory_button.setEnabled(result_available and not busy)
+        self.export_include_pre_event_check.setEnabled(result_available and not busy)
+        self.export_button.setEnabled(
+            selection_valid and directory_selected and not busy
+        )
+        self.action_export.setEnabled(result_available and not busy)
+        self.action_export.setToolTip(action_tooltip)
+
+    def _refresh_export_channels(
+        self,
+        available: Mapping[ResultAnalysisMode, Mapping[str, ChannelAnalysis]],
+    ) -> None:
+        """Populate the channel selector from the selected, independent mode."""
+        selected_channel = self.export_channel_combo.currentData()
+        mode = self._selected_export_mode()
+        analyses = available.get(mode, {}) if mode is not None else {}
+        channel_blocker = QSignalBlocker(self.export_channel_combo)
+        self.export_channel_combo.clear()
+        for channel_name in analyses:
+            self.export_channel_combo.addItem(channel_name, channel_name)
+        if isinstance(selected_channel, str) and selected_channel in analyses:
+            self.export_channel_combo.setCurrentIndex(
+                self.export_channel_combo.findData(selected_channel)
+            )
+        elif self.export_channel_combo.count():
+            self.export_channel_combo.setCurrentIndex(0)
+        del channel_blocker
+
+    def _export_mode_changed(self, _index: int) -> None:
+        self._refresh_export_channels(self._exportable_result_sets())
+        self._refresh_export_controls()
+
+    def _selected_export_mode(self) -> ResultAnalysisMode | None:
+        """Normalize Qt's QVariant string back to the public export enum."""
+        value = self.export_mode_combo.currentData()
+        try:
+            return ResultAnalysisMode(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _choose_export_directory(self) -> bool:
+        selected_path = QFileDialog.getExistingDirectory(
+            self,
+            self.tr("选择正式结果导出目录"),
+            str(self._export_output_directory or self._repository_root),
+        )
+        if not selected_path:
+            return False
+        self._set_export_output_directory(Path(selected_path))
+        return True
+
+    def _set_export_output_directory(self, directory: Path) -> None:
+        """Store a user-selected output parent without creating any files."""
+        self._export_output_directory = Path(directory)
+        self.export_directory_label.setText(
+            self.tr("导出目录：{path}").format(path=self._export_output_directory)
+        )
+        self._refresh_export_controls()
+
+    def _show_review_and_export(self) -> None:
+        """Navigate to step 6 without writing files or changing result state."""
+        self._refresh_export_controls()
+        review_index = 5
+        review_item = self.workflow_navigation.item(review_index)
+        if review_item is None or not bool(
+            review_item.flags() & Qt.ItemFlag.ItemIsEnabled
+        ):
+            message = self.tr("当前没有可复核与导出的有效正式结果。")
+            self.statusBar().showMessage(message, 5000)
+            return
+        self.workflow_navigation.setCurrentRow(review_index)
+        self.parameter_stack.setCurrentIndex(review_index)
+
+    def _export_current_result(self) -> bool:
+        """Select a directory if needed, then call the public core export API."""
+        available = self._exportable_result_sets()
+        mode = self._selected_export_mode()
+        channel_name = self.export_channel_combo.currentData()
+        if (
+            mode is None
+            or not isinstance(channel_name, str)
+            or channel_name not in available.get(mode, {})
+        ):
+            message = self.tr("当前没有可导出的有效正式结果。")
+            self.analysis_status_label.setText(message)
+            self._append_log(message)
+            self._refresh_export_controls()
+            return False
+        if self._export_output_directory is None and not self._choose_export_directory():
+            self._append_log(self.tr("用户已取消选择导出目录。"))
+            return False
+        configuration = self._session.run_configuration
+        if configuration is None or self._export_output_directory is None:
+            return False
+        try:
+            report = export_formal_results(
+                ResultExportOptions(
+                    output_directory=self._export_output_directory,
+                    analysis_mode=mode,
+                    channel_analyses={channel_name: available[mode][channel_name]},
+                    include_pre_event_display_rows=(
+                        self.export_include_pre_event_check.isChecked()
+                    ),
+                    source_path=self._session.source_path,
+                    analysis_profile_name=configuration.parameters.provenance_name,
+                    pre_event_display_enabled=(
+                        configuration.enable_pre_event_display
+                    ),
+                    pre_event_display_velocity_m_s=(
+                        configuration.pre_event_display_velocity_m_s
+                    ),
+                    protected_output_directories=(
+                        self._repository_root / "data" / "raw",
+                    ),
+                )
+            )
+        except ResultExportError as exc:
+            message = self.tr("结果导出失败：{message}").format(message=exc)
+            self.analysis_status_label.setText(message)
+            self._append_log(message)
+            QMessageBox.critical(self, self.tr("结果导出失败"), message)
+            return False
+        exported = report.exported_channels[0]
+        message = self.tr("结果导出完成：{path}").format(
+            path=report.output_directory
+        )
+        self.analysis_status_label.setText(message)
+        self.statusBar().showMessage(message, 8000)
+        self._append_log(
+            self.tr(
+                "{mode} / {channel} 已导出至 {directory}：{csv}；{detail}；{metadata}"
+            ).format(
+                mode=mode.value,
+                channel=channel_name,
+                directory=report.output_directory,
+                csv=exported.csv_path.name,
+                detail=exported.detail_csv_path.name,
+                metadata=exported.metadata_path.name,
+            )
+        )
+        QMessageBox.information(
+            self,
+            self.tr("导出完成"),
+            self.tr(
+                "已生成：\n{csv}\n{detail}\n{metadata}\n\n输出位置：\n{directory}"
+            ).format(
+                csv=exported.csv_path.name,
+                detail=exported.detail_csv_path.name,
+                metadata=exported.metadata_path.name,
+                directory=report.output_directory,
+            ),
+        )
+        return True
+
     def _clear_result_presentation(self, reason: str) -> None:
         self._guided_auto_fit_done = False
         self._corridor_width_initialized = False
@@ -2348,6 +2623,7 @@ class MainWindow(QMainWindow):
         self.analysis_range_panel.clear_detected_candidates()
         self.quality_summary.clear_results(reason)
         self.action_export.setEnabled(False)
+        self._refresh_export_controls()
         self.analysis_status_label.setText(reason)
         self.formal_velocity_status_label.setText(self.tr("尚无正式结果"))
         self.stft_ready_label.setText(self.tr("尚未计算时频图。"))
@@ -2572,6 +2848,7 @@ class MainWindow(QMainWindow):
         self._set_parameter_editability(
             has_configuration and not self._analysis_adapter.busy
         )
+        self._refresh_export_controls()
         if not loaded:
             self.workflow_navigation.setCurrentRow(0)
             self.parameter_stack.setCurrentIndex(0)

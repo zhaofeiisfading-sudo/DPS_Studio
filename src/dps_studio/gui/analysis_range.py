@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from dps_studio.gui.styles import configure_action_button_cursors
+
 
 class AnalysisRangePanel(QWidget):
     """Synchronize a draft range in μs and emit only confirmed SI endpoints."""
@@ -236,6 +238,7 @@ class AnalysisRangePanel(QWidget):
                         self.candidate_adopt_requested.emit(channel, value)
                     )
                 )
+                configure_action_button_cursors(button)
                 row_layout.addWidget(label)
                 row_layout.addWidget(button)
                 self.candidate_buttons[channel_name] = button

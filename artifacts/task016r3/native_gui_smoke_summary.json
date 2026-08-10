@@ -1,0 +1,81 @@
+{
+  "task": "TASK-016R3",
+  "qt_platform": "windows",
+  "source": "data/raw/20260607.csv",
+  "source_sha256_before": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+  "source_sha256_after": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+  "hover_capture_method": "QCursor.setPos to visible native widget centers; underMouse verified before window.grab.",
+  "screenshots": [
+    {
+      "path": "artifacts/task016r3/right_panel_normal_zh.png",
+      "width_px": 2880,
+      "height_px": 1760,
+      "logical_size": [
+        1440,
+        880
+      ]
+    },
+    {
+      "path": "artifacts/task016r3/right_panel_hover_zh.png",
+      "width_px": 2880,
+      "height_px": 1760,
+      "logical_size": [
+        1440,
+        880
+      ]
+    },
+    {
+      "path": "artifacts/task016r3/right_panel_primary_hover_zh.png",
+      "width_px": 2880,
+      "height_px": 1760,
+      "logical_size": [
+        1440,
+        880
+      ]
+    },
+    {
+      "path": "artifacts/task016r3/ridge_mode_hover_zh.png",
+      "width_px": 2880,
+      "height_px": 1760,
+      "logical_size": [
+        1440,
+        880
+      ]
+    },
+    {
+      "path": "artifacts/task016r3/layout_1280x720_zh.png",
+      "width_px": 2560,
+      "height_px": 1440,
+      "logical_size": [
+        1280,
+        720
+      ]
+    }
+  ],
+  "checks": {
+    "data_page_available": true,
+    "range_page_available": true,
+    "secondary_pressed_state_observed": true,
+    "stft_page_available": true,
+    "ridge_page_available": true,
+    "guided_checked_during_automatic_hover": {
+      "automatic_checked": false,
+      "guided_checked": true,
+      "mode": "guided"
+    },
+    "velocity_page_available": true,
+    "disabled_action_cursor": "ArrowCursor",
+    "input_cursor_shapes": {
+      "profile_combo": "ArrowCursor",
+      "vacuum_wavelength_spin": "ArrowCursor"
+    },
+    "layout_1280_range_available": true,
+    "device_pixel_ratio": 2.0,
+    "english": {
+      "automatic": "Automatic",
+      "guided": "Guided",
+      "right_panel_width": 340,
+      "button_size_hints_fit_panel": true
+    }
+  }
+}
