@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from dps_studio.core.export import (
+    ExportTimeOrigin,
     ResultAnalysisMode,
     ResultExportOptions,
     ResultExportValidationError,
@@ -99,11 +100,13 @@ def _options(
     include_pre_event_display_rows: bool = True,
     protected_output_directories: tuple[Path, ...] = (),
     event_reference_source: str | None = "config",
+    time_origin: ExportTimeOrigin = ExportTimeOrigin.EVENT,
 ) -> ResultExportOptions:
     return ResultExportOptions(
         output_directory=destination,
         analysis_mode=mode,
         channel_analyses=analyses,
+        time_origin=time_origin,
         include_pre_event_display_rows=include_pre_event_display_rows,
         source_path=source_path,
         analysis_profile_name="task017r-test",
@@ -149,9 +152,13 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert exported.csv_path.name == "20260607_ch1_auto.csv"
     assert exported.detail_csv_path.name == "20260607_ch1_auto_detail.csv"
     assert exported.metadata_path.name == "20260607_ch1_auto.metadata.json"
-    assert set(simple_rows[0]) == {"time_s", "display_velocity_m_s"}
+    assert set(simple_rows[0]) == {
+        "time_from_event_s",
+        "display_velocity_m_s",
+    }
     assert set(detail_rows[0]) == {
         "time_s",
+        "time_from_event_s",
         "coarse_peak_frequency_hz",
         "refined_frequency_hz",
         "apparent_velocity_m_s",
@@ -170,7 +177,15 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     }
     assert len(simple_rows) == len(detail_rows)
     for index, (simple, detail) in enumerate(zip(simple_rows, detail_rows, strict=True)):
-        assert _same_float(simple["time_s"], analysis.signal_detection_result.time_s[index])
+        assert _same_float(
+            simple["time_from_event_s"],
+            analysis.signal_detection_result.time_s[index] - 0.4e-6,
+        )
+        assert _same_float(
+            detail["time_s"],
+            analysis.signal_detection_result.time_s[index],
+        )
+        assert simple["time_from_event_s"] == detail["time_from_event_s"]
         assert _same_float(
             simple["display_velocity_m_s"],
             analysis.display_velocity_m_s[index],
@@ -211,7 +226,7 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     )
 
     metadata = json.loads(exported.metadata_path.read_text(encoding="utf-8"))
-    assert metadata["export_schema_version"] == "pdv-studio-formal-result-v5"
+    assert metadata["export_schema_version"] == "pdv-studio-formal-result-v6"
     selection_metadata = metadata["automatic_ridge_selection"]
     assert selection_metadata["recovery_tolerance_hz"] == pytest.approx(
         15_625_000.0
@@ -246,6 +261,17 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     )
     assert metadata["event_reference_time_s"] == 0.4e-6
     assert metadata["event_reference_source"] == "config"
+    assert metadata["time_coordinate"] == {
+        "absolute_time_preserved": True,
+        "detail_csv_absolute_time_column": "time_s",
+        "detail_csv_relative_time_column": "time_from_event_s",
+        "event_reference_time_s": 0.4e-6,
+        "export_time_origin": "event",
+        "relative_time_definition": (
+            "time_from_event_s = time_s - event_reference_time_s"
+        ),
+        "simple_csv_time_column": "time_from_event_s",
+    }
     assert metadata["physics"] == {
         "vacuum_wavelength_m": 1.55e-6,
         "velocity_relation": "v_app=lambda0*f_b/2",
@@ -328,6 +354,7 @@ def test_event_metadata_case_a_candidates_exist_without_adopted_reference(
             analyses={"pdv_channel_1": analysis},
             source_path=results["source_path"],
             event_reference_source=None,
+            time_origin=ExportTimeOrigin.ABSOLUTE,
         )
     )
     metadata = json.loads(
@@ -411,6 +438,7 @@ def test_event_metadata_case_d_absent_candidates_remain_null(tmp_path: Path) -> 
             analyses={"pdv_channel_1": analysis},
             source_path=results["source_path"],
             event_reference_source=None,
+            time_origin=ExportTimeOrigin.ABSOLUTE,
         )
     )
     metadata = json.loads(

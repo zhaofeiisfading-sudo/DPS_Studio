@@ -16,6 +16,7 @@ from dps_studio.core.analysis_profiles import (
     build_analysis_run_parameters,
 )
 from dps_studio.core.event_candidates import EventCandidateConfig
+from dps_studio.core.export import ExportTimeOrigin
 from dps_studio.core.models import SignalRecord
 from dps_studio.core.physics import VelocityCorrectionConfig
 from dps_studio.core.quality import SignalDetectionConfig
@@ -29,6 +30,7 @@ from dps_studio.core.workflow import (
     ChannelAnalysis,
     WorkflowConfiguration,
     configure_channel_event_reference,
+    configure_channel_velocity_correction,
 )
 
 
@@ -159,6 +161,7 @@ class AnalysisSession:
     guided_generation_id: int = 0
     event_reference_source: str | None = None
     rejected_event_reference_time_s: float | None = None
+    export_time_origin: ExportTimeOrigin = ExportTimeOrigin.EVENT
 
     def load_records(
         self,
@@ -176,6 +179,7 @@ class AnalysisSession:
         self.records = MappingProxyType(dict(records))
         self.analysis_range = None
         self.ridge_constraints = _empty_constraints()
+        self.export_time_origin = ExportTimeOrigin.EVENT
         self._reset_event_reference_for_current_records()
         self._invalidate()
 
@@ -339,7 +343,7 @@ class AnalysisSession:
         self,
         config: VelocityCorrectionConfig,
     ) -> bool:
-        """Change formal velocity corrections and invalidate all old results."""
+        """Rebuild correction/display arrays without rerunning upstream analysis."""
         if self.run_configuration is None:
             return False
         if not isinstance(config, VelocityCorrectionConfig):
@@ -350,7 +354,16 @@ class AnalysisSession:
             self.run_configuration,
             velocity_correction_config=config,
         )
-        self._invalidate_downstream()
+        self._refresh_velocity_correction_results()
+        return True
+
+    def set_export_time_origin(self, time_origin: ExportTimeOrigin) -> bool:
+        """Store the session's explicit export/display time-coordinate choice."""
+        if not isinstance(time_origin, ExportTimeOrigin):
+            raise TypeError("time_origin must be an ExportTimeOrigin.")
+        if time_origin is self.export_time_origin:
+            return False
+        self.export_time_origin = time_origin
         return True
 
     def set_display_velocity_configuration(
@@ -688,6 +701,39 @@ class AnalysisSession:
                             configuration.pre_event_display_velocity_m_s
                         ),
                     )
+                    for channel_name, analysis in self.guided_channel_analyses.items()
+                }
+            )
+
+    def _refresh_velocity_correction_results(self) -> None:
+        configuration = self.run_configuration
+        if configuration is None:
+            return
+
+        def refreshed(analysis: ChannelAnalysis) -> ChannelAnalysis:
+            return configure_channel_velocity_correction(
+                analysis,
+                velocity_correction_config=(
+                    configuration.velocity_correction_config
+                ),
+                vacuum_wavelength_m=configuration.vacuum_wavelength_m,
+                enable_pre_event_display=configuration.enable_pre_event_display,
+                pre_event_display_velocity_m_s=(
+                    configuration.pre_event_display_velocity_m_s
+                ),
+            )
+
+        if self.channel_analyses:
+            self.channel_analyses = MappingProxyType(
+                {
+                    channel_name: refreshed(analysis)
+                    for channel_name, analysis in self.channel_analyses.items()
+                }
+            )
+        if self.guided_channel_analyses:
+            self.guided_channel_analyses = MappingProxyType(
+                {
+                    channel_name: refreshed(analysis)
                     for channel_name, analysis in self.guided_channel_analyses.items()
                 }
             )

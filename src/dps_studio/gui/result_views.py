@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from dps_studio.core.export import ExportTimeOrigin
 from dps_studio.core.quality import SignalState
 from dps_studio.core.ridge import RidgeCorridorConstraint
 from dps_studio.core.time_frequency import STFTResult
@@ -80,6 +81,46 @@ def finite_velocity_view_range(
         else max(abs(finite_min) * padding_fraction, 1.0)
     )
     return finite_min - padding, finite_max + padding
+
+
+def finite_velocity_xy_view_range(
+    series: tuple[tuple[FloatArray, FloatArray], ...],
+    *,
+    x_limits: tuple[float, float] | None = None,
+    y_padding_fraction: float = 0.075,
+) -> tuple[tuple[float, float], tuple[float, float]] | None:
+    """Return finite X bounds and padded Y bounds from visible plotted series."""
+    finite_x: list[FloatArray] = []
+    finite_y: list[FloatArray] = []
+    for x_values, y_values in series:
+        x = np.asarray(x_values, dtype=np.float64)
+        y = np.asarray(y_values, dtype=np.float64)
+        if x.shape != y.shape:
+            raise ValueError("Velocity plot X and Y arrays must share one shape.")
+        mask = np.isfinite(x) & np.isfinite(y)
+        if x_limits is not None:
+            tolerance = max(abs(x_limits[1] - x_limits[0]), 1.0) * 1.0e-12
+            mask &= (x >= x_limits[0] - tolerance) & (
+                x <= x_limits[1] + tolerance
+            )
+        if np.any(mask):
+            finite_x.append(x[mask])
+            finite_y.append(y[mask])
+    if not finite_x:
+        return None
+    x_min = min(float(np.min(values)) for values in finite_x)
+    x_max = max(float(np.max(values)) for values in finite_x)
+    if x_min == x_max:
+        x_padding = max(abs(x_min) * 0.01, 1.0e-6)
+        x_min -= x_padding
+        x_max += x_padding
+    y_bounds = finite_velocity_view_range(
+        tuple(finite_y),
+        padding_fraction=y_padding_fraction,
+    )
+    if y_bounds is None:  # pragma: no cover - finite_y is non-empty by construction.
+        return None
+    return (x_min, x_max), y_bounds
 
 
 def display_velocity_connector_points(
@@ -767,6 +808,19 @@ class VelocityView(_ChannelView):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.fit_analysis_range_button.setToolTip(
+            self.tr("将视图恢复到当前设定的分析时间范围。")
+        )
+        self.fit_result_range_button = QPushButton(self.tr("适合结果范围"))
+        self.fit_result_range_button.setObjectName("fitResultRangeButton")
+        self.fit_result_range_button.setToolTip(
+            self.tr("将视图适配到当前显示的有效速度结果。")
+        )
+        self.fit_result_range_button.clicked.connect(self.fit_result_range)
+        self.controls_layout.insertWidget(
+            self.controls_layout.count() - 1,
+            self.fit_result_range_button,
+        )
         source_row = QHBoxLayout()
         source_row.addWidget(QLabel(self.tr("结果来源")))
         self.result_source_combo = QComboBox()
@@ -790,12 +844,15 @@ class VelocityView(_ChannelView):
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
         self.plot_widget.setLabel("left", self.tr("速度"), units="m/s")
         self.plot_widget.showGrid(x=True, y=True, alpha=0.22)
+        self.plot_widget.plotItem.hideButtons()
         self.root_layout.addWidget(self.plot_widget, 1)
         self.formal_curve: Any | None = None
         self.apparent_curve: Any | None = None
         self.corrected_curve: Any | None = None
         self.display_curve: Any | None = None
         self.display_connector: Any | None = None
+        self.event_reference_line: Any | None = None
+        self._time_origin = ExportTimeOrigin.EVENT
         self._automatic_analyses: Mapping[str, ChannelAnalysis] = {}
         self._guided_analyses: Mapping[str, ChannelAnalysis] = {}
         self._available_channel_names: tuple[str, ...] = ()
@@ -853,6 +910,17 @@ class VelocityView(_ChannelView):
             relative_db_floor=relative_db_floor,
             fit_view=fit_view,
         )
+
+    def set_time_origin(self, time_origin: ExportTimeOrigin) -> None:
+        """Select an absolute or event-relative display axis without mutation."""
+        if not isinstance(time_origin, ExportTimeOrigin):
+            raise TypeError("time_origin must be an ExportTimeOrigin.")
+        if time_origin is self._time_origin:
+            return
+        self._time_origin = time_origin
+        channel_name = self.channel_combo.currentData()
+        if isinstance(channel_name, str) and channel_name in self._analyses:
+            self._render_channel(channel_name, fit_view=True)
 
     def clear_results(self) -> None:
         self._automatic_analyses = {}
@@ -962,7 +1030,20 @@ class VelocityView(_ChannelView):
         previous_range = self.plot_widget.plotItem.vb.viewRange()
         self.plot_widget.clear()
         self.plot_widget.addLegend(offset=(12, 12))
-        time_us = analysis.stft_result.time_s * 1e6
+        reference_s = analysis.signal_detection_result.manual_event_reference_time_s
+        event_relative = (
+            self._time_origin is ExportTimeOrigin.EVENT and reference_s is not None
+        )
+        time_s = analysis.stft_result.time_s
+        if event_relative:
+            assert reference_s is not None
+            time_s = time_s - reference_s
+        time_us = time_s * 1e6
+        self.plot_widget.setLabel(
+            "bottom",
+            self.tr("相对起跳时间") if event_relative else self.tr("时间"),
+            units="μs",
+        )
         self.apparent_curve = self.plot_widget.plot(
             time_us,
             analysis.apparent_velocity_m_s,
@@ -980,6 +1061,7 @@ class VelocityView(_ChannelView):
         self.formal_curve = self.corrected_curve
         self.display_curve = None
         self.display_connector = None
+        self.event_reference_line = None
         if self.display_velocity_check.isChecked():
             self.display_curve = self.plot_widget.plot(
                 time_us,
@@ -991,6 +1073,9 @@ class VelocityView(_ChannelView):
             connector = display_velocity_connector_points(analysis)
             if connector is not None:
                 connector_time_us, connector_velocity_m_s = connector
+                if event_relative:
+                    assert reference_s is not None
+                    connector_time_us = connector_time_us - reference_s * 1.0e6
                 self.display_connector = self.plot_widget.plot(
                     connector_time_us,
                     connector_velocity_m_s,
@@ -1004,6 +1089,20 @@ class VelocityView(_ChannelView):
                 self.display_connector.setToolTip(
                     self.tr("显示速度（仅显示）")
                 )
+        if reference_s is not None:
+            reference_x_us = 0.0 if event_relative else reference_s * 1.0e6
+            self.event_reference_line = pg.InfiniteLine(
+                pos=reference_x_us,
+                angle=90,
+                movable=False,
+                pen=pg.mkPen(
+                    "#6A3D9A",
+                    width=1.2,
+                    style=pg.QtCore.Qt.DashLine,
+                ),
+            )
+            self.event_reference_line.setToolTip(self.tr("事件参考时刻"))
+            self.plot_widget.addItem(self.event_reference_line)
         if fit_view:
             self.plot_widget.autoRange()
             self._fit_current_view(analysis)
@@ -1012,13 +1111,56 @@ class VelocityView(_ChannelView):
             self.plot_widget.setYRange(*previous_range[1], padding=0.0)
 
     def _fit_current_view(self, analysis: ChannelAnalysis) -> None:
-        super()._fit_current_view(analysis)
-        arrays = [analysis.apparent_velocity_m_s, analysis.corrected_velocity_m_s]
-        if self.display_velocity_check.isChecked():
-            arrays.append(analysis.display_velocity_m_s)
-        bounds = finite_velocity_view_range(tuple(arrays))
+        x_bounds = self._analysis_view_range_us(analysis)
+        self.plot_widget.setXRange(*x_bounds, padding=0.0)
+        bounds = finite_velocity_xy_view_range(
+            self._visible_velocity_series(),
+            x_limits=x_bounds,
+        )
         if bounds is not None:
-            self.plot_widget.setYRange(*bounds, padding=0.0)
+            self.plot_widget.setYRange(*bounds[1], padding=0.0)
+
+    def fit_result_range(self) -> None:
+        """Fit both axes to finite data from only the currently visible curves."""
+        bounds = finite_velocity_xy_view_range(self._visible_velocity_series())
+        if bounds is None:
+            return
+        self.plot_widget.setXRange(*bounds[0], padding=0.0)
+        self.plot_widget.setYRange(*bounds[1], padding=0.0)
+
+    def _analysis_view_range_us(
+        self,
+        analysis: ChannelAnalysis,
+    ) -> tuple[float, float]:
+        if self._view_analysis_range_s is None:
+            start_us, end_us = analysis_view_range_us(analysis)
+        else:
+            start_us = self._view_analysis_range_s[0] * 1.0e6
+            end_us = self._view_analysis_range_s[1] * 1.0e6
+        reference_s = analysis.signal_detection_result.manual_event_reference_time_s
+        if self._time_origin is ExportTimeOrigin.EVENT and reference_s is not None:
+            shift_us = reference_s * 1.0e6
+            return start_us - shift_us, end_us - shift_us
+        return start_us, end_us
+
+    def _visible_velocity_series(
+        self,
+    ) -> tuple[tuple[FloatArray, FloatArray], ...]:
+        curves = (self.apparent_curve, self.corrected_curve, self.display_curve)
+        series: list[tuple[FloatArray, FloatArray]] = []
+        for curve in curves:
+            if curve is None or not curve.isVisible():
+                continue
+            x_values, y_values = curve.getData()
+            if x_values is None or y_values is None:
+                continue
+            series.append(
+                (
+                    np.asarray(x_values, dtype=np.float64),
+                    np.asarray(y_values, dtype=np.float64),
+                )
+            )
+        return tuple(series)
 
     def _clear_plot(self) -> None:
         self.plot_widget.clear()
@@ -1027,6 +1169,7 @@ class VelocityView(_ChannelView):
         self.corrected_curve = None
         self.display_curve = None
         self.display_connector = None
+        self.event_reference_line = None
 
 
 class ComparisonView(QWidget):
@@ -1248,6 +1391,7 @@ __all__ = [
     "SpectrogramView",
     "VelocityView",
     "analysis_view_range_us",
+    "finite_velocity_xy_view_range",
     "finite_velocity_view_range",
     "relative_magnitude_db",
 ]

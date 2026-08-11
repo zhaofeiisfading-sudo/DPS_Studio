@@ -8,6 +8,10 @@ from numbers import Real
 
 import numpy as np
 
+from dps_studio.core.physics import (
+    VelocityCorrectionConfig,
+    apply_velocity_corrections,
+)
 from dps_studio.core.quality import SignalState
 from dps_studio.core.ridge import assess_event_aware_ridge_continuity
 from dps_studio.core.workflow.models import ChannelAnalysis, FloatArray
@@ -132,6 +136,37 @@ def configure_channel_display_velocity(
     )
 
 
+def configure_channel_velocity_correction(
+    analysis: ChannelAnalysis,
+    *,
+    velocity_correction_config: VelocityCorrectionConfig,
+    vacuum_wavelength_m: float,
+    enable_pre_event_display: bool,
+    pre_event_display_velocity_m_s: float,
+) -> ChannelAnalysis:
+    """Rebuild only correction and display fields from stored apparent velocity."""
+    if not isinstance(analysis, ChannelAnalysis):
+        raise TypeError("analysis must be a ChannelAnalysis.")
+    if not isinstance(velocity_correction_config, VelocityCorrectionConfig):
+        raise TypeError(
+            "velocity_correction_config must be a VelocityCorrectionConfig."
+        )
+    correction = apply_velocity_corrections(
+        analysis.apparent_velocity_m_s,
+        config=velocity_correction_config,
+        vacuum_wavelength_m=vacuum_wavelength_m,
+    )
+    updated = replace(
+        analysis,
+        velocity_correction_result=correction,
+    )
+    return configure_channel_display_velocity(
+        updated,
+        enable_pre_event_display=enable_pre_event_display,
+        pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
+    )
+
+
 def configure_channel_event_reference(
     analysis: ChannelAnalysis,
     *,
@@ -218,4 +253,5 @@ __all__ = [
     "build_display_velocity",
     "configure_channel_event_reference",
     "configure_channel_display_velocity",
+    "configure_channel_velocity_correction",
 ]

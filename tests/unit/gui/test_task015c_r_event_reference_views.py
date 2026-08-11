@@ -187,10 +187,14 @@ def test_gui_reference_candidates_and_result_view_fit(
         for view in (
             window.spectrogram_view,
             window.ridge_view,
-            window.velocity_view,
             window.comparison_view,
         ):
             _assert_view_x(view, expected_start_us, expected_end_us)
+        _assert_view_x(
+            window.velocity_view,
+            (analysis_start_s - manual_reference_s) * 1e6,
+            (analysis_end_s - manual_reference_s) * 1e6,
+        )
 
         raw_x = window.raw_signal_view.plot_widget.plotItem.vb.viewRange()[0]
         assert raw_x[0] <= full_start_s * 1e6
@@ -267,7 +271,11 @@ def test_gui_reference_candidates_and_result_view_fit(
         assert view_range[1] == pytest.approx(manual_y)
 
         window.velocity_view.fit_analysis_range_button.click()
-        _assert_view_x(window.velocity_view, expected_start_us, expected_end_us)
+        _assert_view_x(
+            window.velocity_view,
+            (analysis_start_s - candidate_s) * 1e6,
+            (analysis_end_s - candidate_s) * 1e6,
+        )
         current = window.analysis_session.channel_analyses[first_name]
         expected_refit_y = finite_velocity_view_range(
             (
@@ -282,7 +290,11 @@ def test_gui_reference_candidates_and_result_view_fit(
         window.velocity_view.plot_widget.setXRange(*manual_x, padding=0.0)
         window.velocity_view.channel_combo.setCurrentIndex(1)
         qapp.processEvents()
-        _assert_view_x(window.velocity_view, expected_start_us, expected_end_us)
+        _assert_view_x(
+            window.velocity_view,
+            (analysis_start_s - candidate_s) * 1e6,
+            (analysis_end_s - candidate_s) * 1e6,
+        )
     finally:
         window.close()
         qapp.processEvents()

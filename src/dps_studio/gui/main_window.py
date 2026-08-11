@@ -50,6 +50,7 @@ from dps_studio.core.analysis_profiles import (
     AnalysisRunParameters,
 )
 from dps_studio.core.export import (
+    ExportTimeOrigin,
     ResultAnalysisMode,
     ResultExportError,
     ResultExportOptions,
@@ -219,6 +220,7 @@ class MainWindow(QMainWindow):
             source_path=result.source_path,
             records=result.records,
         )
+        self._sync_export_time_origin_controls()
         self.raw_signal_view.set_records(result.records)
         range_start, range_end = self._session.data_bounds_s()
         self.analysis_range_panel.set_data_bounds(range_start, range_end)
@@ -318,6 +320,8 @@ class MainWindow(QMainWindow):
         )
         self._updating_parameter_controls = False
         self._validate_current_parameters()
+        self._sync_velocity_correction_controls()
+        self._sync_export_time_origin_controls()
         self._sync_velocity_correction_warning()
         presentation_reason = (
             self.tr("分析配置已变化；旧结果已失效。")
@@ -993,6 +997,93 @@ class MainWindow(QMainWindow):
         form.addRow(self.tr("分析结果"), self.export_mode_combo)
         form.addRow(self.tr("导出通道"), self.export_channel_combo)
         layout.addLayout(form)
+
+        velocity_group = QGroupBox(self.tr("导出速度设置"))
+        velocity_form = QFormLayout(velocity_group)
+        self.export_window_material_combo = QComboBox()
+        self.export_window_material_combo.setObjectName(
+            "exportWindowMaterialCombo"
+        )
+        self.export_window_material_combo.addItem(
+            self.tr("LiF"), WindowMaterial.LIF.value
+        )
+        self.export_window_material_combo.addItem(
+            self.tr("无窗口修正"), WindowMaterial.NONE.value
+        )
+        self.export_window_material_combo.setToolTip(
+            self.tr("与速度参数页共享同一个窗口修正设置；修改后仅刷新速度后处理。")
+        )
+        velocity_form.addRow(
+            self.tr("窗口材料"),
+            self.export_window_material_combo,
+        )
+        self.export_measurement_angle_spin = QDoubleSpinBox()
+        self.export_measurement_angle_spin.setObjectName(
+            "exportMeasurementAngleDegrees"
+        )
+        self.export_measurement_angle_spin.setRange(0.0, 89.999999)
+        self.export_measurement_angle_spin.setDecimals(6)
+        self.export_measurement_angle_spin.setSingleStep(0.1)
+        self.export_measurement_angle_spin.setSuffix("°")
+        self.export_measurement_angle_spin.setMaximumWidth(160)
+        self.export_measurement_angle_spin.setToolTip(
+            self.tr(
+                "与速度参数页共享同一个观测角；界面使用度，内部计算保存弧度。"
+            )
+        )
+        velocity_form.addRow(
+            self.tr("观测角度"),
+            self.export_measurement_angle_spin,
+        )
+
+        time_origin_widget = QWidget()
+        time_origin_layout = QVBoxLayout(time_origin_widget)
+        time_origin_layout.setContentsMargins(0, 0, 0, 0)
+        self.export_event_time_origin_radio = QRadioButton(
+            self.tr("起跳点设为 0")
+        )
+        self.export_event_time_origin_radio.setObjectName(
+            "exportEventTimeOriginRadio"
+        )
+        self.export_event_time_origin_radio.setToolTip(
+            self.tr(
+                "简表使用 time_from_event_s；详细表仍同时保留绝对 time_s。"
+            )
+        )
+        self.export_absolute_time_origin_radio = QRadioButton(
+            self.tr("保留实验绝对时间")
+        )
+        self.export_absolute_time_origin_radio.setObjectName(
+            "exportAbsoluteTimeOriginRadio"
+        )
+        self.export_absolute_time_origin_radio.setToolTip(
+            self.tr(
+                "简表使用实验绝对 time_s；详细表仍包含 time_from_event_s。"
+            )
+        )
+        self.export_time_origin_group = QButtonGroup(self)
+        self.export_time_origin_group.addButton(
+            self.export_event_time_origin_radio
+        )
+        self.export_time_origin_group.addButton(
+            self.export_absolute_time_origin_radio
+        )
+        self.export_event_time_origin_radio.setChecked(True)
+        time_origin_layout.addWidget(self.export_event_time_origin_radio)
+        time_origin_layout.addWidget(self.export_absolute_time_origin_radio)
+        velocity_form.addRow(self.tr("时间零点"), time_origin_widget)
+
+        self.export_velocity_summary_label = QLabel()
+        self.export_velocity_summary_label.setObjectName(
+            "exportVelocitySummary"
+        )
+        self.export_velocity_summary_label.setWordWrap(True)
+        velocity_form.addRow(
+            self.tr("最终导出速度"),
+            self.export_velocity_summary_label,
+        )
+        layout.addWidget(velocity_group)
+
         self.export_directory_button = QPushButton(self.tr("选择导出目录…"))
         self.export_directory_button.setObjectName("chooseExportDirectoryButton")
         self.export_directory_button.setEnabled(False)
@@ -1175,6 +1266,18 @@ class MainWindow(QMainWindow):
         )
         self.measurement_angle_spin.valueChanged.connect(
             self._velocity_correction_changed
+        )
+        self.export_window_material_combo.currentIndexChanged.connect(
+            self._export_velocity_correction_changed
+        )
+        self.export_measurement_angle_spin.valueChanged.connect(
+            self._export_velocity_correction_changed
+        )
+        self.export_event_time_origin_radio.toggled.connect(
+            self._export_time_origin_changed
+        )
+        self.export_absolute_time_origin_radio.toggled.connect(
+            self._export_time_origin_changed
         )
         self.pre_event_display_velocity_spin.valueChanged.connect(
             self._pre_event_display_velocity_changed
@@ -1527,6 +1630,10 @@ class MainWindow(QMainWindow):
         self.automatic_ridge_extraction_combo.setEnabled(editable)
         self.window_material_combo.setEnabled(editable)
         self.measurement_angle_spin.setEnabled(editable)
+        self.export_window_material_combo.setEnabled(editable)
+        self.export_measurement_angle_spin.setEnabled(editable)
+        self.export_event_time_origin_radio.setEnabled(editable)
+        self.export_absolute_time_origin_radio.setEnabled(editable)
 
     def _scientific_parameter_changed(self, _value: float | int) -> None:
         """Resolve the visible draft as per-session overrides of its base preset."""
@@ -1583,31 +1690,128 @@ class MainWindow(QMainWindow):
         self._sync_workflow_state_after_invalidation()
 
     def _velocity_correction_changed(self, _value: float | int) -> None:
-        """Store GUI degrees as SI radians and invalidate old corrected results."""
+        """Apply the Step 5 correction controls to stored apparent velocity."""
+        self._apply_velocity_correction_controls(
+            self.window_material_combo,
+            self.measurement_angle_spin,
+        )
+
+    def _export_velocity_correction_changed(self, _value: float | int) -> None:
+        """Apply the Step 6 correction controls to the same session config."""
+        self._apply_velocity_correction_controls(
+            self.export_window_material_combo,
+            self.export_measurement_angle_spin,
+        )
+
+    def _apply_velocity_correction_controls(
+        self,
+        material_combo: QComboBox,
+        angle_spin: QDoubleSpinBox,
+    ) -> None:
+        """Synchronize both pages and refresh correction-only result fields."""
         if self._updating_parameter_controls:
             return
-        material_value = self.window_material_combo.currentData()
+        material_value = material_combo.currentData()
         if not isinstance(material_value, str):
             return
         try:
             material = WindowMaterial(material_value)
             correction = VelocityCorrectionConfig(
                 window_material=material,
-                measurement_angle_rad=math.radians(
-                    self.measurement_angle_spin.value()
-                ),
+                measurement_angle_rad=math.radians(angle_spin.value()),
             )
             changed = self._session.set_velocity_correction_config(correction)
         except (TypeError, ValueError) as exc:
             self.analysis_status_label.setText(str(exc))
             return
+        self._sync_velocity_correction_controls()
         self._sync_velocity_correction_warning()
         if not changed:
             return
-        self._clear_downstream_presentation(
-            self.tr("速度修正参数已变化；请重新提取脊线。")
+        if self._session.any_formal_results_available:
+            self._refresh_result_source_views(preserve_view=True)
+            self.formal_velocity_status_label.setText(
+                self.tr("当前正式结果有效（仅后处理已刷新）")
+            )
+        message = self.tr(
+            "速度修正参数已更新；STFT、脊线、事件检测与质量判定保持不变。"
         )
-        self._sync_workflow_state_after_invalidation()
+        self.analysis_status_label.setText(message)
+        self._append_log(message)
+        self._refresh_export_controls()
+
+    def _sync_velocity_correction_controls(self) -> None:
+        """Mirror the one session correction config into Step 5 and Step 6."""
+        configuration = self._session.run_configuration
+        if configuration is None:
+            self.export_velocity_summary_label.clear()
+            return
+        correction = configuration.velocity_correction_config
+        blockers = [
+            QSignalBlocker(self.window_material_combo),
+            QSignalBlocker(self.measurement_angle_spin),
+            QSignalBlocker(self.export_window_material_combo),
+            QSignalBlocker(self.export_measurement_angle_spin),
+        ]
+        for combo in (
+            self.window_material_combo,
+            self.export_window_material_combo,
+        ):
+            index = combo.findData(correction.window_material.value)
+            if index < 0:
+                raise ValueError("Unsupported configured window material.")
+            combo.setCurrentIndex(index)
+        angle_degrees = math.degrees(correction.measurement_angle_rad)
+        self.measurement_angle_spin.setValue(angle_degrees)
+        self.export_measurement_angle_spin.setValue(angle_degrees)
+        del blockers
+        self._sync_export_velocity_summary()
+
+    def _sync_export_velocity_summary(self) -> None:
+        configuration = self._session.run_configuration
+        if configuration is None:
+            self.export_velocity_summary_label.clear()
+            return
+        correction = configuration.velocity_correction_config
+        angle_degrees = math.degrees(correction.measurement_angle_rad)
+        if correction.window_material is WindowMaterial.LIF:
+            summary = self.tr(
+                "display_velocity_m_s；正式测量段来自 LiF 窗口修正速度"
+                "（观测角 {angle:.6g}°）。"
+            ).format(angle=angle_degrees)
+        elif correction.measurement_angle_rad > 0.0:
+            summary = self.tr(
+                "display_velocity_m_s；正式测量段来自角度修正表观速度"
+                "（无窗口修正，观测角 {angle:.6g}°）。"
+            ).format(angle=angle_degrees)
+        else:
+            summary = self.tr(
+                "display_velocity_m_s；正式测量段为表观速度（无窗口或角度修正）。"
+            )
+        self.export_velocity_summary_label.setText(summary)
+
+    def _sync_export_time_origin_controls(self) -> None:
+        blockers = [
+            QSignalBlocker(self.export_event_time_origin_radio),
+            QSignalBlocker(self.export_absolute_time_origin_radio),
+        ]
+        is_event = self._session.export_time_origin is ExportTimeOrigin.EVENT
+        self.export_event_time_origin_radio.setChecked(is_event)
+        self.export_absolute_time_origin_radio.setChecked(not is_event)
+        del blockers
+        self.velocity_view.set_time_origin(self._session.export_time_origin)
+
+    def _export_time_origin_changed(self, checked: bool) -> None:
+        if not checked or self._updating_parameter_controls:
+            return
+        time_origin = (
+            ExportTimeOrigin.EVENT
+            if self.export_event_time_origin_radio.isChecked()
+            else ExportTimeOrigin.ABSOLUTE
+        )
+        self._session.set_export_time_origin(time_origin)
+        self._sync_export_time_origin_controls()
+        self._refresh_export_controls()
 
     def _sync_velocity_correction_warning(self) -> None:
         """Expose exact-wavelength and oblique-window applicability limits."""
@@ -1849,11 +2053,12 @@ class MainWindow(QMainWindow):
         )
 
     def _refresh_event_reference_results(self) -> None:
-        if self._session.results_valid:
+        if self._session.any_formal_results_available:
             self._refresh_result_source_views(preserve_view=True)
             self.analysis_status_label.setText(
                 self.tr("事件参考已刷新；正式表观速度与 STFT 保持不变。")
             )
+        self._refresh_export_controls()
 
     def _sync_event_reference_panel(self) -> None:
         if self.analysis_range_panel.bounds_s is None:
@@ -2186,6 +2391,7 @@ class MainWindow(QMainWindow):
         configuration = self._session.run_configuration
         if configuration is None:
             return
+        self.velocity_view.set_time_origin(self._session.export_time_origin)
         guided = (
             self._session.valid_guided_channel_analyses
         )
@@ -2656,6 +2862,10 @@ class MainWindow(QMainWindow):
             and isinstance(current_channel, str)
             and current_channel in available.get(current_mode, {})
         )
+        event_origin_ready = (
+            self._session.export_time_origin is ExportTimeOrigin.ABSOLUTE
+            or self._session.event_reference_time_s is not None
+        )
         if not result_available:
             availability_text = self.tr("当前没有可导出的有效正式结果。")
             action_tooltip = self.tr("请先获得当前有效的 Automatic 或 Guided 结果。")
@@ -2665,13 +2875,20 @@ class MainWindow(QMainWindow):
                 modes=modes
             ) + self.tr("Automatic 与 Guided 将保持独立导出。")
             action_tooltip = self.tr("打开复核与导出页面，检查当前结果和导出参数。")
+            if not event_origin_ready:
+                availability_text += self.tr(
+                    " 当前选择起跳点为 0；请先正式采用事件参考，或改用实验绝对时间。"
+                )
         self.export_availability_label.setText(availability_text)
         self.export_mode_combo.setEnabled(result_available and not busy)
         self.export_channel_combo.setEnabled(selection_valid and not busy)
         self.export_directory_button.setEnabled(result_available and not busy)
         self.export_include_pre_event_check.setEnabled(result_available and not busy)
         self.export_button.setEnabled(
-            selection_valid and directory_selected and not busy
+            selection_valid
+            and directory_selected
+            and event_origin_ready
+            and not busy
         )
         self.action_export.setEnabled(result_available and not busy)
         self.action_export.setToolTip(action_tooltip)
@@ -2768,6 +2985,7 @@ class MainWindow(QMainWindow):
                     output_directory=self._export_output_directory,
                     analysis_mode=mode,
                     channel_analyses={channel_name: available[mode][channel_name]},
+                    time_origin=self._session.export_time_origin,
                     include_pre_event_display_rows=(
                         self.export_include_pre_event_check.isChecked()
                     ),

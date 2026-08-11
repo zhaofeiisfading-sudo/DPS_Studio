@@ -17,6 +17,7 @@ from typing import Any
 import numpy as np
 
 from dps_studio.core.export.models import (
+    ExportTimeOrigin,
     ExportedChannelResult,
     ResultAnalysisMode,
     ResultExportOptions,
@@ -24,15 +25,16 @@ from dps_studio.core.export.models import (
     ResultExportValidationError,
     ResultExportWriteError,
 )
+from dps_studio.core.export.time_coordinates import event_relative_time_s
 from dps_studio.core.physics import velocity_correction_metadata
 from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN
 from dps_studio.core.workflow.models import ChannelAnalysis
 
 
-EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v5"
-_SIMPLE_CSV_FIELDS = ("time_s", "display_velocity_m_s")
+EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v6"
 _DETAIL_CSV_FIELDS = (
     "time_s",
+    "time_from_event_s",
     "coarse_peak_frequency_hz",
     "refined_frequency_hz",
     "apparent_velocity_m_s",
@@ -134,6 +136,14 @@ def _validate_options_for_write(options: ResultExportOptions) -> None:
             raise ResultExportValidationError(
                 "event_reference_source must be present exactly when the exported "
                 f"event reference is present for {channel_name!r}."
+            )
+        if (
+            options.time_origin is ExportTimeOrigin.EVENT
+            and reference_time_s is None
+        ):
+            raise ResultExportValidationError(
+                "Event-relative export requires a formally adopted event "
+                f"reference for {channel_name!r}."
             )
 
 
@@ -302,6 +312,7 @@ def _write_staged_results(
         row_count = _write_simple_csv(
             staging_directory / plan.simple_csv_name,
             analysis,
+            options,
             row_indices,
         )
         _write_detail_csv(
@@ -347,22 +358,33 @@ def _export_row_indices(
 def _write_simple_csv(
     path: Path,
     analysis: ChannelAnalysis,
+    options: ResultExportOptions,
     row_indices: tuple[int, ...],
 ) -> int:
     """Write the user-facing time--display-velocity CSV without recalculation."""
     detection = analysis.signal_detection_result
+    relative_time_s = event_relative_time_s(
+        detection.time_s,
+        detection.manual_event_reference_time_s,
+    )
+    time_column = _simple_time_column(options.time_origin)
+    time_values = (
+        relative_time_s
+        if options.time_origin is ExportTimeOrigin.EVENT
+        else detection.time_s
+    )
     try:
         with path.open("x", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(
                 handle,
-                fieldnames=_SIMPLE_CSV_FIELDS,
+                fieldnames=(time_column, "display_velocity_m_s"),
                 lineterminator="\n",
             )
             writer.writeheader()
             for index in row_indices:
                 writer.writerow(
                     {
-                        "time_s": _csv_float(detection.time_s[index]),
+                        time_column: _csv_float(time_values[index]),
                         "display_velocity_m_s": _csv_float(
                             analysis.display_velocity_m_s[index]
                         ),
@@ -383,6 +405,10 @@ def _write_detail_csv(
     row_indices: tuple[int, ...],
 ) -> None:
     detection = analysis.signal_detection_result
+    relative_time_s = event_relative_time_s(
+        detection.time_s,
+        detection.manual_event_reference_time_s,
+    )
     try:
         with path.open("x", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(
@@ -397,6 +423,7 @@ def _write_detail_csv(
                 writer.writerow(
                     {
                         "time_s": _csv_float(detection.time_s[index]),
+                        "time_from_event_s": _csv_float(relative_time_s[index]),
                         "coarse_peak_frequency_hz": _csv_float(
                             detection.coarse_peak_frequency_hz[index]
                         ),
@@ -516,6 +543,17 @@ def _metadata_document(
             "start_time_s": detection.analysis_start_time_s,
             "end_time_s": detection.analysis_end_time_s,
         },
+        "time_coordinate": {
+            "absolute_time_preserved": True,
+            "event_reference_time_s": detection.manual_event_reference_time_s,
+            "export_time_origin": options.time_origin.value,
+            "relative_time_definition": (
+                "time_from_event_s = time_s - event_reference_time_s"
+            ),
+            "simple_csv_time_column": _simple_time_column(options.time_origin),
+            "detail_csv_absolute_time_column": "time_s",
+            "detail_csv_relative_time_column": "time_from_event_s",
+        },
         "stft_configuration": {
             "window_name": stft.window_name,
             "window_length_samples": stft.window_length_samples,
@@ -600,6 +638,7 @@ def _metadata_document(
             ),
         },
         "result_status": {
+            "simple_csv_time_column": _simple_time_column(options.time_origin),
             "simple_csv_velocity_column": "display_velocity_m_s",
             "simple_csv_velocity_source": "display_velocity_m_s",
             "formal_measurement_column": "apparent_velocity_m_s",
@@ -614,6 +653,12 @@ def _metadata_document(
             "channel_fusion_applied_by_export": False,
         },
     }
+
+
+def _simple_time_column(time_origin: ExportTimeOrigin) -> str:
+    if time_origin is ExportTimeOrigin.EVENT:
+        return "time_from_event_s"
+    return "time_s"
 
 
 def _write_json(path: Path, document: dict[str, Any]) -> None:

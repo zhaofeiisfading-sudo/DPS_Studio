@@ -19,6 +19,13 @@ class ResultAnalysisMode(str, Enum):
     GUIDED = "guided"
 
 
+class ExportTimeOrigin(str, Enum):
+    """Time coordinate selected for the concise user-facing CSV."""
+
+    EVENT = "event"
+    ABSOLUTE = "absolute"
+
+
 class ResultExportError(RuntimeError):
     """Base error raised when a formal result cannot be exported safely."""
 
@@ -47,6 +54,7 @@ class ResultExportOptions:
     output_directory: Path
     analysis_mode: ResultAnalysisMode
     channel_analyses: Mapping[str, ChannelAnalysis]
+    time_origin: ExportTimeOrigin = ExportTimeOrigin.EVENT
     include_pre_event_display_rows: bool = True
     source_path: Path | None = None
     analysis_profile_name: str | None = None
@@ -63,6 +71,10 @@ class ResultExportOptions:
         if not isinstance(self.analysis_mode, ResultAnalysisMode):
             raise ResultExportValidationError(
                 "analysis_mode must be a ResultAnalysisMode value."
+            )
+        if not isinstance(self.time_origin, ExportTimeOrigin):
+            raise ResultExportValidationError(
+                "time_origin must be an ExportTimeOrigin value."
             )
         if not isinstance(self.include_pre_event_display_rows, bool):
             raise ResultExportValidationError(
@@ -185,6 +197,7 @@ def _optional_finite_float(value: object, *, field_name: str) -> float | None:
 
 
 __all__ = [
+    "ExportTimeOrigin",
     "ExportedChannelResult",
     "ResultAnalysisMode",
     "ResultExportError",

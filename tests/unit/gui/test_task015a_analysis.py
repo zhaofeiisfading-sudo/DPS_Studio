@@ -285,26 +285,39 @@ def test_velocity_correction_controls_default_and_invalidate_old_results(
         assert "Snell" in window.measurement_angle_spin.toolTip()
 
         _run_window_analysis(window)
-        assert window.analysis_session.results_valid
+        session = window.analysis_session
+        assert session.results_valid
+        generation = session.generation_id
+        first = next(iter(session.channel_analyses.values()))
+        stft_before = first.stft_result
+        ridge_before = first.ridge_result
+        apparent_before = first.apparent_velocity_m_s.copy()
         window.measurement_angle_spin.setValue(10.0)
         qapp.processEvents()
-        assert not window.analysis_session.results_valid
-        assert window.analysis_session.stft_valid
-        assert not window.analysis_session.channel_analyses
+        assert session.results_valid
+        assert session.stft_valid
+        assert session.generation_id == generation
+        refreshed = next(iter(session.channel_analyses.values()))
+        assert refreshed.stft_result is stft_before
+        assert refreshed.ridge_result is ridge_before
+        np.testing.assert_array_equal(
+            refreshed.apparent_velocity_m_s,
+            apparent_before,
+        )
 
-        _run_window_analysis(window)
         no_window_index = window.window_material_combo.findData(WindowMaterial.NONE.value)
         assert no_window_index >= 0
         window.window_material_combo.setCurrentIndex(no_window_index)
         qapp.processEvents()
-        assert not window.analysis_session.results_valid
-        assert window.analysis_session.stft_valid
+        assert session.results_valid
+        assert session.stft_valid
+        assert session.generation_id == generation
+        assert session.channel_analyses
 
-        _run_window_analysis(window)
         window.vacuum_wavelength_spin.setValue(1064.0)
         qapp.processEvents()
-        assert not window.analysis_session.results_valid
-        assert window.analysis_session.stft_valid
+        assert not session.results_valid
+        assert session.stft_valid
 
         lif_index = window.window_material_combo.findData(WindowMaterial.LIF.value)
         window.window_material_combo.setCurrentIndex(lif_index)

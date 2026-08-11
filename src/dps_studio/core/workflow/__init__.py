@@ -22,6 +22,7 @@ from dps_studio.core.workflow.display import (
     build_display_velocity,
     configure_channel_event_reference,
     configure_channel_display_velocity,
+    configure_channel_velocity_correction,
 )
 from dps_studio.core.workflow.models import ChannelAnalysis
 from dps_studio.core.workflow.quality_parameters import (
@@ -47,6 +48,7 @@ __all__ = [
     "compute_profile_stfts",
     "configure_channel_event_reference",
     "configure_channel_display_velocity",
+    "configure_channel_velocity_correction",
     "derive_background_exclusion_half_width_hz",
     "derive_bin_guard_half_width_hz",
     "load_workflow_config",

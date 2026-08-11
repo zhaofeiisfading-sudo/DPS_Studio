@@ -129,6 +129,8 @@ def test_toolbar_review_and_export_only_navigates_without_writing(
         _wait(window, window.run_automatic_analysis)
         export_parent = tmp_path / "exports"
         export_parent.mkdir()
+        window.export_absolute_time_origin_radio.click()
+        qapp.processEvents()
         window._set_export_output_directory(export_parent)
         before_paths = {path.name for path in export_parent.iterdir()}
         result_state = window.workflow_state
@@ -175,6 +177,8 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
 
         export_parent = tmp_path / "exports"
         export_parent.mkdir()
+        window.export_absolute_time_origin_radio.click()
+        qapp.processEvents()
         window._set_export_output_directory(export_parent)
         assert window.export_button.isEnabled()
         success_messages: list[str] = []
