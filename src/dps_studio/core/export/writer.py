@@ -28,7 +28,7 @@ from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN
 from dps_studio.core.workflow.models import ChannelAnalysis
 
 
-EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v2"
+EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v3"
 _SIMPLE_CSV_FIELDS = ("time_s", "velocity_m_s")
 _DETAIL_CSV_FIELDS = (
     "time_s",
@@ -120,6 +120,16 @@ def _validate_options_for_write(options: ResultExportOptions) -> None:
     for channel_name, analysis in options.channel_analyses.items():
         _validate_channel_filename(channel_name)
         _validate_analysis_arrays(channel_name, analysis)
+        reference_time_s = (
+            analysis.signal_detection_result.manual_event_reference_time_s
+        )
+        if (reference_time_s is None) != (
+            options.event_reference_source is None
+        ):
+            raise ResultExportValidationError(
+                "event_reference_source must be present exactly when the exported "
+                f"event reference is present for {channel_name!r}."
+            )
 
 
 def _validated_output_directory(options: ResultExportOptions) -> Path:
@@ -435,6 +445,13 @@ def _metadata_document(
     measured_count = sum(
         state.value == "measured" for state in detection.signal_states
     )
+    automatic_candidate_time_s = None
+    compatibility_candidate_time_s = None
+    if options.analysis_mode is ResultAnalysisMode.AUTOMATIC:
+        automatic_candidate_time_s = (
+            analysis.stream_event_candidates.primary_candidate_time_s
+        )
+        compatibility_candidate_time_s = detection.detected_event_candidate_time_s
     return {
         "export_schema_version": EXPORT_SCHEMA_VERSION,
         "dps_studio_version": options.dps_studio_version,
@@ -492,7 +509,10 @@ def _metadata_document(
         "vacuum_wavelength_m": (
             analysis.discrete_velocity_result.vacuum_wavelength_m
         ),
+        "automatic_event_candidate_time_s": automatic_candidate_time_s,
+        "compatibility_event_candidate_time_s": compatibility_candidate_time_s,
         "event_reference_time_s": detection.manual_event_reference_time_s,
+        "event_reference_source": options.event_reference_source,
         "pre_event_display": {
             "enabled": options.pre_event_display_enabled,
             "configured_velocity_m_s": options.pre_event_display_velocity_m_s,

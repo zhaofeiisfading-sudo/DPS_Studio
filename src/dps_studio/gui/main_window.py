@@ -1608,7 +1608,7 @@ class MainWindow(QMainWindow):
     def _adopt_event_candidate(self, channel_name: str, value_s: float) -> None:
         self._set_event_reference(
             value_s,
-            source=f"detected_candidate:{channel_name}",
+            source=f"user_adopted:automatic_primary:{channel_name}",
             source_text=self.tr("检测候选（用户显式采用）"),
         )
 
@@ -2257,9 +2257,13 @@ class MainWindow(QMainWindow):
         self.quality_summary.set_analyses(analyses)
         self.analysis_range_panel.set_detected_candidates(
             {
+                channel_name: analysis.stream_event_candidates.primary_candidate_time_s
+                for channel_name, analysis in analyses.items()
+            },
+            {
                 channel_name: analysis.signal_detection_result.detected_event_candidate_time_s
                 for channel_name, analysis in analyses.items()
-            }
+            },
         )
         self._workflow_state = WorkflowState.RESULT_READY
         self._apply_state()
@@ -2570,6 +2574,7 @@ class MainWindow(QMainWindow):
                     pre_event_display_velocity_m_s=(
                         configuration.pre_event_display_velocity_m_s
                     ),
+                    event_reference_source=self._session.event_reference_source,
                     protected_output_directories=(
                         self._repository_root / "data" / "raw",
                     ),

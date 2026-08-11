@@ -1,0 +1,84 @@
+{
+  "command_semantics": "offscreen QApplication using the python -m dps_studio.gui MainWindow",
+  "sources": [
+    {
+      "source": "20260607.csv",
+      "automatic_result_ready": true,
+      "primary_candidate_time_s": 0.0005546642542602401,
+      "compatibility_candidate_time_s": 0.0005540818542600415,
+      "compatibility_is_default": false,
+      "explicit_adoption_required": true,
+      "adopted_reference_time_s": 0.0005546642542602401,
+      "event_reference_source": "user_adopted:automatic_primary:pdv_channel_1",
+      "finite_formal_velocity_count": 392,
+      "guided_result_ready": true,
+      "guided_candidate_diagnostics_absent": true,
+      "export_files": [
+        "20260607_ch1_auto.csv",
+        "20260607_ch1_auto.metadata.json",
+        "20260607_ch1_auto_detail.csv"
+      ],
+      "export_metadata_json_count": 1,
+      "metadata_schema": "pdv-studio-formal-result-v3",
+      "metadata_event_fields_present": true
+    },
+    {
+      "source": "20260701.csv",
+      "automatic_result_ready": true,
+      "primary_candidate_time_s": 0.0006568440663402226,
+      "compatibility_candidate_time_s": 0.000656402466340072,
+      "compatibility_is_default": false,
+      "explicit_adoption_required": true,
+      "adopted_reference_time_s": 0.0006568440663402226,
+      "event_reference_source": "user_adopted:automatic_primary:pdv_channel_1",
+      "finite_formal_velocity_count": 341,
+      "guided_result_ready": true,
+      "guided_candidate_diagnostics_absent": true,
+      "export_files": [
+        "20260701_ch1_auto.csv",
+        "20260701_ch1_auto.metadata.json",
+        "20260701_ch1_auto_detail.csv"
+      ],
+      "export_metadata_json_count": 1,
+      "metadata_schema": "pdv-studio-formal-result-v3",
+      "metadata_event_fields_present": true
+    },
+    {
+      "source": "20260630-1.csv",
+      "automatic_result_ready": true,
+      "primary_candidate_time_s": 0.0007462228149907737,
+      "compatibility_candidate_time_s": 0.0007461172149907377,
+      "compatibility_is_default": false,
+      "explicit_adoption_required": true,
+      "adopted_reference_time_s": 0.0007462228149907737,
+      "event_reference_source": "user_adopted:automatic_primary:pdv_channel_1",
+      "finite_formal_velocity_count": 820,
+      "guided_result_ready": true,
+      "guided_candidate_diagnostics_absent": true,
+      "export_files": [
+        "20260630-1_ch1_auto.csv",
+        "20260630-1_ch1_auto.metadata.json",
+        "20260630-1_ch1_auto_detail.csv"
+      ],
+      "export_metadata_json_count": 1,
+      "metadata_schema": "pdv-studio-formal-result-v3",
+      "metadata_event_fields_present": true
+    }
+  ],
+  "all_passed": true,
+  "raw_sha256_before": {
+    ".gitkeep": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5",
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74",
+    "20260630-2.csv": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261",
+    "20260701.csv": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A"
+  },
+  "raw_sha256_after": {
+    ".gitkeep": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5",
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74",
+    "20260630-2.csv": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261",
+    "20260701.csv": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A"
+  },
+  "raw_unchanged": true
+}

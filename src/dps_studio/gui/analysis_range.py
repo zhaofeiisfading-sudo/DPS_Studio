@@ -210,27 +210,38 @@ class AnalysisRangePanel(QWidget):
     def set_detected_candidates(
         self,
         candidates_s: dict[str, float | None],
+        compatibility_candidates_s: dict[str, float | None] | None = None,
     ) -> None:
-        """Show independent spectral candidates with explicit adoption buttons."""
+        """Show robust primary candidates; compatibility values stay diagnostic."""
         self.clear_detected_candidates()
+        compatibility = compatibility_candidates_s or {}
         tooltip = self.tr(
-            "该时刻来自谱信号检测，只是候选参考，不代表已经确认的冲击到时。"
+            "该时刻来自稳健的事件级自动候选；仅供参考，必须由用户显式采用，"
+            "不代表物理真值或已确认的冲击到时。"
         )
         for channel_name, candidate_s in candidates_s.items():
+            compatibility_s = compatibility.get(channel_name)
             row = QWidget()
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(0, 0, 0, 0)
             if candidate_s is None:
-                label = QLabel(
-                    self.tr("{channel}：未检测到候选").format(
+                if compatibility_s is None:
+                    text = self.tr("{channel}：未检测到稳健 primary 候选").format(
                         channel=channel_name
                     )
-                )
+                else:
+                    text = self.tr(
+                        "{channel}：无稳健 primary；兼容候选 {value:.9f} μs"
+                        "（较弱诊断，此处不可采用）"
+                    ).format(channel=channel_name, value=compatibility_s * 1e6)
+                label = QLabel(text)
                 row_layout.addWidget(label)
             else:
-                label = QLabel(f"{channel_name}   {candidate_s * 1e6:.9f} μs")
+                label = QLabel(
+                    f"{channel_name} primary   {candidate_s * 1e6:.9f} μs"
+                )
                 label.setToolTip(tooltip)
-                button = QPushButton(self.tr("采用该候选"))
+                button = QPushButton(self.tr("采用 primary 候选"))
                 button.setObjectName(f"adoptEventCandidate_{channel_name}")
                 button.setToolTip(tooltip)
                 button.clicked.connect(

@@ -107,3 +107,29 @@ def test_range_action_signal_and_dynamic_candidate_cursor_remain_available(
     finally:
         panel.close()
         qapp.processEvents()
+
+
+def test_primary_candidate_is_adoptable_but_compatibility_only_is_diagnostic(
+    qapp: QApplication,
+) -> None:
+    panel = AnalysisRangePanel()
+    adopted: list[tuple[str, float]] = []
+    panel.candidate_adopt_requested.connect(
+        lambda channel, value: adopted.append((channel, value))
+    )
+    try:
+        panel.set_detected_candidates(
+            {"primary": 2.5e-6, "compatibility_only": None},
+            {"primary": 2.0e-6, "compatibility_only": 3.0e-6},
+        )
+
+        assert set(panel.candidate_buttons) == {"primary"}
+        assert "primary" in panel.candidate_labels["primary"].text()
+        assert "3.000000000" in panel.candidate_labels["compatibility_only"].text()
+        assert "不可采用" in panel.candidate_labels["compatibility_only"].text()
+        panel.candidate_buttons["primary"].click()
+        qapp.processEvents()
+        assert adopted == [("primary", 2.5e-6)]
+    finally:
+        panel.close()
+        qapp.processEvents()

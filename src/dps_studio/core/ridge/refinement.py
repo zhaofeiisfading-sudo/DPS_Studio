@@ -20,6 +20,65 @@ from dps_studio.core.ridge.models import (
 from dps_studio.core.time_frequency import STFTResult
 
 
+def refine_three_point_log_magnitude(
+    *,
+    left_magnitude: float,
+    center_magnitude: float,
+    right_magnitude: float,
+    discrete_frequency_hz: float,
+    frequency_spacing_hz: float,
+    minimum_frequency_hz: float,
+    maximum_frequency_hz: float,
+    boundary_peak: bool = False,
+) -> tuple[float, float, RidgeRefinementStatus]:
+    """Apply the project's single three-point log-magnitude refinement kernel.
+
+    Failed refinement returns ``(NaN, NaN, status)``.  In particular, the
+    discrete frequency is never substituted for an unavailable refined value.
+    """
+    if boundary_peak:
+        return math.nan, math.nan, RidgeRefinementStatus.BOUNDARY_PEAK
+    local_magnitudes = np.asarray(
+        (left_magnitude, center_magnitude, right_magnitude),
+        dtype=np.float64,
+    )
+    if not np.all(np.isfinite(local_magnitudes)) or not np.all(
+        local_magnitudes > 0.0
+    ):
+        return math.nan, math.nan, RidgeRefinementStatus.INVALID_LOCAL_PEAK
+
+    y_left, y_center, y_right = (
+        float(value) for value in np.log(local_magnitudes)
+    )
+    if not all(math.isfinite(value) for value in (y_left, y_center, y_right)):
+        return math.nan, math.nan, RidgeRefinementStatus.INVALID_LOCAL_PEAK
+    denominator = y_left - 2.0 * y_center + y_right
+    denominator_tolerance = 16.0 * np.finfo(np.float64).eps * max(
+        1.0,
+        abs(y_left),
+        2.0 * abs(y_center),
+        abs(y_right),
+    )
+    if (
+        not math.isfinite(denominator)
+        or denominator >= 0.0
+        or abs(denominator) <= denominator_tolerance
+    ):
+        return math.nan, math.nan, RidgeRefinementStatus.INVALID_LOCAL_PEAK
+
+    delta = 0.5 * (y_left - y_right) / denominator
+    if not math.isfinite(delta) or not -0.5 <= delta <= 0.5:
+        return math.nan, math.nan, RidgeRefinementStatus.OFFSET_OUT_OF_RANGE
+    refined_frequency = discrete_frequency_hz + delta * frequency_spacing_hz
+    if (
+        not math.isfinite(refined_frequency)
+        or refined_frequency < minimum_frequency_hz
+        or refined_frequency > maximum_frequency_hz
+    ):
+        return math.nan, math.nan, RidgeRefinementStatus.OFFSET_OUT_OF_RANGE
+    return refined_frequency, delta, RidgeRefinementStatus.REFINED
+
+
 def refine_peak_ridge_subbin(
     stft_result: STFTResult,
     ridge_result: RidgeResult,
@@ -61,66 +120,35 @@ def refine_peak_ridge_subbin(
             discrete_frequency = float(ridge_result.frequency_hz[frame_index])
             frequency_index = int(np.searchsorted(frequency_axis, discrete_frequency))
             discrete_frequency_bin_index[frame_index] = frequency_index
-            if (
-                frequency_index == 0
-                or frequency_index == frequency_axis.size - 1
-                or frequency_index == first_band_index
-                or frequency_index == last_band_index
-            ):
-                statuses.append(RidgeRefinementStatus.BOUNDARY_PEAK)
-                continue
-
             local_magnitudes = np.abs(
                 stft_result.spectrum[
                     frequency_index - 1 : frequency_index + 2,
                     frame_index,
                 ]
             )
-            if not np.all(np.isfinite(local_magnitudes)) or not np.all(
-                local_magnitudes > 0.0
-            ):
-                statuses.append(RidgeRefinementStatus.INVALID_LOCAL_PEAK)
-                continue
-
-            y_left, y_center, y_right = (
-                float(value) for value in np.log(local_magnitudes)
+            refined_frequency, delta, status = refine_three_point_log_magnitude(
+                left_magnitude=float(local_magnitudes[0]) if local_magnitudes.size else math.nan,
+                center_magnitude=(
+                    float(local_magnitudes[1]) if local_magnitudes.size > 1 else math.nan
+                ),
+                right_magnitude=(
+                    float(local_magnitudes[2]) if local_magnitudes.size > 2 else math.nan
+                ),
+                discrete_frequency_hz=discrete_frequency,
+                frequency_spacing_hz=spacing_hz,
+                minimum_frequency_hz=ridge_result.minimum_frequency_hz,
+                maximum_frequency_hz=ridge_result.maximum_frequency_hz,
+                boundary_peak=(
+                    frequency_index == 0
+                    or frequency_index == frequency_axis.size - 1
+                    or frequency_index == first_band_index
+                    or frequency_index == last_band_index
+                ),
             )
-            if not all(math.isfinite(value) for value in (y_left, y_center, y_right)):
-                statuses.append(RidgeRefinementStatus.INVALID_LOCAL_PEAK)
-                continue
-            denominator = y_left - 2.0 * y_center + y_right
-            denominator_tolerance = 16.0 * np.finfo(np.float64).eps * max(
-                1.0,
-                abs(y_left),
-                2.0 * abs(y_center),
-                abs(y_right),
-            )
-            if (
-                not math.isfinite(denominator)
-                or denominator >= 0.0
-                or abs(denominator) <= denominator_tolerance
-            ):
-                statuses.append(RidgeRefinementStatus.INVALID_LOCAL_PEAK)
-                continue
-
-            delta = 0.5 * (y_left - y_right) / denominator
-            if not math.isfinite(delta) or not -0.5 <= delta <= 0.5:
-                statuses.append(RidgeRefinementStatus.OFFSET_OUT_OF_RANGE)
-                continue
-            refined_frequency = discrete_frequency + delta * spacing_hz
-            if (
-                not math.isfinite(refined_frequency)
-                or refined_frequency < ridge_result.minimum_frequency_hz
-                or refined_frequency > ridge_result.maximum_frequency_hz
-                or refined_frequency < frequency_axis[0]
-                or refined_frequency > frequency_axis[-1]
-            ):
-                statuses.append(RidgeRefinementStatus.OFFSET_OUT_OF_RANGE)
-                continue
-
-            refined_frequency_hz[frame_index] = refined_frequency
-            frequency_bin_offset[frame_index] = delta
-            statuses.append(RidgeRefinementStatus.REFINED)
+            if status is RidgeRefinementStatus.REFINED:
+                refined_frequency_hz[frame_index] = refined_frequency
+                frequency_bin_offset[frame_index] = delta
+            statuses.append(status)
     except Exception as exc:
         raise RidgeExtractionError(
             "Could not refine the baseline ridge with local three-point interpolation."

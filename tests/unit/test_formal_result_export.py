@@ -26,13 +26,20 @@ from dps_studio.core.workflow import (
 )
 
 
-def _analyses(tmp_path: Path) -> dict[str, Any]:
+def _analyses(
+    tmp_path: Path,
+    *,
+    manual_event_reference_time_s: float | None = 0.4e-6,
+    include_active_signal: bool = True,
+) -> dict[str, Any]:
     sample_rate_hz = 4.0e9
     sample_count = 4096
     source_path = tmp_path / "20260607.csv"
     source_path.write_text("source remains unchanged\n", encoding="utf-8")
     time_s = np.arange(sample_count, dtype=np.float64) / sample_rate_hz
     active = (time_s >= 0.4e-6) & (time_s < 0.8e-6)
+    if not include_active_signal:
+        active[:] = False
     records: dict[str, SignalRecord] = {}
     for channel_name, frequency_hz in (
         ("pdv_channel_1", 200.0e6),
@@ -51,7 +58,7 @@ def _analyses(tmp_path: Path) -> dict[str, Any]:
         maximum_frequency_hz=800.0e6,
         analysis_start_time_s=0.1e-6,
         analysis_end_time_s=0.9e-6,
-        manual_event_reference_time_s=0.4e-6,
+        manual_event_reference_time_s=manual_event_reference_time_s,
         vacuum_wavelength_m=1.55e-6,
         assume_pre_event_zero_for_display=True,
         pre_event_display_velocity_m_s=12.5,
@@ -73,7 +80,7 @@ def _analyses(tmp_path: Path) -> dict[str, Any]:
         profile_name="task017-guided",
         analysis_start_time_s=0.1e-6,
         analysis_end_time_s=0.9e-6,
-        manual_event_reference_time_s=0.4e-6,
+        manual_event_reference_time_s=manual_event_reference_time_s,
         vacuum_wavelength_m=1.55e-6,
         assume_pre_event_zero_for_display=True,
         pre_event_display_velocity_m_s=12.5,
@@ -90,6 +97,7 @@ def _options(
     source_path: Path | None,
     include_pre_event_display_rows: bool = True,
     protected_output_directories: tuple[Path, ...] = (),
+    event_reference_source: str | None = "config",
 ) -> ResultExportOptions:
     return ResultExportOptions(
         output_directory=destination,
@@ -100,6 +108,7 @@ def _options(
         analysis_profile_name="task017r-test",
         pre_event_display_enabled=True,
         pre_event_display_velocity_m_s=12.5,
+        event_reference_source=event_reference_source,
         protected_output_directories=protected_output_directories,
     )
 
@@ -182,12 +191,20 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     )
 
     metadata = json.loads(exported.metadata_path.read_text(encoding="utf-8"))
-    assert metadata["export_schema_version"] == "pdv-studio-formal-result-v2"
+    assert metadata["export_schema_version"] == "pdv-studio-formal-result-v3"
     assert metadata["data_file"] == exported.csv_path.name
     assert metadata["detail_data_file"] == exported.detail_csv_path.name
     assert metadata["source_file"] == str(results["source_path"])
     assert metadata["source_channel"] == "pdv_channel_1"
     assert metadata["analysis_mode"] == "automatic"
+    assert metadata["automatic_event_candidate_time_s"] == (
+        analysis.stream_event_candidates.primary_candidate_time_s
+    )
+    assert metadata["compatibility_event_candidate_time_s"] == (
+        analysis.signal_detection_result.detected_event_candidate_time_s
+    )
+    assert metadata["event_reference_time_s"] == 0.4e-6
+    assert metadata["event_reference_source"] == "config"
     assert metadata["pre_event_display"]["included_in_csv"] is True
     assert metadata["pre_event_display"]["formal_measurement_modified"] is False
     assert metadata["result_counts"]["exported_row_count"] == len(simple_rows)
@@ -197,6 +214,114 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert metadata["result_status"]["unreliable_formal_values_preserved_as_nan"]
     assert analysis.signal_detection_result.apparent_velocity_m_s.tobytes() == formal_before
     assert analysis.display_velocity_m_s.tobytes() == display_before
+
+
+def test_event_metadata_case_a_candidates_exist_without_adopted_reference(
+    tmp_path: Path,
+) -> None:
+    results = _analyses(tmp_path, manual_event_reference_time_s=None)
+    analysis = results["automatic"]["pdv_channel_1"]
+
+    report = export_formal_results(
+        _options(
+            tmp_path,
+            mode=ResultAnalysisMode.AUTOMATIC,
+            analyses={"pdv_channel_1": analysis},
+            source_path=results["source_path"],
+            event_reference_source=None,
+        )
+    )
+    metadata = json.loads(
+        report.exported_channels[0].metadata_path.read_text(encoding="utf-8")
+    )
+
+    assert metadata["automatic_event_candidate_time_s"] is not None
+    assert metadata["compatibility_event_candidate_time_s"] is not None
+    assert metadata["event_reference_time_s"] is None
+    assert metadata["event_reference_source"] is None
+    assert len(tuple(tmp_path.iterdir())) == 4  # source fixture plus exactly three exports
+    assert len(tuple(tmp_path.glob("*.metadata.json"))) == 1
+
+
+def test_event_metadata_case_b_user_adopts_primary(tmp_path: Path) -> None:
+    results = _analyses(tmp_path, manual_event_reference_time_s=None)
+    analysis = results["automatic"]["pdv_channel_1"]
+    primary_s = analysis.stream_event_candidates.primary_candidate_time_s
+    assert primary_s is not None
+    detection = replace(
+        analysis.signal_detection_result,
+        manual_event_reference_time_s=primary_s,
+    )
+    adopted_analysis = replace(analysis, signal_detection_result=detection)
+
+    report = export_formal_results(
+        _options(
+            tmp_path,
+            mode=ResultAnalysisMode.AUTOMATIC,
+            analyses={"pdv_channel_1": adopted_analysis},
+            source_path=results["source_path"],
+            event_reference_source="user_adopted:automatic_primary:pdv_channel_1",
+        )
+    )
+    metadata = json.loads(
+        report.exported_channels[0].metadata_path.read_text(encoding="utf-8")
+    )
+
+    assert metadata["automatic_event_candidate_time_s"] == primary_s
+    assert metadata["event_reference_time_s"] == primary_s
+    assert metadata["event_reference_source"].startswith("user_adopted")
+
+
+def test_event_metadata_case_c_configuration_reference_can_differ(
+    tmp_path: Path,
+) -> None:
+    results = _analyses(tmp_path, manual_event_reference_time_s=0.4e-6)
+    analysis = results["automatic"]["pdv_channel_1"]
+
+    report = export_formal_results(
+        _options(
+            tmp_path,
+            mode=ResultAnalysisMode.AUTOMATIC,
+            analyses={"pdv_channel_1": analysis},
+            source_path=results["source_path"],
+            event_reference_source="config",
+        )
+    )
+    metadata = json.loads(
+        report.exported_channels[0].metadata_path.read_text(encoding="utf-8")
+    )
+
+    assert metadata["automatic_event_candidate_time_s"] is not None
+    assert metadata["automatic_event_candidate_time_s"] != 0.4e-6
+    assert metadata["event_reference_time_s"] == 0.4e-6
+    assert metadata["event_reference_source"] == "config"
+
+
+def test_event_metadata_case_d_absent_candidates_remain_null(tmp_path: Path) -> None:
+    results = _analyses(
+        tmp_path,
+        manual_event_reference_time_s=None,
+        include_active_signal=False,
+    )
+    analysis = results["automatic"]["pdv_channel_1"]
+
+    report = export_formal_results(
+        _options(
+            tmp_path,
+            mode=ResultAnalysisMode.AUTOMATIC,
+            analyses={"pdv_channel_1": analysis},
+            source_path=results["source_path"],
+            event_reference_source=None,
+        )
+    )
+    metadata = json.loads(
+        report.exported_channels[0].metadata_path.read_text(encoding="utf-8")
+    )
+
+    assert metadata["automatic_event_candidate_time_s"] is None
+    assert metadata["compatibility_event_candidate_time_s"] is None
+    assert metadata["event_reference_time_s"] is None
+    assert metadata["event_reference_source"] is None
 
 
 def test_disabling_pre_event_rows_changes_only_exported_row_selection(
@@ -316,6 +441,18 @@ def test_invalid_name_protected_path_and_write_failure_are_reported(
 ) -> None:
     results = _analyses(tmp_path)
     analysis = results["automatic"]["pdv_channel_1"]
+    missing_reference_source = replace(
+        _options(
+            tmp_path,
+            mode=ResultAnalysisMode.AUTOMATIC,
+            analyses={"pdv_channel_1": analysis},
+            source_path=results["source_path"],
+        ),
+        event_reference_source=None,
+    )
+    with pytest.raises(ResultExportValidationError, match="exactly when"):
+        export_formal_results(missing_reference_source)
+
     with pytest.raises(ResultExportValidationError, match="filename"):
         export_formal_results(
             _options(

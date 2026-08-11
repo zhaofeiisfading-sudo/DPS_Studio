@@ -52,6 +52,7 @@ class ResultExportOptions:
     analysis_profile_name: str | None = None
     pre_event_display_enabled: bool | None = None
     pre_event_display_velocity_m_s: float | None = None
+    event_reference_source: str | None = None
     protected_output_directories: tuple[Path, ...] = field(
         default_factory=_empty_paths
     )
@@ -101,6 +102,10 @@ class ResultExportOptions:
             self.pre_event_display_velocity_m_s,
             field_name="pre_event_display_velocity_m_s",
         )
+        event_reference_source = _optional_text(
+            self.event_reference_source,
+            field_name="event_reference_source",
+        )
         try:
             protected_directories = tuple(
                 Path(path) for path in self.protected_output_directories
@@ -119,6 +124,7 @@ class ResultExportOptions:
         object.__setattr__(self, "analysis_profile_name", profile_name)
         object.__setattr__(self, "pre_event_display_enabled", display_enabled)
         object.__setattr__(self, "pre_event_display_velocity_m_s", display_velocity)
+        object.__setattr__(self, "event_reference_source", event_reference_source)
         object.__setattr__(self, "protected_output_directories", protected_directories)
 
 

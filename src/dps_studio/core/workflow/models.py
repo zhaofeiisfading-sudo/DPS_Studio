@@ -12,6 +12,8 @@ from dps_studio.core.physics import ApparentVelocityResult
 from dps_studio.core.quality import SignalDetectionResult
 from dps_studio.core.ridge import (
     EventAwareContinuityResult,
+    ExperimentalReselectionResult,
+    LocalPeakCandidateResult,
     RefinedRidgeResult,
     RidgeContinuityResult,
     RidgeResult,
@@ -40,6 +42,8 @@ class ChannelAnalysis:
     event_aware_continuity_result: EventAwareContinuityResult
     signal_detection_result: SignalDetectionResult
     stream_event_candidates: StreamEventCandidates
+    local_peak_candidates: LocalPeakCandidateResult | None = None
+    experimental_reselection_result: ExperimentalReselectionResult | None = None
 
     def __post_init__(self) -> None:
         formal_discrete_velocity = _immutable_float_array(
@@ -82,6 +86,26 @@ class ChannelAnalysis:
         if not isinstance(self.stream_event_candidates, StreamEventCandidates):
             raise TypeError(
                 "stream_event_candidates must be a StreamEventCandidates."
+            )
+        if self.local_peak_candidates is not None and not isinstance(
+            self.local_peak_candidates, LocalPeakCandidateResult
+        ):
+            raise TypeError(
+                "local_peak_candidates must be a LocalPeakCandidateResult or None."
+            )
+        if self.experimental_reselection_result is not None and not isinstance(
+            self.experimental_reselection_result,
+            ExperimentalReselectionResult,
+        ):
+            raise TypeError(
+                "experimental_reselection_result must be an "
+                "ExperimentalReselectionResult or None."
+            )
+        if (self.local_peak_candidates is None) != (
+            self.experimental_reselection_result is None
+        ):
+            raise ValueError(
+                "Local candidates and experimental reselection must be present together."
             )
         object.__setattr__(
             self,

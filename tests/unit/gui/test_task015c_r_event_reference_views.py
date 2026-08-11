@@ -180,7 +180,7 @@ def test_gui_reference_candidates_and_result_view_fit(
         candidate_tooltip = next(
             iter(window.analysis_range_panel.candidate_buttons.values())
         ).toolTip()
-        assert "只是候选参考" in candidate_tooltip
+        assert "必须由用户显式采用" in candidate_tooltip
 
         expected_start_us = analysis_start_s * 1e6
         expected_end_us = analysis_end_s * 1e6
@@ -215,14 +215,15 @@ def test_gui_reference_candidates_and_result_view_fit(
         }
         generation = window.analysis_session.generation_id
         first_button = window.analysis_range_panel.candidate_buttons[first_name]
-        candidate_s = analyses[
-            first_name
-        ].signal_detection_result.detected_event_candidate_time_s
+        candidate_s = analyses[first_name].stream_event_candidates.primary_candidate_time_s
         assert candidate_s is not None
         first_button.click()
         qapp.processEvents()
         assert window.analysis_session.event_reference_time_s == pytest.approx(
             candidate_s
+        )
+        assert window.analysis_session.event_reference_source == (
+            f"user_adopted:automatic_primary:{first_name}"
         )
         assert window.analysis_session.generation_id == generation
         for name, analysis in window.analysis_session.channel_analyses.items():

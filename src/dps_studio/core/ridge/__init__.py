@@ -16,6 +16,12 @@ from dps_studio.core.ridge.continuity_models import (
     EventAwareContinuityConfig,
     EventAwareContinuityResult,
 )
+from dps_studio.core.ridge.candidate_models import (
+    LocalPeakCandidate,
+    LocalPeakCandidateConfig,
+    LocalPeakCandidateResult,
+)
+from dps_studio.core.ridge.candidates import extract_local_peak_candidates
 from dps_studio.core.ridge.diagnostics import (
     assess_related_frequency_evidence,
     assess_ridge_continuity,
@@ -35,7 +41,18 @@ from dps_studio.core.ridge.quality_models import (
     RidgeSpectralQualityResult,
     RidgeSpectralQualityStatus,
 )
-from dps_studio.core.ridge.refinement import refine_peak_ridge_subbin
+from dps_studio.core.ridge.refinement import (
+    refine_peak_ridge_subbin,
+    refine_three_point_log_magnitude,
+)
+from dps_studio.core.ridge.reselection import reselect_isolated_jump_candidates
+from dps_studio.core.ridge.reselection_models import (
+    CandidateReselectionEvidence,
+    CandidateReselectionReason,
+    ContinuityReselectionConfig,
+    ExperimentalReselectionResult,
+    ReselectionFrameStatus,
+)
 from dps_studio.core.ridge.spectral_quality import assess_ridge_spectral_quality
 
 __all__ = [
@@ -45,6 +62,14 @@ __all__ = [
     "RefinedRidgeResult",
     "EventAwareContinuityConfig",
     "EventAwareContinuityResult",
+    "LocalPeakCandidate",
+    "LocalPeakCandidateConfig",
+    "LocalPeakCandidateResult",
+    "CandidateReselectionEvidence",
+    "CandidateReselectionReason",
+    "ContinuityReselectionConfig",
+    "ExperimentalReselectionResult",
+    "ReselectionFrameStatus",
     "RelatedFrequencyEvidenceResult",
     "RelatedFrequencyEvidenceStatus",
     "RidgeContinuityResult",
@@ -59,7 +84,10 @@ __all__ = [
     "assess_event_aware_ridge_continuity",
     "assess_ridge_continuity",
     "assess_ridge_spectral_quality",
+    "extract_local_peak_candidates",
     "extract_peak_ridge",
     "refine_peak_ridge_subbin",
+    "refine_three_point_log_magnitude",
+    "reselect_isolated_jump_candidates",
     "validate_ridge_corridor_for_stft",
 ]

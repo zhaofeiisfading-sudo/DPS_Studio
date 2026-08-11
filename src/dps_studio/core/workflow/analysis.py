@@ -21,7 +21,9 @@ from dps_studio.core.quality import (
     detect_beat_signal,
 )
 from dps_studio.core.ridge import (
+    ContinuityReselectionConfig,
     EventAwareContinuityConfig,
+    LocalPeakCandidateConfig,
     RefinedRidgeResult,
     RidgeCorridorConstraint,
     RidgeQualityFlag,
@@ -30,8 +32,10 @@ from dps_studio.core.ridge import (
     assess_event_aware_ridge_continuity,
     assess_ridge_continuity,
     assess_ridge_spectral_quality,
+    extract_local_peak_candidates,
     extract_peak_ridge,
     refine_peak_ridge_subbin,
+    reselect_isolated_jump_candidates,
     validate_ridge_corridor_for_stft,
 )
 from dps_studio.core.time_frequency import STFTResult, compute_stft
@@ -102,6 +106,8 @@ def analyze_profile(
     assume_pre_event_zero_for_display: bool = False,
     pre_event_display_velocity_m_s: float = 0.0,
     ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
+    local_peak_candidate_config: LocalPeakCandidateConfig | None = None,
+    continuity_reselection_config: ContinuityReselectionConfig | None = None,
 ) -> Mapping[str, ChannelAnalysis]:
     """Analyze every channel independently with one formal profile."""
     if not isinstance(profile, AnalysisProfile):
@@ -127,6 +133,8 @@ def analyze_profile(
         assume_pre_event_zero_for_display=assume_pre_event_zero_for_display,
         pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
         ridge_constraints=ridge_constraints,
+        local_peak_candidate_config=local_peak_candidate_config,
+        continuity_reselection_config=continuity_reselection_config,
     )
 
 
@@ -152,6 +160,8 @@ def analyze_configuration(
     assume_pre_event_zero_for_display: bool = False,
     pre_event_display_velocity_m_s: float = 0.0,
     ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
+    local_peak_candidate_config: LocalPeakCandidateConfig | None = None,
+    continuity_reselection_config: ContinuityReselectionConfig | None = None,
 ) -> Mapping[str, ChannelAnalysis]:
     """Run STFT through continuity diagnostics without paths, plots, or writes."""
     stft_results = compute_configuration_stfts(
@@ -178,6 +188,8 @@ def analyze_configuration(
         assume_pre_event_zero_for_display=assume_pre_event_zero_for_display,
         pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
         ridge_constraints=ridge_constraints,
+        local_peak_candidate_config=local_peak_candidate_config,
+        continuity_reselection_config=continuity_reselection_config,
     )
 
 
@@ -199,6 +211,8 @@ def analyze_stft_results(
     assume_pre_event_zero_for_display: bool = False,
     pre_event_display_velocity_m_s: float = 0.0,
     ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
+    local_peak_candidate_config: LocalPeakCandidateConfig | None = None,
+    continuity_reselection_config: ContinuityReselectionConfig | None = None,
 ) -> Mapping[str, ChannelAnalysis]:
     """Run post-STFT science while preserving the supplied STFT objects.
 
@@ -263,6 +277,22 @@ def analyze_stft_results(
         or minimum_background_bin_count < 1
     ):
         raise ValueError("minimum_background_bin_count must be a positive integer.")
+    if local_peak_candidate_config is None:
+        local_peak_candidate_config = LocalPeakCandidateConfig(
+            maximum_candidates_per_frame=3
+        )
+    elif not isinstance(local_peak_candidate_config, LocalPeakCandidateConfig):
+        raise TypeError(
+            "local_peak_candidate_config must be a LocalPeakCandidateConfig."
+        )
+    if continuity_reselection_config is None:
+        continuity_reselection_config = ContinuityReselectionConfig()
+    elif not isinstance(
+        continuity_reselection_config, ContinuityReselectionConfig
+    ):
+        raise TypeError(
+            "continuity_reselection_config must be a ContinuityReselectionConfig."
+        )
 
     analyses: dict[str, ChannelAnalysis] = {}
     for channel_name, stft_result in stft_results.items():
@@ -391,6 +421,23 @@ def analyze_stft_results(
                 ),
             ),
         )
+        local_peak_candidates = None
+        experimental_reselection_result = None
+        if ridge_constraint is None:
+            local_peak_candidates = extract_local_peak_candidates(
+                stft_result,
+                minimum_frequency_hz=minimum_frequency_hz,
+                maximum_frequency_hz=maximum_frequency_hz,
+                background_exclusion_half_width_hz=guard_hz,
+                minimum_background_bin_count=minimum_background_bin_count,
+                config=local_peak_candidate_config,
+            )
+            experimental_reselection_result = reselect_isolated_jump_candidates(
+                refined_result,
+                local_peak_candidates,
+                event_aware_continuity_result,
+                config=continuity_reselection_config,
+            )
         analyses[channel_name] = ChannelAnalysis(
             stft_result=stft_result,
             ridge_result=ridge_result,
@@ -405,6 +452,8 @@ def analyze_stft_results(
             event_aware_continuity_result=event_aware_continuity_result,
             signal_detection_result=signal_detection_result,
             stream_event_candidates=stream_event_candidates,
+            local_peak_candidates=local_peak_candidates,
+            experimental_reselection_result=experimental_reselection_result,
         )
     return MappingProxyType(analyses)
 

@@ -191,7 +191,21 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         assert metadata["analysis_mode"] == "automatic"
         assert metadata["source_channel"] == "pdv_channel_1"
+        analysis = window.analysis_session.channel_analyses["pdv_channel_1"]
+        assert metadata["automatic_event_candidate_time_s"] == (
+            analysis.stream_event_candidates.primary_candidate_time_s
+        )
+        assert metadata["compatibility_event_candidate_time_s"] == (
+            analysis.signal_detection_result.detected_event_candidate_time_s
+        )
+        assert metadata["event_reference_time_s"] == (
+            window.analysis_session.event_reference_time_s
+        )
+        assert metadata["event_reference_source"] == (
+            window.analysis_session.event_reference_source
+        )
         assert metadata["pre_event_display"]["included_in_csv"] is True
+        assert len(tuple(export_parent.glob("*.metadata.json"))) == 1
         assert (export_parent / "task017_dual_channel_ch1_auto.csv").is_file()
         assert (export_parent / "task017_dual_channel_ch1_auto_detail.csv").is_file()
         assert success_messages
