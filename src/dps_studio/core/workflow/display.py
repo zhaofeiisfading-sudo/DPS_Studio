@@ -19,7 +19,7 @@ PRE_EVENT_DISPLAY_ORIGIN = "configured_pre_event_display_velocity_only"
 def build_display_velocity(
     time_s: FloatArray,
     signal_states: tuple[SignalState, ...],
-    formal_apparent_velocity_m_s: FloatArray,
+    formal_corrected_velocity_m_s: FloatArray,
     *,
     manual_event_reference_time_s: float | None,
     analysis_start_time_s: float | None = None,
@@ -29,7 +29,7 @@ def build_display_velocity(
 ) -> tuple[FloatArray, tuple[str, ...]]:
     """Build a separate display array from an explicit event reference.
 
-    A formal ``MEASURED`` frame always retains its formal apparent velocity.
+    A formal ``MEASURED`` frame always retains its final corrected velocity.
     Only non-measured frames inside the explicit analysis range and strictly
     before ``manual_event_reference_time_s`` receive the configured
     display-only platform. Every post-event invalid frame remains NaN. A
@@ -51,7 +51,7 @@ def build_display_velocity(
         field_name="analysis_end_time_s",
     )
     time = np.asarray(time_s, dtype=np.float64)
-    formal = np.asarray(formal_apparent_velocity_m_s, dtype=np.float64)
+    formal = np.asarray(formal_corrected_velocity_m_s, dtype=np.float64)
     states = tuple(signal_states)
     if time.ndim != 1 or formal.shape != time.shape or len(states) != time.size:
         raise ValueError(
@@ -116,7 +116,7 @@ def configure_channel_display_velocity(
     display, origins = build_display_velocity(
         detection.time_s,
         detection.signal_states,
-        detection.apparent_velocity_m_s,
+        analysis.corrected_velocity_m_s,
         manual_event_reference_time_s=(
             detection.manual_event_reference_time_s
         ),

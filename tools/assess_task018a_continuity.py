@@ -18,7 +18,11 @@ from matplotlib import pyplot as plt  # noqa: E402
 
 from dps_studio.core.io import read_delimited_signals
 from dps_studio.core.models import SignalRecord
-from dps_studio.core.ridge import RidgeContinuityStatus
+from dps_studio.core.ridge import (
+    AutomaticRidgeExtractionMode,
+    AutomaticRidgeSelectionConfig,
+    RidgeContinuityStatus,
+)
 from dps_studio.core.workflow import (
     ChannelAnalysis,
     WorkflowConfiguration,
@@ -90,6 +94,9 @@ def _analyze_source(
         vacuum_wavelength_m=configuration.analysis.vacuum_wavelength_m,
         detection_config=configuration.quality.signal_detection,
         event_candidate_config=configuration.event_candidate,
+        automatic_ridge_selection_config=AutomaticRidgeSelectionConfig(
+            mode=AutomaticRidgeExtractionMode.LEGACY_STRONGEST_PEAK,
+        ),
         background_guard_window_scale=(
             configuration.quality.background_guard_window_scale
         ),

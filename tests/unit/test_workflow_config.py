@@ -49,6 +49,12 @@ peak_exclusion_half_width_bins = 12
 minimum_consecutive_frames = 3
 minimum_cycles_in_window = 1.0
 enabled = true
+[automatic_ridge_selection]
+mode = "continuity_assisted"
+top_k_candidates = 3
+continuity_reselection_enabled = true
+minimum_candidate_peak_to_background_db = 10.0
+minimum_candidate_relative_to_strongest_db = -6.0
 [event_candidate]
 minimum_segment_frames = 8
 minimum_segment_duration_s = 2.0e-8
@@ -97,6 +103,9 @@ def test_toml_loads_relative_paths_profiles_and_immutable_mappings(
     assert configuration.analysis.event_reference_time_s == 5.54668e-4
     assert configuration.analysis.event_start_time_s == 5.54668e-4
     assert configuration.quality.signal_detection.minimum_consecutive_frames == 3
+    assert configuration.automatic_ridge_selection.mode.value == "continuity_assisted"
+    assert configuration.automatic_ridge_selection.top_k_candidates == 3
+    assert configuration.automatic_ridge_selection.recovery_tolerance_hz is None
     assert configuration.event_candidate.minimum_segment_frames == 8
     assert configuration.event_candidate.minimum_median_peak_to_background_db is None
     assert configuration.event_consensus.minimum_interval_overlap_fraction == 0.5
@@ -152,6 +161,9 @@ def test_explicit_default_profile_is_loaded_and_validated(tmp_path: Path) -> Non
         ("peak_exclusion_half_width_bins = 12", "peak_exclusion_half_width_bins = -1", "quality.peak_exclusion_half_width_bins"),
         ("minimum_consecutive_frames = 3", "minimum_consecutive_frames = 0", "quality.minimum_consecutive_frames"),
         ("minimum_cycles_in_window = 1.0", "minimum_cycles_in_window = 0.0", "quality.minimum_cycles_in_window"),
+        ('mode = "continuity_assisted"', 'mode = "unknown"', "automatic_ridge_selection.mode"),
+        ("top_k_candidates = 3", "top_k_candidates = 0", "automatic_ridge_selection.top_k_candidates"),
+        ("minimum_candidate_peak_to_background_db = 10.0", "minimum_candidate_peak_to_background_db = nan", "automatic_ridge_selection.minimum_candidate_peak_to_background_db"),
         ("minimum_segment_frames = 8", "minimum_segment_frames = 0", "event_candidate.minimum_segment_frames"),
         ("minimum_segment_duration_s = 2.0e-8", "minimum_segment_duration_s = -1.0", "event_candidate.minimum_segment_duration_s"),
         ("maximum_adjacent_frequency_step_hz = 1.0e8", "maximum_adjacent_frequency_step_hz = 0.0", "event_candidate.maximum_adjacent_frequency_step_hz"),

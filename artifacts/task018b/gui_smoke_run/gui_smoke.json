@@ -19,7 +19,49 @@
         "20260607_ch1_auto_detail.csv"
       ],
       "export_metadata_json_count": 1,
-      "metadata_schema": "pdv-studio-formal-result-v3",
+      "metadata_schema": "pdv-studio-formal-result-v5",
+      "velocity_correction": {
+        "angle": {
+          "angle_deg_display": 0.0,
+          "angle_rad": 0.0,
+          "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+          "enabled": true,
+          "external_mounting_angle_may_differ_through_window": true,
+          "model": "line_of_sight_projection",
+          "snell_law_inference_applied": false,
+          "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+          "source_doi": "10.1063/1.4940935"
+        },
+        "execution_order": [
+          "apparent_velocity",
+          "geometrical_angle_correction",
+          "window_correction"
+        ],
+        "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+        "window": {
+          "b1": 0.7895,
+          "b2": 0.9918,
+          "crystal_orientation": "[100]",
+          "enabled": true,
+          "loading_context": "dynamic compression / calibrated window correction",
+          "material": "LiF",
+          "model": "Rigg2014_Eq16",
+          "paper_velocity_unit": "km/s",
+          "reference_wavelength_m": 1.55e-06,
+          "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+          "source_doi": "10.1063/1.4890714",
+          "wavelength_matches_model_reference": true,
+          "wavelength_validation_message": null
+        }
+      },
+      "spot_check": {
+        "row_index": 35,
+        "apparent_velocity_m_s": 1411.9332502790612,
+        "measurement_angle_deg": 0.0,
+        "program_corrected_velocity_m_s": 1111.572576850931,
+        "independent_corrected_velocity_m_s": 1111.572576850931,
+        "difference_m_s": 0.0
+      },
       "metadata_event_fields_present": true
     },
     {
@@ -40,7 +82,49 @@
         "20260701_ch1_auto_detail.csv"
       ],
       "export_metadata_json_count": 1,
-      "metadata_schema": "pdv-studio-formal-result-v3",
+      "metadata_schema": "pdv-studio-formal-result-v5",
+      "velocity_correction": {
+        "angle": {
+          "angle_deg_display": 0.0,
+          "angle_rad": 0.0,
+          "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+          "enabled": true,
+          "external_mounting_angle_may_differ_through_window": true,
+          "model": "line_of_sight_projection",
+          "snell_law_inference_applied": false,
+          "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+          "source_doi": "10.1063/1.4940935"
+        },
+        "execution_order": [
+          "apparent_velocity",
+          "geometrical_angle_correction",
+          "window_correction"
+        ],
+        "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+        "window": {
+          "b1": 0.7895,
+          "b2": 0.9918,
+          "crystal_orientation": "[100]",
+          "enabled": true,
+          "loading_context": "dynamic compression / calibrated window correction",
+          "material": "LiF",
+          "model": "Rigg2014_Eq16",
+          "paper_velocity_unit": "km/s",
+          "reference_wavelength_m": 1.55e-06,
+          "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+          "source_doi": "10.1063/1.4890714",
+          "wavelength_matches_model_reference": true,
+          "wavelength_validation_message": null
+        }
+      },
+      "spot_check": {
+        "row_index": 63,
+        "apparent_velocity_m_s": 127.60683444741976,
+        "measurement_angle_deg": 0.0,
+        "program_corrected_velocity_m_s": 102.46083794514155,
+        "independent_corrected_velocity_m_s": 102.46083794514155,
+        "difference_m_s": 0.0
+      },
       "metadata_event_fields_present": true
     },
     {
@@ -61,7 +145,49 @@
         "20260630-1_ch1_auto_detail.csv"
       ],
       "export_metadata_json_count": 1,
-      "metadata_schema": "pdv-studio-formal-result-v3",
+      "metadata_schema": "pdv-studio-formal-result-v5",
+      "velocity_correction": {
+        "angle": {
+          "angle_deg_display": 0.0,
+          "angle_rad": 0.0,
+          "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+          "enabled": true,
+          "external_mounting_angle_may_differ_through_window": true,
+          "model": "line_of_sight_projection",
+          "snell_law_inference_applied": false,
+          "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+          "source_doi": "10.1063/1.4940935"
+        },
+        "execution_order": [
+          "apparent_velocity",
+          "geometrical_angle_correction",
+          "window_correction"
+        ],
+        "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+        "window": {
+          "b1": 0.7895,
+          "b2": 0.9918,
+          "crystal_orientation": "[100]",
+          "enabled": true,
+          "loading_context": "dynamic compression / calibrated window correction",
+          "material": "LiF",
+          "model": "Rigg2014_Eq16",
+          "paper_velocity_unit": "km/s",
+          "reference_wavelength_m": 1.55e-06,
+          "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+          "source_doi": "10.1063/1.4890714",
+          "wavelength_matches_model_reference": true,
+          "wavelength_validation_message": null
+        }
+      },
+      "spot_check": {
+        "row_index": 673,
+        "apparent_velocity_m_s": 100.62661039570129,
+        "measurement_angle_deg": 0.0,
+        "program_corrected_velocity_m_s": 80.95482396689098,
+        "independent_corrected_velocity_m_s": 80.95482396689098,
+        "difference_m_s": 0.0
+      },
       "metadata_event_fields_present": true
     }
   ],

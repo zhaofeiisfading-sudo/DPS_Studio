@@ -8,6 +8,11 @@ from dps_studio.core.time_frequency.exceptions import (
 )
 from dps_studio.core.time_frequency.models import STFTResult
 from dps_studio.core.time_frequency.stft import compute_stft
+from dps_studio.core.time_frequency.windows import (
+    STFTWindowName,
+    SUPPORTED_STFT_WINDOW_NAMES,
+    validate_stft_window_name,
+)
 
 __all__ = [
     "NonUniformSamplingError",
@@ -16,4 +21,7 @@ __all__ = [
     "STFTResult",
     "TimeFrequencyError",
     "compute_stft",
+    "STFTWindowName",
+    "SUPPORTED_STFT_WINDOW_NAMES",
+    "validate_stft_window_name",
 ]

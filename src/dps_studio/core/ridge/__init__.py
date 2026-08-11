@@ -53,6 +53,13 @@ from dps_studio.core.ridge.reselection_models import (
     ExperimentalReselectionResult,
     ReselectionFrameStatus,
 )
+from dps_studio.core.ridge.selection import select_automatic_ridge
+from dps_studio.core.ridge.selection_models import (
+    AutomaticRidgeExtractionMode,
+    AutomaticRidgeSelectionConfig,
+    AutomaticRidgeSelectionResult,
+    RidgeSelectionOrigin,
+)
 from dps_studio.core.ridge.spectral_quality import assess_ridge_spectral_quality
 
 __all__ = [
@@ -70,6 +77,10 @@ __all__ = [
     "ContinuityReselectionConfig",
     "ExperimentalReselectionResult",
     "ReselectionFrameStatus",
+    "AutomaticRidgeExtractionMode",
+    "AutomaticRidgeSelectionConfig",
+    "AutomaticRidgeSelectionResult",
+    "RidgeSelectionOrigin",
     "RelatedFrequencyEvidenceResult",
     "RelatedFrequencyEvidenceStatus",
     "RidgeContinuityResult",
@@ -89,5 +100,6 @@ __all__ = [
     "refine_peak_ridge_subbin",
     "refine_three_point_log_magnitude",
     "reselect_isolated_jump_candidates",
+    "select_automatic_ridge",
     "validate_ridge_corridor_for_stft",
 ]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import ClassVar, cast
 
@@ -15,6 +16,152 @@ from dps_studio.core.ridge import RidgeQualityFlag
 
 
 FloatArray = NDArray[np.float64]
+
+
+class WindowMaterial(str, Enum):
+    """Window choices with a formally implemented velocity correction."""
+
+    NONE = "none"
+    LIF = "LiF"
+
+
+@dataclass(frozen=True, slots=True)
+class LiFWindowCorrectionModel:
+    """Fixed Rigg et al. calibration for shocked [100] LiF at 1550 nm."""
+
+    material: str = "LiF"
+    model: str = "Rigg2014_Eq16"
+    b1: float = 0.7895
+    b2: float = 0.9918
+    reference_wavelength_m: float = 1550.0e-9
+    crystal_orientation: str = "[100]"
+    paper_velocity_unit: str = "km/s"
+    loading_context: str = "dynamic compression / calibrated window correction"
+    source: str = "Rigg et al., Journal of Applied Physics 116, 033515 (2014)"
+    source_doi: str = "10.1063/1.4890714"
+
+
+LIF_RIGG_2014_1550NM = LiFWindowCorrectionModel()
+
+
+@dataclass(frozen=True, slots=True)
+class VelocityCorrectionConfig:
+    """Formal SI configuration for separable angle and window corrections.
+
+    ``measurement_angle_rad`` is the angle between the PDV measurement
+    line-of-sight and the normal direction of interface motion.  It is the
+    actual measurement geometry at the interface, not necessarily an external
+    fibre mounting angle when a refracting transparent window is present.
+    """
+
+    window_material: WindowMaterial = WindowMaterial.LIF
+    measurement_angle_rad: float = 0.0
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.window_material, WindowMaterial):
+            raise VelocityConfigurationError(
+                "window_material must be a supported WindowMaterial."
+            )
+        if isinstance(self.measurement_angle_rad, (bool, np.bool_)):
+            raise VelocityConfigurationError(
+                "measurement_angle_rad must be finite in [0, pi/2)."
+            )
+        try:
+            angle = float(cast("float | str", self.measurement_angle_rad))
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise VelocityConfigurationError(
+                "measurement_angle_rad must be finite in [0, pi/2)."
+            ) from exc
+        if not math.isfinite(angle) or angle < 0.0 or angle >= math.pi / 2.0:
+            raise VelocityConfigurationError(
+                "measurement_angle_rad must be finite in [0, pi/2)."
+            )
+        object.__setattr__(self, "measurement_angle_rad", angle)
+
+    @property
+    def window_correction_enabled(self) -> bool:
+        """Return whether a formal material correction is selected."""
+        return self.window_material is not WindowMaterial.NONE
+
+
+@dataclass(frozen=True, slots=True, eq=False)
+class VelocityCorrectionResult:
+    """Independent formal velocity layers on one shared time/frame axis."""
+
+    apparent_velocity_m_s: FloatArray
+    angle_corrected_apparent_velocity_m_s: FloatArray
+    corrected_velocity_m_s: FloatArray
+    config: VelocityCorrectionConfig
+    vacuum_wavelength_m: float
+    wavelength_matches_model_reference: bool
+    wavelength_validation_message: str | None
+
+    def __post_init__(self) -> None:
+        apparent = _as_float64_array(
+            self.apparent_velocity_m_s,
+            field_name="apparent_velocity_m_s",
+        )
+        angle_corrected = _as_float64_array(
+            self.angle_corrected_apparent_velocity_m_s,
+            field_name="angle_corrected_apparent_velocity_m_s",
+        )
+        corrected = _as_float64_array(
+            self.corrected_velocity_m_s,
+            field_name="corrected_velocity_m_s",
+        )
+        if apparent.ndim != 1:
+            raise VelocityConfigurationError(
+                "Velocity correction arrays must be one-dimensional."
+            )
+        if angle_corrected.shape != apparent.shape or corrected.shape != apparent.shape:
+            raise VelocityConfigurationError(
+                "Velocity correction arrays must have identical shapes."
+            )
+        for field_name, values in (
+            ("apparent_velocity_m_s", apparent),
+            ("angle_corrected_apparent_velocity_m_s", angle_corrected),
+            ("corrected_velocity_m_s", corrected),
+        ):
+            _validate_nonnegative_or_nan(values, field_name=field_name)
+        apparent_nan = np.isnan(apparent)
+        if not np.array_equal(apparent_nan, np.isnan(angle_corrected)) or not np.array_equal(
+            apparent_nan,
+            np.isnan(corrected),
+        ):
+            raise VelocityConfigurationError(
+                "Every correction layer must preserve apparent-velocity NaN positions."
+            )
+        if not isinstance(self.config, VelocityCorrectionConfig):
+            raise VelocityConfigurationError(
+                "config must be a VelocityCorrectionConfig."
+            )
+        wavelength = _positive_finite_float(
+            self.vacuum_wavelength_m,
+            field_name="vacuum_wavelength_m",
+        )
+        if not isinstance(self.wavelength_matches_model_reference, bool):
+            raise VelocityConfigurationError(
+                "wavelength_matches_model_reference must be a boolean."
+            )
+        if self.wavelength_validation_message is not None and (
+            not isinstance(self.wavelength_validation_message, str)
+            or not self.wavelength_validation_message.strip()
+        ):
+            raise VelocityConfigurationError(
+                "wavelength_validation_message must be non-empty text or None."
+            )
+        object.__setattr__(self, "apparent_velocity_m_s", _store_float64_immutable(apparent))
+        object.__setattr__(
+            self,
+            "angle_corrected_apparent_velocity_m_s",
+            _store_float64_immutable(angle_corrected),
+        )
+        object.__setattr__(
+            self,
+            "corrected_velocity_m_s",
+            _store_float64_immutable(corrected),
+        )
+        object.__setattr__(self, "vacuum_wavelength_m", wavelength)
 
 
 @dataclass(frozen=True, slots=True, eq=False)

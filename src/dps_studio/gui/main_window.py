@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -55,11 +56,14 @@ from dps_studio.core.export import (
     export_formal_results,
 )
 from dps_studio.core.io import DelimitedSignalLoadResult
+from dps_studio.core.physics import VelocityCorrectionConfig, WindowMaterial
 from dps_studio.core.ridge import (
+    AutomaticRidgeExtractionMode,
     RidgeConfigurationError,
     RidgeCorridorConstraint,
     validate_ridge_corridor_for_stft,
 )
+from dps_studio.core.time_frequency import STFTWindowName
 from dps_studio.core.workflow import (
     ChannelAnalysis,
     WorkflowConfiguration,
@@ -113,6 +117,17 @@ _DEFAULT_WORKSPACE_SIZES = (220, 830, 340)
 _DEFAULT_DIAGNOSTICS_HEIGHT = 210
 _AUTOMATIC_MODE_BUTTON_ID = 101
 _GUIDED_MODE_BUTTON_ID = 102
+_STFT_WINDOW_OPTIONS = (
+    (STFTWindowName.HANN.value, "Hann"),
+    (STFTWindowName.HAMMING.value, "Hamming"),
+    (STFTWindowName.BLACKMAN.value, "Blackman"),
+    (STFTWindowName.BLACKMAN_HARRIS.value, "Blackman-Harris"),
+    (STFTWindowName.BOXCAR.value, "矩形窗（Boxcar）"),
+)
+_AUTOMATIC_RIDGE_OPTIONS = (
+    (AutomaticRidgeExtractionMode.CONTINUITY_ASSISTED.value, "连续性辅助"),
+    (AutomaticRidgeExtractionMode.LEGACY_STRONGEST_PEAK.value, "传统最强峰"),
+)
 
 
 class MainWindow(QMainWindow):
@@ -257,6 +272,8 @@ class MainWindow(QMainWindow):
         self._sync_event_reference_panel()
         self._updating_parameter_controls = True
         wavelength_blocker = QSignalBlocker(self.vacuum_wavelength_spin)
+        window_material_blocker = QSignalBlocker(self.window_material_combo)
+        measurement_angle_blocker = QSignalBlocker(self.measurement_angle_spin)
         display_velocity_blocker = QSignalBlocker(
             self.pre_event_display_velocity_spin
         )
@@ -265,6 +282,15 @@ class MainWindow(QMainWindow):
         )
         self.vacuum_wavelength_spin.setValue(
             configuration.analysis.vacuum_wavelength_m * 1e9
+        )
+        window_index = self.window_material_combo.findData(
+            configuration.velocity_correction.window_material.value
+        )
+        if window_index < 0:
+            raise ValueError("Unsupported configured window material.")
+        self.window_material_combo.setCurrentIndex(window_index)
+        self.measurement_angle_spin.setValue(
+            math.degrees(configuration.velocity_correction.measurement_angle_rad)
         )
         self.pre_event_display_velocity_spin.setValue(
             configuration.plot.pre_event_display_velocity_m_s
@@ -279,6 +305,8 @@ class MainWindow(QMainWindow):
         )
         self.vacuum_wavelength_spin.setEnabled(True)
         del wavelength_blocker
+        del window_material_blocker
+        del measurement_angle_blocker
         del display_velocity_blocker
         del display_check_blocker
         run_configuration = self._session.run_configuration
@@ -290,6 +318,7 @@ class MainWindow(QMainWindow):
         )
         self._updating_parameter_controls = False
         self._validate_current_parameters()
+        self._sync_velocity_correction_warning()
         presentation_reason = (
             self.tr("分析配置已变化；旧结果已失效。")
             if self._session.records
@@ -590,7 +619,33 @@ class MainWindow(QMainWindow):
             )
         )
         self.vacuum_wavelength_spin.setEnabled(False)
-        self.window_name_label = QLabel("—")
+        self.window_name_combo = QComboBox()
+        self.window_name_combo.setObjectName("stftWindowFunctionCombo")
+        for window_name, display_name in _STFT_WINDOW_OPTIONS:
+            self.window_name_combo.addItem(self.tr(display_name), window_name)
+        self.window_name_combo.setToolTip(
+            self.tr(
+                "窗口函数只改变 STFT 的数学 window；不会联动窗长、重叠、"
+                "FFT 长度、搜索频带或质量门槛。矩形窗可作为无加权基线比较；"
+                "其频谱泄漏特性与其他加窗方式不同，不作为默认选择。"
+            )
+        )
+        self.automatic_ridge_extraction_combo = QComboBox()
+        self.automatic_ridge_extraction_combo.setObjectName(
+            "automaticRidgeExtractionCombo"
+        )
+        for mode, display_name in _AUTOMATIC_RIDGE_OPTIONS:
+            self.automatic_ridge_extraction_combo.addItem(
+                self.tr(display_name),
+                mode,
+            )
+        self.automatic_ridge_extraction_combo.setToolTip(
+            self.tr(
+                "连续性辅助：在最强峰出现孤立跳变时，可在可信局部候选峰中"
+                "选择与前后时间帧更连续的谱峰。\n传统最强峰：每个时间帧始终"
+                "使用搜索频带内的最强谱峰。"
+            )
+        )
         self.window_length_spin = self._sample_spin("windowLengthSamples")
         self.overlap_spin = self._sample_spin("overlapSamples", minimum=0)
         self.hop_label = QLabel("—")
@@ -599,7 +654,11 @@ class MainWindow(QMainWindow):
         self.maximum_frequency_spin = self._frequency_spin("maximumFrequencyGhz")
         form.addRow(self.tr("分析配置"), self.profile_combo)
         form.addRow(self.tr("真空波长"), self.vacuum_wavelength_spin)
-        form.addRow(self.tr("窗函数"), self.window_name_label)
+        form.addRow(self.tr("窗口函数"), self.window_name_combo)
+        form.addRow(
+            self.tr("自动脊线提取"),
+            self.automatic_ridge_extraction_combo,
+        )
         form.addRow(self.tr("窗长"), self.window_length_spin)
         form.addRow(self.tr("重叠长度"), self.overlap_spin)
         form.addRow(self.tr("步长"), self.hop_label)
@@ -828,15 +887,15 @@ class MainWindow(QMainWindow):
         velocity_layout.addWidget(
             self._notice(
                 self.tr(
-                    "当前仅计算正式表观速度；显示速度不会覆盖正式结果。"
+                    "表观速度、角度修正表观速度、窗口修正速度与显示速度分别保存。"
                 )
             )
         )
         velocity_form = QFormLayout()
-        self.formal_velocity_status_label = QLabel(self.tr("尚无正式结果"))
+        self.formal_velocity_status_label = QLabel(self.tr("尚无正式修正结果"))
         self.display_velocity_status_label = QLabel(self.tr("关闭"))
         velocity_form.addRow(
-            self.tr("正式表观速度"), self.formal_velocity_status_label
+            self.tr("正式修正速度"), self.formal_velocity_status_label
         )
         velocity_form.addRow(
             self.tr("显示速度"), self.display_velocity_status_label
@@ -860,12 +919,44 @@ class MainWindow(QMainWindow):
             self.tr("事件前显示速度"),
             self.pre_event_display_velocity_spin,
         )
-        velocity_layout.addLayout(velocity_form)
-        self.corrected_velocity_parameter = QPushButton(
-            self.tr("窗口修正尚未接入")
+        self.window_material_combo = QComboBox()
+        self.window_material_combo.setObjectName("windowMaterialCombo")
+        self.window_material_combo.addItem(
+            self.tr("LiF"), WindowMaterial.LIF.value
         )
-        self.corrected_velocity_parameter.setEnabled(False)
-        velocity_layout.addWidget(self.corrected_velocity_parameter)
+        self.window_material_combo.addItem(
+            self.tr("无窗口修正"),
+            WindowMaterial.NONE.value,
+        )
+        self.window_material_combo.setToolTip(
+            self.tr(
+                "LiF 使用 Rigg 等（2014）针对 [100] LiF、1550 nm PDV 标定的"
+                " Eq. (16)。超出标定加载条件的适用性需由实验评估；不会额外乘除"
+                "常温折射率。"
+            )
+        )
+        velocity_form.addRow(self.tr("窗口材料"), self.window_material_combo)
+        self.measurement_angle_spin = QDoubleSpinBox()
+        self.measurement_angle_spin.setObjectName("measurementAngleDegrees")
+        self.measurement_angle_spin.setRange(0.0, 89.999999)
+        self.measurement_angle_spin.setDecimals(6)
+        self.measurement_angle_spin.setSingleStep(0.1)
+        self.measurement_angle_spin.setSuffix("°")
+        self.measurement_angle_spin.setMaximumWidth(160)
+        self.measurement_angle_spin.setToolTip(
+            self.tr(
+                "PDV 测量视线与被测界面运动法线之间的夹角；0° 表示法向观测。"
+                "经过透明窗口时，窗口外部安装角不一定等于界面处实际光线角；"
+                "当前软件不会按 Snell 定律静默推断动态窗口内部角度。"
+            )
+        )
+        velocity_form.addRow(self.tr("观测角度"), self.measurement_angle_spin)
+        velocity_layout.addLayout(velocity_form)
+        self.velocity_correction_warning_label = self._notice("")
+        self.velocity_correction_warning_label.setObjectName(
+            "velocityCorrectionWarning"
+        )
+        velocity_layout.addWidget(self.velocity_correction_warning_label)
         velocity_layout.addStretch(1)
         self.velocity_parameter_scroll = QScrollArea()
         self.velocity_parameter_scroll.setObjectName("velocityParameterScrollArea")
@@ -1070,8 +1161,20 @@ class MainWindow(QMainWindow):
             self._adopt_event_candidate
         )
         self.profile_combo.currentIndexChanged.connect(self._profile_changed)
+        self.window_name_combo.currentIndexChanged.connect(
+            self._scientific_parameter_changed
+        )
+        self.automatic_ridge_extraction_combo.currentIndexChanged.connect(
+            self._automatic_ridge_extraction_changed
+        )
         self.vacuum_wavelength_spin.valueChanged.connect(
             self._scientific_parameter_changed
+        )
+        self.window_material_combo.currentIndexChanged.connect(
+            self._velocity_correction_changed
+        )
+        self.measurement_angle_spin.valueChanged.connect(
+            self._velocity_correction_changed
         )
         self.pre_event_display_velocity_spin.valueChanged.connect(
             self._pre_event_display_velocity_changed
@@ -1367,6 +1470,8 @@ class MainWindow(QMainWindow):
             QSignalBlocker(control)
             for control in (
                 self.vacuum_wavelength_spin,
+                self.window_name_combo,
+                self.automatic_ridge_extraction_combo,
                 self.window_length_spin,
                 self.overlap_spin,
                 self.nfft_spin,
@@ -1377,7 +1482,21 @@ class MainWindow(QMainWindow):
         self.vacuum_wavelength_spin.setValue(
             parameters.vacuum_wavelength_m * 1e9
         )
-        self.window_name_label.setText(parameters.window_name)
+        window_index = self.window_name_combo.findData(parameters.window_name)
+        if window_index < 0:
+            raise ValueError(
+                f"Unsupported GUI STFT window: {parameters.window_name!r}."
+            )
+        self.window_name_combo.setCurrentIndex(window_index)
+        run_configuration = self._session.run_configuration
+        if run_configuration is not None:
+            extraction_index = self.automatic_ridge_extraction_combo.findData(
+                run_configuration.automatic_ridge_selection_config.mode.value
+            )
+            if extraction_index >= 0:
+                self.automatic_ridge_extraction_combo.setCurrentIndex(
+                    extraction_index
+                )
         self.window_length_spin.setValue(parameters.window_length_samples)
         self.overlap_spin.setValue(parameters.overlap_samples)
         self.nfft_spin.setValue(parameters.nfft)
@@ -1404,6 +1523,10 @@ class MainWindow(QMainWindow):
             self.maximum_frequency_spin,
         ):
             control.setReadOnly(not editable)
+        self.window_name_combo.setEnabled(editable)
+        self.automatic_ridge_extraction_combo.setEnabled(editable)
+        self.window_material_combo.setEnabled(editable)
+        self.measurement_angle_spin.setEnabled(editable)
 
     def _scientific_parameter_changed(self, _value: float | int) -> None:
         """Resolve the visible draft as per-session overrides of its base preset."""
@@ -1419,6 +1542,7 @@ class MainWindow(QMainWindow):
             return
         overrides = AnalysisParameterOverrides(
             vacuum_wavelength_m=self.vacuum_wavelength_spin.value() * 1e-9,
+            window_name=self.window_name_combo.currentData(),
             window_length_samples=self.window_length_spin.value(),
             overlap_samples=self.overlap_spin.value(),
             nfft=self.nfft_spin.value(),
@@ -1443,6 +1567,7 @@ class MainWindow(QMainWindow):
                 return
             self._sync_profile_combo_for_parameters(updated.parameters)
             self._validate_current_parameters()
+            self._sync_velocity_correction_warning()
         if not changed:
             self._apply_state()
             return
@@ -1455,6 +1580,84 @@ class MainWindow(QMainWindow):
             self._clear_result_presentation(
                 self.tr("STFT 参数已变化；请重新计算时频图。")
             )
+        self._sync_workflow_state_after_invalidation()
+
+    def _velocity_correction_changed(self, _value: float | int) -> None:
+        """Store GUI degrees as SI radians and invalidate old corrected results."""
+        if self._updating_parameter_controls:
+            return
+        material_value = self.window_material_combo.currentData()
+        if not isinstance(material_value, str):
+            return
+        try:
+            material = WindowMaterial(material_value)
+            correction = VelocityCorrectionConfig(
+                window_material=material,
+                measurement_angle_rad=math.radians(
+                    self.measurement_angle_spin.value()
+                ),
+            )
+            changed = self._session.set_velocity_correction_config(correction)
+        except (TypeError, ValueError) as exc:
+            self.analysis_status_label.setText(str(exc))
+            return
+        self._sync_velocity_correction_warning()
+        if not changed:
+            return
+        self._clear_downstream_presentation(
+            self.tr("速度修正参数已变化；请重新提取脊线。")
+        )
+        self._sync_workflow_state_after_invalidation()
+
+    def _sync_velocity_correction_warning(self) -> None:
+        """Expose exact-wavelength and oblique-window applicability limits."""
+        configuration = self._session.run_configuration
+        if configuration is None:
+            self.velocity_correction_warning_label.clear()
+            return
+        correction = configuration.velocity_correction_config
+        if correction.window_material is WindowMaterial.NONE:
+            self.velocity_correction_warning_label.setText(
+                self.tr("窗口修正已关闭；角度投影修正仍按当前角度执行。")
+            )
+            return
+        wavelength_nm = configuration.vacuum_wavelength_m * 1e9
+        if configuration.vacuum_wavelength_m != 1550.0e-9:
+            self.velocity_correction_warning_label.setText(
+                self.tr(
+                    "警告：Rigg 2014 LiF 参数仅按 1550 nm 标定；当前波长为 "
+                    "{wavelength:.12g} nm。"
+                ).format(wavelength=wavelength_nm)
+            )
+            return
+        if correction.measurement_angle_rad > 0.0:
+            self.velocity_correction_warning_label.setText(
+                self.tr(
+                    "非零角度与 LiF 修正按可分离工程近似组合，不代表完整斜入射"
+                    "动态折射模型。"
+                )
+            )
+            return
+        self.velocity_correction_warning_label.setText(
+            self.tr("LiF [100] / 1550 nm；观测角 0°。")
+        )
+
+    def _automatic_ridge_extraction_changed(self, index: int) -> None:
+        """Invalidate ridge and downstream products when selection mode changes."""
+        if self._updating_parameter_controls:
+            return
+        mode_value = self.automatic_ridge_extraction_combo.itemData(index)
+        if not isinstance(mode_value, str):
+            return
+        try:
+            mode = AutomaticRidgeExtractionMode(mode_value)
+        except ValueError:
+            return
+        if not self._session.set_automatic_ridge_extraction_mode(mode):
+            return
+        self._clear_downstream_presentation(
+            self.tr("自动脊线提取方式已变化；请重新提取脊线。")
+        )
         self._sync_workflow_state_after_invalidation()
 
     def _validate_current_parameters(self) -> bool:
@@ -1487,6 +1690,8 @@ class MainWindow(QMainWindow):
         style = "" if valid else "border: 1px solid #c62828;"
         for control in (
             self.vacuum_wavelength_spin,
+            self.window_name_combo,
+            self.automatic_ridge_extraction_combo,
             self.window_length_spin,
             self.overlap_spin,
             self.nfft_spin,

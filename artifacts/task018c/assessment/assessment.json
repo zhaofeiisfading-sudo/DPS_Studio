@@ -1,0 +1,85 @@
+{
+  "production_default_mode": "continuity_assisted",
+  "production_thresholds": {
+    "top_k_candidates": 3,
+    "minimum_candidate_peak_to_background_db": 10.0,
+    "minimum_candidate_relative_to_strongest_db": -6.0,
+    "recovery_tolerance_source": "sample_rate_hz_divided_by_window_length_samples"
+  },
+  "legacy_baseline_all_equal": true,
+  "production_changed_frame_count": 1,
+  "production_changed_frames": [
+    {
+      "source": "20260630-1.csv",
+      "channel": "pdv_channel_2",
+      "frame": 1015,
+      "time_s": 0.0007472116149911109,
+      "legacy_frequency_hz": 508751027.84382087,
+      "continuity_frequency_hz": 211379347.7240943,
+      "legacy_state": "ambiguous_peak",
+      "continuity_state": "measured",
+      "legacy_velocity_m_s": null,
+      "continuity_velocity_m_s": 163.81899448617307,
+      "candidate_rank": 2,
+      "reselection_reason": "reselected"
+    }
+  ],
+  "window_evaluation_source_count": 3,
+  "window_evaluation_channel_run_count": 30,
+  "formal_export": {
+    "files": [
+      "20260630-1_ch2_auto.csv",
+      "20260630-1_ch2_auto.metadata.json",
+      "20260630-1_ch2_auto_detail.csv"
+    ],
+    "metadata_json_count": 1,
+    "schema": "pdv-studio-formal-result-v4",
+    "window_name": "hann",
+    "automatic_ridge_selection": {
+      "continuity_reselection_count": 1,
+      "continuity_reselection_enabled": true,
+      "minimum_candidate_peak_to_background_db": 10.0,
+      "minimum_candidate_relative_to_strongest_db": -6.0,
+      "mode": "continuity_assisted",
+      "recovery_tolerance_hz": 52083333.31557261,
+      "recovery_tolerance_source": "sample_rate_hz_divided_by_window_length_samples",
+      "selection_method": "strongest local peak by default; optional isolated-jump-only event-aware continuity rescue under explicit spectral and two-neighbor hard gates; no interpolation, smoothing, filtering, or gap filling",
+      "top_k_candidates": 3
+    },
+    "automatic_event_candidate_time_s": 0.0007462228149907737,
+    "compatibility_event_candidate_time_s": 0.0007461940149907639,
+    "event_reference_time_s": null,
+    "event_reference_source": null,
+    "frame_1015_detail": {
+      "time_s": "0.00074721161499111089",
+      "coarse_peak_frequency_hz": "214843749.92673701",
+      "refined_frequency_hz": "211379347.7240943",
+      "apparent_velocity_m_s": "163.81899448617307",
+      "display_velocity_m_s": "163.81899448617307",
+      "ridge_quality_flag": "candidate",
+      "ridge_refinement_status": "refined",
+      "ridge_selection_origin": "continuity_assisted_alternative",
+      "selected_candidate_rank": "2",
+      "signal_state": "measured",
+      "velocity_origin": "quality_gated_measurement",
+      "is_pre_event_display_only": "false",
+      "channel": "pdv_channel_2",
+      "analysis_mode": "automatic"
+    }
+  },
+  "raw_sha256_before": {
+    ".gitkeep": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5",
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74",
+    "20260630-2.csv": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261",
+    "20260701.csv": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A"
+  },
+  "raw_sha256_after": {
+    ".gitkeep": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5",
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74",
+    "20260630-2.csv": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261",
+    "20260701.csv": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A"
+  },
+  "raw_unchanged": true
+}

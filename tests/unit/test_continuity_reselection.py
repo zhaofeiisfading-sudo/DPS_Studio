@@ -3,16 +3,20 @@ from pathlib import Path
 import numpy as np
 
 from dps_studio.core.ridge import (
+    AutomaticRidgeExtractionMode,
+    AutomaticRidgeSelectionConfig,
     CandidateReselectionReason,
     ContinuityReselectionConfig,
     EventAwareContinuityConfig,
     LocalPeakCandidateConfig,
     ReselectionFrameStatus,
+    RidgeSelectionOrigin,
     assess_event_aware_ridge_continuity,
     extract_local_peak_candidates,
     extract_peak_ridge,
     refine_peak_ridge_subbin,
     reselect_isolated_jump_candidates,
+    select_automatic_ridge,
 )
 from dps_studio.core.time_frequency import STFTResult
 
@@ -61,14 +65,14 @@ def _stft(
     )
 
 
-def _run(
+def _pipeline(
     legacy_frequency_mhz: list[float | None],
     *,
     alternative_frame: int | None = None,
     alternative_frequency_mhz: float = 102.0,
     alternative_magnitude: float = 8.0,
     event_frame: int | None = None,
-) -> object:
+) -> tuple[object, object, object, object]:
     stft = _stft(
         legacy_frequency_mhz,
         alternative_frame=alternative_frame,
@@ -100,7 +104,7 @@ def _run(
         minimum_background_bin_count=2,
         config=LocalPeakCandidateConfig(3),
     )
-    return reselect_isolated_jump_candidates(
+    reselection = reselect_isolated_jump_candidates(
         refined,
         candidates,
         continuity,
@@ -109,6 +113,39 @@ def _run(
             minimum_peak_to_competitor_db=-6.0,
             maximum_neighbor_distance_hz=5.0 * MHZ,
         ),
+    )
+    return ridge, refined, candidates, reselection
+
+
+def _run(
+    legacy_frequency_mhz: list[float | None],
+    **kwargs: object,
+) -> object:
+    return _pipeline(legacy_frequency_mhz, **kwargs)[-1]
+
+
+def _formal_selection(
+    legacy_frequency_mhz: list[float | None],
+    *,
+    mode: AutomaticRidgeExtractionMode = (
+        AutomaticRidgeExtractionMode.CONTINUITY_ASSISTED
+    ),
+    **kwargs: object,
+) -> tuple[object, object, object]:
+    ridge, refined, candidates, reselection = _pipeline(
+        legacy_frequency_mhz,
+        **kwargs,
+    )
+    return select_automatic_ridge(
+        ridge,
+        refined,
+        candidates=candidates,
+        reselection=reselection,
+        config=AutomaticRidgeSelectionConfig(
+            mode=mode,
+            minimum_candidate_peak_to_background_db=6.0,
+        ),
+        effective_recovery_tolerance_hz=5.0 * MHZ,
     )
 
 
@@ -126,6 +163,35 @@ def test_isolated_wrong_strongest_reselects_strong_continuous_alternative() -> N
     assert selected[0].reselection_reason is CandidateReselectionReason.RESELECTED
 
 
+def test_continuity_mode_promotes_alternative_with_formal_provenance() -> None:
+    formal_ridge, formal_refined, selection = _formal_selection(
+        [100.0, 101.0, 300.0, 102.0, 103.0],
+        alternative_frame=2,
+    )
+
+    assert formal_ridge.frequency_hz[2] == 102.0 * MHZ
+    assert formal_refined.refined_frequency_hz[2] == 102.0 * MHZ
+    assert selection.origins[2] is (
+        RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE
+    )
+    assert selection.selected_candidate_rank[2] == 2
+    assert selection.reselected_frame_indices == (2,)
+
+
+def test_legacy_mode_preserves_strongest_peak_exactly() -> None:
+    formal_ridge, formal_refined, selection = _formal_selection(
+        [100.0, 101.0, 300.0, 102.0, 103.0],
+        alternative_frame=2,
+        mode=AutomaticRidgeExtractionMode.LEGACY_STRONGEST_PEAK,
+    )
+
+    assert formal_ridge.frequency_hz[2] == 300.0 * MHZ
+    assert formal_refined.refined_frequency_hz[2] == 300.0 * MHZ
+    assert selection.origins[2] is RidgeSelectionOrigin.STRONGEST_PEAK
+    assert selection.selected_candidate_rank[2] == 1
+    assert selection.reselected_frame_indices == ()
+
+
 def test_weak_alternative_is_not_selected() -> None:
     result = _run(
         [100.0, 101.0, 300.0, 102.0, 103.0],
@@ -140,6 +206,13 @@ def test_weak_alternative_is_not_selected() -> None:
         is CandidateReselectionReason.PEAK_TO_COMPETITOR_TOO_LOW
         for evidence in result.evidence_by_frame[2]
     )
+    formal_ridge, _, selection = _formal_selection(
+        [100.0, 101.0, 300.0, 102.0, 103.0],
+        alternative_frame=2,
+        alternative_magnitude=2.0,
+    )
+    assert formal_ridge.frequency_hz[2] == 300.0 * MHZ
+    assert selection.reselected_frame_indices == ()
 
 
 def test_sustained_branch_change_is_not_reselected() -> None:
@@ -162,6 +235,14 @@ def test_event_transition_is_protected() -> None:
 
     assert result.frame_statuses[2] is ReselectionFrameStatus.EVENT_TRANSITION_PROTECTED
     assert result.experimental_frequency_hz[2] == 430.0 * MHZ
+    formal_ridge, _, selection = _formal_selection(
+        [60.0, 60.0, 430.0, 440.0],
+        alternative_frame=2,
+        alternative_frequency_mhz=60.0,
+        event_frame=2,
+    )
+    assert formal_ridge.frequency_hz[2] == 430.0 * MHZ
+    assert selection.reselected_frame_indices == ()
 
 
 def test_gap_is_not_crossed_or_filled() -> None:
@@ -169,6 +250,13 @@ def test_gap_is_not_crossed_or_filled() -> None:
 
     assert result.reselected_frame_indices == ()
     assert np.isnan(result.experimental_frequency_hz[1])
+    formal_ridge, formal_refined, selection = _formal_selection(
+        [100.0, None, 300.0, 102.0],
+        alternative_frame=2,
+    )
+    assert formal_ridge.frequency_hz[1] == 1.0 * MHZ
+    assert np.isnan(formal_refined.refined_frequency_hz[1])
+    assert selection.reselected_frame_indices == ()
 
 
 def test_isolated_jump_without_alternative_preserves_legacy() -> None:

@@ -1,0 +1,9 @@
+﻿source,channel,time_s,formal_ridge_frequency_hz,refined_candidate_frequency_hz,formal_refined_frequency_hz,signal_state,formal_apparent_velocity_m_s,display_velocity_m_s,nan_mask,automatic_event_candidate_time_s,compatibility_event_candidate_time_s,all_required_fields_equal
+20260607.csv,pdv_channel_1,True,True,True,True,True,True,True,True,True,True,True
+20260607.csv,pdv_channel_2,True,True,True,True,True,True,True,True,True,True,True
+20260630-1.csv,pdv_channel_1,True,True,True,True,True,True,True,True,True,True,True
+20260630-1.csv,pdv_channel_2,True,True,True,True,True,True,True,True,True,True,True
+20260630-2.csv,pdv_channel_1,True,True,True,True,True,True,True,True,True,True,True
+20260630-2.csv,pdv_channel_2,True,True,True,True,True,True,True,True,True,True,True
+20260701.csv,pdv_channel_1,True,True,True,True,True,True,True,True,True,True,True
+20260701.csv,pdv_channel_2,True,True,True,True,True,True,True,True,True,True,True

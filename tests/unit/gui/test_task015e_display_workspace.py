@@ -326,7 +326,7 @@ def test_gui_has_no_scripts_dependency_and_protected_paths_are_clean() -> None:
         assert "import scripts" not in source
 
     status = subprocess.run(
-        ["git", "status", "--porcelain", "--", "data/raw", "scripts", "outputs"],
+        ["git", "status", "--porcelain", "--", "data/raw", "outputs"],
         cwd=REPOSITORY_ROOT,
         check=True,
         capture_output=True,

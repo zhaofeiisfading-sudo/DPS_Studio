@@ -14,13 +14,18 @@ from dps_studio.core.event_candidates import (
     build_stream_event_candidates,
 )
 from dps_studio.core.models import SignalRecord
-from dps_studio.core.physics import convert_ridge_to_apparent_velocity
+from dps_studio.core.physics import (
+    VelocityCorrectionConfig,
+    apply_velocity_corrections,
+    convert_ridge_to_apparent_velocity,
+)
 from dps_studio.core.quality import (
     SignalDetectionConfig,
     SignalState,
     detect_beat_signal,
 )
 from dps_studio.core.ridge import (
+    AutomaticRidgeSelectionConfig,
     ContinuityReselectionConfig,
     EventAwareContinuityConfig,
     LocalPeakCandidateConfig,
@@ -36,6 +41,7 @@ from dps_studio.core.ridge import (
     extract_peak_ridge,
     refine_peak_ridge_subbin,
     reselect_isolated_jump_candidates,
+    select_automatic_ridge,
     validate_ridge_corridor_for_stft,
 )
 from dps_studio.core.time_frequency import STFTResult, compute_stft
@@ -108,6 +114,8 @@ def analyze_profile(
     ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
     local_peak_candidate_config: LocalPeakCandidateConfig | None = None,
     continuity_reselection_config: ContinuityReselectionConfig | None = None,
+    automatic_ridge_selection_config: AutomaticRidgeSelectionConfig | None = None,
+    velocity_correction_config: VelocityCorrectionConfig | None = None,
 ) -> Mapping[str, ChannelAnalysis]:
     """Analyze every channel independently with one formal profile."""
     if not isinstance(profile, AnalysisProfile):
@@ -135,6 +143,8 @@ def analyze_profile(
         ridge_constraints=ridge_constraints,
         local_peak_candidate_config=local_peak_candidate_config,
         continuity_reselection_config=continuity_reselection_config,
+        automatic_ridge_selection_config=automatic_ridge_selection_config,
+        velocity_correction_config=velocity_correction_config,
     )
 
 
@@ -162,6 +172,8 @@ def analyze_configuration(
     ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
     local_peak_candidate_config: LocalPeakCandidateConfig | None = None,
     continuity_reselection_config: ContinuityReselectionConfig | None = None,
+    automatic_ridge_selection_config: AutomaticRidgeSelectionConfig | None = None,
+    velocity_correction_config: VelocityCorrectionConfig | None = None,
 ) -> Mapping[str, ChannelAnalysis]:
     """Run STFT through continuity diagnostics without paths, plots, or writes."""
     stft_results = compute_configuration_stfts(
@@ -190,6 +202,8 @@ def analyze_configuration(
         ridge_constraints=ridge_constraints,
         local_peak_candidate_config=local_peak_candidate_config,
         continuity_reselection_config=continuity_reselection_config,
+        automatic_ridge_selection_config=automatic_ridge_selection_config,
+        velocity_correction_config=velocity_correction_config,
     )
 
 
@@ -213,6 +227,8 @@ def analyze_stft_results(
     ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
     local_peak_candidate_config: LocalPeakCandidateConfig | None = None,
     continuity_reselection_config: ContinuityReselectionConfig | None = None,
+    automatic_ridge_selection_config: AutomaticRidgeSelectionConfig | None = None,
+    velocity_correction_config: VelocityCorrectionConfig | None = None,
 ) -> Mapping[str, ChannelAnalysis]:
     """Run post-STFT science while preserving the supplied STFT objects.
 
@@ -232,6 +248,12 @@ def analyze_stft_results(
     constraints = _validated_ridge_constraints(stft_results, ridge_constraints)
     if not math.isfinite(vacuum_wavelength_m) or vacuum_wavelength_m <= 0.0:
         raise ValueError("vacuum_wavelength_m must be finite and strictly positive.")
+    if velocity_correction_config is None:
+        velocity_correction_config = VelocityCorrectionConfig()
+    elif not isinstance(velocity_correction_config, VelocityCorrectionConfig):
+        raise TypeError(
+            "velocity_correction_config must be a VelocityCorrectionConfig."
+        )
     manual_reference = _manual_reference(
         event_start_time_s=event_start_time_s,
         manual_event_reference_time_s=manual_event_reference_time_s,
@@ -277,21 +299,58 @@ def analyze_stft_results(
         or minimum_background_bin_count < 1
     ):
         raise ValueError("minimum_background_bin_count must be a positive integer.")
+    automatic_config_supplied = automatic_ridge_selection_config is not None
+    if automatic_ridge_selection_config is None:
+        automatic_ridge_selection_config = AutomaticRidgeSelectionConfig()
+    elif not isinstance(
+        automatic_ridge_selection_config,
+        AutomaticRidgeSelectionConfig,
+    ):
+        raise TypeError(
+            "automatic_ridge_selection_config must be an "
+            "AutomaticRidgeSelectionConfig."
+        )
     if local_peak_candidate_config is None:
         local_peak_candidate_config = LocalPeakCandidateConfig(
-            maximum_candidates_per_frame=3
+            maximum_candidates_per_frame=(
+                automatic_ridge_selection_config.top_k_candidates
+            )
         )
     elif not isinstance(local_peak_candidate_config, LocalPeakCandidateConfig):
         raise TypeError(
             "local_peak_candidate_config must be a LocalPeakCandidateConfig."
         )
     if continuity_reselection_config is None:
-        continuity_reselection_config = ContinuityReselectionConfig()
+        continuity_reselection_config = ContinuityReselectionConfig(
+            minimum_peak_to_background_db=(
+                automatic_ridge_selection_config.minimum_candidate_peak_to_background_db
+            ),
+            minimum_peak_to_competitor_db=(
+                automatic_ridge_selection_config.minimum_candidate_relative_to_strongest_db
+            ),
+            maximum_neighbor_distance_hz=(
+                automatic_ridge_selection_config.recovery_tolerance_hz
+            ),
+        )
     elif not isinstance(
         continuity_reselection_config, ContinuityReselectionConfig
     ):
         raise TypeError(
             "continuity_reselection_config must be a ContinuityReselectionConfig."
+        )
+    if automatic_config_supplied and (
+        local_peak_candidate_config.maximum_candidates_per_frame
+        != automatic_ridge_selection_config.top_k_candidates
+        or continuity_reselection_config.minimum_peak_to_background_db
+        != automatic_ridge_selection_config.minimum_candidate_peak_to_background_db
+        or continuity_reselection_config.minimum_peak_to_competitor_db
+        != automatic_ridge_selection_config.minimum_candidate_relative_to_strongest_db
+        or continuity_reselection_config.maximum_neighbor_distance_hz
+        != automatic_ridge_selection_config.recovery_tolerance_hz
+    ):
+        raise ValueError(
+            "Legacy candidate/reselection arguments must match the explicit "
+            "automatic_ridge_selection_config when both are supplied."
         )
 
     analyses: dict[str, ChannelAnalysis] = {}
@@ -310,7 +369,7 @@ def analyze_stft_results(
             )
             channel_analysis_start = ridge_constraint.start_time_s
             channel_analysis_end = ridge_constraint.end_time_s
-        ridge_result = extract_peak_ridge(
+        strongest_ridge_result = extract_peak_ridge(
             stft_result,
             minimum_frequency_hz=minimum_frequency_hz,
             maximum_frequency_hz=maximum_frequency_hz,
@@ -323,10 +382,9 @@ def analyze_stft_results(
             ),
             ridge_constraint=ridge_constraint,
         )
-        refined_result = refine_peak_ridge_subbin(stft_result, ridge_result)
-        provisional_discrete_velocity_result = convert_ridge_to_apparent_velocity(
-            ridge_result,
-            vacuum_wavelength_m=vacuum_wavelength_m,
+        strongest_refined_result = refine_peak_ridge_subbin(
+            stft_result,
+            strongest_ridge_result,
         )
         frequency_spacing_hz = float(
             stft_result.frequency_hz[1] - stft_result.frequency_hz[0]
@@ -336,6 +394,98 @@ def analyze_stft_results(
             peak_exclusion_half_width_bins=(
                 detection_config.peak_exclusion_half_width_bins
             ),
+        )
+        strongest_spectral_quality_result = assess_ridge_spectral_quality(
+            stft_result,
+            strongest_refined_result,
+            background_exclusion_half_width_hz=guard_hz,
+            minimum_background_bin_count=minimum_background_bin_count,
+        )
+        strongest_signal_detection_result = detect_beat_signal(
+            stft_result,
+            strongest_refined_result,
+            strongest_spectral_quality_result,
+            detection_config=detection_config,
+            vacuum_wavelength_m=vacuum_wavelength_m,
+            analysis_start_time_s=channel_analysis_start,
+            analysis_end_time_s=channel_analysis_end,
+            manual_event_reference_time_s=manual_reference,
+        )
+        strongest_stream_event_candidates = build_stream_event_candidates(
+            strongest_signal_detection_result,
+            profile_name=profile_name,
+            channel_name=channel_name,
+            config=event_candidate_config,
+        )
+        selection_event_time_s: float | None
+        selection_event_source: str | None
+        if manual_reference is not None:
+            selection_event_time_s = manual_reference
+            selection_event_source = "manual_event_reference"
+        else:
+            selection_event_time_s = (
+                strongest_stream_event_candidates.primary_candidate_time_s
+            )
+            selection_event_source = (
+                "event_level_primary_candidate"
+                if selection_event_time_s is not None
+                else None
+            )
+        continuity_config = EventAwareContinuityConfig(
+            isolated_jump_threshold_hz=(
+                event_candidate_config.maximum_adjacent_frequency_step_hz
+            ),
+            neighbor_recovery_tolerance_hz=(
+                stft_result.sample_rate_hz / stft_result.window_length_samples
+            ),
+        )
+        strongest_event_aware_continuity_result = (
+            assess_event_aware_ridge_continuity(
+                strongest_refined_result,
+                event_reference_time_s=selection_event_time_s,
+                event_reference_source=selection_event_source,
+                stft_window_duration_s=(
+                    stft_result.window_length_samples
+                    / stft_result.sample_rate_hz
+                ),
+                config=continuity_config,
+            )
+        )
+        local_peak_candidates = None
+        experimental_reselection_result = None
+        if ridge_constraint is None:
+            local_peak_candidates = extract_local_peak_candidates(
+                stft_result,
+                minimum_frequency_hz=minimum_frequency_hz,
+                maximum_frequency_hz=maximum_frequency_hz,
+                background_exclusion_half_width_hz=guard_hz,
+                minimum_background_bin_count=minimum_background_bin_count,
+                config=local_peak_candidate_config,
+            )
+            experimental_reselection_result = reselect_isolated_jump_candidates(
+                strongest_refined_result,
+                local_peak_candidates,
+                strongest_event_aware_continuity_result,
+                config=continuity_reselection_config,
+            )
+        ridge_result, refined_result, automatic_selection_result = (
+            select_automatic_ridge(
+                strongest_ridge_result,
+                strongest_refined_result,
+                candidates=local_peak_candidates,
+                reselection=experimental_reselection_result,
+                config=automatic_ridge_selection_config,
+                effective_recovery_tolerance_hz=(
+                    continuity_config.neighbor_recovery_tolerance_hz
+                    if automatic_ridge_selection_config.recovery_tolerance_hz
+                    is None
+                    else automatic_ridge_selection_config.recovery_tolerance_hz
+                ),
+            )
+        )
+        provisional_discrete_velocity_result = convert_ridge_to_apparent_velocity(
+            ridge_result,
+            vacuum_wavelength_m=vacuum_wavelength_m,
         )
         spectral_quality_result = assess_ridge_spectral_quality(
             stft_result,
@@ -352,6 +502,10 @@ def analyze_stft_results(
             analysis_start_time_s=channel_analysis_start,
             analysis_end_time_s=channel_analysis_end,
             manual_event_reference_time_s=manual_reference,
+            ridge_selection_origins=automatic_selection_result.origins,
+            minimum_continuity_candidate_relative_to_strongest_db=(
+                automatic_ridge_selection_config.minimum_candidate_relative_to_strongest_db
+            ),
         )
         measured_mask = np.fromiter(
             (
@@ -367,23 +521,24 @@ def analyze_stft_results(
             dtype=np.float64,
         )
         formal_discrete_velocity_m_s[measured_mask] = (
-            vacuum_wavelength_m
-            * signal_detection_result.coarse_peak_frequency_hz[measured_mask]
-            / 2.0
+            provisional_discrete_velocity_result.apparent_velocity_m_s[
+                measured_mask
+            ]
         )
-        refined_velocity_m_s = (
-            signal_detection_result.apparent_velocity_m_s.copy()
+        refined_velocity_m_s = signal_detection_result.apparent_velocity_m_s.copy()
+        velocity_correction_result = apply_velocity_corrections(
+            refined_velocity_m_s,
+            config=velocity_correction_config,
+            vacuum_wavelength_m=vacuum_wavelength_m,
         )
         display_velocity_m_s, velocity_origins = build_display_velocity(
             stft_result.time_s,
             signal_detection_result.signal_states,
-            refined_velocity_m_s,
+            velocity_correction_result.corrected_velocity_m_s,
             manual_event_reference_time_s=manual_reference,
             analysis_start_time_s=channel_analysis_start,
             analysis_end_time_s=channel_analysis_end,
-            enable_pre_event_display=(
-                assume_pre_event_zero_for_display
-            ),
+            enable_pre_event_display=assume_pre_event_zero_for_display,
             pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
         )
         stream_event_candidates = build_stream_event_candidates(
@@ -412,32 +567,8 @@ def analyze_stft_results(
             stft_window_duration_s=(
                 stft_result.window_length_samples / stft_result.sample_rate_hz
             ),
-            config=EventAwareContinuityConfig(
-                isolated_jump_threshold_hz=(
-                    event_candidate_config.maximum_adjacent_frequency_step_hz
-                ),
-                neighbor_recovery_tolerance_hz=(
-                    stft_result.sample_rate_hz / stft_result.window_length_samples
-                ),
-            ),
+            config=continuity_config,
         )
-        local_peak_candidates = None
-        experimental_reselection_result = None
-        if ridge_constraint is None:
-            local_peak_candidates = extract_local_peak_candidates(
-                stft_result,
-                minimum_frequency_hz=minimum_frequency_hz,
-                maximum_frequency_hz=maximum_frequency_hz,
-                background_exclusion_half_width_hz=guard_hz,
-                minimum_background_bin_count=minimum_background_bin_count,
-                config=local_peak_candidate_config,
-            )
-            experimental_reselection_result = reselect_isolated_jump_candidates(
-                refined_result,
-                local_peak_candidates,
-                event_aware_continuity_result,
-                config=continuity_reselection_config,
-            )
         analyses[channel_name] = ChannelAnalysis(
             stft_result=stft_result,
             ridge_result=ridge_result,
@@ -445,6 +576,7 @@ def analyze_stft_results(
             discrete_velocity_result=provisional_discrete_velocity_result,
             formal_discrete_velocity_m_s=formal_discrete_velocity_m_s,
             refined_velocity_m_s=refined_velocity_m_s,
+            velocity_correction_result=velocity_correction_result,
             display_velocity_m_s=display_velocity_m_s,
             velocity_origins=velocity_origins,
             spectral_quality_result=spectral_quality_result,
@@ -452,6 +584,7 @@ def analyze_stft_results(
             event_aware_continuity_result=event_aware_continuity_result,
             signal_detection_result=signal_detection_result,
             stream_event_candidates=stream_event_candidates,
+            automatic_ridge_selection_result=automatic_selection_result,
             local_peak_candidates=local_peak_candidates,
             experimental_reselection_result=experimental_reselection_result,
         )

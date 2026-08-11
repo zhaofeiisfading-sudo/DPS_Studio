@@ -783,19 +783,17 @@ class VelocityView(_ChannelView):
         self.display_velocity_check.setChecked(False)
         self.display_velocity_check.toggled.connect(self._rerender)
         option_row.addWidget(self.display_velocity_check)
-        self.corrected_velocity_control = QPushButton(self.tr("窗口修正尚未接入"))
-        self.corrected_velocity_control.setObjectName("correctedVelocityControl")
-        self.corrected_velocity_control.setEnabled(False)
-        option_row.addWidget(self.corrected_velocity_control)
         option_row.addStretch(1)
         self.root_layout.addLayout(option_row)
         self.plot_widget = pg.PlotWidget(background="w")
         self.plot_widget.setObjectName("velocityPlot")
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
-        self.plot_widget.setLabel("left", self.tr("表观速度"), units="m/s")
+        self.plot_widget.setLabel("left", self.tr("速度"), units="m/s")
         self.plot_widget.showGrid(x=True, y=True, alpha=0.22)
         self.root_layout.addWidget(self.plot_widget, 1)
         self.formal_curve: Any | None = None
+        self.apparent_curve: Any | None = None
+        self.corrected_curve: Any | None = None
         self.display_curve: Any | None = None
         self.display_connector: Any | None = None
         self._automatic_analyses: Mapping[str, ChannelAnalysis] = {}
@@ -965,14 +963,21 @@ class VelocityView(_ChannelView):
         self.plot_widget.clear()
         self.plot_widget.addLegend(offset=(12, 12))
         time_us = analysis.stft_result.time_s * 1e6
-        formal_velocity = analysis.signal_detection_result.apparent_velocity_m_s
-        self.formal_curve = self.plot_widget.plot(
+        self.apparent_curve = self.plot_widget.plot(
             time_us,
-            formal_velocity,
-            pen=pg.mkPen("#0072B2", width=2.0),
+            analysis.apparent_velocity_m_s,
+            pen=pg.mkPen("#0072B2", width=1.4, style=pg.QtCore.Qt.DashLine),
             connect="finite",
             name=self.tr("正式表观速度"),
         )
+        self.corrected_curve = self.plot_widget.plot(
+            time_us,
+            analysis.corrected_velocity_m_s,
+            pen=pg.mkPen("#D55E00", width=2.0),
+            connect="finite",
+            name=self.tr("正式修正速度"),
+        )
+        self.formal_curve = self.corrected_curve
         self.display_curve = None
         self.display_connector = None
         if self.display_velocity_check.isChecked():
@@ -1008,7 +1013,7 @@ class VelocityView(_ChannelView):
 
     def _fit_current_view(self, analysis: ChannelAnalysis) -> None:
         super()._fit_current_view(analysis)
-        arrays = [analysis.signal_detection_result.apparent_velocity_m_s]
+        arrays = [analysis.apparent_velocity_m_s, analysis.corrected_velocity_m_s]
         if self.display_velocity_check.isChecked():
             arrays.append(analysis.display_velocity_m_s)
         bounds = finite_velocity_view_range(tuple(arrays))
@@ -1018,6 +1023,8 @@ class VelocityView(_ChannelView):
     def _clear_plot(self) -> None:
         self.plot_widget.clear()
         self.formal_curve = None
+        self.apparent_curve = None
+        self.corrected_curve = None
         self.display_curve = None
         self.display_connector = None
 
@@ -1101,7 +1108,7 @@ class ComparisonView(QWidget):
             self.controls.addWidget(check)
             curve = self.plot_widget.plot(
                 analysis.stft_result.time_s * 1e6,
-                analysis.signal_detection_result.apparent_velocity_m_s,
+                analysis.corrected_velocity_m_s,
                 pen=pg.mkPen(_COLORS[index % len(_COLORS)], width=1.8),
                 connect="finite",
                 name=label,
@@ -1126,7 +1133,7 @@ class ComparisonView(QWidget):
             return
         _fit_analysis_x(self.plot_widget, next(iter(self._analyses.values())))
         arrays = tuple(
-            analysis.signal_detection_result.apparent_velocity_m_s
+            analysis.corrected_velocity_m_s
             for series_key, analysis in self._series.items()
             if self._checks[series_key].isChecked()
         )

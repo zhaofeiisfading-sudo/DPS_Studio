@@ -24,20 +24,25 @@ from dps_studio.core.export.models import (
     ResultExportValidationError,
     ResultExportWriteError,
 )
+from dps_studio.core.physics import velocity_correction_metadata
 from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN
 from dps_studio.core.workflow.models import ChannelAnalysis
 
 
-EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v3"
-_SIMPLE_CSV_FIELDS = ("time_s", "velocity_m_s")
+EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v5"
+_SIMPLE_CSV_FIELDS = ("time_s", "display_velocity_m_s")
 _DETAIL_CSV_FIELDS = (
     "time_s",
     "coarse_peak_frequency_hz",
     "refined_frequency_hz",
     "apparent_velocity_m_s",
+    "angle_corrected_apparent_velocity_m_s",
+    "corrected_velocity_m_s",
     "display_velocity_m_s",
     "ridge_quality_flag",
     "ridge_refinement_status",
+    "ridge_selection_origin",
+    "selected_candidate_rank",
     "signal_state",
     "velocity_origin",
     "is_pre_event_display_only",
@@ -358,7 +363,7 @@ def _write_simple_csv(
                 writer.writerow(
                     {
                         "time_s": _csv_float(detection.time_s[index]),
-                        "velocity_m_s": _csv_float(
+                        "display_velocity_m_s": _csv_float(
                             analysis.display_velocity_m_s[index]
                         ),
                     }
@@ -401,6 +406,12 @@ def _write_detail_csv(
                         "apparent_velocity_m_s": _csv_float(
                             detection.apparent_velocity_m_s[index]
                         ),
+                        "angle_corrected_apparent_velocity_m_s": _csv_float(
+                            analysis.angle_corrected_apparent_velocity_m_s[index]
+                        ),
+                        "corrected_velocity_m_s": _csv_float(
+                            analysis.corrected_velocity_m_s[index]
+                        ),
                         "display_velocity_m_s": _csv_float(
                             analysis.display_velocity_m_s[index]
                         ),
@@ -410,6 +421,16 @@ def _write_detail_csv(
                         "ridge_refinement_status": detection.refinement_statuses[
                             index
                         ].value,
+                        "ridge_selection_origin": (
+                            analysis.automatic_ridge_selection_result.origins[
+                                index
+                            ].value
+                        ),
+                        "selected_candidate_rank": int(
+                            analysis.automatic_ridge_selection_result.selected_candidate_rank[
+                                index
+                            ]
+                        ),
                         "signal_state": detection.signal_states[index].value,
                         "velocity_origin": origin,
                         "is_pre_event_display_only": str(display_only).lower(),
@@ -452,6 +473,35 @@ def _metadata_document(
             analysis.stream_event_candidates.primary_candidate_time_s
         )
         compatibility_candidate_time_s = detection.detected_event_candidate_time_s
+    selection = analysis.automatic_ridge_selection_result
+    automatic_selection_metadata: dict[str, Any] | None = None
+    if options.analysis_mode is ResultAnalysisMode.AUTOMATIC:
+        selection_config = selection.config
+        automatic_selection_metadata = {
+            "mode": selection_config.mode.value,
+            "top_k_candidates": selection_config.top_k_candidates,
+            "continuity_reselection_enabled": (
+                selection_config.reselection_is_active
+            ),
+            "minimum_candidate_peak_to_background_db": (
+                selection_config.minimum_candidate_peak_to_background_db
+            ),
+            "minimum_candidate_relative_to_strongest_db": (
+                selection_config.minimum_candidate_relative_to_strongest_db
+            ),
+            "recovery_tolerance_hz": (
+                selection.effective_recovery_tolerance_hz
+            ),
+            "recovery_tolerance_source": (
+                "explicit_configuration"
+                if selection_config.recovery_tolerance_hz is not None
+                else "sample_rate_hz_divided_by_window_length_samples"
+            ),
+            "selection_method": selection.method,
+            "continuity_reselection_count": len(
+                selection.reselected_frame_indices
+            ),
+        }
     return {
         "export_schema_version": EXPORT_SCHEMA_VERSION,
         "dps_studio_version": options.dps_studio_version,
@@ -509,6 +559,16 @@ def _metadata_document(
         "vacuum_wavelength_m": (
             analysis.discrete_velocity_result.vacuum_wavelength_m
         ),
+        "physics": {
+            "vacuum_wavelength_m": (
+                analysis.discrete_velocity_result.vacuum_wavelength_m
+            ),
+            "velocity_relation": "v_app=lambda0*f_b/2",
+        },
+        "velocity_correction": velocity_correction_metadata(
+            analysis.velocity_correction_result
+        ),
+        "automatic_ridge_selection": automatic_selection_metadata,
         "automatic_event_candidate_time_s": automatic_candidate_time_s,
         "compatibility_event_candidate_time_s": compatibility_candidate_time_s,
         "event_reference_time_s": detection.manual_event_reference_time_s,
@@ -535,11 +595,18 @@ def _metadata_document(
             "ridge_refinement_status_counts": dict(
                 Counter(status.value for status in detection.refinement_statuses)
             ),
+            "ridge_selection_origin_counts": dict(
+                Counter(origin.value for origin in selection.origins)
+            ),
         },
         "result_status": {
-            "simple_csv_velocity_column": "velocity_m_s",
+            "simple_csv_velocity_column": "display_velocity_m_s",
             "simple_csv_velocity_source": "display_velocity_m_s",
             "formal_measurement_column": "apparent_velocity_m_s",
+            "angle_corrected_measurement_column": (
+                "angle_corrected_apparent_velocity_m_s"
+            ),
+            "final_corrected_measurement_column": "corrected_velocity_m_s",
             "display_column": "display_velocity_m_s",
             "formal_measurement_preserved": True,
             "unreliable_formal_values_preserved_as_nan": True,
@@ -610,6 +677,19 @@ def _validate_analysis_arrays(channel_name: str, analysis: ChannelAnalysis) -> N
         ("ridge_refinement_statuses", detection.refinement_statuses),
         ("signal_states", detection.signal_states),
         ("velocity_origins", analysis.velocity_origins),
+        (
+            "angle_corrected_apparent_velocity_m_s",
+            analysis.angle_corrected_apparent_velocity_m_s,
+        ),
+        ("corrected_velocity_m_s", analysis.corrected_velocity_m_s),
+        (
+            "ridge_selection_origins",
+            analysis.automatic_ridge_selection_result.origins,
+        ),
+        (
+            "selected_candidate_rank",
+            analysis.automatic_ridge_selection_result.selected_candidate_rank,
+        ),
     )
     for field_name, values in sequences:
         if len(values) != frame_count:

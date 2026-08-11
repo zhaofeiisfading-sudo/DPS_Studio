@@ -17,8 +17,13 @@ from dps_studio.core.analysis_profiles import (
 )
 from dps_studio.core.event_candidates import EventCandidateConfig
 from dps_studio.core.models import SignalRecord
+from dps_studio.core.physics import VelocityCorrectionConfig
 from dps_studio.core.quality import SignalDetectionConfig
-from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.ridge import (
+    AutomaticRidgeExtractionMode,
+    AutomaticRidgeSelectionConfig,
+    RidgeCorridorConstraint,
+)
 from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import (
     ChannelAnalysis,
@@ -55,6 +60,8 @@ class AnalysisRunConfiguration:
     parameters: AnalysisRunParameters
     detection_config: SignalDetectionConfig
     event_candidate_config: EventCandidateConfig
+    automatic_ridge_selection_config: AutomaticRidgeSelectionConfig
+    velocity_correction_config: VelocityCorrectionConfig
     background_guard_window_scale: float
     minimum_background_bin_count: int
     event_reference_time_s: float | None
@@ -84,7 +91,7 @@ class AnalysisRunConfiguration:
         return self.parameters.is_custom
 
     @property
-    def custom_overrides(self) -> Mapping[str, int | float]:
+    def custom_overrides(self) -> Mapping[str, int | float | str]:
         """Return immutable explicit override values."""
         return self.parameters.custom_overrides
 
@@ -214,6 +221,10 @@ class AnalysisSession:
             ),
             detection_config=configuration.quality.signal_detection,
             event_candidate_config=configuration.event_candidate,
+            automatic_ridge_selection_config=(
+                configuration.automatic_ridge_selection
+            ),
+            velocity_correction_config=configuration.velocity_correction,
             background_guard_window_scale=(
                 configuration.quality.background_guard_window_scale
             ),
@@ -294,6 +305,25 @@ class AnalysisSession:
             self._invalidate_downstream()
         return True
 
+    def set_automatic_ridge_extraction_mode(
+        self,
+        mode: AutomaticRidgeExtractionMode,
+    ) -> bool:
+        """Change Automatic selection mode and invalidate downstream products."""
+        if self.run_configuration is None:
+            return False
+        if not isinstance(mode, AutomaticRidgeExtractionMode):
+            raise TypeError("mode must be an AutomaticRidgeExtractionMode.")
+        current = self.run_configuration.automatic_ridge_selection_config
+        if mode is current.mode:
+            return False
+        self.run_configuration = replace(
+            self.run_configuration,
+            automatic_ridge_selection_config=replace(current, mode=mode),
+        )
+        self._invalidate_downstream()
+        return True
+
     def set_vacuum_wavelength_m(self, value: float) -> None:
         """Compatibility helper for one explicit wavelength override."""
         if self.run_configuration is None:
@@ -304,6 +334,24 @@ class AnalysisSession:
         self.set_analysis_overrides(
             replace(current, vacuum_wavelength_m=float(value)),
         )
+
+    def set_velocity_correction_config(
+        self,
+        config: VelocityCorrectionConfig,
+    ) -> bool:
+        """Change formal velocity corrections and invalidate all old results."""
+        if self.run_configuration is None:
+            return False
+        if not isinstance(config, VelocityCorrectionConfig):
+            raise TypeError("config must be a VelocityCorrectionConfig.")
+        if config == self.run_configuration.velocity_correction_config:
+            return False
+        self.run_configuration = replace(
+            self.run_configuration,
+            velocity_correction_config=config,
+        )
+        self._invalidate_downstream()
+        return True
 
     def set_display_velocity_configuration(
         self,

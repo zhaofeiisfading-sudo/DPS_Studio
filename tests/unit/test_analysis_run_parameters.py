@@ -12,6 +12,7 @@ from dps_studio.core import (
     build_analysis_run_parameters,
 )
 from dps_studio.core.models import SignalRecord
+from dps_studio.core.time_frequency import STFTConfigurationError
 
 
 def _record(*, sample_count: int = 4096, sample_interval_s: float = 1.0e-10) -> SignalRecord:
@@ -94,6 +95,40 @@ def test_hop_is_derived_and_cannot_be_overridden_independently() -> None:
     assert parameters.overlap_samples == 512
     assert parameters.hop_samples == 256
     assert "hop_samples" not in AnalysisParameterOverrides.__dataclass_fields__
+
+
+@pytest.mark.parametrize(
+    "window_name",
+    ["hann", "hamming", "blackman", "blackmanharris", "boxcar"],
+)
+def test_window_override_has_one_explicit_source_and_changes_no_other_stft_field(
+    window_name: str,
+) -> None:
+    parameters = build_analysis_run_parameters(
+        base_profile=BALANCED_PROFILE,
+        base_vacuum_wavelength_m=1.55e-6,
+        overrides=AnalysisParameterOverrides(window_name=window_name),
+    )
+
+    assert parameters.window_name == window_name
+    assert parameters.window_length_samples == BALANCED_PROFILE.window_length_samples
+    assert parameters.overlap_samples == BALANCED_PROFILE.overlap_samples
+    assert parameters.hop_samples == BALANCED_PROFILE.hop_samples
+    assert parameters.nfft == BALANCED_PROFILE.nfft
+    expected = {} if window_name == "hann" else {"window_name": window_name}
+    assert dict(parameters.custom_overrides) == expected
+
+
+def test_unsupported_window_override_is_rejected_without_fallback() -> None:
+    with pytest.raises(
+        STFTConfigurationError,
+        match="Unsupported formal STFT window_name",
+    ):
+        build_analysis_run_parameters(
+            base_profile=BALANCED_PROFILE,
+            base_vacuum_wavelength_m=1.55e-6,
+            overrides=AnalysisParameterOverrides(window_name="tukey"),
+        )
 
 
 def test_nfft_uses_formal_greater_than_or_equal_to_window_rule() -> None:

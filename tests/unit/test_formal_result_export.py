@@ -31,6 +31,7 @@ def _analyses(
     *,
     manual_event_reference_time_s: float | None = 0.4e-6,
     include_active_signal: bool = True,
+    window_name: str = "hann",
 ) -> dict[str, Any]:
     sample_rate_hz = 4.0e9
     sample_count = 4096
@@ -53,7 +54,7 @@ def _analyses(
         window_length_samples=256,
         overlap_samples=128,
         nfft=1024,
-        window_name="hann",
+        window_name=window_name,
         minimum_frequency_hz=20.0e6,
         maximum_frequency_hz=800.0e6,
         analysis_start_time_s=0.1e-6,
@@ -148,15 +149,19 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert exported.csv_path.name == "20260607_ch1_auto.csv"
     assert exported.detail_csv_path.name == "20260607_ch1_auto_detail.csv"
     assert exported.metadata_path.name == "20260607_ch1_auto.metadata.json"
-    assert set(simple_rows[0]) == {"time_s", "velocity_m_s"}
+    assert set(simple_rows[0]) == {"time_s", "display_velocity_m_s"}
     assert set(detail_rows[0]) == {
         "time_s",
         "coarse_peak_frequency_hz",
         "refined_frequency_hz",
         "apparent_velocity_m_s",
+        "angle_corrected_apparent_velocity_m_s",
+        "corrected_velocity_m_s",
         "display_velocity_m_s",
         "ridge_quality_flag",
         "ridge_refinement_status",
+        "ridge_selection_origin",
+        "selected_candidate_rank",
         "signal_state",
         "velocity_origin",
         "is_pre_event_display_only",
@@ -166,8 +171,23 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert len(simple_rows) == len(detail_rows)
     for index, (simple, detail) in enumerate(zip(simple_rows, detail_rows, strict=True)):
         assert _same_float(simple["time_s"], analysis.signal_detection_result.time_s[index])
-        assert _same_float(simple["velocity_m_s"], analysis.display_velocity_m_s[index])
-        assert simple["velocity_m_s"] == detail["display_velocity_m_s"]
+        assert _same_float(
+            simple["display_velocity_m_s"],
+            analysis.display_velocity_m_s[index],
+        )
+        assert simple["display_velocity_m_s"] == detail["display_velocity_m_s"]
+        assert _same_float(
+            detail["apparent_velocity_m_s"],
+            analysis.apparent_velocity_m_s[index],
+        )
+        assert _same_float(
+            detail["angle_corrected_apparent_velocity_m_s"],
+            analysis.angle_corrected_apparent_velocity_m_s[index],
+        )
+        assert _same_float(
+            detail["corrected_velocity_m_s"],
+            analysis.corrected_velocity_m_s[index],
+        )
 
     display_only_rows = [
         row for row in detail_rows if row["is_pre_event_display_only"] == "true"
@@ -186,12 +206,33 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     ]
     assert post_event_invalid_indices
     assert all(
-        math.isnan(float(simple_rows[index]["velocity_m_s"]))
+        math.isnan(float(simple_rows[index]["display_velocity_m_s"]))
         for index in post_event_invalid_indices
     )
 
     metadata = json.loads(exported.metadata_path.read_text(encoding="utf-8"))
-    assert metadata["export_schema_version"] == "pdv-studio-formal-result-v3"
+    assert metadata["export_schema_version"] == "pdv-studio-formal-result-v5"
+    selection_metadata = metadata["automatic_ridge_selection"]
+    assert selection_metadata["recovery_tolerance_hz"] == pytest.approx(
+        15_625_000.0
+    )
+    assert {key: value for key, value in selection_metadata.items() if key != "recovery_tolerance_hz"} == {
+        "continuity_reselection_count": 0,
+        "continuity_reselection_enabled": True,
+        "minimum_candidate_peak_to_background_db": 10.0,
+        "minimum_candidate_relative_to_strongest_db": -6.0,
+        "mode": "continuity_assisted",
+        "recovery_tolerance_source": (
+            "sample_rate_hz_divided_by_window_length_samples"
+        ),
+        "selection_method": (
+            "strongest local peak by default; optional isolated-jump-only "
+            "event-aware continuity rescue under explicit spectral and "
+            "two-neighbor hard gates; no interpolation, smoothing, filtering, "
+            "or gap filling"
+        ),
+        "top_k_candidates": 3,
+    }
     assert metadata["data_file"] == exported.csv_path.name
     assert metadata["detail_data_file"] == exported.detail_csv_path.name
     assert metadata["source_file"] == str(results["source_path"])
@@ -205,6 +246,33 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     )
     assert metadata["event_reference_time_s"] == 0.4e-6
     assert metadata["event_reference_source"] == "config"
+    assert metadata["physics"] == {
+        "vacuum_wavelength_m": 1.55e-6,
+        "velocity_relation": "v_app=lambda0*f_b/2",
+    }
+    correction = metadata["velocity_correction"]
+    assert correction["execution_order"] == [
+        "apparent_velocity",
+        "geometrical_angle_correction",
+        "window_correction",
+    ]
+    assert correction["angle"]["angle_rad"] == 0.0
+    assert correction["angle"]["source_doi"] == "10.1063/1.4940935"
+    assert correction["window"] == {
+        "b1": 0.7895,
+        "b2": 0.9918,
+        "crystal_orientation": "[100]",
+        "enabled": True,
+        "loading_context": "dynamic compression / calibrated window correction",
+        "material": "LiF",
+        "model": "Rigg2014_Eq16",
+        "paper_velocity_unit": "km/s",
+        "reference_wavelength_m": 1.55e-6,
+        "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+        "source_doi": "10.1063/1.4890714",
+        "wavelength_matches_model_reference": True,
+        "wavelength_validation_message": None,
+    }
     assert metadata["pre_event_display"]["included_in_csv"] is True
     assert metadata["pre_event_display"]["formal_measurement_modified"] is False
     assert metadata["result_counts"]["exported_row_count"] == len(simple_rows)
@@ -214,6 +282,37 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert metadata["result_status"]["unreliable_formal_values_preserved_as_nan"]
     assert analysis.signal_detection_result.apparent_velocity_m_s.tobytes() == formal_before
     assert analysis.display_velocity_m_s.tobytes() == display_before
+
+
+@pytest.mark.parametrize(
+    "window_name",
+    ["hann", "hamming", "blackman", "blackmanharris", "boxcar"],
+)
+def test_actual_stft_window_is_recorded_in_the_single_metadata_json(
+    tmp_path: Path,
+    window_name: str,
+) -> None:
+    analysis = _analyses(tmp_path, window_name=window_name)["automatic"][
+        "pdv_channel_1"
+    ]
+    report = export_formal_results(
+        _options(
+            tmp_path,
+            mode=ResultAnalysisMode.AUTOMATIC,
+            analyses={"pdv_channel_1": analysis},
+            source_path=tmp_path / "20260607.csv",
+        )
+    )
+    metadata_files = list(tmp_path.glob("*.metadata.json"))
+    assert len(metadata_files) == 1
+    metadata = json.loads(
+        report.exported_channels[0].metadata_path.read_text(encoding="utf-8")
+    )
+    assert metadata["stft_configuration"]["window_name"] == window_name
+    assert metadata["stft_configuration"]["window_length_samples"] == 256
+    assert metadata["stft_configuration"]["overlap_samples"] == 128
+    assert metadata["stft_configuration"]["hop_samples"] == 128
+    assert metadata["stft_configuration"]["nfft"] == 1024
 
 
 def test_event_metadata_case_a_candidates_exist_without_adopted_reference(
@@ -390,6 +489,12 @@ def test_dual_channels_and_automatic_guided_results_export_independently(
         metadata = json.loads(item.metadata_path.read_text(encoding="utf-8"))
         assert metadata["source_channel"] == item.channel_name
         assert metadata["analysis_mode"] in {"automatic", "guided"}
+        assert metadata["velocity_correction"]["window"]["material"] == "LiF"
+        assert metadata["velocity_correction"]["window"]["model"] == (
+            "Rigg2014_Eq16"
+        )
+        assert metadata["velocity_correction"]["angle"]["angle_rad"] == 0.0
+        assert "event_reference_time_s" in metadata
 
 
 def test_existing_exports_receive_a_consistent_suffix_without_overwrite(

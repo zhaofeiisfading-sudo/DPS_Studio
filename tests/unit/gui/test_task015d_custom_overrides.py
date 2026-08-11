@@ -62,7 +62,7 @@ def test_balanced_loads_all_fields_with_explicit_unchanged_provenance(
         assert not configuration.custom_overrides
         assert configuration.final_run_configuration is configuration.parameters
         assert window.vacuum_wavelength_spin.value() == pytest.approx(1550.0)
-        assert window.window_name_label.text() == BALANCED_PROFILE.window_name
+        assert window.window_name_combo.currentData() == BALANCED_PROFILE.window_name
         assert window.window_length_spin.value() == 768
         assert window.overlap_spin.value() == 640
         assert window.hop_label.text().startswith("128")

@@ -324,7 +324,7 @@ def test_explicit_pre_event_platform_preserves_measured_frames() -> None:
     assert measured[before].all()
     np.testing.assert_array_equal(
         analysis.display_velocity_m_s[before],
-        analysis.refined_velocity_m_s[before],
+        analysis.corrected_velocity_m_s[before],
     )
     assert set(
         np.asarray(analysis.velocity_origins, dtype=object)[before]

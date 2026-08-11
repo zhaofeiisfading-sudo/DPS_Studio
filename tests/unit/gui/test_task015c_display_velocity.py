@@ -80,7 +80,11 @@ def test_gui_display_parameter_refreshes_without_new_stft(
         generation = window.analysis_session.generation_id
         original = dict(window.analysis_session.channel_analyses)
         formal = {
-            name: analysis.signal_detection_result.apparent_velocity_m_s.copy()
+            name: analysis.corrected_velocity_m_s.copy()
+            for name, analysis in original.items()
+        }
+        apparent = {
+            name: analysis.apparent_velocity_m_s.copy()
             for name, analysis in original.items()
         }
         stft_objects = {
@@ -119,7 +123,7 @@ def test_gui_display_parameter_refreshes_without_new_stft(
             ).all()
             np.testing.assert_array_equal(
                 analysis.signal_detection_result.apparent_velocity_m_s,
-                formal[name],
+                apparent[name],
             )
             assert analysis.stft_result is stft_objects[name]
 
@@ -149,7 +153,7 @@ def test_gui_display_parameter_refreshes_without_new_stft(
             ).all()
             np.testing.assert_array_equal(
                 analysis.signal_detection_result.apparent_velocity_m_s,
-                formal[name],
+                apparent[name],
             )
             assert analysis.stft_result is stft_objects[name]
         assert window.velocity_view.display_curve is not None

@@ -8,9 +8,10 @@ import numpy as np
 from numpy.typing import NDArray
 
 from dps_studio.core.event_candidates import StreamEventCandidates
-from dps_studio.core.physics import ApparentVelocityResult
+from dps_studio.core.physics import ApparentVelocityResult, VelocityCorrectionResult
 from dps_studio.core.quality import SignalDetectionResult
 from dps_studio.core.ridge import (
+    AutomaticRidgeSelectionResult,
     EventAwareContinuityResult,
     ExperimentalReselectionResult,
     LocalPeakCandidateResult,
@@ -35,6 +36,7 @@ class ChannelAnalysis:
     discrete_velocity_result: ApparentVelocityResult
     formal_discrete_velocity_m_s: FloatArray
     refined_velocity_m_s: FloatArray
+    velocity_correction_result: VelocityCorrectionResult
     display_velocity_m_s: FloatArray
     velocity_origins: tuple[str, ...]
     spectral_quality_result: RidgeSpectralQualityResult
@@ -42,6 +44,7 @@ class ChannelAnalysis:
     event_aware_continuity_result: EventAwareContinuityResult
     signal_detection_result: SignalDetectionResult
     stream_event_candidates: StreamEventCandidates
+    automatic_ridge_selection_result: AutomaticRidgeSelectionResult
     local_peak_candidates: LocalPeakCandidateResult | None = None
     experimental_reselection_result: ExperimentalReselectionResult | None = None
 
@@ -78,6 +81,18 @@ class ChannelAnalysis:
             raise ValueError(
                 "refined_velocity_m_s must equal the formal detection velocity."
             )
+        if not isinstance(self.velocity_correction_result, VelocityCorrectionResult):
+            raise TypeError(
+                "velocity_correction_result must be a VelocityCorrectionResult."
+            )
+        if not np.array_equal(
+            refined_velocity,
+            self.velocity_correction_result.apparent_velocity_m_s,
+            equal_nan=True,
+        ):
+            raise ValueError(
+                "Velocity correction input must equal the formal apparent velocity."
+            )
         if not np.array_equal(
             self.stft_result.time_s,
             self.signal_detection_result.time_s,
@@ -86,6 +101,21 @@ class ChannelAnalysis:
         if not isinstance(self.stream_event_candidates, StreamEventCandidates):
             raise TypeError(
                 "stream_event_candidates must be a StreamEventCandidates."
+            )
+        if not isinstance(
+            self.automatic_ridge_selection_result,
+            AutomaticRidgeSelectionResult,
+        ):
+            raise TypeError(
+                "automatic_ridge_selection_result must be an "
+                "AutomaticRidgeSelectionResult."
+            )
+        if not np.array_equal(
+            self.stft_result.time_s,
+            self.automatic_ridge_selection_result.time_s,
+        ):
+            raise ValueError(
+                "Automatic ridge selection and STFT time axes must match."
             )
         if self.local_peak_candidates is not None and not isinstance(
             self.local_peak_candidates, LocalPeakCandidateResult
@@ -125,6 +155,21 @@ class ChannelAnalysis:
     def provisional_discrete_velocity_m_s(self) -> FloatArray:
         """Quality-unfiltered compatibility view; never a formal measurement."""
         return self.discrete_velocity_result.apparent_velocity_m_s
+
+    @property
+    def apparent_velocity_m_s(self) -> FloatArray:
+        """Formal quality-gated apparent PDV velocity, retained independently."""
+        return self.velocity_correction_result.apparent_velocity_m_s
+
+    @property
+    def angle_corrected_apparent_velocity_m_s(self) -> FloatArray:
+        """Formal apparent velocity after line-of-sight projection correction."""
+        return self.velocity_correction_result.angle_corrected_apparent_velocity_m_s
+
+    @property
+    def corrected_velocity_m_s(self) -> FloatArray:
+        """Formal final velocity after angle then selected window correction."""
+        return self.velocity_correction_result.corrected_velocity_m_s
 
 
 def _immutable_float_array(value: object, *, field_name: str) -> FloatArray:
