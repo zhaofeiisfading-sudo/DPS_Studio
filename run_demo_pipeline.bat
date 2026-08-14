@@ -20,7 +20,6 @@ echo ================================================================
 echo [CONFIG] %CONFIG_FILE%
 echo [OUTPUT] %OUTPUT_DIR%
 echo [PYTHON] %PYTHON_EXE%
-echo [NOTICE] Configured 1550 nm is an unconfirmed demonstration value.
 echo [NOTICE] Unsigned apparent velocity; no LiF correction or data interpolation.
 echo.
 

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -12,7 +13,6 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QGroupBox,
-    QHBoxLayout,
     QLabel,
     QLineEdit,
     QSpinBox,
@@ -21,17 +21,38 @@ from PySide6.QtWidgets import (
 )
 
 from dps_studio.gui.data_controller import ChannelImportSpec, SignalLoadRequest
+from dps_studio.gui.delimited_preview import (
+    DelimitedFilePreview,
+    DelimitedPreviewError,
+    preview_delimited_file,
+)
+
+
+_SIGNAL_SLOT_COUNT = 3
+_FALLBACK_COLUMN_COUNT = 3
+
+
+@dataclass(slots=True)
+class _SignalSlot:
+    enabled: QCheckBox
+    editor: QWidget
+    name: QLineEdit
+    column: QSpinBox
+    unit: QComboBox
 
 
 class ImportSettingsDialog(QDialog):
-    """Collect every reader parameter that cannot be safely inferred."""
+    """Collect explicit mappings after a bounded structural file preview."""
 
     def __init__(self, source_path: Path, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._source_path = source_path
+        self._preview: DelimitedFilePreview | None = None
+        self._column_count = _FALLBACK_COLUMN_COUNT
+        self._slots: list[_SignalSlot] = []
         self.setWindowTitle(self.tr("数据导入设置"))
         self.setModal(True)
-        self.resize(560, 520)
+        self.resize(680, 720)
 
         root_layout = QVBoxLayout(self)
         path_label = QLabel(str(source_path))
@@ -65,44 +86,72 @@ class ImportSettingsDialog(QDialog):
         file_form.addRow(self.tr("源时间单位"), self.time_unit_combo)
         root_layout.addWidget(file_group)
 
-        channel_group = QGroupBox(self.tr("电压通道映射"))
+        preview_group = QGroupBox(self.tr("轻量文件预览"))
+        preview_layout = QVBoxLayout(preview_group)
+        self.structure_status_label = QLabel()
+        self.structure_status_label.setObjectName("importStructureStatus")
+        self.structure_status_label.setWordWrap(True)
+        preview_layout.addWidget(self.structure_status_label)
+        self.column_preview_label = QLabel()
+        self.column_preview_label.setObjectName("importColumnPreview")
+        self.column_preview_label.setWordWrap(True)
+        self.column_preview_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        preview_layout.addWidget(self.column_preview_label)
+        root_layout.addWidget(preview_group)
+
+        channel_group = QGroupBox(self.tr("信号列（最多选择 3 个）"))
         channel_layout = QVBoxLayout(channel_group)
-        self.channel_1_name = QLineEdit("pdv_channel_1")
-        self.channel_1_column = self._column_spin_box(1)
-        self.channel_1_unit = self._voltage_unit_combo()
-        channel_layout.addWidget(
-            self._channel_row(
-                self.tr("通道 1"),
-                self.channel_1_name,
-                self.channel_1_column,
-                self.channel_1_unit,
+        for slot_index in range(_SIGNAL_SLOT_COUNT):
+            slot_number = slot_index + 1
+            enabled = QCheckBox(
+                self.tr("导入信号 {number}").format(number=slot_number)
             )
-        )
-        self.channel_2_enabled = QCheckBox(self.tr("导入第二个独立通道"))
-        self.channel_2_enabled.setChecked(True)
-        channel_layout.addWidget(self.channel_2_enabled)
-        self.channel_2_name = QLineEdit("pdv_channel_2")
-        self.channel_2_column = self._column_spin_box(2)
-        self.channel_2_unit = self._voltage_unit_combo()
-        self.channel_2_row = self._channel_row(
-            self.tr("通道 2"),
-            self.channel_2_name,
-            self.channel_2_column,
-            self.channel_2_unit,
-        )
-        channel_layout.addWidget(self.channel_2_row)
-        self.channel_2_enabled.toggled.connect(self.channel_2_row.setEnabled)
+            enabled.setObjectName(f"importSignal{slot_number}Enabled")
+            name = QLineEdit(f"pdv_channel_{slot_number}")
+            column = self._column_spin_box(slot_number)
+            unit = self._voltage_unit_combo()
+            editor = self._channel_editor(name, column, unit)
+            enabled.toggled.connect(editor.setEnabled)
+            channel_layout.addWidget(enabled)
+            channel_layout.addWidget(editor)
+            self._slots.append(_SignalSlot(enabled, editor, name, column, unit))
         root_layout.addWidget(channel_group)
+
+        # Keep the established test/plugin attribute names while the UI uses slots.
+        self.channel_1_enabled = self._slots[0].enabled
+        self.channel_1_name = self._slots[0].name
+        self.channel_1_column = self._slots[0].column
+        self.channel_1_unit = self._slots[0].unit
+        self.channel_1_row = self._slots[0].editor
+        self.channel_2_enabled = self._slots[1].enabled
+        self.channel_2_name = self._slots[1].name
+        self.channel_2_column = self._slots[1].column
+        self.channel_2_unit = self._slots[1].unit
+        self.channel_2_row = self._slots[1].editor
+        self.channel_3_enabled = self._slots[2].enabled
+        self.channel_3_name = self._slots[2].name
+        self.channel_3_column = self._slots[2].column
+        self.channel_3_unit = self._slots[2].unit
+        self.channel_3_row = self._slots[2].editor
 
         notice = QLabel(
             self.tr(
-                "必须显式确认列和物理单位。未选择的额外列不会被解释为信号，"
-                "但其列索引会出现在加载摘要中；两个电压通道不会被平均。"
+                "V / mV 表示 CSV 中该列数值的单位，只用于转换为内部 SI 单位；"
+                "它不是示波器 V/div 或硬件量程。未选择的源列会被忽略。"
             )
         )
         notice.setWordWrap(True)
         notice.setObjectName("plannedNotice")
         root_layout.addWidget(notice)
+
+        self.validation_error_label = QLabel()
+        self.validation_error_label.setObjectName("importValidationError")
+        self.validation_error_label.setWordWrap(True)
+        self.validation_error_label.setStyleSheet("color: #b94040;")
+        self.validation_error_label.hide()
+        root_layout.addWidget(self.validation_error_label)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok
@@ -112,77 +161,182 @@ class ImportSettingsDialog(QDialog):
         self.button_box.rejected.connect(self.reject)
         root_layout.addWidget(self.button_box)
 
+        self.delimiter_edit.editingFinished.connect(self._refresh_preview)
+        self.encoding_combo.currentTextChanged.connect(self._refresh_preview)
+        self._refresh_preview(initialize_slots=True, detect_delimiter=True)
+
+    @property
+    def detected_column_count(self) -> int:
+        """Return the preview column count used to constrain selectors."""
+        return self._column_count
+
     def load_request(self) -> SignalLoadRequest:
         """Return the explicit immutable request represented by the controls."""
-        channels = [
+        channels = tuple(
             ChannelImportSpec(
-                name=self.channel_1_name.text().strip(),
-                column_index=self.channel_1_column.value(),
-                voltage_scale=float(self.channel_1_unit.currentData()),
+                name=slot.name.text().strip(),
+                column_index=slot.column.value(),
+                voltage_scale=float(slot.unit.currentData()),
             )
-        ]
-        if self.channel_2_enabled.isChecked():
-            channels.append(
-                ChannelImportSpec(
-                    name=self.channel_2_name.text().strip(),
-                    column_index=self.channel_2_column.value(),
-                    voltage_scale=float(self.channel_2_unit.currentData()),
-                )
-            )
+            for slot in self._slots
+            if slot.enabled.isChecked()
+        )
         return SignalLoadRequest(
             path=self._source_path,
             time_column=self.time_column_spin.value(),
-            channels=tuple(channels),
+            channels=channels,
             delimiter=self.delimiter_edit.text(),
             has_header=self.header_check.isChecked(),
             encoding=self.encoding_combo.currentText(),
             time_scale=float(self.time_unit_combo.currentData()),
         )
 
+    def validation_error(self) -> str | None:
+        """Return a user-readable validation error, or ``None`` when valid."""
+        delimiter = self.delimiter_edit.text()
+        if len(delimiter) != 1:
+            return self.tr("分隔符必须恰好是一个字符。")
+        enabled_slots = [slot for slot in self._slots if slot.enabled.isChecked()]
+        if not enabled_slots:
+            return self.tr("请至少启用一个信号列。")
+        time_column = self.time_column_spin.value()
+        if not 0 <= time_column < self._column_count:
+            return self.tr("时间列超出实际列范围。")
+        names = [slot.name.text().strip() for slot in enabled_slots]
+        if not all(names):
+            return self.tr("每个启用信号的名称都不能为空。")
+        if len(set(names)) != len(names):
+            return self.tr("启用信号的名称不能重复。")
+        columns = [slot.column.value() for slot in enabled_slots]
+        if any(not 0 <= column < self._column_count for column in columns):
+            return self.tr("启用信号的电压列超出实际列范围。")
+        if time_column in columns:
+            return self.tr("时间列不能同时作为电压列。")
+        if len(set(columns)) != len(columns):
+            return self.tr("启用信号的电压列不能重复。")
+        return None
+
     def _validate_and_accept(self) -> None:
-        names = [self.channel_1_name.text().strip()]
-        columns = [self.channel_1_column.value()]
-        if self.channel_2_enabled.isChecked():
-            names.append(self.channel_2_name.text().strip())
-            columns.append(self.channel_2_column.value())
-        valid = (
-            bool(self.delimiter_edit.text())
-            and all(names)
-            and len(set(names)) == len(names)
-            and len(set(columns)) == len(columns)
-            and self.time_column_spin.value() not in columns
-        )
-        if valid:
+        error = self.validation_error()
+        if error is None:
+            self.validation_error_label.clear()
+            self.validation_error_label.hide()
+            self.button_box.setToolTip("")
+            self.button_box.setStyleSheet("")
             self.accept()
             return
-        self._show_validation_error()
+        self._show_validation_error(error)
 
-    def _show_validation_error(self) -> None:
-        notice = self.tr(
-            "请检查：分隔符和通道名不能为空；通道名与所选列必须唯一；"
-            "时间列不能同时作为电压列。"
-        )
+    def _show_validation_error(self, notice: str) -> None:
+        self.validation_error_label.setText(notice)
+        self.validation_error_label.show()
         self.button_box.setToolTip(notice)
         self.button_box.setStyleSheet("border: 1px solid #b94040;")
 
-    def _channel_row(
+    def _refresh_preview(
         self,
-        label_text: str,
+        _text: str | None = None,
+        *,
+        initialize_slots: bool = False,
+        detect_delimiter: bool = False,
+    ) -> None:
+        delimiter = None if detect_delimiter else self.delimiter_edit.text()
+        try:
+            preview = preview_delimited_file(
+                self._source_path,
+                delimiter=delimiter,
+                encoding=self.encoding_combo.currentText(),
+            )
+        except DelimitedPreviewError as exc:
+            if self._source_path.exists():
+                self.structure_status_label.setText(
+                    self.tr("文件结构预览失败：{message}").format(message=exc)
+                )
+                self.column_preview_label.clear()
+            else:
+                self.structure_status_label.setText(
+                    self.tr("文件尚不可读取；将在确认时由严格读取器校验。")
+                )
+            self._set_column_count(self._column_count, initialize_slots)
+            return
+
+        initialize_slots = initialize_slots or self._preview is None
+        self._preview = preview
+        delimiter_blocker = QSignalBlocker(self.delimiter_edit)
+        self.delimiter_edit.setText(preview.delimiter)
+        del delimiter_blocker
+        if initialize_slots:
+            header_blocker = QSignalBlocker(self.header_check)
+            self.header_check.setChecked(preview.has_header)
+            del header_blocker
+        self._set_column_count(preview.column_count, initialize_slots)
+        self._render_preview(preview)
+
+    def _set_column_count(self, column_count: int, initialize_slots: bool) -> None:
+        self._column_count = max(1, column_count)
+        maximum = self._column_count - 1
+        self.time_column_spin.setRange(0, maximum)
+        if initialize_slots:
+            self.time_column_spin.setValue(0)
+        for slot_index, slot in enumerate(self._slots):
+            slot.column.setRange(0, maximum)
+            if initialize_slots:
+                slot.enabled.setChecked(slot_index + 1 < self._column_count)
+                slot.column.setValue(min(slot_index + 1, maximum))
+            slot.editor.setEnabled(slot.enabled.isChecked())
+
+    def _render_preview(self, preview: DelimitedFilePreview) -> None:
+        self.structure_status_label.setText(
+            self.tr(
+                "检测到 {count} 列，可用列索引：0–{maximum}；分隔符：{delimiter}；"
+                "编码：{encoding}；表头判断为初步检测，可手动修改。"
+            ).format(
+                count=preview.column_count,
+                maximum=preview.column_count - 1,
+                delimiter=repr(preview.delimiter),
+                encoding=preview.encoding,
+            )
+        )
+        lines: list[str] = []
+        for column_index in range(preview.column_count):
+            header = (
+                preview.header[column_index]
+                if column_index < len(preview.header)
+                and preview.header[column_index]
+                else self.tr("无表头")
+            )
+            values = [
+                row[column_index]
+                for row in preview.rows[:3]
+                if column_index < len(row)
+            ]
+            sample = ", ".join(self._short_preview(value) for value in values)
+            lines.append(
+                self.tr("列 {index}：{header}　示例：{sample}").format(
+                    index=column_index,
+                    header=header,
+                    sample=sample or self.tr("无数据行"),
+                )
+            )
+        self.column_preview_label.setText("\n".join(lines))
+
+    def _channel_editor(
+        self,
         name_edit: QLineEdit,
         column_spin: QSpinBox,
         unit_combo: QComboBox,
     ) -> QWidget:
         widget = QWidget()
-        layout = QHBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        label = QLabel(label_text)
-        label.setMinimumWidth(64)
+        layout = QFormLayout(widget)
+        layout.setContentsMargins(22, 0, 0, 8)
         name_edit.setPlaceholderText(self.tr("通道名"))
         column_spin.setToolTip(self.tr("源文件列索引（从 0 开始）"))
-        layout.addWidget(label)
-        layout.addWidget(name_edit, 2)
-        layout.addWidget(column_spin)
-        layout.addWidget(unit_combo)
+        unit_combo.setToolTip(
+            self.tr("CSV 数值单位；不是 V/div 或示波器硬件量程。")
+        )
+        layout.addRow(self.tr("名称"), name_edit)
+        layout.addRow(self.tr("电压列（从 0 开始）"), column_spin)
+        layout.addRow(self.tr("CSV 中该列的单位"), unit_combo)
         return widget
 
     def _voltage_unit_combo(self) -> QComboBox:
@@ -196,7 +350,6 @@ class ImportSettingsDialog(QDialog):
     @staticmethod
     def _column_spin_box(value: int) -> QSpinBox:
         spin = QSpinBox()
-        spin.setRange(0, 999)
         spin.setValue(value)
         return spin
 
@@ -212,6 +365,10 @@ class ImportSettingsDialog(QDialog):
         label = QLabel(text)
         label.setObjectName("sectionTitle")
         return label
+
+    @staticmethod
+    def _short_preview(value: str, maximum: int = 24) -> str:
+        return value if len(value) <= maximum else f"{value[: maximum - 1]}…"
 
 
 __all__ = ["ImportSettingsDialog"]

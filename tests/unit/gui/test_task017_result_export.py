@@ -230,7 +230,7 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         qapp.processEvents()
 
 
-def test_guided_mode_selection_lists_only_current_guided_channels(
+def test_guided_mode_selection_keeps_missing_channels_visible_but_safe(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -258,8 +258,15 @@ def test_guided_mode_selection_lists_only_current_guided_channels(
         window.export_mode_combo.setCurrentIndex(guided_index)
         qapp.processEvents()
         assert window.export_mode_combo.currentData() == "guided"
-        assert window.export_channel_combo.count() == 1
+        assert window.export_channel_combo.count() == 2
         assert window.export_channel_combo.currentData() == "pdv_channel_1"
+
+        window.export_channel_combo.setCurrentIndex(
+            window.export_channel_combo.findData("pdv_channel_2")
+        )
+        qapp.processEvents()
+        assert window.export_channel_combo.currentData() == "pdv_channel_2"
+        assert not window.export_button.isEnabled()
 
         automatic_index = window.export_mode_combo.findData(
             ResultAnalysisMode.AUTOMATIC.value

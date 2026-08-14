@@ -152,6 +152,7 @@ class MainWindow(QMainWindow):
         self._session = AnalysisSession()
         self._analysis_adapter = AutomaticAnalysisAdapter(self)
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
+        self._pending_navigation_tab: int | None = None
         self._current_guided_channel: str | None = None
         self._corridor_width_initialized = False
         self._guided_auto_fit_done = False
@@ -1221,6 +1222,7 @@ class MainWindow(QMainWindow):
         self.workflow_navigation.currentRowChanged.connect(
             self._workflow_page_changed
         )
+        self.workflow_navigation.itemClicked.connect(self._workflow_item_clicked)
         self.raw_signal_view.channel_selection_changed.connect(
             self._channel_changed
         )
@@ -1340,6 +1342,9 @@ class MainWindow(QMainWindow):
         self.compute_stft_button.clicked.connect(self.run_stft_analysis)
         self.export_mode_combo.currentIndexChanged.connect(
             self._export_mode_changed
+        )
+        self.export_channel_combo.currentIndexChanged.connect(
+            self._export_channel_changed
         )
         self.export_directory_button.clicked.connect(self._choose_export_directory)
         self.export_button.clicked.connect(self._export_current_result)
@@ -2492,8 +2497,10 @@ class MainWindow(QMainWindow):
             records={channel_name: self._session.records[channel_name]},
         )
         self._pending_analysis_source = AnalysisResultSource.GUIDED
+        self._pending_navigation_tab = 2
         started = self._analysis_adapter.start(request)
         if not started:
+            self._pending_navigation_tab = None
             self.guided_status_label.setText(self.tr("分析任务已在运行。"))
         return started
 
@@ -2543,8 +2550,10 @@ class MainWindow(QMainWindow):
             result_source=AnalysisResultSource.SPECTROGRAM,
         )
         self._pending_analysis_source = AnalysisResultSource.SPECTROGRAM
+        self._pending_navigation_tab = 1
         started = self._analysis_adapter.start(request)
         if not started:
+            self._pending_navigation_tab = None
             self.analysis_status_label.setText(self.tr("分析任务已在运行。"))
         return started
 
@@ -2566,7 +2575,11 @@ class MainWindow(QMainWindow):
             stft_results=self._session.stft_results,
         )
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
-        return self._analysis_adapter.start(request)
+        self._pending_navigation_tab = 2
+        started = self._analysis_adapter.start(request)
+        if not started:
+            self._pending_navigation_tab = None
+        return started
 
     def run_automatic_analysis(self) -> bool:
         """Capture the current generation and start the public workflow off-thread."""
@@ -2582,8 +2595,10 @@ class MainWindow(QMainWindow):
         )
         self._set_ridge_extraction_mode(RidgeExtractionMode.AUTOMATIC)
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
+        self._pending_navigation_tab = 3
         started = self._analysis_adapter.start(request)
         if not started:
+            self._pending_navigation_tab = None
             self.analysis_status_label.setText(self.tr("自动分析已在运行。"))
         return started
 
@@ -2630,6 +2645,7 @@ class MainWindow(QMainWindow):
                 analyses=value.channel_analyses,
             )
         if not accepted:
+            self._pending_navigation_tab = None
             self.analysis_status_label.setText(
                 self.tr("分析期间参数已变化；已忽略迟到结果。")
             )
@@ -2645,9 +2661,11 @@ class MainWindow(QMainWindow):
             return
         if value.result_source is AnalysisResultSource.SPECTROGRAM:
             self._finish_stft_presentation()
+            self._complete_pending_navigation()
             return
         if value.result_source is AnalysisResultSource.GUIDED:
             self._finish_guided_presentation(value.channel_analyses)
+            self._complete_pending_navigation()
             return
         run_configuration = self._session.run_configuration
         if run_configuration is None:
@@ -2689,6 +2707,7 @@ class MainWindow(QMainWindow):
             )
         )
         self._sync_guided_panel()
+        self._complete_pending_navigation()
 
     def _finish_stft_presentation(self) -> None:
         configuration = self._session.run_configuration
@@ -2762,12 +2781,14 @@ class MainWindow(QMainWindow):
             else self._session.generation_id
         )
         if generation_id != expected_generation:
+            self._pending_navigation_tab = None
             self._append_log(
                 self.tr("已忽略失效请求 {generation} 的异常。").format(
                     generation=generation_id
                 )
             )
             return
+        self._pending_navigation_tab = None
         summary = f"{error_type}: {message}"
         if self._pending_analysis_source is AnalysisResultSource.GUIDED:
             failure_text = self.tr("引导分析失败：{summary}").format(
@@ -2850,7 +2871,7 @@ class MainWindow(QMainWindow):
         elif self.export_mode_combo.count():
             self.export_mode_combo.setCurrentIndex(0)
         del mode_blocker
-        self._refresh_export_channels(available)
+        self._refresh_export_channels()
 
         result_available = bool(available)
         busy = self._analysis_adapter.busy
@@ -2879,9 +2900,13 @@ class MainWindow(QMainWindow):
                 availability_text += self.tr(
                     " 当前选择起跳点为 0；请先正式采用事件参考，或改用实验绝对时间。"
                 )
+            if not selection_valid:
+                availability_text += self.tr(
+                    " 当前通道尚无所选分析模式的结果，预览已清空且不可导出。"
+                )
         self.export_availability_label.setText(availability_text)
         self.export_mode_combo.setEnabled(result_available and not busy)
-        self.export_channel_combo.setEnabled(selection_valid and not busy)
+        self.export_channel_combo.setEnabled(result_available and not busy)
         self.export_directory_button.setEnabled(result_available and not busy)
         self.export_include_pre_event_check.setEnabled(result_available and not busy)
         self.export_button.setEnabled(
@@ -2892,20 +2917,18 @@ class MainWindow(QMainWindow):
         )
         self.action_export.setEnabled(result_available and not busy)
         self.action_export.setToolTip(action_tooltip)
+        if self.workflow_navigation.currentRow() == 5:
+            self._sync_review_preview()
 
-    def _refresh_export_channels(
-        self,
-        available: Mapping[ResultAnalysisMode, Mapping[str, ChannelAnalysis]],
-    ) -> None:
+    def _refresh_export_channels(self) -> None:
         """Populate the channel selector from the selected, independent mode."""
         selected_channel = self.export_channel_combo.currentData()
-        mode = self._selected_export_mode()
-        analyses = available.get(mode, {}) if mode is not None else {}
+        channel_names = tuple(self._session.records)
         channel_blocker = QSignalBlocker(self.export_channel_combo)
         self.export_channel_combo.clear()
-        for channel_name in analyses:
+        for channel_name in channel_names:
             self.export_channel_combo.addItem(channel_name, channel_name)
-        if isinstance(selected_channel, str) and selected_channel in analyses:
+        if isinstance(selected_channel, str) and selected_channel in channel_names:
             self.export_channel_combo.setCurrentIndex(
                 self.export_channel_combo.findData(selected_channel)
             )
@@ -2914,8 +2937,21 @@ class MainWindow(QMainWindow):
         del channel_blocker
 
     def _export_mode_changed(self, _index: int) -> None:
-        self._refresh_export_channels(self._exportable_result_sets())
         self._refresh_export_controls()
+
+    def _export_channel_changed(self, _index: int) -> None:
+        self._refresh_export_controls()
+
+    def _sync_review_preview(self) -> None:
+        """Make Step 6's existing velocity view match its exact export target."""
+        self.velocity_view.set_export_preview_mode(True)
+        mode = self._selected_export_mode()
+        channel_name = self.export_channel_combo.currentData()
+        if mode is None or not isinstance(channel_name, str):
+            self.velocity_view.clear_results()
+            return
+        self.science_tabs.setCurrentWidget(self.velocity_view)
+        self.velocity_view.select_result_target(mode.value, channel_name)
 
     def _selected_export_mode(self) -> ResultAnalysisMode | None:
         """Normalize Qt's QVariant string back to the public export enum."""
@@ -3173,7 +3209,7 @@ class MainWindow(QMainWindow):
             loaded,
             range_defined,
             state_reaches(self._workflow_state, WorkflowState.STFT_READY),
-            state_reaches(self._workflow_state, WorkflowState.RIDGE_READY),
+            range_defined,
             state_reaches(self._workflow_state, WorkflowState.RESULT_READY),
         )
         unavailable_tooltip = self.tr(
@@ -3304,6 +3340,40 @@ class MainWindow(QMainWindow):
         if item is None or not bool(item.flags() & Qt.ItemFlag.ItemIsEnabled):
             return
         self.parameter_stack.setCurrentIndex(row)
+        self.velocity_view.set_export_preview_mode(row == 5)
+        if row in (0, 1):
+            self.science_tabs.setCurrentWidget(self.raw_signal_view)
+        elif row == 2:
+            if self._session.stft_valid:
+                self.science_tabs.setCurrentWidget(self.spectrogram_view)
+            else:
+                self.run_stft_analysis()
+        elif row == 3:
+            if (
+                self._session.automatic_results_available
+                or self._session.guided_results_available
+            ):
+                self.science_tabs.setCurrentWidget(self.ridge_view)
+            else:
+                self.science_tabs.setCurrentWidget(self.spectrogram_view)
+        elif row == 4:
+            if self._session.any_formal_results_available:
+                self.science_tabs.setCurrentWidget(self.velocity_view)
+            else:
+                self.run_automatic_analysis()
+        elif row == 5:
+            self._sync_review_preview()
+
+    def _workflow_item_clicked(self, item: QListWidgetItem) -> None:
+        """Open the existing import flow when the empty first step is clicked."""
+        if self.workflow_navigation.row(item) == 0 and not self._session.records:
+            self._open_data()
+
+    def _complete_pending_navigation(self) -> None:
+        """Perform one focus change after the requested scientific operation."""
+        if self._pending_navigation_tab is not None:
+            self.science_tabs.setCurrentIndex(self._pending_navigation_tab)
+        self._pending_navigation_tab = None
 
     def _channel_changed(self, channel_name: str) -> None:
         self.status_channel.setText(
@@ -3355,28 +3425,6 @@ class MainWindow(QMainWindow):
         """Close without claiming to interrupt an active numerical worker."""
         self._save_layout_settings()
         event.accept()
-
-    def _planned_view(self, text: str) -> QWidget:
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        label = self._notice(text)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label, 1)
-        return page
-
-    def _planned_parameters(self, title: str, text: str) -> QWidget:
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        layout.addWidget(self._section_title(title))
-        layout.addWidget(self._notice(text))
-        planned_button = QPushButton(self.tr("尚未接入"))
-        planned_button.setEnabled(False)
-        planned_button.setToolTip(
-            self.tr("该功能已列入后续开发计划，当前版本尚未接入。")
-        )
-        layout.addWidget(planned_button)
-        layout.addStretch(1)
-        return page
 
     @staticmethod
     def _section_title(text: str) -> QLabel:

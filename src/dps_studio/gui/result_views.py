@@ -836,6 +836,8 @@ class VelocityView(_ChannelView):
         self.display_velocity_check.setObjectName("displayVelocityCheck")
         self.display_velocity_check.setChecked(False)
         self.display_velocity_check.toggled.connect(self._rerender)
+        self._export_preview_mode = False
+        self._display_velocity_before_export_preview = False
         option_row.addWidget(self.display_velocity_check)
         option_row.addStretch(1)
         self.root_layout.addLayout(option_row)
@@ -866,6 +868,65 @@ class VelocityView(_ChannelView):
     def result_source(self) -> str:
         source = self.result_source_combo.currentData()
         return source if isinstance(source, str) else "automatic"
+
+    def select_result_target(self, result_source: str, channel_name: str) -> bool:
+        """Select an existing mode/channel for export preview without recomputing."""
+        source_index = self.result_source_combo.findData(result_source)
+        if source_index < 0:
+            self._clear_plot()
+            self.source_notice.setText(
+                self.tr("当前没有{source}分析结果。").format(
+                    source=result_source
+                )
+            )
+            self.source_notice.show()
+            return False
+        source_blocker = QSignalBlocker(self.result_source_combo)
+        self.result_source_combo.setCurrentIndex(source_index)
+        del source_blocker
+        self._apply_result_source(
+            relative_db_floor=self._floor_db,
+            fit_view=True,
+        )
+        channel_index = self.channel_combo.findData(channel_name)
+        if channel_index < 0:
+            self._clear_plot()
+            self.source_notice.setText(
+                self.tr("当前预览中没有通道：{channel}").format(
+                    channel=channel_name
+                )
+            )
+            self.source_notice.show()
+            return False
+        channel_blocker = QSignalBlocker(self.channel_combo)
+        self.channel_combo.setCurrentIndex(channel_index)
+        del channel_blocker
+        self._channel_changed(channel_index)
+        return channel_name in self._analyses
+
+    def set_export_preview_mode(self, enabled: bool) -> None:
+        """Show the simple export's display-velocity curve while reviewing."""
+        if enabled == self._export_preview_mode:
+            return
+        self._export_preview_mode = enabled
+        if enabled:
+            self._display_velocity_before_export_preview = (
+                self.display_velocity_check.isChecked()
+            )
+            self.display_velocity_check.setChecked(True)
+            self.display_velocity_check.setEnabled(False)
+            self.display_velocity_check.setToolTip(
+                self.tr(
+                    "复核与导出使用 display_velocity_m_s 作为简表速度列；"
+                    "此处固定显示同一数组。"
+                )
+            )
+            return
+        self.display_velocity_check.setEnabled(True)
+        self.display_velocity_check.setToolTip("")
+        self.display_velocity_check.setChecked(
+            self._display_velocity_before_export_preview
+        )
 
     def set_analyses(
         self,

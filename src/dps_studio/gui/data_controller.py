@@ -39,11 +39,27 @@ class DataImportController:
             raise TypeError("request must be a SignalLoadRequest.")
         if not request.channels:
             raise ValueError("At least one voltage channel must be configured.")
+        if len(request.channels) > 3:
+            raise ValueError("The GUI import supports at most three voltage channels.")
+        names = tuple(channel.name.strip() for channel in request.channels)
+        if any(not name for name in names):
+            raise ValueError("Voltage channel names must not be empty.")
+        if len(set(names)) != len(names):
+            raise ValueError("Voltage channel names must be unique.")
+        columns = tuple(channel.column_index for channel in request.channels)
+        if request.time_column < 0 or any(column < 0 for column in columns):
+            raise ValueError("Column indices must be non-negative.")
+        if request.time_column in columns:
+            raise ValueError("The time column cannot also be a voltage column.")
+        if len(set(columns)) != len(columns):
+            raise ValueError("Voltage column indices must be unique.")
         voltage_columns = {
-            channel.name: channel.column_index for channel in request.channels
+            name: channel.column_index
+            for name, channel in zip(names, request.channels, strict=True)
         }
         voltage_scales = {
-            channel.name: channel.voltage_scale for channel in request.channels
+            name: channel.voltage_scale
+            for name, channel in zip(names, request.channels, strict=True)
         }
         return read_delimited_signals(
             request.path,

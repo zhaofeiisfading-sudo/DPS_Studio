@@ -13,7 +13,7 @@ from dps_studio.core.models import SignalRecord
 
 
 class RawSignalView(QWidget):
-    """Plot one or two channels with display-only μs and mV conversion."""
+    """Plot loaded channels with display-only μs and mV conversion."""
 
     cursor_position_changed = Signal(float, float, str)
     channel_selection_changed = Signal(str)
