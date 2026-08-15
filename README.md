@@ -2,10 +2,18 @@
 
 PDV/DPS signal analysis software.
 
-Formal production entry point:
+For a new Windows computer, follow the [beginner installation guide](docs/deployment/WINDOWS_BEGINNER_INSTALL_GUIDE.md). A shorter version is available in [Quick Start for Windows](docs/deployment/QUICK_START_WINDOWS.md).
+
+The GUI entry point after installation is:
 
 ```powershell
-D:\miniconda3\envs\dps-studio\python.exe scripts\run_demo_pipeline.py --config configs\demo_dual_profile.toml
+python -m dps_studio.gui
+```
+
+The formal production pipeline is for an authorized local raw-data file, which is intentionally not included in this repository. After activating the project environment and updating the TOML input path for that local file, run:
+
+```powershell
+python scripts\run_demo_pipeline.py --config configs\demo_dual_profile.toml
 ```
 
 The TOML file is the single production configuration entry for the input path,
