@@ -120,6 +120,28 @@ def test_toml_loads_relative_paths_profiles_and_immutable_mappings(
     assert configuration.input.voltage_columns["pdv_channel_1"] == 1
 
 
+def test_toml_loads_validated_custom_lif_parameters(tmp_path: Path) -> None:
+    text = _valid_toml().replace(
+        "[plot]",
+        """[velocity_correction]
+window_material = "LiF"
+measurement_angle_rad = 0.0
+lif_b1 = 0.8
+lif_b2 = 1.0
+lif_reference_wavelength_m = 1.064e-6
+[plot]""",
+    )
+    configuration = _load(tmp_path, text)
+    model = configuration.velocity_correction.lif_model
+    assert model.b1 == 0.8
+    assert model.b2 == 1.0
+    assert model.reference_wavelength_m == pytest.approx(1.064e-6)
+
+    invalid = text.replace("lif_b1 = 0.8", "lif_b1 = 0.0")
+    with pytest.raises(WorkflowConfigurationError, match="velocity_correction.lif_b1"):
+        _load(tmp_path, invalid)
+
+
 def test_explicit_default_profile_is_loaded_and_validated(tmp_path: Path) -> None:
     text = _valid_toml().replace(
         'default_profile = "balanced"',

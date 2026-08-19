@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication, QLabel
 
@@ -75,6 +76,15 @@ def test_gui_display_parameter_refreshes_without_new_stft(
             label.text() for label in window.findChildren(QLabel)
         }
         window.set_loaded_result(_event_signal_result(tmp_path))
+        reference_s = 554.668e-6
+        window.analysis_range_panel.event_reference_spin.setValue(
+            reference_s * 1e6
+        )
+        window.analysis_range_panel.apply_event_reference_button.click()
+        qapp.processEvents()
+        assert window.analysis_session.event_reference_time_s == pytest.approx(
+            reference_s
+        )
         _run(window)
 
         generation = window.analysis_session.generation_id
@@ -98,7 +108,6 @@ def test_gui_display_parameter_refreshes_without_new_stft(
         assert window.analysis_session.generation_id == generation
         assert window.analysis_session.results_valid
         assert not new_starts
-        reference_s = 554.668e-6
         for name, analysis in window.analysis_session.channel_analyses.items():
             measured = np.fromiter(
                 (

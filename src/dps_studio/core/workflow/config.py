@@ -25,7 +25,12 @@ from dps_studio.core.event_candidates import (
     EventCandidateConfig,
     EventConsensusConfig,
 )
-from dps_studio.core.physics import VelocityCorrectionConfig, WindowMaterial
+from dps_studio.core.physics import (
+    LIF_RIGG_2014_1550NM,
+    LiFWindowCorrectionModel,
+    VelocityCorrectionConfig,
+    WindowMaterial,
+)
 from dps_studio.core.quality import SignalDetectionConfig
 from dps_studio.core.ridge import (
     AutomaticRidgeExtractionMode,
@@ -338,6 +343,29 @@ def load_workflow_config(
         measurement_angle_rad=_finite_float(
             velocity_correction_table.get("measurement_angle_rad", 0.0),
             field_name="velocity_correction.measurement_angle_rad",
+        ),
+        lif_model=LiFWindowCorrectionModel(
+            b1=_positive_float(
+                velocity_correction_table.get(
+                    "lif_b1",
+                    LIF_RIGG_2014_1550NM.b1,
+                ),
+                field_name="velocity_correction.lif_b1",
+            ),
+            b2=_positive_float(
+                velocity_correction_table.get(
+                    "lif_b2",
+                    LIF_RIGG_2014_1550NM.b2,
+                ),
+                field_name="velocity_correction.lif_b2",
+            ),
+            reference_wavelength_m=_positive_float(
+                velocity_correction_table.get(
+                    "lif_reference_wavelength_m",
+                    LIF_RIGG_2014_1550NM.reference_wavelength_m,
+                ),
+                field_name="velocity_correction.lif_reference_wavelength_m",
+            ),
         ),
     )
     mode_value = _string(

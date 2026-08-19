@@ -322,7 +322,7 @@ def test_velocity_correction_controls_default_and_invalidate_old_results(
         lif_index = window.window_material_combo.findData(WindowMaterial.LIF.value)
         window.window_material_combo.setCurrentIndex(lif_index)
         qapp.processEvents()
-        assert "仅按 1550 nm 标定" in window.velocity_correction_warning_label.text()
+        assert "参数参考 1550 nm" in window.velocity_correction_warning_label.text()
     finally:
         window.close()
         qapp.processEvents()

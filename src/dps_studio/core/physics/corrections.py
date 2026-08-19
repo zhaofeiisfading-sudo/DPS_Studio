@@ -14,6 +14,7 @@ from dps_studio.core.physics.exceptions import (
 from dps_studio.core.physics.models import (
     LIF_RIGG_2014_1550NM,
     FloatArray,
+    LiFWindowCorrectionModel,
     VelocityCorrectionConfig,
     VelocityCorrectionResult,
     WindowMaterial,
@@ -54,7 +55,11 @@ def correct_observation_angle(
     return corrected
 
 
-def correct_lif_window_velocity(apparent_velocity_m_s: object) -> FloatArray:
+def correct_lif_window_velocity(
+    apparent_velocity_m_s: object,
+    *,
+    model: LiFWindowCorrectionModel | None = None,
+) -> FloatArray:
     """Apply Rigg et al. (2014) Eq. 16 for [100] LiF at 1550 nm.
 
     The paper coefficients are defined for velocities in mm/us, numerically
@@ -62,13 +67,18 @@ def correct_lif_window_velocity(apparent_velocity_m_s: object) -> FloatArray:
     the paper-unit conversion explicitly.  No static refractive-index factor is
     multiplied or divided in addition to Eq. 16.
     """
+    resolved_model = LIF_RIGG_2014_1550NM if model is None else model
+    if not isinstance(resolved_model, LiFWindowCorrectionModel):
+        raise VelocityConfigurationError(
+            "model must be a LiFWindowCorrectionModel or None."
+        )
     values = _velocity_array(apparent_velocity_m_s)
     apparent_km_s = values / np.float64(1000.0)
     try:
         with np.errstate(over="raise", invalid="raise", divide="raise"):
-            corrected_km_s = LIF_RIGG_2014_1550NM.b1 * np.power(
+            corrected_km_s = resolved_model.b1 * np.power(
                 apparent_km_s,
-                LIF_RIGG_2014_1550NM.b2,
+                resolved_model.b2,
             )
             corrected = np.asarray(corrected_km_s * 1000.0, dtype=np.float64)
     except (FloatingPointError, OverflowError) as exc:
@@ -103,14 +113,16 @@ def apply_velocity_corrections(
         measurement_angle_rad=resolved_config.measurement_angle_rad,
     )
     if resolved_config.window_material is WindowMaterial.LIF:
-        corrected = correct_lif_window_velocity(angle_corrected)
-        wavelength_matches = wavelength == LIF_RIGG_2014_1550NM.reference_wavelength_m
+        model = resolved_config.lif_model
+        corrected = correct_lif_window_velocity(angle_corrected, model=model)
+        wavelength_matches = wavelength == model.reference_wavelength_m
         warning = (
             None
             if wavelength_matches
             else (
-                "Selected LiF model is calibrated at exactly 1550 nm; the current "
-                f"vacuum wavelength is {wavelength * 1e9:.12g} nm and has not been "
+                "Selected LiF model reference wavelength is "
+                f"{model.reference_wavelength_m * 1e9:.12g} nm; the current vacuum "
+                f"wavelength is {wavelength * 1e9:.12g} nm and has not been "
                 "validated by this model."
             )
         )
@@ -146,7 +158,7 @@ def velocity_correction_metadata(
         "model": None,
     }
     if config.window_material is WindowMaterial.LIF:
-        model = LIF_RIGG_2014_1550NM
+        model = config.lif_model
         window.update(
             {
                 "model": model.model,
@@ -158,6 +170,12 @@ def velocity_correction_metadata(
                 "loading_context": model.loading_context,
                 "source": model.source,
                 "source_doi": model.source_doi,
+                "parameter_provenance": (
+                    "formal_default"
+                    if model == LIF_RIGG_2014_1550NM
+                    else "user_custom"
+                ),
+                "custom_parameters": model != LIF_RIGG_2014_1550NM,
                 "wavelength_matches_model_reference": (
                     result.wavelength_matches_model_reference
                 ),

@@ -25,8 +25,6 @@ profiles = ["very_high_time_resolution_experimental", "high_time_resolution", "b
 # falls back to the complete common channel range.
 analysis_start_time_s = 5.5396025426e-4
 analysis_end_time_s = 5.5596022926e-4
-# Optional display/review reference; it never gates ridge extraction.
-manual_event_reference_time_s = 5.54668e-4
 # User-confirmed vacuum wavelength of the laboratory PDV laser.
 vacuum_wavelength_m = 1.55e-6
 
@@ -34,6 +32,9 @@ vacuum_wavelength_m = 1.55e-6
 # Formal core units are radians. The GUI exposes this value in degrees.
 window_material = "LiF"
 measurement_angle_rad = 0.0
+lif_b1 = 0.7895
+lif_b2 = 0.9918
+lif_reference_wavelength_m = 1.55e-6
 
 [quality]
 background_guard_window_scale = 2.0

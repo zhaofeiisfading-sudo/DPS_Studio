@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 import pyqtgraph as pg  # type: ignore[import-untyped]
 from numpy.typing import NDArray
-from PySide6.QtCore import QSignalBlocker, QRectF, Signal
+from PySide6.QtCore import QSignalBlocker, QRectF, Signal, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -227,27 +227,45 @@ def _set_stft_image(
     return display
 
 
-def _add_search_band(plot_widget: Any, analysis: ChannelAnalysis) -> list[Any]:
-    ridge = analysis.ridge_result
-    return _add_search_band_limits(
-        plot_widget,
-        ridge.minimum_frequency_hz,
-        ridge.maximum_frequency_hz,
-    )
-
-
 def _add_search_band_limits(
     plot_widget: Any,
     minimum_frequency_hz: float,
     maximum_frequency_hz: float,
+    *,
+    movable: bool = False,
+    frequency_bounds_hz: tuple[float, float] | None = None,
+    finished: Any | None = None,
+    lower_tooltip: str = "",
+    upper_tooltip: str = "",
 ) -> list[Any]:
     lines = []
-    for frequency_hz in (minimum_frequency_hz, maximum_frequency_hz):
+    bounds = (
+        None
+        if frequency_bounds_hz is None
+        else tuple(value * 1.0e-9 for value in frequency_bounds_hz)
+    )
+    for index, frequency_hz in enumerate(
+        (minimum_frequency_hz, maximum_frequency_hz)
+    ):
         line = pg.InfiniteLine(
             pos=frequency_hz * 1e-9,
             angle=0,
             pen=pg.mkPen("#555555", width=1.0, style=pg.QtCore.Qt.DashLine),
+            hoverPen=pg.mkPen("#D55E00", width=3.0),
+            movable=movable,
+            bounds=bounds,
         )
+        line.setZValue(30)
+        if movable:
+            line.setCursor(Qt.CursorShape.SizeVerCursor)
+            line.setToolTip(lower_tooltip if index == 0 else upper_tooltip)
+            # InfiniteLine 0.14 includes marker size in its native boundingRect,
+            # giving a generous device-pixel hit area without data-coordinate hacks.
+            line.addMarker("<|>", position=0.06, size=7.0)
+            if finished is not None:
+                line.sigPositionChangeFinished.connect(
+                    lambda _line, boundary=index: finished(boundary)
+                )
         plot_widget.addItem(line)
         lines.append(line)
     return lines
@@ -258,6 +276,7 @@ class _ChannelView(QWidget):
 
     plot_widget: Any
     channel_selection_changed = Signal(str)
+    search_band_changed = Signal(float, float)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -265,6 +284,8 @@ class _ChannelView(QWidget):
         self._floor_db = -60.0
         self._view_analysis_range_s: tuple[float, float] | None = None
         self._view_search_band_hz: tuple[float, float] | None = None
+        self._search_lines: list[Any] = []
+        self._search_frequency_grid_hz: FloatArray | None = None
         self.root_layout = QVBoxLayout(self)
         self.controls_layout = QHBoxLayout()
         self.controls_layout.addWidget(QLabel(self.tr("显示通道")))
@@ -315,6 +336,59 @@ class _ChannelView(QWidget):
             float(minimum_frequency_hz),
             float(maximum_frequency_hz),
         )
+        self._synchronize_search_lines()
+
+    def _install_search_band_lines(self, stft_result: STFTResult) -> None:
+        """Install two native, movable frequency boundaries for one STFT grid."""
+        self._search_frequency_grid_hz = np.asarray(
+            stft_result.frequency_hz,
+            dtype=np.float64,
+        )
+        if self._view_search_band_hz is None:
+            self._search_lines = []
+            return
+        self._search_lines = _add_search_band_limits(
+            self.plot_widget,
+            *self._view_search_band_hz,
+            movable=True,
+            frequency_bounds_hz=(
+                float(stft_result.frequency_hz[0]),
+                float(stft_result.frequency_hz[-1]),
+            ),
+            finished=self._search_boundary_finished,
+            lower_tooltip=self.tr("拖动调整搜索频率下限"),
+            upper_tooltip=self.tr("拖动调整搜索频率上限"),
+        )
+
+    def _synchronize_search_lines(self) -> None:
+        if self._view_search_band_hz is None or len(self._search_lines) != 2:
+            return
+        blockers = [QSignalBlocker(line) for line in self._search_lines]
+        self._search_lines[0].setPos(self._view_search_band_hz[0] * 1.0e-9)
+        self._search_lines[1].setPos(self._view_search_band_hz[1] * 1.0e-9)
+        del blockers
+
+    def _search_boundary_finished(self, boundary: int) -> None:
+        """Snap a drag to the current Hz grid and emit one ordered SI band."""
+        grid = self._search_frequency_grid_hz
+        if grid is None or grid.size < 2 or len(self._search_lines) != 2:
+            return
+        positions_hz = [float(line.value()) * 1.0e9 for line in self._search_lines]
+        indices = [
+            int(np.argmin(np.abs(grid - position_hz)))
+            for position_hz in positions_hz
+        ]
+        if boundary == 0:
+            indices[0] = min(indices[0], indices[1] - 1)
+        else:
+            indices[1] = max(indices[1], indices[0] + 1)
+        indices[0] = max(0, min(indices[0], grid.size - 2))
+        indices[1] = min(grid.size - 1, max(indices[1], indices[0] + 1))
+        minimum_hz = float(grid[indices[0]])
+        maximum_hz = float(grid[indices[1]])
+        self._view_search_band_hz = minimum_hz, maximum_hz
+        self._synchronize_search_lines()
+        self.search_band_changed.emit(minimum_hz, maximum_hz)
 
     def set_analyses(
         self,
@@ -467,7 +541,6 @@ class SpectrogramView(_ChannelView):
         self.definition_label.setObjectName("spectrogramDefinitionLabel")
         self.root_layout.addWidget(self.definition_label)
         self.current_image_db: FloatArray | None = None
-        self._search_lines: list[Any] = []
         self._corridors: Mapping[str, RidgeCorridorConstraint] = {}
         self._stft_results: Mapping[str, STFTResult] = {}
         self.corridor_controller = RidgeCorridorController(
@@ -573,12 +646,7 @@ class SpectrogramView(_ChannelView):
             floor_db=self._floor_db,
         )
         self.color_bar.setLevels((self._floor_db, 0.0))
-        self._search_lines = []
-        if self._view_search_band_hz is not None:
-            self._search_lines = _add_search_band_limits(
-                self.plot_widget,
-                *self._view_search_band_hz,
-            )
+        self._install_search_band_lines(stft_result)
         analysis = self._analyses.get(channel_name)
         analysis_start = (
             self._view_analysis_range_s[0]
@@ -613,6 +681,7 @@ class SpectrogramView(_ChannelView):
         self.plot_widget.addItem(self.image_item)
         self.current_image_db = None
         self._search_lines = []
+        self._search_frequency_grid_hz = None
         self.corridor_controller.detach_context()
 
 
@@ -747,7 +816,7 @@ class RidgeView(_ChannelView):
         )
         self.plot_widget.addItem(self.image_item)
         _set_image(self.image_item, analysis, floor_db=self._floor_db)
-        _add_search_band(self.plot_widget, analysis)
+        self._install_search_band_lines(analysis.stft_result)
         self._corridor_items = None
         if self.result_source == "guided":
             constraint = self._corridors.get(channel_name)
@@ -801,6 +870,8 @@ class RidgeView(_ChannelView):
         self.refined_curve = None
         self.formal_curve = None
         self._corridor_items = None
+        self._search_lines = []
+        self._search_frequency_grid_hz = None
 
 
 class VelocityView(_ChannelView):

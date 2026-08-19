@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import QSignalBlocker, Qt
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -15,6 +16,8 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QLabel,
     QLineEdit,
+    QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -52,7 +55,7 @@ class ImportSettingsDialog(QDialog):
         self._slots: list[_SignalSlot] = []
         self.setWindowTitle(self.tr("数据导入设置"))
         self.setModal(True)
-        self.resize(680, 720)
+        self._resize_for_available_screen()
 
         root_layout = QVBoxLayout(self)
         path_label = QLabel(str(source_path))
@@ -62,6 +65,21 @@ class ImportSettingsDialog(QDialog):
         )
         root_layout.addWidget(self._section_title(self.tr("源文件（只读）")))
         root_layout.addWidget(path_label)
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setObjectName("importSettingsScrollArea")
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.scroll_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
+        self.scroll_body = QWidget()
+        body_layout = QVBoxLayout(self.scroll_body)
+        self.scroll_area.setWidget(self.scroll_body)
+        root_layout.addWidget(self.scroll_area, 1)
 
         file_group = QGroupBox(self.tr("文件结构与时间单位"))
         file_form = QFormLayout(file_group)
@@ -84,7 +102,7 @@ class ImportSettingsDialog(QDialog):
         file_form.addRow(self.tr("表头"), self.header_check)
         file_form.addRow(self.tr("文本编码"), self.encoding_combo)
         file_form.addRow(self.tr("源时间单位"), self.time_unit_combo)
-        root_layout.addWidget(file_group)
+        body_layout.addWidget(file_group)
 
         preview_group = QGroupBox(self.tr("轻量文件预览"))
         preview_layout = QVBoxLayout(preview_group)
@@ -99,7 +117,7 @@ class ImportSettingsDialog(QDialog):
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
         preview_layout.addWidget(self.column_preview_label)
-        root_layout.addWidget(preview_group)
+        body_layout.addWidget(preview_group)
 
         channel_group = QGroupBox(self.tr("信号列（最多选择 3 个）"))
         channel_layout = QVBoxLayout(channel_group)
@@ -117,7 +135,7 @@ class ImportSettingsDialog(QDialog):
             channel_layout.addWidget(enabled)
             channel_layout.addWidget(editor)
             self._slots.append(_SignalSlot(enabled, editor, name, column, unit))
-        root_layout.addWidget(channel_group)
+        body_layout.addWidget(channel_group)
 
         # Keep the established test/plugin attribute names while the UI uses slots.
         self.channel_1_enabled = self._slots[0].enabled
@@ -144,14 +162,15 @@ class ImportSettingsDialog(QDialog):
         )
         notice.setWordWrap(True)
         notice.setObjectName("plannedNotice")
-        root_layout.addWidget(notice)
+        body_layout.addWidget(notice)
 
         self.validation_error_label = QLabel()
         self.validation_error_label.setObjectName("importValidationError")
         self.validation_error_label.setWordWrap(True)
         self.validation_error_label.setStyleSheet("color: #b94040;")
         self.validation_error_label.hide()
-        root_layout.addWidget(self.validation_error_label)
+        body_layout.addWidget(self.validation_error_label)
+        body_layout.addStretch(1)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok
@@ -164,6 +183,29 @@ class ImportSettingsDialog(QDialog):
         self.delimiter_edit.editingFinished.connect(self._refresh_preview)
         self.encoding_combo.currentTextChanged.connect(self._refresh_preview)
         self._refresh_preview(initialize_slots=True, detect_delimiter=True)
+
+    def _resize_for_available_screen(self) -> None:
+        """Keep the initial dialog inside the active desktop work area."""
+        screen = self.screen() or QGuiApplication.primaryScreen()
+        if screen is None:  # pragma: no cover - a GUI application normally has one.
+            self.resize(680, 640)
+            return
+        available = screen.availableGeometry()
+        width, height = self._bounded_initial_size(
+            available.width(),
+            available.height(),
+        )
+        self.resize(width, height)
+
+    @staticmethod
+    def _bounded_initial_size(
+        available_width: int,
+        available_height: int,
+    ) -> tuple[int, int]:
+        """Return a readable initial size capped at 82% of the work area."""
+        width = min(680, max(480, int(available_width * 0.82)))
+        height = min(720, max(400, int(available_height * 0.82)))
+        return width, height
 
     @property
     def detected_column_count(self) -> int:

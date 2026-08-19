@@ -9,6 +9,7 @@ import pytest
 
 from dps_studio.core.physics import (
     LIF_RIGG_2014_1550NM,
+    LiFWindowCorrectionModel,
     VelocityConfigurationError,
     VelocityCorrectionConfig,
     WindowMaterial,
@@ -131,6 +132,38 @@ def test_metadata_records_full_model_provenance_and_wavelength_warning() -> None
     assert window["source_doi"] == "10.1063/1.4890714"
     assert window["wavelength_matches_model_reference"] is False
     assert "1550 nm" in str(window["wavelength_validation_message"])
+
+
+def test_custom_lif_model_is_validated_used_and_recorded() -> None:
+    model = LiFWindowCorrectionModel(
+        b1=0.8,
+        b2=1.0,
+        reference_wavelength_m=1064.0e-9,
+    )
+    result = apply_velocity_corrections(
+        np.asarray([1000.0]),
+        config=VelocityCorrectionConfig(lif_model=model),
+        vacuum_wavelength_m=1064.0e-9,
+    )
+    assert result.corrected_velocity_m_s[0] == pytest.approx(800.0)
+    metadata = velocity_correction_metadata(result)
+    window = metadata["window"]
+    assert isinstance(window, dict)
+    assert window["b1"] == 0.8
+    assert window["b2"] == 1.0
+    assert window["reference_wavelength_m"] == pytest.approx(1064.0e-9)
+    assert window["parameter_provenance"] == "user_custom"
+    assert window["custom_parameters"] is True
+
+    for field in ("b1", "b2", "reference_wavelength_m"):
+        values = {
+            "b1": 0.8,
+            "b2": 1.0,
+            "reference_wavelength_m": 1064.0e-9,
+        }
+        values[field] = 0.0
+        with pytest.raises(VelocityConfigurationError):
+            LiFWindowCorrectionModel(**values)
 
 
 def test_formal_workflow_preserves_quality_states_and_nan_mask() -> None:

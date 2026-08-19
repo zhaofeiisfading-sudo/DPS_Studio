@@ -471,10 +471,10 @@ def test_full_band_and_analysis_plot_ranges_are_explicit_and_images_are_readable
         manifest = json.loads(
             (production_run / profile_name / "profile_manifest.json").read_text()
         )
-        assert manifest["search_frequency_range_hz"] == [0.05e9, 2.0e9]
+        assert manifest["search_frequency_range_hz"] == [0.05e9, 6.0e9]
         assert manifest["full_range_preview"]["frequency_range_hz"] == [
             0.05e9,
-            2.0e9,
+            6.0e9,
         ]
         assert manifest["full_range_preview"]["formal_quality_gate_applied"] is False
         assert manifest["full_range_preview"]["legend"] == (

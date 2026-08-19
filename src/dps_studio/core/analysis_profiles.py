@@ -471,7 +471,7 @@ BALANCED_PROFILE = AnalysisProfile(
     hop_samples=128,
     nfft=4096,
     minimum_frequency_hz=0.05e9,
-    maximum_frequency_hz=2.0e9,
+    maximum_frequency_hz=6.0e9,
     ridge_refinement=RIDGE_REFINEMENT_METHOD,
     tradeoff_note=(
         "Default profile prioritizing plateau stability, frequency-estimate "
@@ -488,7 +488,7 @@ HIGH_TIME_RESOLUTION_PROFILE = AnalysisProfile(
     hop_samples=128,
     nfft=4096,
     minimum_frequency_hz=0.05e9,
-    maximum_frequency_hz=2.0e9,
+    maximum_frequency_hz=6.0e9,
     ridge_refinement=RIDGE_REFINEMENT_METHOD,
     tradeoff_note=(
         "Shorter time support at the cost of frequency stability and plateau "
@@ -505,7 +505,7 @@ HIGH_FREQUENCY_RESOLUTION_PROFILE = AnalysisProfile(
     hop_samples=128,
     nfft=4096,
     minimum_frequency_hz=0.05e9,
-    maximum_frequency_hz=2.0e9,
+    maximum_frequency_hz=6.0e9,
     ridge_refinement=RIDGE_REFINEMENT_METHOD,
     tradeoff_note=(
         "Longer time support and a narrower window-limited frequency scale at "
@@ -522,7 +522,7 @@ VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE = AnalysisProfile(
     hop_samples=128,
     nfft=4096,
     minimum_frequency_hz=0.05e9,
-    maximum_frequency_hz=2.0e9,
+    maximum_frequency_hz=6.0e9,
     ridge_refinement=RIDGE_REFINEMENT_METHOD,
     tradeoff_note=(
         "Experimental: shorter time support improves local time response but "
@@ -539,7 +539,7 @@ VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE = AnalysisProfile(
     hop_samples=128,
     nfft=4096,
     minimum_frequency_hz=0.05e9,
-    maximum_frequency_hz=2.0e9,
+    maximum_frequency_hz=6.0e9,
     ridge_refinement=RIDGE_REFINEMENT_METHOD,
     tradeoff_note=(
         "Experimental: longer time support improves finite-window frequency "

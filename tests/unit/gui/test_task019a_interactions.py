@@ -241,7 +241,7 @@ def test_step5_step6_share_correction_and_preserve_ready_state_and_upstream(
         assert correction.measurement_angle_rad == pytest.approx(
             math.radians(30.0)
         )
-        assert "LiF 窗口修正速度" in window.export_velocity_summary_label.text()
+        assert "LiF" in window.export_velocity_summary_label.text()
     finally:
         window.close()
         qapp.processEvents()

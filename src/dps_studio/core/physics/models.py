@@ -25,9 +25,27 @@ class WindowMaterial(str, Enum):
     LIF = "LiF"
 
 
+def _positive_model_parameter(value: object, *, field_name: str) -> float:
+    if isinstance(value, (bool, np.bool_)):
+        raise VelocityConfigurationError(
+            f"{field_name} must be finite and strictly positive."
+        )
+    try:
+        converted = float(cast("float | str", value))
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise VelocityConfigurationError(
+            f"{field_name} must be finite and strictly positive."
+        ) from exc
+    if not math.isfinite(converted) or converted <= 0.0:
+        raise VelocityConfigurationError(
+            f"{field_name} must be finite and strictly positive."
+        )
+    return converted
+
+
 @dataclass(frozen=True, slots=True)
 class LiFWindowCorrectionModel:
-    """Fixed Rigg et al. calibration for shocked [100] LiF at 1550 nm."""
+    """Validated Rigg et al. calibration for shocked [100] LiF at 1550 nm."""
 
     material: str = "LiF"
     model: str = "Rigg2014_Eq16"
@@ -39,6 +57,40 @@ class LiFWindowCorrectionModel:
     loading_context: str = "dynamic compression / calibrated window correction"
     source: str = "Rigg et al., Journal of Applied Physics 116, 033515 (2014)"
     source_doi: str = "10.1063/1.4890714"
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "b1",
+            _positive_model_parameter(self.b1, field_name="LiF b1"),
+        )
+        object.__setattr__(
+            self,
+            "b2",
+            _positive_model_parameter(self.b2, field_name="LiF b2"),
+        )
+        object.__setattr__(
+            self,
+            "reference_wavelength_m",
+            _positive_model_parameter(
+                self.reference_wavelength_m,
+                field_name="LiF reference_wavelength_m",
+            ),
+        )
+        for field_name in (
+            "material",
+            "model",
+            "crystal_orientation",
+            "paper_velocity_unit",
+            "loading_context",
+            "source",
+            "source_doi",
+        ):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise VelocityConfigurationError(
+                    f"LiF {field_name} must be non-empty text."
+                )
 
 
 LIF_RIGG_2014_1550NM = LiFWindowCorrectionModel()
@@ -56,11 +108,16 @@ class VelocityCorrectionConfig:
 
     window_material: WindowMaterial = WindowMaterial.LIF
     measurement_angle_rad: float = 0.0
+    lif_model: LiFWindowCorrectionModel = LIF_RIGG_2014_1550NM
 
     def __post_init__(self) -> None:
         if not isinstance(self.window_material, WindowMaterial):
             raise VelocityConfigurationError(
                 "window_material must be a supported WindowMaterial."
+            )
+        if not isinstance(self.lif_model, LiFWindowCorrectionModel):
+            raise VelocityConfigurationError(
+                "lif_model must be a LiFWindowCorrectionModel."
             )
         if isinstance(self.measurement_angle_rad, (bool, np.bool_)):
             raise VelocityConfigurationError(
