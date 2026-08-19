@@ -28,6 +28,7 @@ from typing import cast
 import numpy as np
 
 from dps_studio.core.models import SignalRecord
+from dps_studio.core.time_frequency import validate_stft_window_name
 
 
 RIDGE_REFINEMENT_METHOD = "log_magnitude_three_point_quadratic"
@@ -98,8 +99,11 @@ class AnalysisProfile:
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"{field_name} must be a non-empty string.")
-        if self.window_name != "hann":
-            raise ValueError("window_name must be 'hann' for the formal profiles.")
+        object.__setattr__(
+            self,
+            "window_name",
+            validate_stft_window_name(self.window_name),
+        )
 
         window_length = _strict_integer(
             self.window_length_samples,
@@ -160,6 +164,7 @@ class AnalysisParameterOverrides:
     """
 
     vacuum_wavelength_m: float | None = None
+    window_name: str | None = None
     window_length_samples: int | None = None
     overlap_samples: int | None = None
     nfft: int | None = None
@@ -173,6 +178,7 @@ class AnalysisParameterOverrides:
             value is None
             for value in (
                 self.vacuum_wavelength_m,
+                self.window_name,
                 self.window_length_samples,
                 self.overlap_samples,
                 self.nfft,
@@ -218,11 +224,12 @@ class AnalysisRunParameters:
         return not self.overrides.is_empty
 
     @property
-    def custom_overrides(self) -> Mapping[str, int | float]:
+    def custom_overrides(self) -> Mapping[str, int | float | str]:
         """Return immutable explicit override values for provenance/export."""
-        values: dict[str, int | float] = {}
+        values: dict[str, int | float | str] = {}
         for field_name in (
             "vacuum_wavelength_m",
+            "window_name",
             "window_length_samples",
             "overlap_samples",
             "nfft",
@@ -339,6 +346,11 @@ def build_analysis_run_parameters(
         else overrides.overlap_samples
     )
     nfft = base_profile.nfft if overrides.nfft is None else overrides.nfft
+    window_name = (
+        base_profile.window_name
+        if overrides.window_name is None
+        else validate_stft_window_name(overrides.window_name)
+    )
     minimum_frequency = (
         base_profile.minimum_frequency_hz
         if overrides.minimum_frequency_hz is None
@@ -358,7 +370,7 @@ def build_analysis_run_parameters(
     validated = AnalysisProfile(
         profile_id=base_profile.profile_id,
         display_name=base_profile.display_name,
-        window_name=base_profile.window_name,
+        window_name=window_name,
         window_length_samples=window_length,
         overlap_samples=overlap,
         hop_samples=derived_hop,
@@ -373,6 +385,11 @@ def build_analysis_run_parameters(
             None
             if _same_numeric_value(wavelength, base_wavelength)
             else wavelength
+        ),
+        window_name=(
+            None
+            if validated.window_name == base_profile.window_name
+            else validated.window_name
         ),
         window_length_samples=(
             None
@@ -412,7 +429,11 @@ def build_analysis_run_parameters(
             if normalized.vacuum_wavelength_m is None
             else normalized.vacuum_wavelength_m
         ),
-        window_name=validated.window_name,
+        window_name=(
+            base_profile.window_name
+            if normalized.window_name is None
+            else normalized.window_name
+        ),
         window_length_samples=(
             base_profile.window_length_samples
             if normalized.window_length_samples is None
@@ -450,7 +471,7 @@ BALANCED_PROFILE = AnalysisProfile(
     hop_samples=128,
     nfft=4096,
     minimum_frequency_hz=0.05e9,
-    maximum_frequency_hz=2.0e9,
+    maximum_frequency_hz=6.0e9,
     ridge_refinement=RIDGE_REFINEMENT_METHOD,
     tradeoff_note=(
         "Default profile prioritizing plateau stability, frequency-estimate "
@@ -467,7 +488,7 @@ HIGH_TIME_RESOLUTION_PROFILE = AnalysisProfile(
     hop_samples=128,
     nfft=4096,
     minimum_frequency_hz=0.05e9,
-    maximum_frequency_hz=2.0e9,
+    maximum_frequency_hz=6.0e9,
     ridge_refinement=RIDGE_REFINEMENT_METHOD,
     tradeoff_note=(
         "Shorter time support at the cost of frequency stability and plateau "
@@ -484,7 +505,7 @@ HIGH_FREQUENCY_RESOLUTION_PROFILE = AnalysisProfile(
     hop_samples=128,
     nfft=4096,
     minimum_frequency_hz=0.05e9,
-    maximum_frequency_hz=2.0e9,
+    maximum_frequency_hz=6.0e9,
     ridge_refinement=RIDGE_REFINEMENT_METHOD,
     tradeoff_note=(
         "Longer time support and a narrower window-limited frequency scale at "
@@ -501,7 +522,7 @@ VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE = AnalysisProfile(
     hop_samples=128,
     nfft=4096,
     minimum_frequency_hz=0.05e9,
-    maximum_frequency_hz=2.0e9,
+    maximum_frequency_hz=6.0e9,
     ridge_refinement=RIDGE_REFINEMENT_METHOD,
     tradeoff_note=(
         "Experimental: shorter time support improves local time response but "
@@ -518,7 +539,7 @@ VERY_HIGH_FREQUENCY_RESOLUTION_EXPERIMENTAL_PROFILE = AnalysisProfile(
     hop_samples=128,
     nfft=4096,
     minimum_frequency_hz=0.05e9,
-    maximum_frequency_hz=2.0e9,
+    maximum_frequency_hz=6.0e9,
     ridge_refinement=RIDGE_REFINEMENT_METHOD,
     tradeoff_note=(
         "Experimental: longer time support improves finite-window frequency "

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import re
 from pathlib import Path
 
@@ -62,13 +63,13 @@ def test_balanced_loads_all_fields_with_explicit_unchanged_provenance(
         assert not configuration.custom_overrides
         assert configuration.final_run_configuration is configuration.parameters
         assert window.vacuum_wavelength_spin.value() == pytest.approx(1550.0)
-        assert window.window_name_label.text() == BALANCED_PROFILE.window_name
+        assert window.window_name_combo.currentData() == BALANCED_PROFILE.window_name
         assert window.window_length_spin.value() == 768
         assert window.overlap_spin.value() == 640
         assert window.hop_label.text().startswith("128")
         assert window.nfft_spin.value() == 4096
         assert window.minimum_frequency_spin.value() == pytest.approx(0.05)
-        assert window.maximum_frequency_spin.value() == pytest.approx(2.0)
+        assert window.maximum_frequency_spin.value() == pytest.approx(6.0)
     finally:
         window.close()
         qapp.processEvents()
@@ -150,7 +151,7 @@ def test_reselect_and_restore_button_restore_immutable_preset(
         qapp.processEvents()
 
 
-def test_invalid_nfft_and_search_band_are_not_corrected_and_block_run(
+def test_invalid_nfft_is_blocked_and_search_band_is_constrained_to_nyquist(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -169,9 +170,13 @@ def test_invalid_nfft_and_search_band_are_not_corrected_and_block_run(
         window.maximum_frequency_spin.setValue(5.0)
         qapp.processEvents()
         assert window.nfft_spin.value() == 4095
-        assert window.maximum_frequency_spin.value() == pytest.approx(5.0)
-        assert not window.run_analysis_button.isEnabled()
-        assert "STFT/Nyquist" in window.parameter_error_label.text()
+        expected_grid_max_ghz = (
+            math.floor(10.0e9 * (4095 // 2) / 4095 * 1.0e3) / 1.0e3 * 1e-9
+        )
+        assert window.maximum_frequency_spin.value() == pytest.approx(
+            expected_grid_max_ghz
+        )
+        assert window.run_analysis_button.isEnabled()
     finally:
         window.close()
         qapp.processEvents()

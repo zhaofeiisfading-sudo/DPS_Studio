@@ -94,7 +94,7 @@ def _assert_view_x(
     )
 
 
-def test_session_revalidates_config_reference_for_every_loaded_file() -> None:
+def test_general_configuration_keeps_event_reference_unset_for_every_file() -> None:
     configuration = _configuration()
     session = AnalysisSession()
     session.set_workflow_configuration(
@@ -105,7 +105,7 @@ def test_session_revalidates_config_reference_for_every_loaded_file() -> None:
     shifted = _record(744e-6, 749e-6)
     session.load_records(source_path=Path("shifted.csv"), records={"pdv": shifted})
     assert session.event_reference_time_s is None
-    assert session.rejected_event_reference_time_s == pytest.approx(554.668e-6)
+    assert session.rejected_event_reference_time_s is None
     session.set_analysis_range(AnalysisRange(744e-6, 749e-6))
     assert session.set_event_reference_time_s(746e-6)
     assert session.event_reference_time_s == pytest.approx(746e-6)
@@ -115,8 +115,8 @@ def test_session_revalidates_config_reference_for_every_loaded_file() -> None:
         source_path=Path("original.csv"),
         records={"pdv": original_domain},
     )
-    assert session.event_reference_time_s == pytest.approx(554.668e-6)
-    assert session.event_reference_source == "configuration"
+    assert session.event_reference_time_s is None
+    assert session.event_reference_source is None
 
 
 def test_gui_reference_candidates_and_result_view_fit(
@@ -130,9 +130,9 @@ def test_gui_reference_candidates_and_result_view_fit(
         qapp.processEvents()
         assert window.analysis_session.event_reference_time_s is None
         assert window.analysis_range_panel.confirmed_event_reference_s is None
-        assert "554.668000000" in (
-            window.analysis_range_panel.event_reference_status_label.text()
-        )
+        reference_status = window.analysis_range_panel.event_reference_status_label.text()
+        assert "未设置" in reference_status
+        assert "554.668" not in reference_status
 
         full_start_s, full_end_s = window.analysis_session.data_bounds_s()
         analysis_start_s = full_start_s + 20e-9
@@ -157,21 +157,44 @@ def test_gui_reference_candidates_and_result_view_fit(
         assert window.analysis_session.event_reference_time_s == pytest.approx(
             manual_reference_s
         )
+        assert all(
+            analysis.event_aware_continuity_result.event_reference_time_s
+            == pytest.approx(manual_reference_s)
+            for analysis in analyses.values()
+        )
+        assert all(
+            analysis.event_aware_continuity_result.event_reference_source == "manual"
+            for analysis in analyses.values()
+        )
+        assert window.analysis_session.set_event_reference_time_s(
+            manual_reference_s,
+            source="manual_review",
+        )
+        analyses = window.analysis_session.channel_analyses
+        assert all(
+            analysis.event_aware_continuity_result.event_reference_source
+            == "manual_review"
+            for analysis in analyses.values()
+        )
         assert set(window.analysis_range_panel.candidate_buttons) == set(analyses)
         candidate_tooltip = next(
             iter(window.analysis_range_panel.candidate_buttons.values())
         ).toolTip()
-        assert "只是候选参考" in candidate_tooltip
+        assert "必须由用户显式采用" in candidate_tooltip
 
         expected_start_us = analysis_start_s * 1e6
         expected_end_us = analysis_end_s * 1e6
         for view in (
             window.spectrogram_view,
             window.ridge_view,
-            window.velocity_view,
             window.comparison_view,
         ):
             _assert_view_x(view, expected_start_us, expected_end_us)
+        _assert_view_x(
+            window.velocity_view,
+            (analysis_start_s - manual_reference_s) * 1e6,
+            (analysis_end_s - manual_reference_s) * 1e6,
+        )
 
         raw_x = window.raw_signal_view.plot_widget.plotItem.vb.viewRange()[0]
         assert raw_x[0] <= full_start_s * 1e6
@@ -196,14 +219,15 @@ def test_gui_reference_candidates_and_result_view_fit(
         }
         generation = window.analysis_session.generation_id
         first_button = window.analysis_range_panel.candidate_buttons[first_name]
-        candidate_s = analyses[
-            first_name
-        ].signal_detection_result.detected_event_candidate_time_s
+        candidate_s = analyses[first_name].stream_event_candidates.primary_candidate_time_s
         assert candidate_s is not None
         first_button.click()
         qapp.processEvents()
         assert window.analysis_session.event_reference_time_s == pytest.approx(
             candidate_s
+        )
+        assert window.analysis_session.event_reference_source == (
+            f"user_adopted:automatic_primary:{first_name}"
         )
         assert window.analysis_session.generation_id == generation
         for name, analysis in window.analysis_session.channel_analyses.items():
@@ -247,7 +271,11 @@ def test_gui_reference_candidates_and_result_view_fit(
         assert view_range[1] == pytest.approx(manual_y)
 
         window.velocity_view.fit_analysis_range_button.click()
-        _assert_view_x(window.velocity_view, expected_start_us, expected_end_us)
+        _assert_view_x(
+            window.velocity_view,
+            (analysis_start_s - candidate_s) * 1e6,
+            (analysis_end_s - candidate_s) * 1e6,
+        )
         current = window.analysis_session.channel_analyses[first_name]
         expected_refit_y = finite_velocity_view_range(
             (
@@ -262,7 +290,11 @@ def test_gui_reference_candidates_and_result_view_fit(
         window.velocity_view.plot_widget.setXRange(*manual_x, padding=0.0)
         window.velocity_view.channel_combo.setCurrentIndex(1)
         qapp.processEvents()
-        _assert_view_x(window.velocity_view, expected_start_us, expected_end_us)
+        _assert_view_x(
+            window.velocity_view,
+            (analysis_start_s - candidate_s) * 1e6,
+            (analysis_end_s - candidate_s) * 1e6,
+        )
     finally:
         window.close()
         qapp.processEvents()

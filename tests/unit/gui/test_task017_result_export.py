@@ -129,6 +129,8 @@ def test_toolbar_review_and_export_only_navigates_without_writing(
         _wait(window, window.run_automatic_analysis)
         export_parent = tmp_path / "exports"
         export_parent.mkdir()
+        window.export_absolute_time_origin_radio.click()
+        qapp.processEvents()
         window._set_export_output_directory(export_parent)
         before_paths = {path.name for path in export_parent.iterdir()}
         result_state = window.workflow_state
@@ -175,6 +177,8 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
 
         export_parent = tmp_path / "exports"
         export_parent.mkdir()
+        window.export_absolute_time_origin_radio.click()
+        qapp.processEvents()
         window._set_export_output_directory(export_parent)
         assert window.export_button.isEnabled()
         success_messages: list[str] = []
@@ -191,7 +195,21 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         assert metadata["analysis_mode"] == "automatic"
         assert metadata["source_channel"] == "pdv_channel_1"
+        analysis = window.analysis_session.channel_analyses["pdv_channel_1"]
+        assert metadata["automatic_event_candidate_time_s"] == (
+            analysis.stream_event_candidates.primary_candidate_time_s
+        )
+        assert metadata["compatibility_event_candidate_time_s"] == (
+            analysis.signal_detection_result.detected_event_candidate_time_s
+        )
+        assert metadata["event_reference_time_s"] == (
+            window.analysis_session.event_reference_time_s
+        )
+        assert metadata["event_reference_source"] == (
+            window.analysis_session.event_reference_source
+        )
         assert metadata["pre_event_display"]["included_in_csv"] is True
+        assert len(tuple(export_parent.glob("*.metadata.json"))) == 1
         assert (export_parent / "task017_dual_channel_ch1_auto.csv").is_file()
         assert (export_parent / "task017_dual_channel_ch1_auto_detail.csv").is_file()
         assert success_messages
@@ -212,7 +230,7 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         qapp.processEvents()
 
 
-def test_guided_mode_selection_lists_only_current_guided_channels(
+def test_guided_mode_selection_keeps_missing_channels_visible_but_safe(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -240,8 +258,15 @@ def test_guided_mode_selection_lists_only_current_guided_channels(
         window.export_mode_combo.setCurrentIndex(guided_index)
         qapp.processEvents()
         assert window.export_mode_combo.currentData() == "guided"
-        assert window.export_channel_combo.count() == 1
+        assert window.export_channel_combo.count() == 2
         assert window.export_channel_combo.currentData() == "pdv_channel_1"
+
+        window.export_channel_combo.setCurrentIndex(
+            window.export_channel_combo.findData("pdv_channel_2")
+        )
+        qapp.processEvents()
+        assert window.export_channel_combo.currentData() == "pdv_channel_2"
+        assert not window.export_button.isEnabled()
 
         automatic_index = window.export_mode_combo.findData(
             ResultAnalysisMode.AUTOMATIC.value

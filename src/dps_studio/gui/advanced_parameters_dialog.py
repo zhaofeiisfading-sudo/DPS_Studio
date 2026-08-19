@@ -49,14 +49,30 @@ class AdvancedParametersDialog(QDialog):
                         else self.tr("无"),
                     ),
                     (self.tr("窗函数"), parameters.window_name),
-                    (self.tr("窗长"), f"{parameters.window_length_samples} samples"),
-                    (self.tr("重叠长度"), f"{parameters.overlap_samples} samples"),
-                    (self.tr("步长"), f"{parameters.hop_samples} samples"),
-                    (self.tr("FFT 长度"), str(parameters.nfft)),
+                    (
+                        self.tr("窗长"),
+                        self.tr("{value} 点").format(
+                            value=parameters.window_length_samples
+                        ),
+                    ),
+                    (
+                        self.tr("重叠长度"),
+                        self.tr("{value} 点").format(
+                            value=parameters.overlap_samples
+                        ),
+                    ),
+                    (
+                        self.tr("步长"),
+                        self.tr("{value} 点").format(value=parameters.hop_samples),
+                    ),
+                    (
+                        self.tr("FFT 长度"),
+                        self.tr("{value} 点").format(value=parameters.nfft),
+                    ),
                     (
                         self.tr("搜索频段"),
-                        f"{parameters.minimum_frequency_hz * 1e-9:.6f} – "
-                        f"{parameters.maximum_frequency_hz * 1e-9:.6f} GHz",
+                        f"{parameters.minimum_frequency_hz * 1e-9:.9g} – "
+                        f"{parameters.maximum_frequency_hz * 1e-9:.9g} GHz",
                     ),
                 )
             ),

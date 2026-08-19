@@ -130,7 +130,7 @@ def test_profiles_preserve_old_values_and_add_validated_experimental_extremes() 
         HIGH_FREQUENCY_RESOLUTION_PROFILE.nfft,
     ) == (1024, 896, 128, 4096)
     assert HIGH_FREQUENCY_RESOLUTION_PROFILE.minimum_frequency_hz == 0.05e9
-    assert HIGH_FREQUENCY_RESOLUTION_PROFILE.maximum_frequency_hz == 2.0e9
+    assert HIGH_FREQUENCY_RESOLUTION_PROFILE.maximum_frequency_hz == 6.0e9
     assert (
         VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.window_length_samples,
         VERY_HIGH_TIME_RESOLUTION_EXPERIMENTAL_PROFILE.overlap_samples,

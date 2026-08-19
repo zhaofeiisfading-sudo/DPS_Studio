@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
+from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import QByteArray, QSettings, QSignalBlocker, QSize, Qt
@@ -49,17 +51,26 @@ from dps_studio.core.analysis_profiles import (
     AnalysisRunParameters,
 )
 from dps_studio.core.export import (
+    ExportTimeOrigin,
     ResultAnalysisMode,
     ResultExportError,
     ResultExportOptions,
     export_formal_results,
 )
 from dps_studio.core.io import DelimitedSignalLoadResult
+from dps_studio.core.physics import (
+    LIF_RIGG_2014_1550NM,
+    LiFWindowCorrectionModel,
+    VelocityCorrectionConfig,
+    WindowMaterial,
+)
 from dps_studio.core.ridge import (
+    AutomaticRidgeExtractionMode,
     RidgeConfigurationError,
     RidgeCorridorConstraint,
     validate_ridge_corridor_for_stft,
 )
+from dps_studio.core.time_frequency import STFTWindowName
 from dps_studio.core.workflow import (
     ChannelAnalysis,
     WorkflowConfiguration,
@@ -113,6 +124,40 @@ _DEFAULT_WORKSPACE_SIZES = (220, 830, 340)
 _DEFAULT_DIAGNOSTICS_HEIGHT = 210
 _AUTOMATIC_MODE_BUTTON_ID = 101
 _GUIDED_MODE_BUTTON_ID = 102
+_STFT_WINDOW_OPTIONS = (
+    (STFTWindowName.HANN.value, "Hann"),
+    (STFTWindowName.HAMMING.value, "Hamming"),
+    (STFTWindowName.BLACKMAN.value, "Blackman"),
+    (STFTWindowName.BLACKMAN_HARRIS.value, "Blackman-Harris"),
+    (STFTWindowName.BOXCAR.value, "矩形窗（Boxcar）"),
+)
+_AUTOMATIC_RIDGE_OPTIONS = (
+    (AutomaticRidgeExtractionMode.CONTINUITY_ASSISTED.value, "连续性辅助"),
+    (AutomaticRidgeExtractionMode.LEGACY_STRONGEST_PEAK.value, "传统最强峰"),
+)
+
+
+class _CompactDoubleSpinBox(QDoubleSpinBox):
+    """Preserve numeric precision while avoiding padded display zeroes."""
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        minimum_decimals: int = 0,
+    ) -> None:
+        super().__init__(parent)
+        self._minimum_decimals = minimum_decimals
+
+    def textFromValue(self, value: float) -> str:  # noqa: N802 - Qt virtual API
+        text = f"{value:.{self.decimals()}f}"
+        whole, separator, fraction = text.partition(".")
+        if not separator:
+            return whole
+        fraction = fraction.rstrip("0")
+        if len(fraction) < self._minimum_decimals:
+            fraction += "0" * (self._minimum_decimals - len(fraction))
+        return f"{whole}.{fraction}" if fraction else whole
 
 
 class MainWindow(QMainWindow):
@@ -136,6 +181,8 @@ class MainWindow(QMainWindow):
         self._session = AnalysisSession()
         self._analysis_adapter = AutomaticAnalysisAdapter(self)
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
+        self._pending_navigation_tab: int | None = None
+        self._pending_candidate_detection = False
         self._current_guided_channel: str | None = None
         self._corridor_width_initialized = False
         self._guided_auto_fit_done = False
@@ -204,6 +251,14 @@ class MainWindow(QMainWindow):
             source_path=result.source_path,
             records=result.records,
         )
+        self._constrain_search_band_to_records()
+        run_configuration = self._session.run_configuration
+        if run_configuration is not None:
+            self._set_parameter_controls(
+                run_configuration.parameters,
+                editable=True,
+            )
+        self._sync_export_time_origin_controls()
         self.raw_signal_view.set_records(result.records)
         range_start, range_end = self._session.data_bounds_s()
         self.analysis_range_panel.set_data_bounds(range_start, range_end)
@@ -254,9 +309,17 @@ class MainWindow(QMainWindow):
             configuration,
             profile=repository.default_profile,
         )
+        self._constrain_search_band_to_records()
         self._sync_event_reference_panel()
         self._updating_parameter_controls = True
         wavelength_blocker = QSignalBlocker(self.vacuum_wavelength_spin)
+        window_material_blocker = QSignalBlocker(self.window_material_combo)
+        measurement_angle_blocker = QSignalBlocker(self.measurement_angle_spin)
+        lif_b1_blocker = QSignalBlocker(self.lif_b1_spin)
+        lif_b2_blocker = QSignalBlocker(self.lif_b2_spin)
+        lif_reference_blocker = QSignalBlocker(
+            self.lif_reference_wavelength_spin
+        )
         display_velocity_blocker = QSignalBlocker(
             self.pre_event_display_velocity_spin
         )
@@ -265,6 +328,21 @@ class MainWindow(QMainWindow):
         )
         self.vacuum_wavelength_spin.setValue(
             configuration.analysis.vacuum_wavelength_m * 1e9
+        )
+        window_index = self.window_material_combo.findData(
+            configuration.velocity_correction.window_material.value
+        )
+        if window_index < 0:
+            raise ValueError("Unsupported configured window material.")
+        self.window_material_combo.setCurrentIndex(window_index)
+        self.measurement_angle_spin.setValue(
+            math.degrees(configuration.velocity_correction.measurement_angle_rad)
+        )
+        self.lif_b1_spin.setValue(configuration.velocity_correction.lif_model.b1)
+        self.lif_b2_spin.setValue(configuration.velocity_correction.lif_model.b2)
+        self.lif_reference_wavelength_spin.setValue(
+            configuration.velocity_correction.lif_model.reference_wavelength_m
+            * 1e9
         )
         self.pre_event_display_velocity_spin.setValue(
             configuration.plot.pre_event_display_velocity_m_s
@@ -279,6 +357,11 @@ class MainWindow(QMainWindow):
         )
         self.vacuum_wavelength_spin.setEnabled(True)
         del wavelength_blocker
+        del window_material_blocker
+        del measurement_angle_blocker
+        del lif_b1_blocker
+        del lif_b2_blocker
+        del lif_reference_blocker
         del display_velocity_blocker
         del display_check_blocker
         run_configuration = self._session.run_configuration
@@ -290,6 +373,9 @@ class MainWindow(QMainWindow):
         )
         self._updating_parameter_controls = False
         self._validate_current_parameters()
+        self._sync_velocity_correction_controls()
+        self._sync_export_time_origin_controls()
+        self._sync_velocity_correction_warning()
         presentation_reason = (
             self.tr("分析配置已变化；旧结果已失效。")
             if self._session.records
@@ -355,7 +441,7 @@ class MainWindow(QMainWindow):
         self.action_exit.setShortcut(QKeySequence.StandardKey.Quit)
 
         planned_tooltip = self.tr("请先加载配置、确认范围和真空波长。")
-        self.action_automatic = QAction(self.tr("自动分析"), self)
+        self.action_automatic = QAction(self.tr("一键分析"), self)
         self.action_automatic.setObjectName("actionAutomaticAnalysis")
         self.action_automatic.setEnabled(False)
         self.action_automatic.setToolTip(planned_tooltip)
@@ -578,7 +664,7 @@ class MainWindow(QMainWindow):
         self.profile_combo = QComboBox()
         self.profile_combo.setObjectName("analysisProfileCombo")
         self.profile_combo.setEnabled(False)
-        self.vacuum_wavelength_spin = QDoubleSpinBox()
+        self.vacuum_wavelength_spin = _CompactDoubleSpinBox()
         self.vacuum_wavelength_spin.setObjectName("vacuumWavelengthNm")
         self.vacuum_wavelength_spin.setRange(0.001, 100000.0)
         self.vacuum_wavelength_spin.setDecimals(6)
@@ -590,7 +676,43 @@ class MainWindow(QMainWindow):
             )
         )
         self.vacuum_wavelength_spin.setEnabled(False)
-        self.window_name_label = QLabel("—")
+        self.window_name_combo = QComboBox()
+        self.window_name_combo.setObjectName("stftWindowFunctionCombo")
+        for window_name, display_name in _STFT_WINDOW_OPTIONS:
+            translated_name = (
+                self.tr("矩形窗（Boxcar）")
+                if window_name == STFTWindowName.BOXCAR.value
+                else display_name
+            )
+            self.window_name_combo.addItem(translated_name, window_name)
+        self.window_name_combo.setToolTip(
+            self.tr(
+                "窗口函数只改变 STFT 的数学 window；不会联动窗长、重叠、"
+                "FFT 长度、搜索频带或质量门槛。矩形窗可作为无加权基线比较；"
+                "其频谱泄漏特性与其他加窗方式不同，不作为默认选择。"
+            )
+        )
+        self.automatic_ridge_extraction_combo = QComboBox()
+        self.automatic_ridge_extraction_combo.setObjectName(
+            "automaticRidgeExtractionCombo"
+        )
+        for mode, _display_name in _AUTOMATIC_RIDGE_OPTIONS:
+            translated_name = (
+                self.tr("连续性辅助")
+                if mode == AutomaticRidgeExtractionMode.CONTINUITY_ASSISTED.value
+                else self.tr("传统最强峰")
+            )
+            self.automatic_ridge_extraction_combo.addItem(
+                translated_name,
+                mode,
+            )
+        self.automatic_ridge_extraction_combo.setToolTip(
+            self.tr(
+                "连续性辅助：在最强峰出现孤立跳变时，可在可信局部候选峰中"
+                "选择与前后时间帧更连续的谱峰。\n传统最强峰：每个时间帧始终"
+                "使用搜索频带内的最强谱峰。"
+            )
+        )
         self.window_length_spin = self._sample_spin("windowLengthSamples")
         self.overlap_spin = self._sample_spin("overlapSamples", minimum=0)
         self.hop_label = QLabel("—")
@@ -598,14 +720,11 @@ class MainWindow(QMainWindow):
         self.minimum_frequency_spin = self._frequency_spin("minimumFrequencyGhz")
         self.maximum_frequency_spin = self._frequency_spin("maximumFrequencyGhz")
         form.addRow(self.tr("分析配置"), self.profile_combo)
-        form.addRow(self.tr("真空波长"), self.vacuum_wavelength_spin)
-        form.addRow(self.tr("窗函数"), self.window_name_label)
+        form.addRow(self.tr("窗口函数"), self.window_name_combo)
         form.addRow(self.tr("窗长"), self.window_length_spin)
         form.addRow(self.tr("重叠长度"), self.overlap_spin)
         form.addRow(self.tr("步长"), self.hop_label)
         form.addRow(self.tr("FFT 长度"), self.nfft_spin)
-        form.addRow(self.tr("搜索频率下限"), self.minimum_frequency_spin)
-        form.addRow(self.tr("搜索频率上限"), self.maximum_frequency_spin)
         layout.addLayout(form)
         self.parameter_error_label = QLabel()
         self.parameter_error_label.setObjectName("analysisParameterError")
@@ -679,7 +798,10 @@ class MainWindow(QMainWindow):
         self.stft_ready_label = self._notice(self.tr("尚未计算时频图。"))
         self.stft_ready_label.setObjectName("stftReadyStatus")
         stft_layout.addWidget(self.stft_ready_label)
-        self.cancel_analysis_button = QPushButton(self.tr("取消分析（不可用）"))
+        self.cancel_analysis_button = QPushButton(
+            self.tr("取消分析（不可用）"),
+            stft_page,
+        )
         self.cancel_analysis_button.setObjectName("cancelAnalysisButton")
         self.cancel_analysis_button.setEnabled(False)
         self.cancel_analysis_button.setToolTip(
@@ -688,7 +810,7 @@ class MainWindow(QMainWindow):
                 "不会立即中断 NumPy/SciPy 计算。"
             )
         )
-        stft_layout.addWidget(self.cancel_analysis_button)
+        self.cancel_analysis_button.hide()
         stft_layout.addStretch(1)
         self.stft_parameter_scroll = QScrollArea()
         self.stft_parameter_scroll.setObjectName("stftParameterScrollArea")
@@ -725,6 +847,18 @@ class MainWindow(QMainWindow):
         guided_layout.addWidget(ridge_mode_group)
         self.automatic_ridge_panel = QGroupBox(self.tr("自动脊线"))
         automatic_layout = QVBoxLayout(self.automatic_ridge_panel)
+        automatic_form = QFormLayout()
+        automatic_form.addRow(
+            self.tr("自动脊线提取"),
+            self.automatic_ridge_extraction_combo,
+        )
+        automatic_form.addRow(
+            self.tr("搜索频率下限"), self.minimum_frequency_spin
+        )
+        automatic_form.addRow(
+            self.tr("搜索频率上限"), self.maximum_frequency_spin
+        )
+        automatic_layout.addLayout(automatic_form)
         self.automatic_ridge_status_label = self._notice(
             self.tr("当前 STFT 尚未就绪。")
         )
@@ -828,19 +962,20 @@ class MainWindow(QMainWindow):
         velocity_layout.addWidget(
             self._notice(
                 self.tr(
-                    "当前仅计算正式表观速度；显示速度不会覆盖正式结果。"
+                    "表观速度、角度修正表观速度、窗口修正速度与显示速度分别保存。"
                 )
             )
         )
         velocity_form = QFormLayout()
-        self.formal_velocity_status_label = QLabel(self.tr("尚无正式结果"))
+        self.formal_velocity_status_label = QLabel(self.tr("尚无正式修正结果"))
         self.display_velocity_status_label = QLabel(self.tr("关闭"))
         velocity_form.addRow(
-            self.tr("正式表观速度"), self.formal_velocity_status_label
+            self.tr("正式修正速度"), self.formal_velocity_status_label
         )
         velocity_form.addRow(
             self.tr("显示速度"), self.display_velocity_status_label
         )
+        velocity_form.addRow(self.tr("真空波长"), self.vacuum_wavelength_spin)
         self.pre_event_display_velocity_spin = QDoubleSpinBox()
         self.pre_event_display_velocity_spin.setObjectName(
             "preEventDisplayVelocityMetersPerSecond"
@@ -860,12 +995,93 @@ class MainWindow(QMainWindow):
             self.tr("事件前显示速度"),
             self.pre_event_display_velocity_spin,
         )
-        velocity_layout.addLayout(velocity_form)
-        self.corrected_velocity_parameter = QPushButton(
-            self.tr("窗口修正尚未接入")
+        self.window_material_combo = QComboBox()
+        self.window_material_combo.setObjectName("windowMaterialCombo")
+        self.window_material_combo.addItem(
+            self.tr("LiF"), WindowMaterial.LIF.value
         )
-        self.corrected_velocity_parameter.setEnabled(False)
-        velocity_layout.addWidget(self.corrected_velocity_parameter)
+        self.window_material_combo.addItem(
+            self.tr("无窗口修正"),
+            WindowMaterial.NONE.value,
+        )
+        self.window_material_combo.setToolTip(
+            self.tr(
+                "LiF 使用 Rigg 等（2014）针对 [100] LiF、1550 nm PDV 标定的"
+                " Eq. (16)。超出标定加载条件的适用性需由实验评估；不会额外乘除"
+                "常温折射率。"
+            )
+        )
+        velocity_form.addRow(self.tr("窗口材料"), self.window_material_combo)
+        self.measurement_angle_spin = QDoubleSpinBox()
+        self.measurement_angle_spin.setObjectName("measurementAngleDegrees")
+        self.measurement_angle_spin.setRange(0.0, 89.999999)
+        self.measurement_angle_spin.setDecimals(6)
+        self.measurement_angle_spin.setSingleStep(0.1)
+        self.measurement_angle_spin.setSuffix("°")
+        self.measurement_angle_spin.setMaximumWidth(160)
+        self.measurement_angle_spin.setToolTip(
+            self.tr(
+                "PDV 测量视线与被测界面运动法线之间的夹角；0° 表示法向观测。"
+                "经过透明窗口时，窗口外部安装角不一定等于界面处实际光线角；"
+                "当前软件不会按 Snell 定律静默推断动态窗口内部角度。"
+            )
+        )
+        velocity_form.addRow(self.tr("观测角度"), self.measurement_angle_spin)
+        self.lif_parameter_toggle = QPushButton(self.tr("LiF 材料参数…"))
+        self.lif_parameter_toggle.setObjectName("toggleLifMaterialParameters")
+        self.lif_parameter_toggle.setCheckable(True)
+        velocity_form.addRow("", self.lif_parameter_toggle)
+        self.lif_parameter_panel = QWidget()
+        self.lif_parameter_panel.setObjectName("lifMaterialParametersPanel")
+        lif_form = QFormLayout(self.lif_parameter_panel)
+        lif_form.setContentsMargins(0, 0, 0, 0)
+        self.lif_b1_spin = _CompactDoubleSpinBox(minimum_decimals=4)
+        self.lif_b1_spin.setObjectName("lifCorrectionB1")
+        self.lif_b1_spin.setRange(1.0e-9, 1.0e6)
+        self.lif_b1_spin.setDecimals(9)
+        self.lif_b1_spin.setSingleStep(0.001)
+        self.lif_b1_spin.setToolTip(
+            self.tr("Rigg 2014 Eq. (16) 中的无量纲幂律系数 b1。")
+        )
+        self.lif_b2_spin = _CompactDoubleSpinBox(minimum_decimals=4)
+        self.lif_b2_spin.setObjectName("lifCorrectionB2")
+        self.lif_b2_spin.setRange(1.0e-9, 1.0e6)
+        self.lif_b2_spin.setDecimals(9)
+        self.lif_b2_spin.setSingleStep(0.001)
+        self.lif_b2_spin.setToolTip(
+            self.tr("Rigg 2014 Eq. (16) 中的无量纲幂律指数 b2。")
+        )
+        self.lif_reference_wavelength_spin = _CompactDoubleSpinBox()
+        self.lif_reference_wavelength_spin.setObjectName(
+            "lifCorrectionReferenceWavelengthNm"
+        )
+        self.lif_reference_wavelength_spin.setRange(0.001, 100000.0)
+        self.lif_reference_wavelength_spin.setDecimals(6)
+        self.lif_reference_wavelength_spin.setSingleStep(1.0)
+        self.lif_reference_wavelength_spin.setSuffix(" nm")
+        self.lif_reference_wavelength_spin.setToolTip(
+            self.tr("该经验模型参数的标定参考真空波长；不替代当前 PDV 真空波长。")
+        )
+        self.lif_provenance_label = QLabel()
+        self.lif_provenance_label.setObjectName("lifCorrectionProvenance")
+        self.lif_provenance_label.setWordWrap(True)
+        self.restore_lif_defaults_button = QPushButton(self.tr("恢复 LiF 默认值"))
+        self.restore_lif_defaults_button.setObjectName("restoreLifDefaultsButton")
+        lif_form.addRow(self.tr("系数 b1"), self.lif_b1_spin)
+        lif_form.addRow(self.tr("指数 b2"), self.lif_b2_spin)
+        lif_form.addRow(
+            self.tr("标定参考波长"), self.lif_reference_wavelength_spin
+        )
+        lif_form.addRow(self.tr("来源"), self.lif_provenance_label)
+        lif_form.addRow("", self.restore_lif_defaults_button)
+        self.lif_parameter_panel.setVisible(False)
+        velocity_layout.addLayout(velocity_form)
+        velocity_layout.addWidget(self.lif_parameter_panel)
+        self.velocity_correction_warning_label = self._notice("")
+        self.velocity_correction_warning_label.setObjectName(
+            "velocityCorrectionWarning"
+        )
+        velocity_layout.addWidget(self.velocity_correction_warning_label)
         velocity_layout.addStretch(1)
         self.velocity_parameter_scroll = QScrollArea()
         self.velocity_parameter_scroll.setObjectName("velocityParameterScrollArea")
@@ -902,6 +1118,63 @@ class MainWindow(QMainWindow):
         form.addRow(self.tr("分析结果"), self.export_mode_combo)
         form.addRow(self.tr("导出通道"), self.export_channel_combo)
         layout.addLayout(form)
+
+        velocity_group = QGroupBox(self.tr("导出速度设置"))
+        velocity_form = QFormLayout(velocity_group)
+        # Compatibility aliases keep integrations source-compatible while the
+        # Review page presents a single read-only summary instead of a second
+        # correction editor.
+        self.export_window_material_combo = self.window_material_combo
+        self.export_measurement_angle_spin = self.measurement_angle_spin
+
+        time_origin_widget = QWidget()
+        time_origin_layout = QVBoxLayout(time_origin_widget)
+        time_origin_layout.setContentsMargins(0, 0, 0, 0)
+        self.export_event_time_origin_radio = QRadioButton(
+            self.tr("起跳点设为 0")
+        )
+        self.export_event_time_origin_radio.setObjectName(
+            "exportEventTimeOriginRadio"
+        )
+        self.export_event_time_origin_radio.setToolTip(
+            self.tr(
+                "简表使用 time_from_event_s；详细表仍同时保留绝对 time_s。"
+            )
+        )
+        self.export_absolute_time_origin_radio = QRadioButton(
+            self.tr("保留实验绝对时间")
+        )
+        self.export_absolute_time_origin_radio.setObjectName(
+            "exportAbsoluteTimeOriginRadio"
+        )
+        self.export_absolute_time_origin_radio.setToolTip(
+            self.tr(
+                "简表使用实验绝对 time_s；详细表仍包含 time_from_event_s。"
+            )
+        )
+        self.export_time_origin_group = QButtonGroup(self)
+        self.export_time_origin_group.addButton(
+            self.export_event_time_origin_radio
+        )
+        self.export_time_origin_group.addButton(
+            self.export_absolute_time_origin_radio
+        )
+        self.export_event_time_origin_radio.setChecked(True)
+        time_origin_layout.addWidget(self.export_event_time_origin_radio)
+        time_origin_layout.addWidget(self.export_absolute_time_origin_radio)
+        velocity_form.addRow(self.tr("时间零点"), time_origin_widget)
+
+        self.export_velocity_summary_label = QLabel()
+        self.export_velocity_summary_label.setObjectName(
+            "exportVelocitySummary"
+        )
+        self.export_velocity_summary_label.setWordWrap(True)
+        velocity_form.addRow(
+            self.tr("最终导出速度"),
+            self.export_velocity_summary_label,
+        )
+        layout.addWidget(velocity_group)
+
         self.export_directory_button = QPushButton(self.tr("选择导出目录…"))
         self.export_directory_button.setObjectName("chooseExportDirectoryButton")
         self.export_directory_button.setEnabled(False)
@@ -1039,6 +1312,7 @@ class MainWindow(QMainWindow):
         self.workflow_navigation.currentRowChanged.connect(
             self._workflow_page_changed
         )
+        self.workflow_navigation.itemClicked.connect(self._workflow_item_clicked)
         self.raw_signal_view.channel_selection_changed.connect(
             self._channel_changed
         )
@@ -1057,8 +1331,8 @@ class MainWindow(QMainWindow):
         self.analysis_range_panel.range_confirmed.connect(
             self._analysis_range_confirmed
         )
-        self.analysis_range_panel.current_view_requested.connect(
-            self._use_current_view_range
+        self.analysis_range_panel.candidate_detection_requested.connect(
+            self.run_event_candidate_detection
         )
         self.analysis_range_panel.event_reference_confirmed.connect(
             self._event_reference_confirmed
@@ -1070,8 +1344,37 @@ class MainWindow(QMainWindow):
             self._adopt_event_candidate
         )
         self.profile_combo.currentIndexChanged.connect(self._profile_changed)
+        self.window_name_combo.currentIndexChanged.connect(
+            self._scientific_parameter_changed
+        )
+        self.automatic_ridge_extraction_combo.currentIndexChanged.connect(
+            self._automatic_ridge_extraction_changed
+        )
         self.vacuum_wavelength_spin.valueChanged.connect(
             self._scientific_parameter_changed
+        )
+        self.window_material_combo.currentIndexChanged.connect(
+            self._velocity_correction_changed
+        )
+        self.measurement_angle_spin.valueChanged.connect(
+            self._velocity_correction_changed
+        )
+        self.lif_b1_spin.valueChanged.connect(self._velocity_correction_changed)
+        self.lif_b2_spin.valueChanged.connect(self._velocity_correction_changed)
+        self.lif_reference_wavelength_spin.valueChanged.connect(
+            self._velocity_correction_changed
+        )
+        self.lif_parameter_toggle.toggled.connect(
+            self.lif_parameter_panel.setVisible
+        )
+        self.restore_lif_defaults_button.clicked.connect(
+            self._restore_lif_defaults
+        )
+        self.export_event_time_origin_radio.toggled.connect(
+            self._export_time_origin_changed
+        )
+        self.export_absolute_time_origin_radio.toggled.connect(
+            self._export_time_origin_changed
         )
         self.pre_event_display_velocity_spin.valueChanged.connect(
             self._pre_event_display_velocity_changed
@@ -1085,6 +1388,10 @@ class MainWindow(QMainWindow):
         self.spectrogram_view.channel_selection_changed.connect(
             self._guided_channel_changed
         )
+        self.spectrogram_view.search_band_changed.connect(
+            self._search_band_dragged
+        )
+        self.ridge_view.search_band_changed.connect(self._search_band_dragged)
         corridor_controller = self.spectrogram_view.corridor_controller
         corridor_controller.constraint_changed.connect(
             self._ridge_constraint_changed
@@ -1134,6 +1441,9 @@ class MainWindow(QMainWindow):
         self.compute_stft_button.clicked.connect(self.run_stft_analysis)
         self.export_mode_combo.currentIndexChanged.connect(
             self._export_mode_changed
+        )
+        self.export_channel_combo.currentIndexChanged.connect(
+            self._export_channel_changed
         )
         self.export_directory_button.clicked.connect(self._choose_export_directory)
         self.export_button.clicked.connect(self._export_current_result)
@@ -1367,6 +1677,8 @@ class MainWindow(QMainWindow):
             QSignalBlocker(control)
             for control in (
                 self.vacuum_wavelength_spin,
+                self.window_name_combo,
+                self.automatic_ridge_extraction_combo,
                 self.window_length_spin,
                 self.overlap_spin,
                 self.nfft_spin,
@@ -1377,10 +1689,25 @@ class MainWindow(QMainWindow):
         self.vacuum_wavelength_spin.setValue(
             parameters.vacuum_wavelength_m * 1e9
         )
-        self.window_name_label.setText(parameters.window_name)
+        window_index = self.window_name_combo.findData(parameters.window_name)
+        if window_index < 0:
+            raise ValueError(
+                f"Unsupported GUI STFT window: {parameters.window_name!r}."
+            )
+        self.window_name_combo.setCurrentIndex(window_index)
+        run_configuration = self._session.run_configuration
+        if run_configuration is not None:
+            extraction_index = self.automatic_ridge_extraction_combo.findData(
+                run_configuration.automatic_ridge_selection_config.mode.value
+            )
+            if extraction_index >= 0:
+                self.automatic_ridge_extraction_combo.setCurrentIndex(
+                    extraction_index
+                )
         self.window_length_spin.setValue(parameters.window_length_samples)
         self.overlap_spin.setValue(parameters.overlap_samples)
         self.nfft_spin.setValue(parameters.nfft)
+        self._set_search_spin_limits()
         self.minimum_frequency_spin.setValue(
             parameters.minimum_frequency_hz * 1e-9
         )
@@ -1388,7 +1715,7 @@ class MainWindow(QMainWindow):
             parameters.maximum_frequency_hz * 1e-9
         )
         self.hop_label.setText(
-            self.tr("{value} samples").format(value=parameters.hop_samples)
+            self.tr("{value} 点").format(value=parameters.hop_samples)
         )
         self._set_parameter_editability(editable)
         del blockers
@@ -1404,13 +1731,24 @@ class MainWindow(QMainWindow):
             self.maximum_frequency_spin,
         ):
             control.setReadOnly(not editable)
+        self.window_name_combo.setEnabled(editable)
+        self.automatic_ridge_extraction_combo.setEnabled(editable)
+        self.window_material_combo.setEnabled(editable)
+        self.measurement_angle_spin.setEnabled(editable)
+        self.lif_b1_spin.setReadOnly(not editable)
+        self.lif_b2_spin.setReadOnly(not editable)
+        self.lif_reference_wavelength_spin.setReadOnly(not editable)
+        self.restore_lif_defaults_button.setEnabled(editable)
+        self.export_event_time_origin_radio.setEnabled(editable)
+        self.export_absolute_time_origin_radio.setEnabled(editable)
 
     def _scientific_parameter_changed(self, _value: float | int) -> None:
         """Resolve the visible draft as per-session overrides of its base preset."""
         if self._updating_parameter_controls:
             return
+        self._set_search_spin_limits()
         self.hop_label.setText(
-            self.tr("{value} samples").format(
+            self.tr("{value} 点").format(
                 value=self.window_length_spin.value() - self.overlap_spin.value()
             )
         )
@@ -1419,6 +1757,7 @@ class MainWindow(QMainWindow):
             return
         overrides = AnalysisParameterOverrides(
             vacuum_wavelength_m=self.vacuum_wavelength_spin.value() * 1e-9,
+            window_name=self.window_name_combo.currentData(),
             window_length_samples=self.window_length_spin.value(),
             overlap_samples=self.overlap_spin.value(),
             nfft=self.nfft_spin.value(),
@@ -1443,6 +1782,7 @@ class MainWindow(QMainWindow):
                 return
             self._sync_profile_combo_for_parameters(updated.parameters)
             self._validate_current_parameters()
+            self._sync_velocity_correction_warning()
         if not changed:
             self._apply_state()
             return
@@ -1455,6 +1795,317 @@ class MainWindow(QMainWindow):
             self._clear_result_presentation(
                 self.tr("STFT 参数已变化；请重新计算时频图。")
             )
+        self._sync_workflow_state_after_invalidation()
+
+    def _usable_stft_frequency_max_hz(self, nfft: int | None = None) -> float | None:
+        """Return a mHz GUI limit no greater than the common upper rFFT bin."""
+        if not self._session.records:
+            return None
+        active_nfft = self.nfft_spin.value() if nfft is None else nfft
+        if active_nfft <= 0:
+            return None
+        return float(
+            math.floor(
+                min(
+                    record.sample_rate_hz * (active_nfft // 2) / active_nfft
+                    for record in self._session.records.values()
+                )
+                * 1.0e3
+            )
+            / 1.0e3
+        )
+
+    def _set_search_spin_limits(self) -> None:
+        usable_hz = self._usable_stft_frequency_max_hz()
+        maximum_ghz = 1_000_000.0 if usable_hz is None else usable_hz * 1e-9
+        blockers = [
+            QSignalBlocker(self.minimum_frequency_spin),
+            QSignalBlocker(self.maximum_frequency_spin),
+        ]
+        self.minimum_frequency_spin.setMaximum(maximum_ghz)
+        self.maximum_frequency_spin.setMaximum(maximum_ghz)
+        del blockers
+
+    def _constrain_search_band_to_records(self) -> None:
+        """Clamp a preset band to the common valid frequency grid, in SI Hz."""
+        configuration = self._session.run_configuration
+        if configuration is None:
+            self._set_search_spin_limits()
+            return
+        parameters = configuration.parameters
+        usable_hz = self._usable_stft_frequency_max_hz(parameters.nfft)
+        if usable_hz is None:
+            self._set_search_spin_limits()
+            return
+        upper_hz = min(parameters.maximum_frequency_hz, usable_hz)
+        lower_hz = parameters.minimum_frequency_hz
+        if lower_hz >= upper_hz:
+            grid_step_hz = max(
+                1.0e-3,
+                min(
+                    record.sample_rate_hz / parameters.nfft
+                    for record in self._session.records.values()
+                ),
+            )
+            lower_hz = max(0.0, upper_hz - grid_step_hz)
+        if (
+            lower_hz != parameters.minimum_frequency_hz
+            or upper_hz != parameters.maximum_frequency_hz
+        ):
+            self._session.set_analysis_overrides(
+                replace(
+                    parameters.overrides,
+                    minimum_frequency_hz=lower_hz,
+                    maximum_frequency_hz=upper_hz,
+                )
+            )
+        self._set_search_spin_limits()
+
+    def _search_band_dragged(self, minimum_hz: float, maximum_hz: float) -> None:
+        """Apply one graphically selected, grid-snapped authoritative band."""
+        if not minimum_hz < maximum_hz:
+            self.statusBar().showMessage(
+                self.tr("搜索频带下限必须小于上限。"),
+                5000,
+            )
+            self._sync_scientific_view_configuration()
+            return
+        usable_hz = self._usable_stft_frequency_max_hz()
+        if usable_hz is not None:
+            maximum_hz = min(maximum_hz, usable_hz)
+        blockers = [
+            QSignalBlocker(self.minimum_frequency_spin),
+            QSignalBlocker(self.maximum_frequency_spin),
+        ]
+        self.minimum_frequency_spin.setValue(minimum_hz * 1e-9)
+        self.maximum_frequency_spin.setValue(maximum_hz * 1e-9)
+        del blockers
+        self._scientific_parameter_changed(0)
+
+    def _velocity_correction_changed(self, _value: float | int) -> None:
+        """Apply the Step 5 correction controls to stored apparent velocity."""
+        self._apply_velocity_correction_controls(
+            self.window_material_combo,
+            self.measurement_angle_spin,
+        )
+
+    def _restore_lif_defaults(self) -> None:
+        blockers = [
+            QSignalBlocker(self.lif_b1_spin),
+            QSignalBlocker(self.lif_b2_spin),
+            QSignalBlocker(self.lif_reference_wavelength_spin),
+        ]
+        self.lif_b1_spin.setValue(LIF_RIGG_2014_1550NM.b1)
+        self.lif_b2_spin.setValue(LIF_RIGG_2014_1550NM.b2)
+        self.lif_reference_wavelength_spin.setValue(
+            LIF_RIGG_2014_1550NM.reference_wavelength_m * 1e9
+        )
+        del blockers
+        self._velocity_correction_changed(0)
+
+    def _apply_velocity_correction_controls(
+        self,
+        material_combo: QComboBox,
+        angle_spin: QDoubleSpinBox,
+    ) -> None:
+        """Synchronize both pages and refresh correction-only result fields."""
+        if self._updating_parameter_controls:
+            return
+        material_value = material_combo.currentData()
+        if not isinstance(material_value, str):
+            return
+        try:
+            material = WindowMaterial(material_value)
+            lif_model = LiFWindowCorrectionModel(
+                b1=self.lif_b1_spin.value(),
+                b2=self.lif_b2_spin.value(),
+                reference_wavelength_m=(
+                    self.lif_reference_wavelength_spin.value() * 1e-9
+                ),
+            )
+            if (
+                lif_model.b1 == LIF_RIGG_2014_1550NM.b1
+                and lif_model.b2 == LIF_RIGG_2014_1550NM.b2
+                and math.isclose(
+                    lif_model.reference_wavelength_m,
+                    LIF_RIGG_2014_1550NM.reference_wavelength_m,
+                    rel_tol=0.0,
+                    abs_tol=1.0e-18,
+                )
+            ):
+                lif_model = LIF_RIGG_2014_1550NM
+            correction = VelocityCorrectionConfig(
+                window_material=material,
+                measurement_angle_rad=math.radians(angle_spin.value()),
+                lif_model=lif_model,
+            )
+            changed = self._session.set_velocity_correction_config(correction)
+        except (TypeError, ValueError) as exc:
+            self.analysis_status_label.setText(str(exc))
+            return
+        self._sync_velocity_correction_controls()
+        self._sync_velocity_correction_warning()
+        if not changed:
+            return
+        if self._session.any_formal_results_available:
+            self._refresh_result_source_views(preserve_view=True)
+            self.formal_velocity_status_label.setText(
+                self.tr("当前正式结果有效（仅后处理已刷新）")
+            )
+        message = self.tr(
+            "速度修正参数已更新；STFT、脊线、事件检测与质量判定保持不变。"
+        )
+        self.analysis_status_label.setText(message)
+        self._append_log(message)
+        self._refresh_export_controls()
+
+    def _sync_velocity_correction_controls(self) -> None:
+        """Mirror the one session correction config into its single editor."""
+        configuration = self._session.run_configuration
+        if configuration is None:
+            self.export_velocity_summary_label.clear()
+            return
+        correction = configuration.velocity_correction_config
+        blockers = [
+            QSignalBlocker(self.window_material_combo),
+            QSignalBlocker(self.measurement_angle_spin),
+            QSignalBlocker(self.lif_b1_spin),
+            QSignalBlocker(self.lif_b2_spin),
+            QSignalBlocker(self.lif_reference_wavelength_spin),
+        ]
+        index = self.window_material_combo.findData(correction.window_material.value)
+        if index < 0:
+            raise ValueError("Unsupported configured window material.")
+        self.window_material_combo.setCurrentIndex(index)
+        angle_degrees = math.degrees(correction.measurement_angle_rad)
+        self.measurement_angle_spin.setValue(angle_degrees)
+        self.lif_b1_spin.setValue(correction.lif_model.b1)
+        self.lif_b2_spin.setValue(correction.lif_model.b2)
+        self.lif_reference_wavelength_spin.setValue(
+            correction.lif_model.reference_wavelength_m * 1e9
+        )
+        del blockers
+        self.lif_provenance_label.setText(
+            self.tr("Custom LiF · 用户参数")
+            if correction.lif_model != LIF_RIGG_2014_1550NM
+            else self.tr(
+                "Rigg et al. (2014), Eq. (16) · DOI 10.1063/1.4890714"
+            )
+        )
+        self._sync_export_velocity_summary()
+
+    def _sync_export_velocity_summary(self) -> None:
+        configuration = self._session.run_configuration
+        if configuration is None:
+            self.export_velocity_summary_label.clear()
+            return
+        correction = configuration.velocity_correction_config
+        angle_degrees = math.degrees(correction.measurement_angle_rad)
+        if correction.window_material is WindowMaterial.LIF:
+            summary = self.tr(
+                "{material} · {angle:.6g}°；最终导出 display_velocity_m_s。"
+            ).format(
+                material=(
+                    self.tr("Custom LiF")
+                    if correction.lif_model != LIF_RIGG_2014_1550NM
+                    else self.tr("LiF")
+                ),
+                angle=angle_degrees,
+            )
+        elif correction.measurement_angle_rad > 0.0:
+            summary = self.tr(
+                "display_velocity_m_s；正式测量段来自角度修正表观速度"
+                "（无窗口修正，观测角 {angle:.6g}°）。"
+            ).format(angle=angle_degrees)
+        else:
+            summary = self.tr(
+                "display_velocity_m_s；正式测量段为表观速度（无窗口或角度修正）。"
+            )
+        self.export_velocity_summary_label.setText(summary)
+
+    def _sync_export_time_origin_controls(self) -> None:
+        blockers = [
+            QSignalBlocker(self.export_event_time_origin_radio),
+            QSignalBlocker(self.export_absolute_time_origin_radio),
+        ]
+        is_event = self._session.export_time_origin is ExportTimeOrigin.EVENT
+        self.export_event_time_origin_radio.setChecked(is_event)
+        self.export_absolute_time_origin_radio.setChecked(not is_event)
+        del blockers
+        self.velocity_view.set_time_origin(self._session.export_time_origin)
+
+    def _export_time_origin_changed(self, checked: bool) -> None:
+        if not checked or self._updating_parameter_controls:
+            return
+        time_origin = (
+            ExportTimeOrigin.EVENT
+            if self.export_event_time_origin_radio.isChecked()
+            else ExportTimeOrigin.ABSOLUTE
+        )
+        self._session.set_export_time_origin(time_origin)
+        self._sync_export_time_origin_controls()
+        self._refresh_export_controls()
+
+    def _sync_velocity_correction_warning(self) -> None:
+        """Expose exact-wavelength and oblique-window applicability limits."""
+        configuration = self._session.run_configuration
+        if configuration is None:
+            self.velocity_correction_warning_label.clear()
+            return
+        correction = configuration.velocity_correction_config
+        if correction.window_material is WindowMaterial.NONE:
+            self.velocity_correction_warning_label.setText(
+                self.tr("窗口修正已关闭；角度投影修正仍按当前角度执行。")
+            )
+            return
+        wavelength_nm = configuration.vacuum_wavelength_m * 1e9
+        reference_wavelength_nm = correction.lif_model.reference_wavelength_m * 1e9
+        if not math.isclose(
+            configuration.vacuum_wavelength_m,
+            correction.lif_model.reference_wavelength_m,
+            rel_tol=0.0,
+            abs_tol=1.0e-18,
+        ):
+            self.velocity_correction_warning_label.setText(
+                self.tr(
+                    "警告：当前 LiF 参数参考 {reference:.12g} nm；当前 PDV 波长为 "
+                    "{wavelength:.12g} nm。"
+                ).format(
+                    reference=reference_wavelength_nm,
+                    wavelength=wavelength_nm,
+                )
+            )
+            return
+        if correction.measurement_angle_rad > 0.0:
+            self.velocity_correction_warning_label.setText(
+                self.tr(
+                    "非零角度与 LiF 修正按可分离工程近似组合，不代表完整斜入射"
+                    "动态折射模型。"
+                )
+            )
+            return
+        self.velocity_correction_warning_label.setText(
+            self.tr("LiF [100] / {reference:.12g} nm；观测角 0°。").format(
+                reference=reference_wavelength_nm
+            )
+        )
+
+    def _automatic_ridge_extraction_changed(self, index: int) -> None:
+        """Invalidate ridge and downstream products when selection mode changes."""
+        if self._updating_parameter_controls:
+            return
+        mode_value = self.automatic_ridge_extraction_combo.itemData(index)
+        if not isinstance(mode_value, str):
+            return
+        try:
+            mode = AutomaticRidgeExtractionMode(mode_value)
+        except ValueError:
+            return
+        if not self._session.set_automatic_ridge_extraction_mode(mode):
+            return
+        self._clear_downstream_presentation(
+            self.tr("自动脊线提取方式已变化；请重新提取脊线。")
+        )
         self._sync_workflow_state_after_invalidation()
 
     def _validate_current_parameters(self) -> bool:
@@ -1487,6 +2138,8 @@ class MainWindow(QMainWindow):
         style = "" if valid else "border: 1px solid #c62828;"
         for control in (
             self.vacuum_wavelength_spin,
+            self.window_name_combo,
+            self.automatic_ridge_extraction_combo,
             self.window_length_spin,
             self.overlap_spin,
             self.nfft_spin,
@@ -1531,6 +2184,7 @@ class MainWindow(QMainWindow):
             return
         previous_generation = self._session.generation_id
         self._session.set_profile(configuration.base_profile)
+        self._constrain_search_band_to_records()
         restored = self._session.run_configuration
         if restored is None:
             return
@@ -1608,7 +2262,7 @@ class MainWindow(QMainWindow):
     def _adopt_event_candidate(self, channel_name: str, value_s: float) -> None:
         self._set_event_reference(
             value_s,
-            source=f"detected_candidate:{channel_name}",
+            source=f"user_adopted:automatic_primary:{channel_name}",
             source_text=self.tr("检测候选（用户显式采用）"),
         )
 
@@ -1644,11 +2298,12 @@ class MainWindow(QMainWindow):
         )
 
     def _refresh_event_reference_results(self) -> None:
-        if self._session.results_valid:
+        if self._session.any_formal_results_available:
             self._refresh_result_source_views(preserve_view=True)
             self.analysis_status_label.setText(
                 self.tr("事件参考已刷新；正式表观速度与 STFT 保持不变。")
             )
+        self._refresh_export_controls()
 
     def _sync_event_reference_panel(self) -> None:
         if self.analysis_range_panel.bounds_s is None:
@@ -1670,7 +2325,9 @@ class MainWindow(QMainWindow):
         source = self._session.event_reference_source
         if source == "configuration":
             source_text = self.tr("当前配置")
-        elif source is not None and source.startswith("detected_candidate:"):
+        elif source is not None and source.startswith(
+            ("detected_candidate:", "user_adopted:")
+        ):
             source_text = self.tr("检测候选（用户显式采用）")
         else:
             source_text = self.tr("用户确认")
@@ -1685,6 +2342,7 @@ class MainWindow(QMainWindow):
             previous_generation = self._session.generation_id
             try:
                 self._session.set_profile(selected)
+                self._constrain_search_band_to_records()
             except ValueError as exc:
                 self.analysis_status_label.setText(str(exc))
                 return
@@ -1981,6 +2639,7 @@ class MainWindow(QMainWindow):
         configuration = self._session.run_configuration
         if configuration is None:
             return
+        self.velocity_view.set_time_origin(self._session.export_time_origin)
         guided = (
             self._session.valid_guided_channel_analyses
         )
@@ -2037,6 +2696,7 @@ class MainWindow(QMainWindow):
 
     def run_guided_analysis(self) -> bool:
         """Run the formal workflow with per-channel corridors off-thread."""
+        self._pending_candidate_detection = False
         controller = self.spectrogram_view.corridor_controller
         if controller.drawing and not controller.finish_drawing():
             self.guided_status_label.setText(
@@ -2081,8 +2741,10 @@ class MainWindow(QMainWindow):
             records={channel_name: self._session.records[channel_name]},
         )
         self._pending_analysis_source = AnalysisResultSource.GUIDED
+        self._pending_navigation_tab = 2
         started = self._analysis_adapter.start(request)
         if not started:
+            self._pending_navigation_tab = None
             self.guided_status_label.setText(self.tr("分析任务已在运行。"))
         return started
 
@@ -2120,6 +2782,7 @@ class MainWindow(QMainWindow):
 
     def run_stft_analysis(self) -> bool:
         """Compute and cache only the formal STFT intermediate results."""
+        self._pending_candidate_detection = False
         ready = self._analysis_request_ready()
         if ready is None:
             return False
@@ -2132,13 +2795,16 @@ class MainWindow(QMainWindow):
             result_source=AnalysisResultSource.SPECTROGRAM,
         )
         self._pending_analysis_source = AnalysisResultSource.SPECTROGRAM
+        self._pending_navigation_tab = 1
         started = self._analysis_adapter.start(request)
         if not started:
+            self._pending_navigation_tab = None
             self.analysis_status_label.setText(self.tr("分析任务已在运行。"))
         return started
 
     def run_staged_automatic_analysis(self) -> bool:
         """Extract automatic ridge and velocity from the cached current STFT."""
+        self._pending_candidate_detection = False
         ready = self._analysis_request_ready()
         if ready is None or not self._session.stft_valid:
             self.automatic_ridge_status_label.setText(
@@ -2155,10 +2821,15 @@ class MainWindow(QMainWindow):
             stft_results=self._session.stft_results,
         )
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
-        return self._analysis_adapter.start(request)
+        self._pending_navigation_tab = 2
+        started = self._analysis_adapter.start(request)
+        if not started:
+            self._pending_navigation_tab = None
+        return started
 
     def run_automatic_analysis(self) -> bool:
         """Capture the current generation and start the public workflow off-thread."""
+        self._pending_candidate_detection = False
         ready = self._analysis_request_ready()
         if ready is None:
             return False
@@ -2171,13 +2842,41 @@ class MainWindow(QMainWindow):
         )
         self._set_ridge_extraction_mode(RidgeExtractionMode.AUTOMATIC)
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
+        self._pending_navigation_tab = 3
         started = self._analysis_adapter.start(request)
         if not started:
+            self._pending_navigation_tab = None
             self.analysis_status_label.setText(self.tr("自动分析已在运行。"))
         return started
 
+    def run_event_candidate_detection(self) -> bool:
+        """Run the existing automatic chain but keep candidate adoption explicit."""
+        ready = self._analysis_request_ready()
+        if ready is None:
+            return False
+        configuration, analysis_range = ready
+        request = AnalysisRequest(
+            generation_id=self._session.generation_id,
+            records=self._session.records,
+            analysis_range=analysis_range,
+            configuration=configuration,
+        )
+        self._set_ridge_extraction_mode(RidgeExtractionMode.AUTOMATIC)
+        self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
+        self._pending_navigation_tab = 0
+        self._pending_candidate_detection = True
+        started = self._analysis_adapter.start(request)
+        if not started:
+            self._pending_navigation_tab = None
+            self._pending_candidate_detection = False
+            self.analysis_status_label.setText(self.tr("候选检测任务已在运行。"))
+        return started
+
     def _analysis_started(self, generation_id: int) -> None:
-        if self._pending_analysis_source is AnalysisResultSource.SPECTROGRAM:
+        if self._pending_candidate_detection:
+            self.analysis_status_label.setText(self.tr("正在检测事件候选…"))
+            message = self.tr("后台事件候选检测已开始（请求 {generation}）。")
+        elif self._pending_analysis_source is AnalysisResultSource.SPECTROGRAM:
             self.analysis_status_label.setText(self.tr("正在计算时频图…"))
             message = self.tr("后台 STFT 计算已开始（请求 {generation}）。")
         elif self._pending_analysis_source is AnalysisResultSource.GUIDED:
@@ -2190,6 +2889,8 @@ class MainWindow(QMainWindow):
         self._append_log(message.format(generation=generation_id))
 
     def _analysis_finished(self, value: object) -> None:
+        candidate_detection = self._pending_candidate_detection
+        self._pending_candidate_detection = False
         if not isinstance(value, AnalysisRunResult):
             generation_id = (
                 self._session.guided_generation_id
@@ -2202,6 +2903,37 @@ class MainWindow(QMainWindow):
                 "Background adapter returned an unexpected result type.",
                 "",
             )
+            return
+        if candidate_detection:
+            if value.generation_id != self._session.generation_id:
+                self._pending_navigation_tab = None
+                self.analysis_status_label.setText(
+                    self.tr("候选检测期间参数已变化；已忽略迟到候选。")
+                )
+                self._apply_state()
+                return
+            analyses = value.channel_analyses
+            self.analysis_range_panel.set_detected_candidates(
+                {
+                    channel_name: analysis.stream_event_candidates.primary_candidate_time_s
+                    for channel_name, analysis in analyses.items()
+                },
+                {
+                    channel_name: analysis.signal_detection_result.detected_event_candidate_time_s
+                    for channel_name, analysis in analyses.items()
+                },
+            )
+            self.analysis_status_label.setText(
+                self.tr("候选检测完成；正式事件参考仍未设置，请显式采用候选。")
+            )
+            self._append_log(
+                self.tr(
+                    "事件候选检测完成：{channels} 个独立通道；临时分析结果未写入 session，"
+                    "未自动确认参考时刻。"
+                ).format(channels=len(analyses))
+            )
+            self._apply_state()
+            self._complete_pending_navigation()
             return
         if value.result_source is AnalysisResultSource.SPECTROGRAM:
             accepted = self._session.accept_stft_results(
@@ -2219,6 +2951,7 @@ class MainWindow(QMainWindow):
                 analyses=value.channel_analyses,
             )
         if not accepted:
+            self._pending_navigation_tab = None
             self.analysis_status_label.setText(
                 self.tr("分析期间参数已变化；已忽略迟到结果。")
             )
@@ -2234,9 +2967,11 @@ class MainWindow(QMainWindow):
             return
         if value.result_source is AnalysisResultSource.SPECTROGRAM:
             self._finish_stft_presentation()
+            self._complete_pending_navigation()
             return
         if value.result_source is AnalysisResultSource.GUIDED:
             self._finish_guided_presentation(value.channel_analyses)
+            self._complete_pending_navigation()
             return
         run_configuration = self._session.run_configuration
         if run_configuration is None:
@@ -2257,9 +2992,13 @@ class MainWindow(QMainWindow):
         self.quality_summary.set_analyses(analyses)
         self.analysis_range_panel.set_detected_candidates(
             {
+                channel_name: analysis.stream_event_candidates.primary_candidate_time_s
+                for channel_name, analysis in analyses.items()
+            },
+            {
                 channel_name: analysis.signal_detection_result.detected_event_candidate_time_s
                 for channel_name, analysis in analyses.items()
-            }
+            },
         )
         self._workflow_state = WorkflowState.RESULT_READY
         self._apply_state()
@@ -2274,6 +3013,7 @@ class MainWindow(QMainWindow):
             )
         )
         self._sync_guided_panel()
+        self._complete_pending_navigation()
 
     def _finish_stft_presentation(self) -> None:
         configuration = self._session.run_configuration
@@ -2341,18 +3081,22 @@ class MainWindow(QMainWindow):
         message: str,
         traceback_text: str,
     ) -> None:
+        candidate_detection = self._pending_candidate_detection
+        self._pending_candidate_detection = False
         expected_generation = (
             self._session.guided_generation_id
             if self._pending_analysis_source is AnalysisResultSource.GUIDED
             else self._session.generation_id
         )
         if generation_id != expected_generation:
+            self._pending_navigation_tab = None
             self._append_log(
                 self.tr("已忽略失效请求 {generation} 的异常。").format(
                     generation=generation_id
                 )
             )
             return
+        self._pending_navigation_tab = None
         summary = f"{error_type}: {message}"
         if self._pending_analysis_source is AnalysisResultSource.GUIDED:
             failure_text = self.tr("引导分析失败：{summary}").format(
@@ -2364,6 +3108,11 @@ class MainWindow(QMainWindow):
                 summary=summary
             )
             self.stft_ready_label.setText(failure_text)
+            self.quality_summary.clear_results(failure_text)
+        elif candidate_detection:
+            failure_text = self.tr("事件候选检测失败：{summary}").format(
+                summary=summary
+            )
             self.quality_summary.clear_results(failure_text)
         else:
             failure_text = self.tr("自动分析失败：{summary}").format(
@@ -2435,7 +3184,7 @@ class MainWindow(QMainWindow):
         elif self.export_mode_combo.count():
             self.export_mode_combo.setCurrentIndex(0)
         del mode_blocker
-        self._refresh_export_channels(available)
+        self._refresh_export_channels()
 
         result_available = bool(available)
         busy = self._analysis_adapter.busy
@@ -2447,6 +3196,10 @@ class MainWindow(QMainWindow):
             and isinstance(current_channel, str)
             and current_channel in available.get(current_mode, {})
         )
+        event_origin_ready = (
+            self._session.export_time_origin is ExportTimeOrigin.ABSOLUTE
+            or self._session.event_reference_time_s is not None
+        )
         if not result_available:
             availability_text = self.tr("当前没有可导出的有效正式结果。")
             action_tooltip = self.tr("请先获得当前有效的 Automatic 或 Guided 结果。")
@@ -2456,30 +3209,39 @@ class MainWindow(QMainWindow):
                 modes=modes
             ) + self.tr("Automatic 与 Guided 将保持独立导出。")
             action_tooltip = self.tr("打开复核与导出页面，检查当前结果和导出参数。")
+            if not event_origin_ready:
+                availability_text += self.tr(
+                    " 当前选择起跳点为 0；请先正式采用事件参考，或改用实验绝对时间。"
+                )
+            if not selection_valid:
+                availability_text += self.tr(
+                    " 当前通道尚无所选分析模式的结果，预览已清空且不可导出。"
+                )
         self.export_availability_label.setText(availability_text)
         self.export_mode_combo.setEnabled(result_available and not busy)
-        self.export_channel_combo.setEnabled(selection_valid and not busy)
+        self.export_channel_combo.setEnabled(result_available and not busy)
         self.export_directory_button.setEnabled(result_available and not busy)
         self.export_include_pre_event_check.setEnabled(result_available and not busy)
         self.export_button.setEnabled(
-            selection_valid and directory_selected and not busy
+            selection_valid
+            and directory_selected
+            and event_origin_ready
+            and not busy
         )
         self.action_export.setEnabled(result_available and not busy)
         self.action_export.setToolTip(action_tooltip)
+        if self.workflow_navigation.currentRow() == 5:
+            self._sync_review_preview()
 
-    def _refresh_export_channels(
-        self,
-        available: Mapping[ResultAnalysisMode, Mapping[str, ChannelAnalysis]],
-    ) -> None:
+    def _refresh_export_channels(self) -> None:
         """Populate the channel selector from the selected, independent mode."""
         selected_channel = self.export_channel_combo.currentData()
-        mode = self._selected_export_mode()
-        analyses = available.get(mode, {}) if mode is not None else {}
+        channel_names = tuple(self._session.records)
         channel_blocker = QSignalBlocker(self.export_channel_combo)
         self.export_channel_combo.clear()
-        for channel_name in analyses:
+        for channel_name in channel_names:
             self.export_channel_combo.addItem(channel_name, channel_name)
-        if isinstance(selected_channel, str) and selected_channel in analyses:
+        if isinstance(selected_channel, str) and selected_channel in channel_names:
             self.export_channel_combo.setCurrentIndex(
                 self.export_channel_combo.findData(selected_channel)
             )
@@ -2488,8 +3250,21 @@ class MainWindow(QMainWindow):
         del channel_blocker
 
     def _export_mode_changed(self, _index: int) -> None:
-        self._refresh_export_channels(self._exportable_result_sets())
         self._refresh_export_controls()
+
+    def _export_channel_changed(self, _index: int) -> None:
+        self._refresh_export_controls()
+
+    def _sync_review_preview(self) -> None:
+        """Make Step 6's existing velocity view match its exact export target."""
+        self.velocity_view.set_export_preview_mode(True)
+        mode = self._selected_export_mode()
+        channel_name = self.export_channel_combo.currentData()
+        if mode is None or not isinstance(channel_name, str):
+            self.velocity_view.clear_results()
+            return
+        self.science_tabs.setCurrentWidget(self.velocity_view)
+        self.velocity_view.select_result_target(mode.value, channel_name)
 
     def _selected_export_mode(self) -> ResultAnalysisMode | None:
         """Normalize Qt's QVariant string back to the public export enum."""
@@ -2559,6 +3334,7 @@ class MainWindow(QMainWindow):
                     output_directory=self._export_output_directory,
                     analysis_mode=mode,
                     channel_analyses={channel_name: available[mode][channel_name]},
+                    time_origin=self._session.export_time_origin,
                     include_pre_event_display_rows=(
                         self.export_include_pre_event_check.isChecked()
                     ),
@@ -2570,6 +3346,7 @@ class MainWindow(QMainWindow):
                     pre_event_display_velocity_m_s=(
                         configuration.pre_event_display_velocity_m_s
                     ),
+                    event_reference_source=self._session.event_reference_source,
                     protected_output_directories=(
                         self._repository_root / "data" / "raw",
                     ),
@@ -2745,7 +3522,7 @@ class MainWindow(QMainWindow):
             loaded,
             range_defined,
             state_reaches(self._workflow_state, WorkflowState.STFT_READY),
-            state_reaches(self._workflow_state, WorkflowState.RIDGE_READY),
+            range_defined,
             state_reaches(self._workflow_state, WorkflowState.RESULT_READY),
         )
         unavailable_tooltip = self.tr(
@@ -2797,6 +3574,7 @@ class MainWindow(QMainWindow):
         self.action_run_stft.setToolTip(run_tooltip)
         self.run_analysis_button.setEnabled(can_run)
         self.run_analysis_button.setToolTip(run_tooltip)
+        self.analysis_range_panel.detect_candidates_button.setEnabled(can_run)
         can_use_guided = (
             self._session.stft_valid
             and bool(self._session.stft_results)
@@ -2876,6 +3654,40 @@ class MainWindow(QMainWindow):
         if item is None or not bool(item.flags() & Qt.ItemFlag.ItemIsEnabled):
             return
         self.parameter_stack.setCurrentIndex(row)
+        self.velocity_view.set_export_preview_mode(row == 5)
+        if row in (0, 1):
+            self.science_tabs.setCurrentWidget(self.raw_signal_view)
+        elif row == 2:
+            if self._session.stft_valid:
+                self.science_tabs.setCurrentWidget(self.spectrogram_view)
+            else:
+                self.run_stft_analysis()
+        elif row == 3:
+            if (
+                self._session.automatic_results_available
+                or self._session.guided_results_available
+            ):
+                self.science_tabs.setCurrentWidget(self.ridge_view)
+            else:
+                self.science_tabs.setCurrentWidget(self.spectrogram_view)
+        elif row == 4:
+            if self._session.any_formal_results_available:
+                self.science_tabs.setCurrentWidget(self.velocity_view)
+            else:
+                self.run_automatic_analysis()
+        elif row == 5:
+            self._sync_review_preview()
+
+    def _workflow_item_clicked(self, item: QListWidgetItem) -> None:
+        """Open the existing import flow when the empty first step is clicked."""
+        if self.workflow_navigation.row(item) == 0 and not self._session.records:
+            self._open_data()
+
+    def _complete_pending_navigation(self) -> None:
+        """Perform one focus change after the requested scientific operation."""
+        if self._pending_navigation_tab is not None:
+            self.science_tabs.setCurrentIndex(self._pending_navigation_tab)
+        self._pending_navigation_tab = None
 
     def _channel_changed(self, channel_name: str) -> None:
         self.status_channel.setText(
@@ -2928,28 +3740,6 @@ class MainWindow(QMainWindow):
         self._save_layout_settings()
         event.accept()
 
-    def _planned_view(self, text: str) -> QWidget:
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        label = self._notice(text)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label, 1)
-        return page
-
-    def _planned_parameters(self, title: str, text: str) -> QWidget:
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        layout.addWidget(self._section_title(title))
-        layout.addWidget(self._notice(text))
-        planned_button = QPushButton(self.tr("尚未接入"))
-        planned_button.setEnabled(False)
-        planned_button.setToolTip(
-            self.tr("该功能已列入后续开发计划，当前版本尚未接入。")
-        )
-        layout.addWidget(planned_button)
-        layout.addStretch(1)
-        return page
-
     @staticmethod
     def _section_title(text: str) -> QLabel:
         label = QLabel(text)
@@ -2963,22 +3753,21 @@ class MainWindow(QMainWindow):
         label.setWordWrap(True)
         return label
 
-    @staticmethod
-    def _sample_spin(object_name: str, *, minimum: int = 1) -> QSpinBox:
+    def _sample_spin(self, object_name: str, *, minimum: int = 1) -> QSpinBox:
         spin = QSpinBox()
         spin.setObjectName(object_name)
         spin.setRange(minimum, 10_000_000)
-        spin.setSuffix(" samples")
+        spin.setSuffix(self.tr(" 点"))
         spin.setReadOnly(True)
         return spin
 
     @staticmethod
     def _frequency_spin(object_name: str) -> QDoubleSpinBox:
-        spin = QDoubleSpinBox()
+        spin = _CompactDoubleSpinBox(minimum_decimals=2)
         spin.setObjectName(object_name)
         spin.setRange(0.0, 1_000_000.0)
-        spin.setDecimals(9)
-        spin.setSingleStep(0.01)
+        spin.setDecimals(12)
+        spin.setSingleStep(1.0)
         spin.setSuffix(" GHz")
         spin.setReadOnly(True)
         return spin

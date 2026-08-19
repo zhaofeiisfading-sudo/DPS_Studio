@@ -362,11 +362,13 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
         )
         assert finite_indices.size > 0
         first = int(finite_indices[0])
-        assert connector_time_us[0] == pytest.approx(
-            session.event_reference_time_s * 1.0e6
-        )
+        assert connector_time_us[0] == pytest.approx(0.0)
         assert connector_time_us[1] == pytest.approx(
-            analysis.stft_result.time_s[first] * 1.0e6
+            (
+                analysis.stft_result.time_s[first]
+                - session.event_reference_time_s
+            )
+            * 1.0e6
         )
         assert connector_velocity_m_s[1] == pytest.approx(
             analysis.signal_detection_result.apparent_velocity_m_s[first]

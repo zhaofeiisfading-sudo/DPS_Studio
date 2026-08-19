@@ -247,7 +247,7 @@ def test_production_writes_exact_dual_profile_tree_and_manifest(
     assert manifest["simple_exports"]["all_stft_frames_retained"] is True
     assert manifest["simple_exports"]["columns"] == [
         "time_s",
-        "velocity_m_s",
+        "corrected_velocity_m_s",
     ]
     assert (
         manifest["simple_exports"]["pre_consensus_zero_fill"]
@@ -289,6 +289,8 @@ def test_csv_keeps_all_frames_and_display_zero_separate_from_measurement(
         "refined_frequency_hz",
         "discrete_apparent_velocity_m_s",
         "apparent_velocity_m_s",
+        "angle_corrected_apparent_velocity_m_s",
+        "corrected_velocity_m_s",
         "display_velocity_m_s",
         "velocity_origin",
         "quality_flag",
@@ -340,9 +342,7 @@ def test_csv_keeps_all_frames_and_display_zero_separate_from_measurement(
     outside = first["signal_state"].eq("outside_analysis_window")
     assert measured.any()
     assert first.loc[~measured, "apparent_velocity_m_s"].isna().all()
-    assert first["display_velocity_m_s"].equals(
-        first["apparent_velocity_m_s"]
-    )
+    assert first["display_velocity_m_s"].equals(first["corrected_velocity_m_s"])
     assert not first["velocity_origin"].eq(
         "assumed_pre_event_zero_display_only"
     ).any()
@@ -460,7 +460,7 @@ def test_preview_covers_full_stft_axis_without_the_formal_time_gate(
         assert not preview.uses_refined_frequency.any()
         np.testing.assert_array_equal(
             analysis.display_velocity_m_s,
-            analysis.refined_velocity_m_s,
+            analysis.corrected_velocity_m_s,
         )
 
 
@@ -471,10 +471,10 @@ def test_full_band_and_analysis_plot_ranges_are_explicit_and_images_are_readable
         manifest = json.loads(
             (production_run / profile_name / "profile_manifest.json").read_text()
         )
-        assert manifest["search_frequency_range_hz"] == [0.05e9, 2.0e9]
+        assert manifest["search_frequency_range_hz"] == [0.05e9, 6.0e9]
         assert manifest["full_range_preview"]["frequency_range_hz"] == [
             0.05e9,
-            2.0e9,
+            6.0e9,
         ]
         assert manifest["full_range_preview"]["formal_quality_gate_applied"] is False
         assert manifest["full_range_preview"]["legend"] == (
@@ -567,8 +567,8 @@ def test_preview_boundary_is_explicitly_not_zero_and_state_layered(
     )
     simple = pd.read_csv(simple_path)
     pre_consensus = analysis.refined_result.time_s < analysis.refined_result.time_s[-1]
-    assert np.all(simple.loc[pre_consensus, "velocity_m_s"] == 0.0)
-    assert np.isnan(simple.loc[~pre_consensus, "velocity_m_s"]).all()
+    assert np.all(simple.loc[pre_consensus, "corrected_velocity_m_s"] == 0.0)
+    assert np.isnan(simple.loc[~pre_consensus, "corrected_velocity_m_s"]).all()
 
 
 def test_duplicate_apparent_velocity_csv_alias_is_not_generated(
@@ -622,7 +622,7 @@ def test_reviewed_display_uses_simple_series_without_mutating_formal_velocity(
     _, analyses_by_profile = formal_analyses
     analysis = analyses_by_profile["balanced"]["pdv_channel_1"]
     consensus_time_s = float(analysis.refined_result.time_s[5])
-    formal_before = analysis.refined_velocity_m_s.copy()
+    formal_before = analysis.corrected_velocity_m_s.copy()
 
     reviewed = _build_reviewed_velocity_series(
         analysis,
@@ -650,7 +650,7 @@ def test_reviewed_display_uses_simple_series_without_mutating_formal_velocity(
         equal_nan=True,
     )
     np.testing.assert_array_equal(
-        analysis.refined_velocity_m_s,
+        analysis.corrected_velocity_m_s,
         formal_before,
     )
 
@@ -659,7 +659,7 @@ def test_reviewed_display_uses_simple_series_without_mutating_formal_velocity(
     assert "axvline" not in plot_source
     assert "reviewed.simple_export_velocity_m_s" in plot_source
     assert "pre-event baseline defined as zero for plotting" in plot_source
-    assert "quality-gated apparent velocity after event" in plot_source
+    assert "quality-gated corrected velocity after event" in plot_source
     assert (
         "Pre-event zero is a plotting convention based on the consensus event time."
         in plot_source
@@ -711,7 +711,7 @@ def test_simple_exports_are_origin_ready_two_column_roundtrips(
             frame = pd.read_csv(path)
             assert frame.columns.tolist() == [
                 "time_s",
-                "velocity_m_s",
+                "corrected_velocity_m_s",
             ]
             assert len(frame) == analysis.stft_result.time_s.size
             assert np.all(np.diff(frame["time_s"].to_numpy()) > 0.0)
@@ -722,7 +722,7 @@ def test_simple_exports_are_origin_ready_two_column_roundtrips(
                 atol=2.0e-18,
             )
             np.testing.assert_allclose(
-                frame["velocity_m_s"].to_numpy(),
+                frame["corrected_velocity_m_s"].to_numpy(),
                 _simple_export_velocity_m_s(
                     analysis,
                     zero_before_time_s=zero_before_time_s,
@@ -732,11 +732,11 @@ def test_simple_exports_are_origin_ready_two_column_roundtrips(
                 equal_nan=True,
             )
             finite_indices = np.flatnonzero(
-                np.isfinite(analysis.refined_velocity_m_s)
+                np.isfinite(analysis.corrected_velocity_m_s)
             )
             assert finite_indices.size > 0
             assert np.isfinite(
-                frame["velocity_m_s"].iloc[finite_indices[-1]]
+                frame["corrected_velocity_m_s"].iloc[finite_indices[-1]]
             )
 
             detailed = pd.read_csv(
@@ -758,8 +758,8 @@ def test_simple_exports_are_origin_ready_two_column_roundtrips(
             )
             if zero_before_time_s is None:
                 np.testing.assert_allclose(
-                    frame["velocity_m_s"].to_numpy(),
-                    detailed["apparent_velocity_m_s"].to_numpy(),
+                    frame["corrected_velocity_m_s"].to_numpy(),
+                    detailed["corrected_velocity_m_s"].to_numpy(),
                     rtol=1.0e-15,
                     atol=0.0,
                     equal_nan=True,
@@ -767,10 +767,12 @@ def test_simple_exports_are_origin_ready_two_column_roundtrips(
             else:
                 pre_mask = frame["time_s"].to_numpy() < zero_before_time_s
                 post_mask = ~pre_mask
-                assert np.all(frame.loc[pre_mask, "velocity_m_s"] == 0.0)
+                assert np.all(
+                    frame.loc[pre_mask, "corrected_velocity_m_s"] == 0.0
+                )
                 np.testing.assert_allclose(
-                    frame.loc[post_mask, "velocity_m_s"].to_numpy(),
-                    detailed.loc[post_mask, "apparent_velocity_m_s"].to_numpy(),
+                    frame.loc[post_mask, "corrected_velocity_m_s"].to_numpy(),
+                    detailed.loc[post_mask, "corrected_velocity_m_s"].to_numpy(),
                     rtol=1.0e-15,
                     atol=0.0,
                     equal_nan=True,
@@ -785,7 +787,7 @@ def test_simple_export_zero_overrides_every_pre_consensus_formal_value(
     analysis = analyses_by_profile["balanced"]["pdv_channel_1"]
     zero_before_time_s = float(analysis.refined_result.time_s[-1])
     expected_zero = analysis.refined_result.time_s < zero_before_time_s
-    formal_before = analysis.refined_velocity_m_s.copy()
+    formal_before = analysis.corrected_velocity_m_s.copy()
     assert expected_zero.sum() == analysis.refined_result.time_s.size - 1
     assert np.isfinite(formal_before[expected_zero]).any()
 
@@ -802,7 +804,7 @@ def test_simple_export_zero_overrides_every_pre_consensus_formal_value(
         equal_nan=True,
     )
     np.testing.assert_array_equal(
-        analysis.refined_velocity_m_s,
+        analysis.corrected_velocity_m_s,
         formal_before,
     )
     path = _write_simple_velocity_csv(
@@ -814,7 +816,7 @@ def test_simple_export_zero_overrides_every_pre_consensus_formal_value(
     )
     written = pd.read_csv(path)
     np.testing.assert_allclose(
-        written["velocity_m_s"].to_numpy(),
+        written["corrected_velocity_m_s"].to_numpy(),
         simple_velocity,
         rtol=1.0e-15,
         atol=0.0,
@@ -884,8 +886,8 @@ def test_simple_export_fields_ignore_manual_reference_and_event_candidate_config
             atol=2.0e-18,
         )
         np.testing.assert_allclose(
-            frame["velocity_m_s"].to_numpy(),
-            base.refined_velocity_m_s,
+            frame["corrected_velocity_m_s"].to_numpy(),
+            base.corrected_velocity_m_s,
             rtol=1.0e-15,
             atol=0.0,
             equal_nan=True,
@@ -897,7 +899,7 @@ def test_simple_export_consensus_unavailable_copies_formal_without_manual_fallba
 ) -> None:
     _, analyses_by_profile = formal_analyses
     analysis = analyses_by_profile["balanced"]["pdv_channel_1"]
-    formal_before = analysis.refined_velocity_m_s.copy()
+    formal_before = analysis.corrected_velocity_m_s.copy()
 
     simple = _simple_export_velocity_m_s(
         analysis,
@@ -908,7 +910,7 @@ def test_simple_export_consensus_unavailable_copies_formal_without_manual_fallba
         consensus_event_time_s=None,
     )
 
-    assert not np.shares_memory(simple, analysis.refined_velocity_m_s)
+    assert not np.shares_memory(simple, analysis.corrected_velocity_m_s)
     np.testing.assert_allclose(
         simple,
         formal_before,
@@ -940,12 +942,12 @@ def test_simple_readme_states_origin_semantics_and_formal_reference(
         production_run / "simple_exports" / "README.txt"
     ).read_text(encoding="utf-8")
     assert "direct use in Origin or Excel" in readme
-    assert "velocity_m_s is unsigned apparent velocity in m/s" in readme
+    assert "corrected_velocity_m_s is the final angle- and window-corrected" in readme
     assert "every frame with time_s before" in readme
     assert "invalid frames remain NaN" in readme
     assert "interpolated, smoothed, bridged, or resampled" in readme
-    assert "not received a verified LiF correction" in readme
-    assert "formal reference and are never pre-event zero-filled" in readme
+    assert "use the configured observation-angle and window correction" in readme
+    assert "preserve apparent, angle-corrected apparent, corrected" in readme
     assert THRESHOLD_CALIBRATION_PROVENANCE in readme
 
 

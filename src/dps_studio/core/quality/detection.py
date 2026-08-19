@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -16,6 +17,7 @@ from dps_studio.core.ridge import (
     RidgeRefinementStatus,
     RidgeSpectralQualityResult,
     RidgeSpectralQualityStatus,
+    RidgeSelectionOrigin,
 )
 from dps_studio.core.time_frequency import STFTResult
 
@@ -30,6 +32,8 @@ def detect_beat_signal(
     analysis_start_time_s: float | None = None,
     analysis_end_time_s: float | None = None,
     manual_event_reference_time_s: float | None = None,
+    ridge_selection_origins: Sequence[RidgeSelectionOrigin] | None = None,
+    minimum_continuity_candidate_relative_to_strongest_db: float | None = None,
 ) -> SignalDetectionResult:
     """Apply ordered signal-existence and exact consecutive-frame gates."""
     _validate_inputs(
@@ -55,6 +59,34 @@ def detect_beat_signal(
         manual_event_reference_time_s,
         field_name="manual_event_reference_time_s",
     )
+    if ridge_selection_origins is None:
+        selection_origins = (
+            RidgeSelectionOrigin.STRONGEST_PEAK,
+        ) * stft_result.time_s.size
+    else:
+        selection_origins = tuple(ridge_selection_origins)
+        if len(selection_origins) != stft_result.time_s.size or not all(
+            isinstance(origin, RidgeSelectionOrigin)
+            for origin in selection_origins
+        ):
+            raise TypeError(
+                "ridge_selection_origins must contain one RidgeSelectionOrigin "
+                "per STFT frame."
+            )
+    continuity_relative_threshold = _optional_finite(
+        minimum_continuity_candidate_relative_to_strongest_db,
+        field_name=(
+            "minimum_continuity_candidate_relative_to_strongest_db"
+        ),
+    )
+    if any(
+        origin is RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE
+        for origin in selection_origins
+    ) and continuity_relative_threshold is None:
+        raise ValueError(
+            "A continuity-assisted alternative requires an explicit "
+            "relative-to-strongest threshold."
+        )
     if (
         analysis_start is not None
         and analysis_end is not None
@@ -98,6 +130,10 @@ def detect_beat_signal(
                 spectral_quality_result=spectral_quality_result,
                 cycles_in_window=float(cycles[index]),
                 detection_config=detection_config,
+                ridge_selection_origin=selection_origins[index],
+                minimum_continuity_candidate_relative_to_strongest_db=(
+                    continuity_relative_threshold
+                ),
             )
         )
 
@@ -111,6 +147,16 @@ def detect_beat_signal(
                 final_states[index] = SignalState.UNSTABLE_DETECTION
         else:
             qualifying_runs.append((start, stop))
+    for index, origin in enumerate(selection_origins):
+        if (
+            origin is RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE
+            and provisional[index] is SignalState.MEASURED
+        ):
+            # A production rescue has already passed the isolated-jump,
+            # event-protection, spectral, and two-neighbor gates. Preserve it
+            # as an explicitly sourced measurement without manufacturing a
+            # multi-frame run or changing compatibility onset detection.
+            final_states[index] = SignalState.MEASURED
 
     refined_frequency_hz = np.full(frame_count, np.nan, dtype=np.float64)
     apparent_velocity_m_s = np.full(frame_count, np.nan, dtype=np.float64)
@@ -198,6 +244,8 @@ def _provisional_state(
     spectral_quality_result: RidgeSpectralQualityResult,
     cycles_in_window: float,
     detection_config: SignalDetectionConfig,
+    ridge_selection_origin: RidgeSelectionOrigin,
+    minimum_continuity_candidate_relative_to_strongest_db: float | None,
 ) -> SignalState:
     if outside:
         return SignalState.OUTSIDE_ANALYSIS_WINDOW
@@ -218,7 +266,17 @@ def _provisional_state(
         return SignalState.NO_DETECTABLE_BEAT
     if peak_to_background < detection_config.minimum_peak_to_background_db:
         return SignalState.NO_DETECTABLE_BEAT
-    if peak_to_competitor < detection_config.minimum_peak_to_competitor_db:
+    competitor_threshold = detection_config.minimum_peak_to_competitor_db
+    if (
+        ridge_selection_origin
+        is RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE
+    ):
+        if minimum_continuity_candidate_relative_to_strongest_db is None:
+            return SignalState.AMBIGUOUS_PEAK
+        competitor_threshold = (
+            minimum_continuity_candidate_relative_to_strongest_db
+        )
+    if peak_to_competitor < competitor_threshold:
         return SignalState.AMBIGUOUS_PEAK
     if boundary:
         return SignalState.PEAK_AT_BAND_BOUNDARY

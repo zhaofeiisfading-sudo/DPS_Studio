@@ -7,7 +7,10 @@ __pycache__/
 *$py.class
 
 .pytest_cache/
+.pytest_tmp/
 .test_tmp/
+/.task*_tmp/
+/.task*_cache/
 .mypy_cache/
 .ruff_cache/
 .pytype/

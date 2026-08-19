@@ -119,6 +119,12 @@ class _AnalysisWorker(QRunnable):
                     vacuum_wavelength_m=configuration.vacuum_wavelength_m,
                     detection_config=configuration.detection_config,
                     event_candidate_config=configuration.event_candidate_config,
+                    automatic_ridge_selection_config=(
+                        configuration.automatic_ridge_selection_config
+                    ),
+                    velocity_correction_config=(
+                        configuration.velocity_correction_config
+                    ),
                     background_guard_window_scale=(
                         configuration.background_guard_window_scale
                     ),
@@ -145,6 +151,12 @@ class _AnalysisWorker(QRunnable):
                     vacuum_wavelength_m=configuration.vacuum_wavelength_m,
                     detection_config=configuration.detection_config,
                     event_candidate_config=configuration.event_candidate_config,
+                    automatic_ridge_selection_config=(
+                        configuration.automatic_ridge_selection_config
+                    ),
+                    velocity_correction_config=(
+                        configuration.velocity_correction_config
+                    ),
                     background_guard_window_scale=(
                         configuration.background_guard_window_scale
                     ),
@@ -183,6 +195,12 @@ class _AnalysisWorker(QRunnable):
                     vacuum_wavelength_m=configuration.vacuum_wavelength_m,
                     detection_config=configuration.detection_config,
                     event_candidate_config=configuration.event_candidate_config,
+                    automatic_ridge_selection_config=(
+                        configuration.automatic_ridge_selection_config
+                    ),
+                    velocity_correction_config=(
+                        configuration.velocity_correction_config
+                    ),
                     background_guard_window_scale=(
                         configuration.background_guard_window_scale
                     ),

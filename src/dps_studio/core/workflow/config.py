@@ -25,7 +25,17 @@ from dps_studio.core.event_candidates import (
     EventCandidateConfig,
     EventConsensusConfig,
 )
+from dps_studio.core.physics import (
+    LIF_RIGG_2014_1550NM,
+    LiFWindowCorrectionModel,
+    VelocityCorrectionConfig,
+    WindowMaterial,
+)
 from dps_studio.core.quality import SignalDetectionConfig
+from dps_studio.core.ridge import (
+    AutomaticRidgeExtractionMode,
+    AutomaticRidgeSelectionConfig,
+)
 
 
 class WorkflowConfigurationError(ValueError):
@@ -116,6 +126,8 @@ class WorkflowConfiguration:
     input: InputConfiguration
     analysis: AnalysisConfiguration
     quality: QualityConfiguration
+    velocity_correction: VelocityCorrectionConfig
+    automatic_ridge_selection: AutomaticRidgeSelectionConfig
     event_candidate: EventCandidateConfig
     event_consensus: EventConsensusConfig
     plot: PlotConfiguration
@@ -149,6 +161,11 @@ def load_workflow_config(
     input_table = _table(document, "input")
     analysis_table = _table(document, "analysis")
     quality_table = _table(document, "quality")
+    velocity_correction_table = _optional_table(document, "velocity_correction")
+    automatic_ridge_selection_table = _optional_table(
+        document,
+        "automatic_ridge_selection",
+    )
     event_candidate_table = _table(document, "event_candidate")
     event_consensus_table = _table(document, "event_consensus")
     plot_table = _table(document, "plot")
@@ -318,6 +335,98 @@ def load_workflow_config(
             ),
         ),
     )
+
+    velocity_correction_configuration = VelocityCorrectionConfig(
+        window_material=_window_material(
+            velocity_correction_table.get("window_material", "LiF")
+        ),
+        measurement_angle_rad=_finite_float(
+            velocity_correction_table.get("measurement_angle_rad", 0.0),
+            field_name="velocity_correction.measurement_angle_rad",
+        ),
+        lif_model=LiFWindowCorrectionModel(
+            b1=_positive_float(
+                velocity_correction_table.get(
+                    "lif_b1",
+                    LIF_RIGG_2014_1550NM.b1,
+                ),
+                field_name="velocity_correction.lif_b1",
+            ),
+            b2=_positive_float(
+                velocity_correction_table.get(
+                    "lif_b2",
+                    LIF_RIGG_2014_1550NM.b2,
+                ),
+                field_name="velocity_correction.lif_b2",
+            ),
+            reference_wavelength_m=_positive_float(
+                velocity_correction_table.get(
+                    "lif_reference_wavelength_m",
+                    LIF_RIGG_2014_1550NM.reference_wavelength_m,
+                ),
+                field_name="velocity_correction.lif_reference_wavelength_m",
+            ),
+        ),
+    )
+    mode_value = _string(
+        automatic_ridge_selection_table.get("mode", "continuity_assisted"),
+        field_name="automatic_ridge_selection.mode",
+    )
+    try:
+        automatic_mode = AutomaticRidgeExtractionMode(mode_value)
+    except ValueError as exc:
+        raise WorkflowConfigurationError(
+            "automatic_ridge_selection.mode must be 'continuity_assisted' or "
+            "'legacy_strongest_peak'."
+        ) from exc
+    recovery_tolerance_hz = _optional_table_float(
+        automatic_ridge_selection_table,
+        "recovery_tolerance_hz",
+        parent="automatic_ridge_selection",
+    )
+    if recovery_tolerance_hz is not None and recovery_tolerance_hz <= 0.0:
+        raise WorkflowConfigurationError(
+            "automatic_ridge_selection.recovery_tolerance_hz must be positive "
+            "when present."
+        )
+    automatic_ridge_selection_configuration = AutomaticRidgeSelectionConfig(
+        mode=automatic_mode,
+        top_k_candidates=_integer(
+            automatic_ridge_selection_table.get("top_k_candidates", 3),
+            field_name="automatic_ridge_selection.top_k_candidates",
+            minimum=1,
+        ),
+        continuity_reselection_enabled=_boolean(
+            automatic_ridge_selection_table.get(
+                "continuity_reselection_enabled",
+                True,
+            ),
+            field_name=(
+                "automatic_ridge_selection.continuity_reselection_enabled"
+            ),
+        ),
+        minimum_candidate_peak_to_background_db=_finite_float(
+            automatic_ridge_selection_table.get(
+                "minimum_candidate_peak_to_background_db",
+                10.0,
+            ),
+            field_name=(
+                "automatic_ridge_selection."
+                "minimum_candidate_peak_to_background_db"
+            ),
+        ),
+        minimum_candidate_relative_to_strongest_db=_finite_float(
+            automatic_ridge_selection_table.get(
+                "minimum_candidate_relative_to_strongest_db",
+                -6.0,
+            ),
+            field_name=(
+                "automatic_ridge_selection."
+                "minimum_candidate_relative_to_strongest_db"
+            ),
+        ),
+        recovery_tolerance_hz=recovery_tolerance_hz,
+    )
     event_candidate_configuration = EventCandidateConfig(
         minimum_segment_frames=_integer(
             _required(
@@ -459,6 +568,8 @@ def load_workflow_config(
         input=input_configuration,
         analysis=analysis_configuration,
         quality=quality_configuration,
+        velocity_correction=velocity_correction_configuration,
+        automatic_ridge_selection=automatic_ridge_selection_configuration,
         event_candidate=event_candidate_configuration,
         event_consensus=event_consensus_configuration,
         plot=plot_configuration,
@@ -514,6 +625,21 @@ def _profiles(value: object) -> tuple[AnalysisProfile, ...]:
             "experimental time-to-frequency sequence."
         )
     return tuple(profiles)
+
+
+def _window_material(value: object) -> WindowMaterial:
+    material = _string(
+        value,
+        field_name="velocity_correction.window_material",
+    )
+    normalized = material.casefold()
+    if normalized == "lif":
+        return WindowMaterial.LIF
+    if normalized in {"none", "no window correction"}:
+        return WindowMaterial.NONE
+    raise WorkflowConfigurationError(
+        "velocity_correction.window_material must be 'LiF' or 'none'."
+    )
 
 
 def _default_profile(
@@ -588,6 +714,16 @@ def _table(
     value = document.get(name)
     if not isinstance(value, dict):
         raise WorkflowConfigurationError(f"{field_name} must be a TOML table.")
+    return cast("Mapping[str, Any]", value)
+
+
+def _optional_table(
+    document: Mapping[str, Any],
+    name: str,
+) -> Mapping[str, Any]:
+    value = document.get(name, {})
+    if not isinstance(value, dict):
+        raise WorkflowConfigurationError(f"{name} must be a TOML table.")
     return cast("Mapping[str, Any]", value)
 
 

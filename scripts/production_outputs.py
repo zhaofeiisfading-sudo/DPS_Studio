@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from time import perf_counter
-from typing import Any
+from typing import Any, cast
 
 import matplotlib
 import numpy as np
@@ -37,6 +37,7 @@ from dps_studio.core.event_candidates import (  # noqa: E402
 from dps_studio.core.models import SignalRecord  # noqa: E402
 from dps_studio.core.physics import (  # noqa: E402
     convert_ridge_to_apparent_velocity,
+    velocity_correction_metadata,
 )
 from dps_studio.core.quality import SignalDetectionConfig, SignalState  # noqa: E402
 from dps_studio.core.ridge import (  # noqa: E402
@@ -238,6 +239,7 @@ def run_production_outputs(
                 configuration.analysis.manual_event_reference_time_s
             ),
             vacuum_wavelength_m=configuration.analysis.vacuum_wavelength_m,
+            velocity_correction_config=configuration.velocity_correction,
             detection_config=configuration.quality.signal_detection,
             event_candidate_config=configuration.event_candidate,
             background_guard_window_scale=(
@@ -636,6 +638,10 @@ def _write_apparent_velocity_csv(
             "refined_frequency_hz": detection.refined_frequency_hz,
             "discrete_apparent_velocity_m_s": analysis.discrete_velocity_m_s,
             "apparent_velocity_m_s": analysis.refined_velocity_m_s,
+            "angle_corrected_apparent_velocity_m_s": (
+                analysis.angle_corrected_apparent_velocity_m_s
+            ),
+            "corrected_velocity_m_s": analysis.corrected_velocity_m_s,
             "display_velocity_m_s": analysis.display_velocity_m_s,
             "velocity_origin": analysis.velocity_origins,
             "quality_flag": [flag.value for flag in refined.quality_flags],
@@ -731,7 +737,7 @@ def _write_simple_velocity_csv(
     pd.DataFrame(
         {
             "time_s": time_s,
-            "velocity_m_s": velocity_m_s,
+            "corrected_velocity_m_s": velocity_m_s,
         }
     ).to_csv(path, index=False, float_format="%.18e")
     return path
@@ -743,7 +749,7 @@ def _simple_export_velocity_m_s(
     zero_before_time_s: float | None,
 ) -> np.ndarray[Any, np.dtype[np.float64]]:
     """Copy formal values and define every pre-consensus plotting value as zero."""
-    velocity_m_s = analysis.refined_velocity_m_s.copy()
+    velocity_m_s = analysis.corrected_velocity_m_s.copy()
     if zero_before_time_s is None:
         return velocity_m_s
     if not math.isfinite(zero_before_time_s):
@@ -778,7 +784,7 @@ def _write_simple_exports_readme(
     path.write_text(
         "\n".join(
             (
-                "DPS Studio simple apparent-velocity exports",
+                "DPS Studio simple corrected-velocity exports",
                 "",
                 "This directory contains one independent file for every actual "
                 "configured profile/channel stream:",
@@ -787,26 +793,30 @@ def _write_simple_exports_readme(
                 "Filename fields identify the configured analysis profile and the "
                 "independent PDV acquisition channel.",
                 "Columns: time_s is absolute STFT frame-center time in seconds; "
-                "velocity_m_s is unsigned apparent velocity in m/s.",
+                "corrected_velocity_m_s is the final angle- and window-corrected "
+                "velocity in m/s.",
                 "When cross-profile consensus is available, every frame with "
                 "time_s before it is written as exactly 0 m/s, regardless of "
                 "its formal diagnostic signal state.",
                 consensus_availability,
                 "The complete pre-event zero platform is a plotting convention for "
                 "direct use in Origin or Excel; it is not a measured velocity.",
-                "At and after the consensus time, formal quality-gated apparent "
+                "At and after the consensus time, formal quality-gated corrected "
                 "velocity is copied exactly and invalid frames remain NaN.",
                 "All original STFT frames and times are retained. No row is removed "
                 "and no value is interpolated, smoothed, bridged, or resampled.",
-                "These values have not received a verified LiF correction.",
+                "The corrected values use the configured observation-angle and "
+                "window correction; apparent velocity remains available separately "
+                "in the detailed diagnostics.",
                 "Configured development-calibrated thresholds: "
                 f"peak/background >= "
                 f"{detection_config.minimum_peak_to_background_db:g} dB and "
                 "peak/competitor >= "
                 f"{detection_config.minimum_peak_to_competitor_db:g} dB.",
                 f"Threshold provenance: {THRESHOLD_CALIBRATION_PROVENANCE}.",
-                "The detailed apparent_velocity_diagnostics.csv files are the "
-                "formal reference and are never pre-event zero-filled.",
+                "The detailed apparent_velocity_diagnostics.csv files preserve "
+                "apparent, angle-corrected apparent, corrected, and display "
+                "velocities separately and are never pre-event zero-filled.",
                 "The physical identities of spectral branches near the record tail "
                 "remain unconfirmed.",
                 "Do not directly average the two raw voltage channels or the four "
@@ -856,8 +866,10 @@ def _write_run_readme(
                 "changes or exports formal velocity values.",
                 "comparisons/ contains cross-stream validation and event diagnostics.",
                 "event_consensus.json records event-candidate consensus metadata.",
-                "Apparent velocities are unsigned, are not LiF-corrected, and do not "
-                "represent profile/channel fusion or physical branch selection.",
+                "Detailed apparent velocities remain unsigned and unmodified; "
+                "simple exports use the configured formal corrected velocity. "
+                "Neither represents profile/channel fusion or physical branch "
+                "selection.",
                 "",
             )
         ),
@@ -1133,11 +1145,11 @@ def _save_apparent_velocity_full_time_reviewed(
         ),
         color="#1f77b4",
         linewidth=1.1,
-        label="quality-gated apparent velocity after event",
+        label="quality-gated corrected velocity after event",
     )
     axis.set_xlim(relative_time_us[0], relative_time_us[-1])
     axis.set_xlabel(_consensus_time_axis_label(consensus_event_time_s))
-    axis.set_ylabel("Unsigned apparent velocity (m/s)")
+    axis.set_ylabel("Corrected velocity (m/s)")
     axis.set_title(
         f"{profile.display_name} / {channel_name}: full-time reviewed display"
     )
@@ -1810,6 +1822,7 @@ def _analyze_threshold_candidate(
                 configuration.analysis.manual_event_reference_time_s
             ),
             vacuum_wavelength_m=configuration.analysis.vacuum_wavelength_m,
+            velocity_correction_config=configuration.velocity_correction,
             detection_config=detection_config,
             event_candidate_config=configuration.event_candidate,
             background_guard_window_scale=(
@@ -3155,6 +3168,9 @@ def _profile_manifest(
             for name, analysis in analyses.items()
         },
         "vacuum_wavelength_m": configuration.analysis.vacuum_wavelength_m,
+        "velocity_correction": velocity_correction_metadata(
+            next(iter(analyses.values())).velocity_correction_result
+        ),
         "wavelength_status": (
             "demonstration value; not confirmed by experiment records"
         ),
@@ -3286,6 +3302,12 @@ def _run_manifest(
                 "demonstration value; not confirmed by experiment records"
             ),
         },
+        "velocity_correction": dict(
+            cast(
+                "Mapping[str, Any]",
+                next(iter(profile_manifests.values()))["velocity_correction"],
+            )
+        ),
         "quality": {
             "background_guard_window_scale": (
                 configuration.quality.background_guard_window_scale
@@ -3374,7 +3396,7 @@ def _run_manifest(
                     "all frames are zero by plotting convention"
                 ),
                 "post_consensus_semantics": (
-                    "formal apparent velocity with original NaN gaps"
+                    "formal corrected velocity with original NaN gaps"
                 ),
                 "interpolation_or_bridge": False,
             },
@@ -3392,12 +3414,12 @@ def _run_manifest(
             for path in expected_paths
         ],
         "simple_exports": {
-            "columns": ["time_s", "velocity_m_s"],
+            "columns": ["time_s", "corrected_velocity_m_s"],
             "filename_pattern": "<profile>__<channel>__velocity_time.csv",
             "time_semantics": "absolute STFT frame-center time in seconds",
             "velocity_semantics": (
                 "pre-consensus plotting zero, followed by unchanged formal "
-                "quality-gated unsigned apparent velocity in m/s"
+                "quality-gated angle- and window-corrected velocity in m/s"
             ),
             "all_stft_frames_retained": True,
             "post_consensus_unreliable_frames_remain_nan": True,

@@ -24,6 +24,10 @@ manual_event_reference_time_s = 5.54668e-4
 # Demonstration value only; not confirmed against the experiment record.
 vacuum_wavelength_m = 1.55e-6
 
+[velocity_correction]
+window_material = "LiF"
+measurement_angle_rad = 0.0
+
 [quality]
 # Retained for legacy descriptive scripts; formal detection uses the bin guard below.
 background_guard_window_scale = 2.0

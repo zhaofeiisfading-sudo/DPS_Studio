@@ -16,14 +16,21 @@ from dps_studio.core.analysis_profiles import (
     build_analysis_run_parameters,
 )
 from dps_studio.core.event_candidates import EventCandidateConfig
+from dps_studio.core.export import ExportTimeOrigin
 from dps_studio.core.models import SignalRecord
+from dps_studio.core.physics import VelocityCorrectionConfig
 from dps_studio.core.quality import SignalDetectionConfig
-from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.ridge import (
+    AutomaticRidgeExtractionMode,
+    AutomaticRidgeSelectionConfig,
+    RidgeCorridorConstraint,
+)
 from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import (
     ChannelAnalysis,
     WorkflowConfiguration,
     configure_channel_event_reference,
+    configure_channel_velocity_correction,
 )
 
 
@@ -55,6 +62,8 @@ class AnalysisRunConfiguration:
     parameters: AnalysisRunParameters
     detection_config: SignalDetectionConfig
     event_candidate_config: EventCandidateConfig
+    automatic_ridge_selection_config: AutomaticRidgeSelectionConfig
+    velocity_correction_config: VelocityCorrectionConfig
     background_guard_window_scale: float
     minimum_background_bin_count: int
     event_reference_time_s: float | None
@@ -84,7 +93,7 @@ class AnalysisRunConfiguration:
         return self.parameters.is_custom
 
     @property
-    def custom_overrides(self) -> Mapping[str, int | float]:
+    def custom_overrides(self) -> Mapping[str, int | float | str]:
         """Return immutable explicit override values."""
         return self.parameters.custom_overrides
 
@@ -152,6 +161,7 @@ class AnalysisSession:
     guided_generation_id: int = 0
     event_reference_source: str | None = None
     rejected_event_reference_time_s: float | None = None
+    export_time_origin: ExportTimeOrigin = ExportTimeOrigin.EVENT
 
     def load_records(
         self,
@@ -169,6 +179,7 @@ class AnalysisSession:
         self.records = MappingProxyType(dict(records))
         self.analysis_range = None
         self.ridge_constraints = _empty_constraints()
+        self.export_time_origin = ExportTimeOrigin.EVENT
         self._reset_event_reference_for_current_records()
         self._invalidate()
 
@@ -214,6 +225,10 @@ class AnalysisSession:
             ),
             detection_config=configuration.quality.signal_detection,
             event_candidate_config=configuration.event_candidate,
+            automatic_ridge_selection_config=(
+                configuration.automatic_ridge_selection
+            ),
+            velocity_correction_config=configuration.velocity_correction,
             background_guard_window_scale=(
                 configuration.quality.background_guard_window_scale
             ),
@@ -294,6 +309,25 @@ class AnalysisSession:
             self._invalidate_downstream()
         return True
 
+    def set_automatic_ridge_extraction_mode(
+        self,
+        mode: AutomaticRidgeExtractionMode,
+    ) -> bool:
+        """Change Automatic selection mode and invalidate downstream products."""
+        if self.run_configuration is None:
+            return False
+        if not isinstance(mode, AutomaticRidgeExtractionMode):
+            raise TypeError("mode must be an AutomaticRidgeExtractionMode.")
+        current = self.run_configuration.automatic_ridge_selection_config
+        if mode is current.mode:
+            return False
+        self.run_configuration = replace(
+            self.run_configuration,
+            automatic_ridge_selection_config=replace(current, mode=mode),
+        )
+        self._invalidate_downstream()
+        return True
+
     def set_vacuum_wavelength_m(self, value: float) -> None:
         """Compatibility helper for one explicit wavelength override."""
         if self.run_configuration is None:
@@ -304,6 +338,33 @@ class AnalysisSession:
         self.set_analysis_overrides(
             replace(current, vacuum_wavelength_m=float(value)),
         )
+
+    def set_velocity_correction_config(
+        self,
+        config: VelocityCorrectionConfig,
+    ) -> bool:
+        """Rebuild correction/display arrays without rerunning upstream analysis."""
+        if self.run_configuration is None:
+            return False
+        if not isinstance(config, VelocityCorrectionConfig):
+            raise TypeError("config must be a VelocityCorrectionConfig.")
+        if config == self.run_configuration.velocity_correction_config:
+            return False
+        self.run_configuration = replace(
+            self.run_configuration,
+            velocity_correction_config=config,
+        )
+        self._refresh_velocity_correction_results()
+        return True
+
+    def set_export_time_origin(self, time_origin: ExportTimeOrigin) -> bool:
+        """Store the session's explicit export/display time-coordinate choice."""
+        if not isinstance(time_origin, ExportTimeOrigin):
+            raise TypeError("time_origin must be an ExportTimeOrigin.")
+        if time_origin is self.export_time_origin:
+            return False
+        self.export_time_origin = time_origin
+        return True
 
     def set_display_velocity_configuration(
         self,
@@ -365,16 +426,20 @@ class AnalysisSession:
                 "Event reference time must stay inside the current data and "
                 "confirmed analysis ranges."
             )
-        changed = reference != self.run_configuration.event_reference_time_s
+        reference_changed = (
+            reference != self.run_configuration.event_reference_time_s
+        )
+        normalized_source = source.strip()
+        source_changed = normalized_source != self.event_reference_source
         self.run_configuration = replace(
             self.run_configuration,
             event_reference_time_s=reference,
         )
-        self.event_reference_source = source.strip()
+        self.event_reference_source = normalized_source
         self.rejected_event_reference_time_s = None
-        if changed:
+        if reference_changed or source_changed:
             self._refresh_display_results()
-        return changed
+        return reference_changed or source_changed
 
     def clear_event_reference(self) -> bool:
         """Unset the display/review reference without changing formal results."""
@@ -609,6 +674,7 @@ class AnalysisSession:
                         event_reference_time_s=(
                             configuration.event_reference_time_s
                         ),
+                        event_reference_source=self.event_reference_source,
                         enable_pre_event_display=(
                             configuration.enable_pre_event_display
                         ),
@@ -627,6 +693,7 @@ class AnalysisSession:
                         event_reference_time_s=(
                             configuration.event_reference_time_s
                         ),
+                        event_reference_source=self.event_reference_source,
                         enable_pre_event_display=(
                             configuration.enable_pre_event_display
                         ),
@@ -634,6 +701,39 @@ class AnalysisSession:
                             configuration.pre_event_display_velocity_m_s
                         ),
                     )
+                    for channel_name, analysis in self.guided_channel_analyses.items()
+                }
+            )
+
+    def _refresh_velocity_correction_results(self) -> None:
+        configuration = self.run_configuration
+        if configuration is None:
+            return
+
+        def refreshed(analysis: ChannelAnalysis) -> ChannelAnalysis:
+            return configure_channel_velocity_correction(
+                analysis,
+                velocity_correction_config=(
+                    configuration.velocity_correction_config
+                ),
+                vacuum_wavelength_m=configuration.vacuum_wavelength_m,
+                enable_pre_event_display=configuration.enable_pre_event_display,
+                pre_event_display_velocity_m_s=(
+                    configuration.pre_event_display_velocity_m_s
+                ),
+            )
+
+        if self.channel_analyses:
+            self.channel_analyses = MappingProxyType(
+                {
+                    channel_name: refreshed(analysis)
+                    for channel_name, analysis in self.channel_analyses.items()
+                }
+            )
+        if self.guided_channel_analyses:
+            self.guided_channel_analyses = MappingProxyType(
+                {
+                    channel_name: refreshed(analysis)
                     for channel_name, analysis in self.guided_channel_analyses.items()
                 }
             )

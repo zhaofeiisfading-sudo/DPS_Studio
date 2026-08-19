@@ -17,6 +17,7 @@ from typing import Any
 import numpy as np
 
 from dps_studio.core.export.models import (
+    ExportTimeOrigin,
     ExportedChannelResult,
     ResultAnalysisMode,
     ResultExportOptions,
@@ -24,20 +25,26 @@ from dps_studio.core.export.models import (
     ResultExportValidationError,
     ResultExportWriteError,
 )
+from dps_studio.core.export.time_coordinates import event_relative_time_s
+from dps_studio.core.physics import velocity_correction_metadata
 from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN
 from dps_studio.core.workflow.models import ChannelAnalysis
 
 
-EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v2"
-_SIMPLE_CSV_FIELDS = ("time_s", "velocity_m_s")
+EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v6"
 _DETAIL_CSV_FIELDS = (
     "time_s",
+    "time_from_event_s",
     "coarse_peak_frequency_hz",
     "refined_frequency_hz",
     "apparent_velocity_m_s",
+    "angle_corrected_apparent_velocity_m_s",
+    "corrected_velocity_m_s",
     "display_velocity_m_s",
     "ridge_quality_flag",
     "ridge_refinement_status",
+    "ridge_selection_origin",
+    "selected_candidate_rank",
     "signal_state",
     "velocity_origin",
     "is_pre_event_display_only",
@@ -120,6 +127,24 @@ def _validate_options_for_write(options: ResultExportOptions) -> None:
     for channel_name, analysis in options.channel_analyses.items():
         _validate_channel_filename(channel_name)
         _validate_analysis_arrays(channel_name, analysis)
+        reference_time_s = (
+            analysis.signal_detection_result.manual_event_reference_time_s
+        )
+        if (reference_time_s is None) != (
+            options.event_reference_source is None
+        ):
+            raise ResultExportValidationError(
+                "event_reference_source must be present exactly when the exported "
+                f"event reference is present for {channel_name!r}."
+            )
+        if (
+            options.time_origin is ExportTimeOrigin.EVENT
+            and reference_time_s is None
+        ):
+            raise ResultExportValidationError(
+                "Event-relative export requires a formally adopted event "
+                f"reference for {channel_name!r}."
+            )
 
 
 def _validated_output_directory(options: ResultExportOptions) -> Path:
@@ -287,6 +312,7 @@ def _write_staged_results(
         row_count = _write_simple_csv(
             staging_directory / plan.simple_csv_name,
             analysis,
+            options,
             row_indices,
         )
         _write_detail_csv(
@@ -332,23 +358,34 @@ def _export_row_indices(
 def _write_simple_csv(
     path: Path,
     analysis: ChannelAnalysis,
+    options: ResultExportOptions,
     row_indices: tuple[int, ...],
 ) -> int:
     """Write the user-facing time--display-velocity CSV without recalculation."""
     detection = analysis.signal_detection_result
+    relative_time_s = event_relative_time_s(
+        detection.time_s,
+        detection.manual_event_reference_time_s,
+    )
+    time_column = _simple_time_column(options.time_origin)
+    time_values = (
+        relative_time_s
+        if options.time_origin is ExportTimeOrigin.EVENT
+        else detection.time_s
+    )
     try:
         with path.open("x", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(
                 handle,
-                fieldnames=_SIMPLE_CSV_FIELDS,
+                fieldnames=(time_column, "display_velocity_m_s"),
                 lineterminator="\n",
             )
             writer.writeheader()
             for index in row_indices:
                 writer.writerow(
                     {
-                        "time_s": _csv_float(detection.time_s[index]),
-                        "velocity_m_s": _csv_float(
+                        time_column: _csv_float(time_values[index]),
+                        "display_velocity_m_s": _csv_float(
                             analysis.display_velocity_m_s[index]
                         ),
                     }
@@ -368,6 +405,10 @@ def _write_detail_csv(
     row_indices: tuple[int, ...],
 ) -> None:
     detection = analysis.signal_detection_result
+    relative_time_s = event_relative_time_s(
+        detection.time_s,
+        detection.manual_event_reference_time_s,
+    )
     try:
         with path.open("x", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(
@@ -382,6 +423,7 @@ def _write_detail_csv(
                 writer.writerow(
                     {
                         "time_s": _csv_float(detection.time_s[index]),
+                        "time_from_event_s": _csv_float(relative_time_s[index]),
                         "coarse_peak_frequency_hz": _csv_float(
                             detection.coarse_peak_frequency_hz[index]
                         ),
@@ -390,6 +432,12 @@ def _write_detail_csv(
                         ),
                         "apparent_velocity_m_s": _csv_float(
                             detection.apparent_velocity_m_s[index]
+                        ),
+                        "angle_corrected_apparent_velocity_m_s": _csv_float(
+                            analysis.angle_corrected_apparent_velocity_m_s[index]
+                        ),
+                        "corrected_velocity_m_s": _csv_float(
+                            analysis.corrected_velocity_m_s[index]
                         ),
                         "display_velocity_m_s": _csv_float(
                             analysis.display_velocity_m_s[index]
@@ -400,6 +448,16 @@ def _write_detail_csv(
                         "ridge_refinement_status": detection.refinement_statuses[
                             index
                         ].value,
+                        "ridge_selection_origin": (
+                            analysis.automatic_ridge_selection_result.origins[
+                                index
+                            ].value
+                        ),
+                        "selected_candidate_rank": int(
+                            analysis.automatic_ridge_selection_result.selected_candidate_rank[
+                                index
+                            ]
+                        ),
                         "signal_state": detection.signal_states[index].value,
                         "velocity_origin": origin,
                         "is_pre_event_display_only": str(display_only).lower(),
@@ -435,6 +493,42 @@ def _metadata_document(
     measured_count = sum(
         state.value == "measured" for state in detection.signal_states
     )
+    automatic_candidate_time_s = None
+    compatibility_candidate_time_s = None
+    if options.analysis_mode is ResultAnalysisMode.AUTOMATIC:
+        automatic_candidate_time_s = (
+            analysis.stream_event_candidates.primary_candidate_time_s
+        )
+        compatibility_candidate_time_s = detection.detected_event_candidate_time_s
+    selection = analysis.automatic_ridge_selection_result
+    automatic_selection_metadata: dict[str, Any] | None = None
+    if options.analysis_mode is ResultAnalysisMode.AUTOMATIC:
+        selection_config = selection.config
+        automatic_selection_metadata = {
+            "mode": selection_config.mode.value,
+            "top_k_candidates": selection_config.top_k_candidates,
+            "continuity_reselection_enabled": (
+                selection_config.reselection_is_active
+            ),
+            "minimum_candidate_peak_to_background_db": (
+                selection_config.minimum_candidate_peak_to_background_db
+            ),
+            "minimum_candidate_relative_to_strongest_db": (
+                selection_config.minimum_candidate_relative_to_strongest_db
+            ),
+            "recovery_tolerance_hz": (
+                selection.effective_recovery_tolerance_hz
+            ),
+            "recovery_tolerance_source": (
+                "explicit_configuration"
+                if selection_config.recovery_tolerance_hz is not None
+                else "sample_rate_hz_divided_by_window_length_samples"
+            ),
+            "selection_method": selection.method,
+            "continuity_reselection_count": len(
+                selection.reselected_frame_indices
+            ),
+        }
     return {
         "export_schema_version": EXPORT_SCHEMA_VERSION,
         "dps_studio_version": options.dps_studio_version,
@@ -448,6 +542,17 @@ def _metadata_document(
         "analysis_time_range_s": {
             "start_time_s": detection.analysis_start_time_s,
             "end_time_s": detection.analysis_end_time_s,
+        },
+        "time_coordinate": {
+            "absolute_time_preserved": True,
+            "event_reference_time_s": detection.manual_event_reference_time_s,
+            "export_time_origin": options.time_origin.value,
+            "relative_time_definition": (
+                "time_from_event_s = time_s - event_reference_time_s"
+            ),
+            "simple_csv_time_column": _simple_time_column(options.time_origin),
+            "detail_csv_absolute_time_column": "time_s",
+            "detail_csv_relative_time_column": "time_from_event_s",
         },
         "stft_configuration": {
             "window_name": stft.window_name,
@@ -492,7 +597,20 @@ def _metadata_document(
         "vacuum_wavelength_m": (
             analysis.discrete_velocity_result.vacuum_wavelength_m
         ),
+        "physics": {
+            "vacuum_wavelength_m": (
+                analysis.discrete_velocity_result.vacuum_wavelength_m
+            ),
+            "velocity_relation": "v_app=lambda0*f_b/2",
+        },
+        "velocity_correction": velocity_correction_metadata(
+            analysis.velocity_correction_result
+        ),
+        "automatic_ridge_selection": automatic_selection_metadata,
+        "automatic_event_candidate_time_s": automatic_candidate_time_s,
+        "compatibility_event_candidate_time_s": compatibility_candidate_time_s,
         "event_reference_time_s": detection.manual_event_reference_time_s,
+        "event_reference_source": options.event_reference_source,
         "pre_event_display": {
             "enabled": options.pre_event_display_enabled,
             "configured_velocity_m_s": options.pre_event_display_velocity_m_s,
@@ -515,11 +633,19 @@ def _metadata_document(
             "ridge_refinement_status_counts": dict(
                 Counter(status.value for status in detection.refinement_statuses)
             ),
+            "ridge_selection_origin_counts": dict(
+                Counter(origin.value for origin in selection.origins)
+            ),
         },
         "result_status": {
-            "simple_csv_velocity_column": "velocity_m_s",
+            "simple_csv_time_column": _simple_time_column(options.time_origin),
+            "simple_csv_velocity_column": "display_velocity_m_s",
             "simple_csv_velocity_source": "display_velocity_m_s",
             "formal_measurement_column": "apparent_velocity_m_s",
+            "angle_corrected_measurement_column": (
+                "angle_corrected_apparent_velocity_m_s"
+            ),
+            "final_corrected_measurement_column": "corrected_velocity_m_s",
             "display_column": "display_velocity_m_s",
             "formal_measurement_preserved": True,
             "unreliable_formal_values_preserved_as_nan": True,
@@ -527,6 +653,12 @@ def _metadata_document(
             "channel_fusion_applied_by_export": False,
         },
     }
+
+
+def _simple_time_column(time_origin: ExportTimeOrigin) -> str:
+    if time_origin is ExportTimeOrigin.EVENT:
+        return "time_from_event_s"
+    return "time_s"
 
 
 def _write_json(path: Path, document: dict[str, Any]) -> None:
@@ -590,6 +722,19 @@ def _validate_analysis_arrays(channel_name: str, analysis: ChannelAnalysis) -> N
         ("ridge_refinement_statuses", detection.refinement_statuses),
         ("signal_states", detection.signal_states),
         ("velocity_origins", analysis.velocity_origins),
+        (
+            "angle_corrected_apparent_velocity_m_s",
+            analysis.angle_corrected_apparent_velocity_m_s,
+        ),
+        ("corrected_velocity_m_s", analysis.corrected_velocity_m_s),
+        (
+            "ridge_selection_origins",
+            analysis.automatic_ridge_selection_result.origins,
+        ),
+        (
+            "selected_candidate_rank",
+            analysis.automatic_ridge_selection_result.selected_candidate_rank,
+        ),
     )
     for field_name, values in sequences:
         if len(values) != frame_count:

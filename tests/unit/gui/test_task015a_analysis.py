@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QApplication, QFileIconProvider
 
 from dps_studio.core.analysis_profiles import AnalysisProfileId
 from dps_studio.core.models import SignalRecord
+from dps_studio.core.physics import WindowMaterial
 from dps_studio.core.workflow import ChannelAnalysis, load_workflow_config
 from dps_studio.gui import analysis_adapter, native_icons
 from dps_studio.gui.analysis_adapter import (
@@ -241,10 +242,14 @@ def test_full_gui_analysis_uses_real_core_arrays_and_reaches_result_ready(
         _velocity_x, velocity_y = window.velocity_view.formal_curve.getData()
         np.testing.assert_array_equal(
             velocity_y,
-            current.signal_detection_result.apparent_velocity_m_s,
+            current.corrected_velocity_m_s,
         )
+        assert window.velocity_view.apparent_curve is not None
+        _apparent_x, apparent_y = window.velocity_view.apparent_curve.getData()
+        np.testing.assert_array_equal(apparent_y, current.apparent_velocity_m_s)
         assert set(window.comparison_view.curves) == set(analyses)
-        assert not window.velocity_view.corrected_velocity_control.isEnabled()
+        assert window.window_material_combo.currentData() == "LiF"
+        assert window.measurement_angle_spin.value() == 0.0
         assert window.quality_summary.table.rowCount() == 2
         assert all(not record.time_s.flags.writeable for record in window.load_result.records.values())
         assert all(
@@ -262,6 +267,62 @@ def test_full_gui_analysis_uses_real_core_arrays_and_reaches_result_ready(
         assert window.analysis_session.run_configuration.vacuum_wavelength_m == (
             pytest.approx(1.55012e-6)
         )
+    finally:
+        window.close()
+        qapp.processEvents()
+
+
+def test_velocity_correction_controls_default_and_invalidate_old_results(
+    qapp: QApplication,
+    tmp_path: Path,
+) -> None:
+    window, _source_before = _prepare_window(qapp, tmp_path)
+    try:
+        assert window.window_material_combo.currentData() == WindowMaterial.LIF.value
+        assert window.measurement_angle_spin.value() == 0.0
+        assert "[100]" in window.window_material_combo.toolTip()
+        assert "测量视线" in window.measurement_angle_spin.toolTip()
+        assert "Snell" in window.measurement_angle_spin.toolTip()
+
+        _run_window_analysis(window)
+        session = window.analysis_session
+        assert session.results_valid
+        generation = session.generation_id
+        first = next(iter(session.channel_analyses.values()))
+        stft_before = first.stft_result
+        ridge_before = first.ridge_result
+        apparent_before = first.apparent_velocity_m_s.copy()
+        window.measurement_angle_spin.setValue(10.0)
+        qapp.processEvents()
+        assert session.results_valid
+        assert session.stft_valid
+        assert session.generation_id == generation
+        refreshed = next(iter(session.channel_analyses.values()))
+        assert refreshed.stft_result is stft_before
+        assert refreshed.ridge_result is ridge_before
+        np.testing.assert_array_equal(
+            refreshed.apparent_velocity_m_s,
+            apparent_before,
+        )
+
+        no_window_index = window.window_material_combo.findData(WindowMaterial.NONE.value)
+        assert no_window_index >= 0
+        window.window_material_combo.setCurrentIndex(no_window_index)
+        qapp.processEvents()
+        assert session.results_valid
+        assert session.stft_valid
+        assert session.generation_id == generation
+        assert session.channel_analyses
+
+        window.vacuum_wavelength_spin.setValue(1064.0)
+        qapp.processEvents()
+        assert not session.results_valid
+        assert session.stft_valid
+
+        lif_index = window.window_material_combo.findData(WindowMaterial.LIF.value)
+        window.window_material_combo.setCurrentIndex(lif_index)
+        qapp.processEvents()
+        assert "参数参考 1550 nm" in window.velocity_correction_warning_label.text()
     finally:
         window.close()
         qapp.processEvents()
@@ -365,6 +426,11 @@ def test_english_translation_covers_new_range_and_analysis_controls(
         )
         assert window.run_analysis_button.text() == "Compute Spectrogram"
         assert "1550 nm" in window.vacuum_wavelength_spin.toolTip()
+        assert window.window_material_combo.itemText(1) == "No Window Correction"
+        assert window.window_material_combo.toolTip().startswith("LiF uses Eq. (16)")
+        assert window.measurement_angle_spin.toolTip().startswith(
+            "Angle between the PDV line of sight"
+        )
     finally:
         window.close()
         manager.install("zh_CN")

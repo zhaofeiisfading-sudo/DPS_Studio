@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QToolButton
 
@@ -86,7 +87,7 @@ def test_action_cursor_tracks_enabled_state_without_changing_controls(
         qapp.processEvents()
 
 
-def test_range_action_signal_and_dynamic_candidate_cursor_remain_available(
+def test_range_reset_stays_draft_only_and_dynamic_candidate_cursor_remains_available(
     qapp: QApplication,
 ) -> None:
     """Preserve right-panel action signals and configure dynamically added actions."""
@@ -96,7 +97,9 @@ def test_range_action_signal_and_dynamic_candidate_cursor_remain_available(
     try:
         panel.set_data_bounds(1e-6, 5e-6)
         panel.full_range_button.click()
-        assert received == [(1e-6, 5e-6)]
+        assert received == []
+        panel.apply_button.click()
+        assert received == [pytest.approx((1e-6, 5e-6))]
 
         panel.set_detected_candidates({"pdv_channel_1": 2e-6})
         candidate_button = panel.candidate_buttons["pdv_channel_1"]
@@ -104,6 +107,34 @@ def test_range_action_signal_and_dynamic_candidate_cursor_remain_available(
         candidate_button.setEnabled(False)
         qapp.processEvents()
         assert candidate_button.cursor().shape() is Qt.CursorShape.ArrowCursor
+    finally:
+        panel.close()
+        qapp.processEvents()
+
+
+def test_primary_candidate_is_adoptable_but_compatibility_only_is_diagnostic(
+    qapp: QApplication,
+) -> None:
+    panel = AnalysisRangePanel()
+    adopted: list[tuple[str, float]] = []
+    panel.candidate_adopt_requested.connect(
+        lambda channel, value: adopted.append((channel, value))
+    )
+    try:
+        panel.set_detected_candidates(
+            {"primary": 2.5e-6, "compatibility_only": None},
+            {"primary": 2.0e-6, "compatibility_only": 3.0e-6},
+        )
+
+        assert set(panel.candidate_buttons) == {"primary"}
+        assert "primary" in panel.candidate_labels["primary"].text()
+        compatibility_label = panel.candidate_labels["compatibility_only"]
+        assert "3.000000000" not in compatibility_label.text()
+        assert "3.000000000" in compatibility_label.toolTip()
+        assert "不能在此采用" in compatibility_label.toolTip()
+        panel.candidate_buttons["primary"].click()
+        qapp.processEvents()
+        assert adopted == [("primary", 2.5e-6)]
     finally:
         panel.close()
         qapp.processEvents()

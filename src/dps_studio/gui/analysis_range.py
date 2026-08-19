@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -26,6 +27,7 @@ class AnalysisRangePanel(QWidget):
     current_view_requested = Signal()
     event_reference_confirmed = Signal(float)
     event_reference_cleared = Signal()
+    candidate_detection_requested = Signal()
     candidate_adopt_requested = Signal(str, float)
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -51,34 +53,42 @@ class AnalysisRangePanel(QWidget):
         )
         form.addRow(self.tr("完整时间范围"), self.full_range_label)
         form.addRow(self.tr("分析起点"), self.start_spin)
-        form.addRow(self.tr("分析终点"), self.end_spin)
+        end_editor = QWidget()
+        end_layout = QHBoxLayout(end_editor)
+        end_layout.setContentsMargins(0, 0, 0, 0)
+        end_layout.addWidget(self.end_spin, 1)
+        self.full_range_button = QPushButton(self.tr("重置"))
+        self.full_range_button.setObjectName("resetFullAnalysisRangeButton")
+        self.full_range_button.setToolTip(self.tr("重置为完整数据范围"))
+        self.full_range_button.setSizePolicy(
+            QSizePolicy.Policy.Maximum,
+            QSizePolicy.Policy.Fixed,
+        )
+        end_layout.addWidget(self.full_range_button)
+        form.addRow(self.tr("分析终点"), end_editor)
         form.addRow(self.tr("事件参考时刻"), self.event_reference_spin)
         layout.addLayout(form)
 
-        self.apply_button = QPushButton(self.tr("确认分析范围"))
-        self.apply_button.setObjectName("confirmAnalysisRangeButton")
-        self.full_range_button = QPushButton(self.tr("使用完整范围"))
-        self.full_range_button.setObjectName("useFullRangeButton")
-        self.current_view_button = QPushButton(self.tr("使用当前显示范围"))
-        self.current_view_button.setObjectName("useCurrentViewButton")
-        layout.addWidget(self.apply_button)
-        layout.addWidget(self.full_range_button)
-        layout.addWidget(self.current_view_button)
-
         event_buttons = QHBoxLayout()
         self.apply_event_reference_button = QPushButton(
-            self.tr("确认事件参考时刻")
+            self.tr("确认参考")
         )
         self.apply_event_reference_button.setObjectName(
             "confirmEventReferenceButton"
         )
+        self.detect_candidates_button = QPushButton(self.tr("检测候选"))
+        self.detect_candidates_button.setObjectName("detectEventCandidatesButton")
+        self.detect_candidates_button.setToolTip(
+            self.tr("运行现有自动分析链以生成仅供参考的事件候选；不会自动确认。")
+        )
         self.clear_event_reference_button = QPushButton(
-            self.tr("清除事件参考")
+            self.tr("清除")
         )
         self.clear_event_reference_button.setObjectName(
             "clearEventReferenceButton"
         )
         event_buttons.addWidget(self.apply_event_reference_button)
+        event_buttons.addWidget(self.detect_candidates_button)
         event_buttons.addWidget(self.clear_event_reference_button)
         layout.addLayout(event_buttons)
 
@@ -89,11 +99,15 @@ class AnalysisRangePanel(QWidget):
         self.event_reference_status_label.setWordWrap(True)
         layout.addWidget(self.event_reference_status_label)
 
-        self.candidate_heading = QLabel(self.tr("检测候选（仅供参考）"))
+        self.candidate_heading = QLabel(self.tr("推荐候选（仅供参考）"))
         self.candidate_heading.setObjectName("eventCandidateHeading")
         layout.addWidget(self.candidate_heading)
         self.candidate_layout = QVBoxLayout()
         layout.addLayout(self.candidate_layout)
+
+        self.apply_button = QPushButton(self.tr("确认分析范围"))
+        self.apply_button.setObjectName("confirmAnalysisRangeButton")
+        layout.addWidget(self.apply_button)
 
         self.status_label = QLabel(
             self.tr("图上范围与数值框双向同步；只有确认后才用于分析。")
@@ -110,12 +124,14 @@ class AnalysisRangePanel(QWidget):
         )
         self.apply_button.clicked.connect(self.confirm_draft)
         self.full_range_button.clicked.connect(self.use_full_range)
-        self.current_view_button.clicked.connect(self.current_view_requested)
         self.apply_event_reference_button.clicked.connect(
             self._confirm_event_reference
         )
         self.clear_event_reference_button.clicked.connect(
             self.event_reference_cleared
+        )
+        self.detect_candidates_button.clicked.connect(
+            self.candidate_detection_requested
         )
         self._set_enabled(False)
 
@@ -210,27 +226,44 @@ class AnalysisRangePanel(QWidget):
     def set_detected_candidates(
         self,
         candidates_s: dict[str, float | None],
+        compatibility_candidates_s: dict[str, float | None] | None = None,
     ) -> None:
-        """Show independent spectral candidates with explicit adoption buttons."""
+        """Show recommended candidates while internal classifications stay hidden."""
         self.clear_detected_candidates()
+        compatibility = compatibility_candidates_s or {}
         tooltip = self.tr(
-            "该时刻来自谱信号检测，只是候选参考，不代表已经确认的冲击到时。"
+            "该时刻来自稳健的事件级自动候选；仅供参考，必须由用户显式采用，"
+            "不代表物理真值或已确认的冲击到时。"
         )
         for channel_name, candidate_s in candidates_s.items():
+            compatibility_s = compatibility.get(channel_name)
             row = QWidget()
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(0, 0, 0, 0)
             if candidate_s is None:
-                label = QLabel(
-                    self.tr("{channel}：未检测到候选").format(
+                if compatibility_s is None:
+                    text = self.tr("{channel}：未检测到可采用的推荐候选").format(
                         channel=channel_name
                     )
-                )
+                else:
+                    text = self.tr(
+                        "{channel}：未检测到可采用的推荐候选"
+                    ).format(channel=channel_name)
+                label = QLabel(text)
+                if compatibility_s is not None:
+                    label.setToolTip(
+                        self.tr(
+                            "详细诊断中存在较弱兼容候选 {value:.9f} μs；"
+                            "它不满足推荐候选条件，不能在此采用。"
+                        ).format(value=compatibility_s * 1e6)
+                    )
                 row_layout.addWidget(label)
             else:
-                label = QLabel(f"{channel_name}   {candidate_s * 1e6:.9f} μs")
+                label = QLabel(
+                    f"{channel_name}   {candidate_s * 1e6:.9f} μs"
+                )
                 label.setToolTip(tooltip)
-                button = QPushButton(self.tr("采用该候选"))
+                button = QPushButton(self.tr("采用候选"))
                 button.setObjectName(f"adoptEventCandidate_{channel_name}")
                 button.setToolTip(tooltip)
                 button.clicked.connect(
@@ -309,9 +342,9 @@ class AnalysisRangePanel(QWidget):
             self.confirm_range_s(*draft)
 
     def use_full_range(self) -> None:
-        """Confirm the full common data range."""
+        """Reset only the draft endpoints; confirmation remains explicit."""
         if self._bounds_s is not None:
-            self.confirm_range_s(*self._bounds_s)
+            self.set_draft_range_s(*self._bounds_s)
 
     def _draft_changed(self, _value: float) -> None:
         draft = self.draft_range_s
@@ -351,7 +384,7 @@ class AnalysisRangePanel(QWidget):
         self.end_spin.setEnabled(enabled)
         self.apply_button.setEnabled(enabled)
         self.full_range_button.setEnabled(enabled)
-        self.current_view_button.setEnabled(enabled)
+        self.detect_candidates_button.setEnabled(enabled)
         self.event_reference_spin.setEnabled(enabled)
         self.apply_event_reference_button.setEnabled(
             enabled and self._event_reference_draft_set

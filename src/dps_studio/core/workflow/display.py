@@ -8,7 +8,12 @@ from numbers import Real
 
 import numpy as np
 
+from dps_studio.core.physics import (
+    VelocityCorrectionConfig,
+    apply_velocity_corrections,
+)
 from dps_studio.core.quality import SignalState
+from dps_studio.core.ridge import assess_event_aware_ridge_continuity
 from dps_studio.core.workflow.models import ChannelAnalysis, FloatArray
 
 
@@ -18,7 +23,7 @@ PRE_EVENT_DISPLAY_ORIGIN = "configured_pre_event_display_velocity_only"
 def build_display_velocity(
     time_s: FloatArray,
     signal_states: tuple[SignalState, ...],
-    formal_apparent_velocity_m_s: FloatArray,
+    formal_corrected_velocity_m_s: FloatArray,
     *,
     manual_event_reference_time_s: float | None,
     analysis_start_time_s: float | None = None,
@@ -28,7 +33,7 @@ def build_display_velocity(
 ) -> tuple[FloatArray, tuple[str, ...]]:
     """Build a separate display array from an explicit event reference.
 
-    A formal ``MEASURED`` frame always retains its formal apparent velocity.
+    A formal ``MEASURED`` frame always retains its final corrected velocity.
     Only non-measured frames inside the explicit analysis range and strictly
     before ``manual_event_reference_time_s`` receive the configured
     display-only platform. Every post-event invalid frame remains NaN. A
@@ -50,7 +55,7 @@ def build_display_velocity(
         field_name="analysis_end_time_s",
     )
     time = np.asarray(time_s, dtype=np.float64)
-    formal = np.asarray(formal_apparent_velocity_m_s, dtype=np.float64)
+    formal = np.asarray(formal_corrected_velocity_m_s, dtype=np.float64)
     states = tuple(signal_states)
     if time.ndim != 1 or formal.shape != time.shape or len(states) != time.size:
         raise ValueError(
@@ -115,7 +120,7 @@ def configure_channel_display_velocity(
     display, origins = build_display_velocity(
         detection.time_s,
         detection.signal_states,
-        detection.apparent_velocity_m_s,
+        analysis.corrected_velocity_m_s,
         manual_event_reference_time_s=(
             detection.manual_event_reference_time_s
         ),
@@ -131,14 +136,46 @@ def configure_channel_display_velocity(
     )
 
 
+def configure_channel_velocity_correction(
+    analysis: ChannelAnalysis,
+    *,
+    velocity_correction_config: VelocityCorrectionConfig,
+    vacuum_wavelength_m: float,
+    enable_pre_event_display: bool,
+    pre_event_display_velocity_m_s: float,
+) -> ChannelAnalysis:
+    """Rebuild only correction and display fields from stored apparent velocity."""
+    if not isinstance(analysis, ChannelAnalysis):
+        raise TypeError("analysis must be a ChannelAnalysis.")
+    if not isinstance(velocity_correction_config, VelocityCorrectionConfig):
+        raise TypeError(
+            "velocity_correction_config must be a VelocityCorrectionConfig."
+        )
+    correction = apply_velocity_corrections(
+        analysis.apparent_velocity_m_s,
+        config=velocity_correction_config,
+        vacuum_wavelength_m=vacuum_wavelength_m,
+    )
+    updated = replace(
+        analysis,
+        velocity_correction_result=correction,
+    )
+    return configure_channel_display_velocity(
+        updated,
+        enable_pre_event_display=enable_pre_event_display,
+        pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
+    )
+
+
 def configure_channel_event_reference(
     analysis: ChannelAnalysis,
     *,
     event_reference_time_s: float | None,
+    event_reference_source: str | None = None,
     enable_pre_event_display: bool,
     pre_event_display_velocity_m_s: float,
 ) -> ChannelAnalysis:
-    """Update display/review reference metadata without changing formal arrays."""
+    """Update display/review and diagnostic reference metadata only."""
     if not isinstance(analysis, ChannelAnalysis):
         raise TypeError("analysis must be a ChannelAnalysis.")
     reference = _optional_finite_reference(
@@ -149,7 +186,37 @@ def configure_channel_event_reference(
         analysis.signal_detection_result,
         manual_event_reference_time_s=reference,
     )
-    updated = replace(analysis, signal_detection_result=detection)
+    if reference is None:
+        continuity_reference = (
+            analysis.stream_event_candidates.primary_candidate_time_s
+        )
+        continuity_source = (
+            "event_level_primary_candidate"
+            if continuity_reference is not None
+            else None
+        )
+    else:
+        continuity_reference = reference
+        continuity_source = (
+            event_reference_source.strip()
+            if isinstance(event_reference_source, str)
+            and event_reference_source.strip()
+            else "display_event_reference"
+        )
+    continuity = assess_event_aware_ridge_continuity(
+        analysis.refined_result,
+        event_reference_time_s=continuity_reference,
+        event_reference_source=continuity_source,
+        stft_window_duration_s=(
+            analysis.event_aware_continuity_result.stft_window_duration_s
+        ),
+        config=analysis.event_aware_continuity_result.config,
+    )
+    updated = replace(
+        analysis,
+        signal_detection_result=detection,
+        event_aware_continuity_result=continuity,
+    )
     return configure_channel_display_velocity(
         updated,
         enable_pre_event_display=enable_pre_event_display,
@@ -186,4 +253,5 @@ __all__ = [
     "build_display_velocity",
     "configure_channel_event_reference",
     "configure_channel_display_velocity",
+    "configure_channel_velocity_correction",
 ]

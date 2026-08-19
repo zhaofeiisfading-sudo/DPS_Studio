@@ -201,8 +201,8 @@ def test_invalid_custom_parameters_block_analysis_with_reason(
         window.overlap_spin.setValue(BALANCED_PROFILE.overlap_samples)
         window.maximum_frequency_spin.setValue(6.0)
         qapp.processEvents()
-        assert not window.run_analysis_button.isEnabled()
-        assert "Nyquist" in window.run_analysis_button.toolTip()
+        assert window.maximum_frequency_spin.value() == pytest.approx(5.0)
+        assert window.run_analysis_button.isEnabled()
     finally:
         window.close()
         qapp.processEvents()

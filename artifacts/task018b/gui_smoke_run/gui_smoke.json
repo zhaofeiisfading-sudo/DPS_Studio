@@ -1,0 +1,210 @@
+{
+  "command_semantics": "offscreen QApplication using the python -m dps_studio.gui MainWindow",
+  "sources": [
+    {
+      "source": "20260607.csv",
+      "automatic_result_ready": true,
+      "primary_candidate_time_s": 0.0005546642542602401,
+      "compatibility_candidate_time_s": 0.0005540818542600415,
+      "compatibility_is_default": false,
+      "explicit_adoption_required": true,
+      "adopted_reference_time_s": 0.0005546642542602401,
+      "event_reference_source": "user_adopted:automatic_primary:pdv_channel_1",
+      "finite_formal_velocity_count": 392,
+      "guided_result_ready": true,
+      "guided_candidate_diagnostics_absent": true,
+      "export_files": [
+        "20260607_ch1_auto.csv",
+        "20260607_ch1_auto.metadata.json",
+        "20260607_ch1_auto_detail.csv"
+      ],
+      "export_metadata_json_count": 1,
+      "metadata_schema": "pdv-studio-formal-result-v5",
+      "velocity_correction": {
+        "angle": {
+          "angle_deg_display": 0.0,
+          "angle_rad": 0.0,
+          "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+          "enabled": true,
+          "external_mounting_angle_may_differ_through_window": true,
+          "model": "line_of_sight_projection",
+          "snell_law_inference_applied": false,
+          "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+          "source_doi": "10.1063/1.4940935"
+        },
+        "execution_order": [
+          "apparent_velocity",
+          "geometrical_angle_correction",
+          "window_correction"
+        ],
+        "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+        "window": {
+          "b1": 0.7895,
+          "b2": 0.9918,
+          "crystal_orientation": "[100]",
+          "enabled": true,
+          "loading_context": "dynamic compression / calibrated window correction",
+          "material": "LiF",
+          "model": "Rigg2014_Eq16",
+          "paper_velocity_unit": "km/s",
+          "reference_wavelength_m": 1.55e-06,
+          "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+          "source_doi": "10.1063/1.4890714",
+          "wavelength_matches_model_reference": true,
+          "wavelength_validation_message": null
+        }
+      },
+      "spot_check": {
+        "row_index": 35,
+        "apparent_velocity_m_s": 1411.9332502790612,
+        "measurement_angle_deg": 0.0,
+        "program_corrected_velocity_m_s": 1111.572576850931,
+        "independent_corrected_velocity_m_s": 1111.572576850931,
+        "difference_m_s": 0.0
+      },
+      "metadata_event_fields_present": true
+    },
+    {
+      "source": "20260701.csv",
+      "automatic_result_ready": true,
+      "primary_candidate_time_s": 0.0006568440663402226,
+      "compatibility_candidate_time_s": 0.000656402466340072,
+      "compatibility_is_default": false,
+      "explicit_adoption_required": true,
+      "adopted_reference_time_s": 0.0006568440663402226,
+      "event_reference_source": "user_adopted:automatic_primary:pdv_channel_1",
+      "finite_formal_velocity_count": 341,
+      "guided_result_ready": true,
+      "guided_candidate_diagnostics_absent": true,
+      "export_files": [
+        "20260701_ch1_auto.csv",
+        "20260701_ch1_auto.metadata.json",
+        "20260701_ch1_auto_detail.csv"
+      ],
+      "export_metadata_json_count": 1,
+      "metadata_schema": "pdv-studio-formal-result-v5",
+      "velocity_correction": {
+        "angle": {
+          "angle_deg_display": 0.0,
+          "angle_rad": 0.0,
+          "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+          "enabled": true,
+          "external_mounting_angle_may_differ_through_window": true,
+          "model": "line_of_sight_projection",
+          "snell_law_inference_applied": false,
+          "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+          "source_doi": "10.1063/1.4940935"
+        },
+        "execution_order": [
+          "apparent_velocity",
+          "geometrical_angle_correction",
+          "window_correction"
+        ],
+        "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+        "window": {
+          "b1": 0.7895,
+          "b2": 0.9918,
+          "crystal_orientation": "[100]",
+          "enabled": true,
+          "loading_context": "dynamic compression / calibrated window correction",
+          "material": "LiF",
+          "model": "Rigg2014_Eq16",
+          "paper_velocity_unit": "km/s",
+          "reference_wavelength_m": 1.55e-06,
+          "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+          "source_doi": "10.1063/1.4890714",
+          "wavelength_matches_model_reference": true,
+          "wavelength_validation_message": null
+        }
+      },
+      "spot_check": {
+        "row_index": 63,
+        "apparent_velocity_m_s": 127.60683444741976,
+        "measurement_angle_deg": 0.0,
+        "program_corrected_velocity_m_s": 102.46083794514155,
+        "independent_corrected_velocity_m_s": 102.46083794514155,
+        "difference_m_s": 0.0
+      },
+      "metadata_event_fields_present": true
+    },
+    {
+      "source": "20260630-1.csv",
+      "automatic_result_ready": true,
+      "primary_candidate_time_s": 0.0007462228149907737,
+      "compatibility_candidate_time_s": 0.0007461172149907377,
+      "compatibility_is_default": false,
+      "explicit_adoption_required": true,
+      "adopted_reference_time_s": 0.0007462228149907737,
+      "event_reference_source": "user_adopted:automatic_primary:pdv_channel_1",
+      "finite_formal_velocity_count": 820,
+      "guided_result_ready": true,
+      "guided_candidate_diagnostics_absent": true,
+      "export_files": [
+        "20260630-1_ch1_auto.csv",
+        "20260630-1_ch1_auto.metadata.json",
+        "20260630-1_ch1_auto_detail.csv"
+      ],
+      "export_metadata_json_count": 1,
+      "metadata_schema": "pdv-studio-formal-result-v5",
+      "velocity_correction": {
+        "angle": {
+          "angle_deg_display": 0.0,
+          "angle_rad": 0.0,
+          "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+          "enabled": true,
+          "external_mounting_angle_may_differ_through_window": true,
+          "model": "line_of_sight_projection",
+          "snell_law_inference_applied": false,
+          "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+          "source_doi": "10.1063/1.4940935"
+        },
+        "execution_order": [
+          "apparent_velocity",
+          "geometrical_angle_correction",
+          "window_correction"
+        ],
+        "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+        "window": {
+          "b1": 0.7895,
+          "b2": 0.9918,
+          "crystal_orientation": "[100]",
+          "enabled": true,
+          "loading_context": "dynamic compression / calibrated window correction",
+          "material": "LiF",
+          "model": "Rigg2014_Eq16",
+          "paper_velocity_unit": "km/s",
+          "reference_wavelength_m": 1.55e-06,
+          "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+          "source_doi": "10.1063/1.4890714",
+          "wavelength_matches_model_reference": true,
+          "wavelength_validation_message": null
+        }
+      },
+      "spot_check": {
+        "row_index": 673,
+        "apparent_velocity_m_s": 100.62661039570129,
+        "measurement_angle_deg": 0.0,
+        "program_corrected_velocity_m_s": 80.95482396689098,
+        "independent_corrected_velocity_m_s": 80.95482396689098,
+        "difference_m_s": 0.0
+      },
+      "metadata_event_fields_present": true
+    }
+  ],
+  "all_passed": true,
+  "raw_sha256_before": {
+    ".gitkeep": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5",
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74",
+    "20260630-2.csv": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261",
+    "20260701.csv": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A"
+  },
+  "raw_sha256_after": {
+    ".gitkeep": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5",
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74",
+    "20260630-2.csv": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261",
+    "20260701.csv": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A"
+  },
+  "raw_unchanged": true
+}

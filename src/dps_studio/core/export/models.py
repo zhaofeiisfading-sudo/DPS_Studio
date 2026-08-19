@@ -19,6 +19,13 @@ class ResultAnalysisMode(str, Enum):
     GUIDED = "guided"
 
 
+class ExportTimeOrigin(str, Enum):
+    """Time coordinate selected for the concise user-facing CSV."""
+
+    EVENT = "event"
+    ABSOLUTE = "absolute"
+
+
 class ResultExportError(RuntimeError):
     """Base error raised when a formal result cannot be exported safely."""
 
@@ -47,11 +54,13 @@ class ResultExportOptions:
     output_directory: Path
     analysis_mode: ResultAnalysisMode
     channel_analyses: Mapping[str, ChannelAnalysis]
+    time_origin: ExportTimeOrigin = ExportTimeOrigin.EVENT
     include_pre_event_display_rows: bool = True
     source_path: Path | None = None
     analysis_profile_name: str | None = None
     pre_event_display_enabled: bool | None = None
     pre_event_display_velocity_m_s: float | None = None
+    event_reference_source: str | None = None
     protected_output_directories: tuple[Path, ...] = field(
         default_factory=_empty_paths
     )
@@ -62,6 +71,10 @@ class ResultExportOptions:
         if not isinstance(self.analysis_mode, ResultAnalysisMode):
             raise ResultExportValidationError(
                 "analysis_mode must be a ResultAnalysisMode value."
+            )
+        if not isinstance(self.time_origin, ExportTimeOrigin):
+            raise ResultExportValidationError(
+                "time_origin must be an ExportTimeOrigin value."
             )
         if not isinstance(self.include_pre_event_display_rows, bool):
             raise ResultExportValidationError(
@@ -101,6 +114,10 @@ class ResultExportOptions:
             self.pre_event_display_velocity_m_s,
             field_name="pre_event_display_velocity_m_s",
         )
+        event_reference_source = _optional_text(
+            self.event_reference_source,
+            field_name="event_reference_source",
+        )
         try:
             protected_directories = tuple(
                 Path(path) for path in self.protected_output_directories
@@ -119,6 +136,7 @@ class ResultExportOptions:
         object.__setattr__(self, "analysis_profile_name", profile_name)
         object.__setattr__(self, "pre_event_display_enabled", display_enabled)
         object.__setattr__(self, "pre_event_display_velocity_m_s", display_velocity)
+        object.__setattr__(self, "event_reference_source", event_reference_source)
         object.__setattr__(self, "protected_output_directories", protected_directories)
 
 
@@ -179,6 +197,7 @@ def _optional_finite_float(value: object, *, field_name: str) -> float | None:
 
 
 __all__ = [
+    "ExportTimeOrigin",
     "ExportedChannelResult",
     "ResultAnalysisMode",
     "ResultExportError",

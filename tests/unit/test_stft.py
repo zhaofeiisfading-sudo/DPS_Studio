@@ -185,10 +185,44 @@ def test_blank_window_names_are_rejected() -> None:
             )
 
 
-def test_invalid_scipy_window_is_wrapped_and_preserves_cause() -> None:
+@pytest.mark.parametrize(
+    "window_name",
+    ["hann", "hamming", "blackman", "blackmanharris", "boxcar"],
+)
+def test_formal_window_presets_run_without_changing_sampling_configuration(
+    window_name: str,
+) -> None:
+    record = _sine_record(sample_count=1024)
+    original_time = record.time_s.copy()
+    original_voltage = record.voltage_v.copy()
+
+    result = compute_stft(
+        record,
+        window_length_samples=256,
+        overlap_samples=128,
+        nfft=512,
+        window_name=window_name,
+    )
+
+    assert result.window_name == window_name
+    assert result.window_length_samples == 256
+    assert result.overlap_samples == 128
+    assert result.hop_samples == 128
+    assert result.nfft == 512
+    assert result.spectrum.shape == (257, 7)
+    assert result.time_s.shape == (7,)
+    assert result.frequency_hz.shape == (257,)
+    np.testing.assert_array_equal(record.time_s, original_time)
+    np.testing.assert_array_equal(record.voltage_v, original_voltage)
+
+
+def test_unsupported_formal_window_is_rejected_without_hann_fallback() -> None:
     record = _sine_record(sample_count=16)
 
-    with pytest.raises(STFTConfigurationError, match="Invalid SciPy window_name") as info:
+    with pytest.raises(
+        STFTConfigurationError,
+        match="Unsupported formal STFT window_name",
+    ) as info:
         compute_stft(
             record,
             window_length_samples=8,
@@ -196,7 +230,7 @@ def test_invalid_scipy_window_is_wrapped_and_preserves_cause() -> None:
             window_name="not-a-real-scipy-window",
         )
 
-    assert isinstance(info.value.__cause__, ValueError)
+    assert info.value.__cause__ is None
 
 
 def test_result_arrays_are_detached_and_entire_base_chains_are_immutable() -> None:

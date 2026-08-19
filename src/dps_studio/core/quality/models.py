@@ -96,9 +96,12 @@ class SignalDetectionResult:
     """
 
     DETECTION_METHOD: ClassVar[str] = (
-        "per-frame unmodified STFT magnitude peak; median background and strongest "
-        "competitor outside an inclusive bin guard; ordered quality gates; exact "
-        "consecutive-frame runs without interpolation or smoothing"
+        "per-frame unmodified STFT selected ridge peak; median background and "
+        "strongest competitor outside an inclusive bin guard; ordered quality "
+        "gates with an explicit relative-to-strongest threshold for validated "
+        "continuity alternatives, which retain their explicit single-frame "
+        "production rescue status; exact legacy consecutive-frame runs without "
+        "interpolation or smoothing"
     )
 
     time_s: FloatArray

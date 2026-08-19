@@ -14,6 +14,7 @@ from dps_studio.core.time_frequency.exceptions import (
     STFTConfigurationError,
 )
 from dps_studio.core.time_frequency.models import STFTResult
+from dps_studio.core.time_frequency.windows import validate_stft_window_name
 
 
 def compute_stft(
@@ -57,7 +58,7 @@ def compute_stft(
         nfft,
         window_length_samples=validated_window_length,
     )
-    validated_window_name = _validate_window_name(window_name)
+    validated_window_name = validate_stft_window_name(window_name)
 
     try:
         window_array = scipy.signal.get_window(
@@ -148,12 +149,6 @@ def _resolve_nfft(value: object, *, window_length_samples: int) -> int:
             f"got {resolved_nfft} for window length {window_length_samples}."
         )
     return resolved_nfft
-
-
-def _validate_window_name(value: object) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise STFTConfigurationError("window_name must be a non-empty string.")
-    return value
 
 
 def _require_integer(value: object, *, field_name: str) -> int:
