@@ -1,0 +1,7 @@
+﻿snapshot,source,channel,stft_time_s,stft_frequency_hz,stft_spectrum,formal_ridge_frequency_hz,formal_refined_frequency_hz,quality_state,apparent_velocity_m_s,corrected_velocity_m_s,event_time_s,formal_export_equal_except_timestamp,all_production_outputs_equal
+good_case_01__20260607__pdv_channel_1,20260607.csv,pdv_channel_1,True,True,True,True,True,True,True,True,True,True,True
+good_case_01__20260607__pdv_channel_2,20260607.csv,pdv_channel_2,True,True,True,True,True,True,True,True,True,True,True
+hard_case_01__ch1__ch1,ch1.csv,ch1,True,True,True,True,True,True,True,True,True,True,True
+hard_case_01__ch2__ch2,ch2.csv,ch2,True,True,True,True,True,True,True,True,True,True,True
+hard_case_01__ch3__ch3,ch3.csv,ch3,True,True,True,True,True,True,True,True,True,True,True
+hard_case_01__ch4__ch4,ch4.csv,ch4,True,True,True,True,True,True,True,True,True,True,True

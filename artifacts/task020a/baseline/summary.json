@@ -1,0 +1,1020 @@
+{
+  "schema": "task020a-production-baseline-v1",
+  "head": "e7739d2856ec808f9a2bbc948df58023601fef52",
+  "raw_sha256_before": {
+    ".gitkeep": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5",
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74",
+    "20260630-2.csv": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261",
+    "20260701.csv": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A",
+    "ch1.csv": "3BDCEFD19B0CABD45FF713BC104E00829876F0BE4303ABCFFF31DC5ADA727A6A",
+    "ch2.csv": "975D5EDC124754A170CAC083247D2F2BA1232F6BF6D26F2C878B498025B27A5F",
+    "ch3.csv": "401673B77829D4B2568A4B2A9B88DC649AFA926B668C6C493012D8FC30115D49",
+    "ch4.csv": "84E2859D4285C3D3D4144BA7E5EC0B51FBC0C578857F4DFAF6209E4B87842F5B"
+  },
+  "raw_sha256_after": {
+    ".gitkeep": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5",
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74",
+    "20260630-2.csv": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261",
+    "20260701.csv": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A",
+    "ch1.csv": "3BDCEFD19B0CABD45FF713BC104E00829876F0BE4303ABCFFF31DC5ADA727A6A",
+    "ch2.csv": "975D5EDC124754A170CAC083247D2F2BA1232F6BF6D26F2C878B498025B27A5F",
+    "ch3.csv": "401673B77829D4B2568A4B2A9B88DC649AFA926B668C6C493012D8FC30115D49",
+    "ch4.csv": "84E2859D4285C3D3D4144BA7E5EC0B51FBC0C578857F4DFAF6209E4B87842F5B"
+  },
+  "raw_unchanged": true,
+  "snapshots": [
+    {
+      "snapshot": "good_case_01__20260607__pdv_channel_1",
+      "case_id": "good_case_01",
+      "source": "20260607.csv",
+      "channel": "pdv_channel_1",
+      "context": {
+        "analysis_start_s": 0.00055396025426,
+        "analysis_end_s": 0.00055596022926,
+        "manual_event_reference_s": null,
+        "analysis_range_source": "configuration"
+      },
+      "formal_export_signature": {
+        "simple_csv_sha256": "C790643FF98D259FD4D4CC1B39E3615CCC14362D65AF69D070E2DFA5544DC4DF",
+        "detail_csv_sha256": "665CC245B60F25F9C5B419C0DC2CD91DA2D520782D033C190041B4069210BBF3",
+        "metadata_without_timestamp": {
+          "analysis_mode": "automatic",
+          "analysis_profile_name": "balanced",
+          "analysis_time_range_s": {
+            "end_time_s": 0.00055596022926,
+            "start_time_s": 0.00055396025426
+          },
+          "automatic_event_candidate_time_s": 0.0005546642542602401,
+          "automatic_ridge_selection": {
+            "continuity_reselection_count": 2,
+            "continuity_reselection_enabled": true,
+            "minimum_candidate_peak_to_background_db": 10.0,
+            "minimum_candidate_relative_to_strongest_db": -6.0,
+            "mode": "continuity_assisted",
+            "recovery_tolerance_hz": 52083333.31557261,
+            "recovery_tolerance_source": "sample_rate_hz_divided_by_window_length_samples",
+            "selection_method": "strongest local peak by default; optional isolated-jump-only event-aware continuity rescue under explicit spectral and two-neighbor hard gates; no interpolation, smoothing, filtering, or gap filling",
+            "top_k_candidates": 3
+          },
+          "compatibility_event_candidate_time_s": 0.0005546642542602401,
+          "data_file": "20260607_ch1_auto.csv",
+          "detail_data_file": "20260607_ch1_auto_detail.csv",
+          "dps_studio_version": "0.1.0",
+          "event_reference_source": null,
+          "event_reference_time_s": null,
+          "export_schema_version": "pdv-studio-formal-result-v6",
+          "physics": {
+            "vacuum_wavelength_m": 1.55e-06,
+            "velocity_relation": "v_app=lambda0*f_b/2"
+          },
+          "pre_event_display": {
+            "configured_velocity_m_s": 0.0,
+            "display_only_origin": "configured_pre_event_display_velocity_only",
+            "enabled": false,
+            "formal_measurement_modified": false,
+            "included_in_csv": true
+          },
+          "quality_configuration": {
+            "detection_method": "per-frame unmodified STFT selected ridge peak; median background and strongest competitor outside an inclusive bin guard; ordered quality gates with an explicit relative-to-strongest threshold for validated continuity alternatives, which retain their explicit single-frame production rescue status; exact legacy consecutive-frame runs without interpolation or smoothing",
+            "enabled": true,
+            "minimum_consecutive_frames": 3,
+            "minimum_cycles_in_window": 1.0,
+            "minimum_peak_to_background_db": 10.0,
+            "minimum_peak_to_competitor_db": 3.0,
+            "peak_exclusion_half_width_bins": 12
+          },
+          "result_counts": {
+            "exported_pre_event_display_only_row_count": 0,
+            "exported_row_count": 620,
+            "measured_frame_count": 390,
+            "pre_event_display_only_frame_count": 0,
+            "ridge_quality_flag_counts": {
+              "candidate": 620
+            },
+            "ridge_refinement_status_counts": {
+              "boundary_peak": 65,
+              "refined": 555
+            },
+            "ridge_selection_origin_counts": {
+              "continuity_assisted_alternative": 2,
+              "strongest_peak": 618
+            },
+            "signal_state_counts": {
+              "ambiguous_peak": 168,
+              "measured": 390,
+              "no_detectable_beat": 54,
+              "peak_at_band_boundary": 1,
+              "unstable_detection": 7
+            },
+            "stft_frame_count": 620
+          },
+          "result_status": {
+            "angle_corrected_measurement_column": "angle_corrected_apparent_velocity_m_s",
+            "channel_fusion_applied_by_export": false,
+            "display_column": "display_velocity_m_s",
+            "final_corrected_measurement_column": "corrected_velocity_m_s",
+            "formal_measurement_column": "apparent_velocity_m_s",
+            "formal_measurement_preserved": true,
+            "interpolation_or_smoothing_applied_by_export": false,
+            "simple_csv_time_column": "time_s",
+            "simple_csv_velocity_column": "display_velocity_m_s",
+            "simple_csv_velocity_source": "display_velocity_m_s",
+            "unreliable_formal_values_preserved_as_nan": true
+          },
+          "ridge_configuration": {
+            "refinement_method": "log-magnitude three-point quadratic peak interpolation",
+            "search_maximum_frequency_hz": 6000000000.0,
+            "search_minimum_frequency_hz": 50000000.0
+          },
+          "source_channel": "pdv_channel_1",
+          "source_file": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+          "stft_configuration": {
+            "boundary_padding_applied": false,
+            "detrend_applied": false,
+            "hop_samples": 128,
+            "nfft": 4096,
+            "one_sided": true,
+            "overlap_samples": 640,
+            "sample_rate_hz": 39999999986.359764,
+            "scaling": "spectrum",
+            "window_length_samples": 768,
+            "window_name": "hann"
+          },
+          "time_coordinate": {
+            "absolute_time_preserved": true,
+            "detail_csv_absolute_time_column": "time_s",
+            "detail_csv_relative_time_column": "time_from_event_s",
+            "event_reference_time_s": null,
+            "export_time_origin": "absolute",
+            "relative_time_definition": "time_from_event_s = time_s - event_reference_time_s",
+            "simple_csv_time_column": "time_s"
+          },
+          "vacuum_wavelength_m": 1.55e-06,
+          "velocity_correction": {
+            "angle": {
+              "angle_deg_display": 0.0,
+              "angle_rad": 0.0,
+              "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+              "enabled": true,
+              "external_mounting_angle_may_differ_through_window": true,
+              "model": "line_of_sight_projection",
+              "snell_law_inference_applied": false,
+              "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+              "source_doi": "10.1063/1.4940935"
+            },
+            "execution_order": [
+              "apparent_velocity",
+              "geometrical_angle_correction",
+              "window_correction"
+            ],
+            "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+            "window": {
+              "b1": 0.7895,
+              "b2": 0.9918,
+              "crystal_orientation": "[100]",
+              "custom_parameters": false,
+              "enabled": true,
+              "loading_context": "dynamic compression / calibrated window correction",
+              "material": "LiF",
+              "model": "Rigg2014_Eq16",
+              "paper_velocity_unit": "km/s",
+              "parameter_provenance": "formal_default",
+              "reference_wavelength_m": 1.55e-06,
+              "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+              "source_doi": "10.1063/1.4890714",
+              "wavelength_matches_model_reference": true,
+              "wavelength_validation_message": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "snapshot": "good_case_01__20260607__pdv_channel_2",
+      "case_id": "good_case_01",
+      "source": "20260607.csv",
+      "channel": "pdv_channel_2",
+      "context": {
+        "analysis_start_s": 0.00055396025426,
+        "analysis_end_s": 0.00055596022926,
+        "manual_event_reference_s": null,
+        "analysis_range_source": "configuration"
+      },
+      "formal_export_signature": {
+        "simple_csv_sha256": "FBEC4994308D63B43743B18A60586EC06CD2222D16EBFE85AF98C71D3B9E1280",
+        "detail_csv_sha256": "372E1129716B855BA17F4AE3C888518E1650E7C8F31818AA89FF640334F03497",
+        "metadata_without_timestamp": {
+          "analysis_mode": "automatic",
+          "analysis_profile_name": "balanced",
+          "analysis_time_range_s": {
+            "end_time_s": 0.00055596022926,
+            "start_time_s": 0.00055396025426
+          },
+          "automatic_event_candidate_time_s": 0.0005546674542602412,
+          "automatic_ridge_selection": {
+            "continuity_reselection_count": 0,
+            "continuity_reselection_enabled": true,
+            "minimum_candidate_peak_to_background_db": 10.0,
+            "minimum_candidate_relative_to_strongest_db": -6.0,
+            "mode": "continuity_assisted",
+            "recovery_tolerance_hz": 52083333.31557261,
+            "recovery_tolerance_source": "sample_rate_hz_divided_by_window_length_samples",
+            "selection_method": "strongest local peak by default; optional isolated-jump-only event-aware continuity rescue under explicit spectral and two-neighbor hard gates; no interpolation, smoothing, filtering, or gap filling",
+            "top_k_candidates": 3
+          },
+          "compatibility_event_candidate_time_s": 0.0005546674542602412,
+          "data_file": "20260607_ch2_auto.csv",
+          "detail_data_file": "20260607_ch2_auto_detail.csv",
+          "dps_studio_version": "0.1.0",
+          "event_reference_source": null,
+          "event_reference_time_s": null,
+          "export_schema_version": "pdv-studio-formal-result-v6",
+          "physics": {
+            "vacuum_wavelength_m": 1.55e-06,
+            "velocity_relation": "v_app=lambda0*f_b/2"
+          },
+          "pre_event_display": {
+            "configured_velocity_m_s": 0.0,
+            "display_only_origin": "configured_pre_event_display_velocity_only",
+            "enabled": false,
+            "formal_measurement_modified": false,
+            "included_in_csv": true
+          },
+          "quality_configuration": {
+            "detection_method": "per-frame unmodified STFT selected ridge peak; median background and strongest competitor outside an inclusive bin guard; ordered quality gates with an explicit relative-to-strongest threshold for validated continuity alternatives, which retain their explicit single-frame production rescue status; exact legacy consecutive-frame runs without interpolation or smoothing",
+            "enabled": true,
+            "minimum_consecutive_frames": 3,
+            "minimum_cycles_in_window": 1.0,
+            "minimum_peak_to_background_db": 10.0,
+            "minimum_peak_to_competitor_db": 3.0,
+            "peak_exclusion_half_width_bins": 12
+          },
+          "result_counts": {
+            "exported_pre_event_display_only_row_count": 0,
+            "exported_row_count": 620,
+            "measured_frame_count": 379,
+            "pre_event_display_only_frame_count": 0,
+            "ridge_quality_flag_counts": {
+              "candidate": 620
+            },
+            "ridge_refinement_status_counts": {
+              "boundary_peak": 176,
+              "refined": 444
+            },
+            "ridge_selection_origin_counts": {
+              "strongest_peak": 620
+            },
+            "signal_state_counts": {
+              "ambiguous_peak": 129,
+              "measured": 379,
+              "no_detectable_beat": 34,
+              "peak_at_band_boundary": 73,
+              "unstable_detection": 5
+            },
+            "stft_frame_count": 620
+          },
+          "result_status": {
+            "angle_corrected_measurement_column": "angle_corrected_apparent_velocity_m_s",
+            "channel_fusion_applied_by_export": false,
+            "display_column": "display_velocity_m_s",
+            "final_corrected_measurement_column": "corrected_velocity_m_s",
+            "formal_measurement_column": "apparent_velocity_m_s",
+            "formal_measurement_preserved": true,
+            "interpolation_or_smoothing_applied_by_export": false,
+            "simple_csv_time_column": "time_s",
+            "simple_csv_velocity_column": "display_velocity_m_s",
+            "simple_csv_velocity_source": "display_velocity_m_s",
+            "unreliable_formal_values_preserved_as_nan": true
+          },
+          "ridge_configuration": {
+            "refinement_method": "log-magnitude three-point quadratic peak interpolation",
+            "search_maximum_frequency_hz": 6000000000.0,
+            "search_minimum_frequency_hz": 50000000.0
+          },
+          "source_channel": "pdv_channel_2",
+          "source_file": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+          "stft_configuration": {
+            "boundary_padding_applied": false,
+            "detrend_applied": false,
+            "hop_samples": 128,
+            "nfft": 4096,
+            "one_sided": true,
+            "overlap_samples": 640,
+            "sample_rate_hz": 39999999986.359764,
+            "scaling": "spectrum",
+            "window_length_samples": 768,
+            "window_name": "hann"
+          },
+          "time_coordinate": {
+            "absolute_time_preserved": true,
+            "detail_csv_absolute_time_column": "time_s",
+            "detail_csv_relative_time_column": "time_from_event_s",
+            "event_reference_time_s": null,
+            "export_time_origin": "absolute",
+            "relative_time_definition": "time_from_event_s = time_s - event_reference_time_s",
+            "simple_csv_time_column": "time_s"
+          },
+          "vacuum_wavelength_m": 1.55e-06,
+          "velocity_correction": {
+            "angle": {
+              "angle_deg_display": 0.0,
+              "angle_rad": 0.0,
+              "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+              "enabled": true,
+              "external_mounting_angle_may_differ_through_window": true,
+              "model": "line_of_sight_projection",
+              "snell_law_inference_applied": false,
+              "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+              "source_doi": "10.1063/1.4940935"
+            },
+            "execution_order": [
+              "apparent_velocity",
+              "geometrical_angle_correction",
+              "window_correction"
+            ],
+            "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+            "window": {
+              "b1": 0.7895,
+              "b2": 0.9918,
+              "crystal_orientation": "[100]",
+              "custom_parameters": false,
+              "enabled": true,
+              "loading_context": "dynamic compression / calibrated window correction",
+              "material": "LiF",
+              "model": "Rigg2014_Eq16",
+              "paper_velocity_unit": "km/s",
+              "parameter_provenance": "formal_default",
+              "reference_wavelength_m": 1.55e-06,
+              "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+              "source_doi": "10.1063/1.4890714",
+              "wavelength_matches_model_reference": true,
+              "wavelength_validation_message": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "snapshot": "hard_case_01__ch1__ch1",
+      "case_id": "hard_case_01",
+      "source": "ch1.csv",
+      "channel": "ch1",
+      "context": {
+        "analysis_start_s": 0.00018257975314,
+        "analysis_end_s": 0.00018457972814,
+        "manual_event_reference_s": null,
+        "analysis_range_source": "full_common_data_range"
+      },
+      "formal_export_signature": {
+        "simple_csv_sha256": "3D6C240338009BE25F5E497F8710A68E9C477B4EE38294D2C8BC8249DA87D93A",
+        "detail_csv_sha256": "E6CD1836345475FCCDA33D1987CE9A5A2B09F7F66B7C4033AF613D172A84A0DA",
+        "metadata_without_timestamp": {
+          "analysis_mode": "automatic",
+          "analysis_profile_name": "balanced",
+          "analysis_time_range_s": {
+            "end_time_s": 0.00018457972814,
+            "start_time_s": 0.00018257975314
+          },
+          "automatic_event_candidate_time_s": null,
+          "automatic_ridge_selection": {
+            "continuity_reselection_count": 4,
+            "continuity_reselection_enabled": true,
+            "minimum_candidate_peak_to_background_db": 10.0,
+            "minimum_candidate_relative_to_strongest_db": -6.0,
+            "mode": "continuity_assisted",
+            "recovery_tolerance_hz": 52083333.31557261,
+            "recovery_tolerance_source": "sample_rate_hz_divided_by_window_length_samples",
+            "selection_method": "strongest local peak by default; optional isolated-jump-only event-aware continuity rescue under explicit spectral and two-neighbor hard gates; no interpolation, smoothing, filtering, or gap filling",
+            "top_k_candidates": 3
+          },
+          "compatibility_event_candidate_time_s": 0.00018303735314015605,
+          "data_file": "ch1_ch1_auto.csv",
+          "detail_data_file": "ch1_ch1_auto_detail.csv",
+          "dps_studio_version": "0.1.0",
+          "event_reference_source": null,
+          "event_reference_time_s": null,
+          "export_schema_version": "pdv-studio-formal-result-v6",
+          "physics": {
+            "vacuum_wavelength_m": 1.55e-06,
+            "velocity_relation": "v_app=lambda0*f_b/2"
+          },
+          "pre_event_display": {
+            "configured_velocity_m_s": 0.0,
+            "display_only_origin": "configured_pre_event_display_velocity_only",
+            "enabled": false,
+            "formal_measurement_modified": false,
+            "included_in_csv": true
+          },
+          "quality_configuration": {
+            "detection_method": "per-frame unmodified STFT selected ridge peak; median background and strongest competitor outside an inclusive bin guard; ordered quality gates with an explicit relative-to-strongest threshold for validated continuity alternatives, which retain their explicit single-frame production rescue status; exact legacy consecutive-frame runs without interpolation or smoothing",
+            "enabled": true,
+            "minimum_consecutive_frames": 3,
+            "minimum_cycles_in_window": 1.0,
+            "minimum_peak_to_background_db": 10.0,
+            "minimum_peak_to_competitor_db": 3.0,
+            "peak_exclusion_half_width_bins": 12
+          },
+          "result_counts": {
+            "exported_pre_event_display_only_row_count": 0,
+            "exported_row_count": 620,
+            "measured_frame_count": 51,
+            "pre_event_display_only_frame_count": 0,
+            "ridge_quality_flag_counts": {
+              "candidate": 620
+            },
+            "ridge_refinement_status_counts": {
+              "boundary_peak": 37,
+              "refined": 583
+            },
+            "ridge_selection_origin_counts": {
+              "continuity_assisted_alternative": 4,
+              "strongest_peak": 616
+            },
+            "signal_state_counts": {
+              "ambiguous_peak": 364,
+              "measured": 51,
+              "no_detectable_beat": 128,
+              "peak_at_band_boundary": 19,
+              "unstable_detection": 58
+            },
+            "stft_frame_count": 620
+          },
+          "result_status": {
+            "angle_corrected_measurement_column": "angle_corrected_apparent_velocity_m_s",
+            "channel_fusion_applied_by_export": false,
+            "display_column": "display_velocity_m_s",
+            "final_corrected_measurement_column": "corrected_velocity_m_s",
+            "formal_measurement_column": "apparent_velocity_m_s",
+            "formal_measurement_preserved": true,
+            "interpolation_or_smoothing_applied_by_export": false,
+            "simple_csv_time_column": "time_s",
+            "simple_csv_velocity_column": "display_velocity_m_s",
+            "simple_csv_velocity_source": "display_velocity_m_s",
+            "unreliable_formal_values_preserved_as_nan": true
+          },
+          "ridge_configuration": {
+            "refinement_method": "log-magnitude three-point quadratic peak interpolation",
+            "search_maximum_frequency_hz": 6000000000.0,
+            "search_minimum_frequency_hz": 50000000.0
+          },
+          "source_channel": "ch1",
+          "source_file": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch1.csv",
+          "stft_configuration": {
+            "boundary_padding_applied": false,
+            "detrend_applied": false,
+            "hop_samples": 128,
+            "nfft": 4096,
+            "one_sided": true,
+            "overlap_samples": 640,
+            "sample_rate_hz": 39999999986.359764,
+            "scaling": "spectrum",
+            "window_length_samples": 768,
+            "window_name": "hann"
+          },
+          "time_coordinate": {
+            "absolute_time_preserved": true,
+            "detail_csv_absolute_time_column": "time_s",
+            "detail_csv_relative_time_column": "time_from_event_s",
+            "event_reference_time_s": null,
+            "export_time_origin": "absolute",
+            "relative_time_definition": "time_from_event_s = time_s - event_reference_time_s",
+            "simple_csv_time_column": "time_s"
+          },
+          "vacuum_wavelength_m": 1.55e-06,
+          "velocity_correction": {
+            "angle": {
+              "angle_deg_display": 0.0,
+              "angle_rad": 0.0,
+              "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+              "enabled": true,
+              "external_mounting_angle_may_differ_through_window": true,
+              "model": "line_of_sight_projection",
+              "snell_law_inference_applied": false,
+              "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+              "source_doi": "10.1063/1.4940935"
+            },
+            "execution_order": [
+              "apparent_velocity",
+              "geometrical_angle_correction",
+              "window_correction"
+            ],
+            "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+            "window": {
+              "b1": 0.7895,
+              "b2": 0.9918,
+              "crystal_orientation": "[100]",
+              "custom_parameters": false,
+              "enabled": true,
+              "loading_context": "dynamic compression / calibrated window correction",
+              "material": "LiF",
+              "model": "Rigg2014_Eq16",
+              "paper_velocity_unit": "km/s",
+              "parameter_provenance": "formal_default",
+              "reference_wavelength_m": 1.55e-06,
+              "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+              "source_doi": "10.1063/1.4890714",
+              "wavelength_matches_model_reference": true,
+              "wavelength_validation_message": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "snapshot": "hard_case_01__ch2__ch2",
+      "case_id": "hard_case_01",
+      "source": "ch2.csv",
+      "channel": "ch2",
+      "context": {
+        "analysis_start_s": 0.00018257975314,
+        "analysis_end_s": 0.00018457972814,
+        "manual_event_reference_s": null,
+        "analysis_range_source": "full_common_data_range"
+      },
+      "formal_export_signature": {
+        "simple_csv_sha256": "43D8F625D0B65562B87DB511881DA09E92E7EF127BE3501A648788DBBB90BB79",
+        "detail_csv_sha256": "56F79204A194EB243013DA60B9E51FC00A18488B95CADDD7FA716A1CF72B191F",
+        "metadata_without_timestamp": {
+          "analysis_mode": "automatic",
+          "analysis_profile_name": "balanced",
+          "analysis_time_range_s": {
+            "end_time_s": 0.00018457972814,
+            "start_time_s": 0.00018257975314
+          },
+          "automatic_event_candidate_time_s": 0.0001841125531405227,
+          "automatic_ridge_selection": {
+            "continuity_reselection_count": 2,
+            "continuity_reselection_enabled": true,
+            "minimum_candidate_peak_to_background_db": 10.0,
+            "minimum_candidate_relative_to_strongest_db": -6.0,
+            "mode": "continuity_assisted",
+            "recovery_tolerance_hz": 52083333.31557261,
+            "recovery_tolerance_source": "sample_rate_hz_divided_by_window_length_samples",
+            "selection_method": "strongest local peak by default; optional isolated-jump-only event-aware continuity rescue under explicit spectral and two-neighbor hard gates; no interpolation, smoothing, filtering, or gap filling",
+            "top_k_candidates": 3
+          },
+          "compatibility_event_candidate_time_s": 0.00018374135314039612,
+          "data_file": "ch2_ch2_auto.csv",
+          "detail_data_file": "ch2_ch2_auto_detail.csv",
+          "dps_studio_version": "0.1.0",
+          "event_reference_source": null,
+          "event_reference_time_s": null,
+          "export_schema_version": "pdv-studio-formal-result-v6",
+          "physics": {
+            "vacuum_wavelength_m": 1.55e-06,
+            "velocity_relation": "v_app=lambda0*f_b/2"
+          },
+          "pre_event_display": {
+            "configured_velocity_m_s": 0.0,
+            "display_only_origin": "configured_pre_event_display_velocity_only",
+            "enabled": false,
+            "formal_measurement_modified": false,
+            "included_in_csv": true
+          },
+          "quality_configuration": {
+            "detection_method": "per-frame unmodified STFT selected ridge peak; median background and strongest competitor outside an inclusive bin guard; ordered quality gates with an explicit relative-to-strongest threshold for validated continuity alternatives, which retain their explicit single-frame production rescue status; exact legacy consecutive-frame runs without interpolation or smoothing",
+            "enabled": true,
+            "minimum_consecutive_frames": 3,
+            "minimum_cycles_in_window": 1.0,
+            "minimum_peak_to_background_db": 10.0,
+            "minimum_peak_to_competitor_db": 3.0,
+            "peak_exclusion_half_width_bins": 12
+          },
+          "result_counts": {
+            "exported_pre_event_display_only_row_count": 0,
+            "exported_row_count": 620,
+            "measured_frame_count": 127,
+            "pre_event_display_only_frame_count": 0,
+            "ridge_quality_flag_counts": {
+              "candidate": 620
+            },
+            "ridge_refinement_status_counts": {
+              "boundary_peak": 6,
+              "refined": 614
+            },
+            "ridge_selection_origin_counts": {
+              "continuity_assisted_alternative": 2,
+              "strongest_peak": 618
+            },
+            "signal_state_counts": {
+              "ambiguous_peak": 186,
+              "measured": 127,
+              "no_detectable_beat": 276,
+              "unstable_detection": 31
+            },
+            "stft_frame_count": 620
+          },
+          "result_status": {
+            "angle_corrected_measurement_column": "angle_corrected_apparent_velocity_m_s",
+            "channel_fusion_applied_by_export": false,
+            "display_column": "display_velocity_m_s",
+            "final_corrected_measurement_column": "corrected_velocity_m_s",
+            "formal_measurement_column": "apparent_velocity_m_s",
+            "formal_measurement_preserved": true,
+            "interpolation_or_smoothing_applied_by_export": false,
+            "simple_csv_time_column": "time_s",
+            "simple_csv_velocity_column": "display_velocity_m_s",
+            "simple_csv_velocity_source": "display_velocity_m_s",
+            "unreliable_formal_values_preserved_as_nan": true
+          },
+          "ridge_configuration": {
+            "refinement_method": "log-magnitude three-point quadratic peak interpolation",
+            "search_maximum_frequency_hz": 6000000000.0,
+            "search_minimum_frequency_hz": 50000000.0
+          },
+          "source_channel": "ch2",
+          "source_file": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch2.csv",
+          "stft_configuration": {
+            "boundary_padding_applied": false,
+            "detrend_applied": false,
+            "hop_samples": 128,
+            "nfft": 4096,
+            "one_sided": true,
+            "overlap_samples": 640,
+            "sample_rate_hz": 39999999986.359764,
+            "scaling": "spectrum",
+            "window_length_samples": 768,
+            "window_name": "hann"
+          },
+          "time_coordinate": {
+            "absolute_time_preserved": true,
+            "detail_csv_absolute_time_column": "time_s",
+            "detail_csv_relative_time_column": "time_from_event_s",
+            "event_reference_time_s": null,
+            "export_time_origin": "absolute",
+            "relative_time_definition": "time_from_event_s = time_s - event_reference_time_s",
+            "simple_csv_time_column": "time_s"
+          },
+          "vacuum_wavelength_m": 1.55e-06,
+          "velocity_correction": {
+            "angle": {
+              "angle_deg_display": 0.0,
+              "angle_rad": 0.0,
+              "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+              "enabled": true,
+              "external_mounting_angle_may_differ_through_window": true,
+              "model": "line_of_sight_projection",
+              "snell_law_inference_applied": false,
+              "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+              "source_doi": "10.1063/1.4940935"
+            },
+            "execution_order": [
+              "apparent_velocity",
+              "geometrical_angle_correction",
+              "window_correction"
+            ],
+            "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+            "window": {
+              "b1": 0.7895,
+              "b2": 0.9918,
+              "crystal_orientation": "[100]",
+              "custom_parameters": false,
+              "enabled": true,
+              "loading_context": "dynamic compression / calibrated window correction",
+              "material": "LiF",
+              "model": "Rigg2014_Eq16",
+              "paper_velocity_unit": "km/s",
+              "parameter_provenance": "formal_default",
+              "reference_wavelength_m": 1.55e-06,
+              "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+              "source_doi": "10.1063/1.4890714",
+              "wavelength_matches_model_reference": true,
+              "wavelength_validation_message": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "snapshot": "hard_case_01__ch3__ch3",
+      "case_id": "hard_case_01",
+      "source": "ch3.csv",
+      "channel": "ch3",
+      "context": {
+        "analysis_start_s": 0.00018257975314,
+        "analysis_end_s": 0.00018457972814,
+        "manual_event_reference_s": null,
+        "analysis_range_source": "full_common_data_range"
+      },
+      "formal_export_signature": {
+        "simple_csv_sha256": "65E2D4A600FBC576165B2B7C0E24929BCFC8F0DBE04B612B4DA8CAFDDDEDB750",
+        "detail_csv_sha256": "D98CC1F88D70AA157B2CD3FFCD6175E27000791968F2FA6FEB5BB56B28EF7BF1",
+        "metadata_without_timestamp": {
+          "analysis_mode": "automatic",
+          "analysis_profile_name": "balanced",
+          "analysis_time_range_s": {
+            "end_time_s": 0.00018457972814,
+            "start_time_s": 0.00018257975314
+          },
+          "automatic_event_candidate_time_s": 0.00018373495314039394,
+          "automatic_ridge_selection": {
+            "continuity_reselection_count": 3,
+            "continuity_reselection_enabled": true,
+            "minimum_candidate_peak_to_background_db": 10.0,
+            "minimum_candidate_relative_to_strongest_db": -6.0,
+            "mode": "continuity_assisted",
+            "recovery_tolerance_hz": 52083333.31557261,
+            "recovery_tolerance_source": "sample_rate_hz_divided_by_window_length_samples",
+            "selection_method": "strongest local peak by default; optional isolated-jump-only event-aware continuity rescue under explicit spectral and two-neighbor hard gates; no interpolation, smoothing, filtering, or gap filling",
+            "top_k_candidates": 3
+          },
+          "compatibility_event_candidate_time_s": 0.00018364855314036447,
+          "data_file": "ch3_ch3_auto.csv",
+          "detail_data_file": "ch3_ch3_auto_detail.csv",
+          "dps_studio_version": "0.1.0",
+          "event_reference_source": null,
+          "event_reference_time_s": null,
+          "export_schema_version": "pdv-studio-formal-result-v6",
+          "physics": {
+            "vacuum_wavelength_m": 1.55e-06,
+            "velocity_relation": "v_app=lambda0*f_b/2"
+          },
+          "pre_event_display": {
+            "configured_velocity_m_s": 0.0,
+            "display_only_origin": "configured_pre_event_display_velocity_only",
+            "enabled": false,
+            "formal_measurement_modified": false,
+            "included_in_csv": true
+          },
+          "quality_configuration": {
+            "detection_method": "per-frame unmodified STFT selected ridge peak; median background and strongest competitor outside an inclusive bin guard; ordered quality gates with an explicit relative-to-strongest threshold for validated continuity alternatives, which retain their explicit single-frame production rescue status; exact legacy consecutive-frame runs without interpolation or smoothing",
+            "enabled": true,
+            "minimum_consecutive_frames": 3,
+            "minimum_cycles_in_window": 1.0,
+            "minimum_peak_to_background_db": 10.0,
+            "minimum_peak_to_competitor_db": 3.0,
+            "peak_exclusion_half_width_bins": 12
+          },
+          "result_counts": {
+            "exported_pre_event_display_only_row_count": 0,
+            "exported_row_count": 620,
+            "measured_frame_count": 44,
+            "pre_event_display_only_frame_count": 0,
+            "ridge_quality_flag_counts": {
+              "candidate": 620
+            },
+            "ridge_refinement_status_counts": {
+              "boundary_peak": 1,
+              "refined": 619
+            },
+            "ridge_selection_origin_counts": {
+              "continuity_assisted_alternative": 3,
+              "strongest_peak": 617
+            },
+            "signal_state_counts": {
+              "ambiguous_peak": 372,
+              "measured": 44,
+              "no_detectable_beat": 177,
+              "unstable_detection": 27
+            },
+            "stft_frame_count": 620
+          },
+          "result_status": {
+            "angle_corrected_measurement_column": "angle_corrected_apparent_velocity_m_s",
+            "channel_fusion_applied_by_export": false,
+            "display_column": "display_velocity_m_s",
+            "final_corrected_measurement_column": "corrected_velocity_m_s",
+            "formal_measurement_column": "apparent_velocity_m_s",
+            "formal_measurement_preserved": true,
+            "interpolation_or_smoothing_applied_by_export": false,
+            "simple_csv_time_column": "time_s",
+            "simple_csv_velocity_column": "display_velocity_m_s",
+            "simple_csv_velocity_source": "display_velocity_m_s",
+            "unreliable_formal_values_preserved_as_nan": true
+          },
+          "ridge_configuration": {
+            "refinement_method": "log-magnitude three-point quadratic peak interpolation",
+            "search_maximum_frequency_hz": 6000000000.0,
+            "search_minimum_frequency_hz": 50000000.0
+          },
+          "source_channel": "ch3",
+          "source_file": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch3.csv",
+          "stft_configuration": {
+            "boundary_padding_applied": false,
+            "detrend_applied": false,
+            "hop_samples": 128,
+            "nfft": 4096,
+            "one_sided": true,
+            "overlap_samples": 640,
+            "sample_rate_hz": 39999999986.359764,
+            "scaling": "spectrum",
+            "window_length_samples": 768,
+            "window_name": "hann"
+          },
+          "time_coordinate": {
+            "absolute_time_preserved": true,
+            "detail_csv_absolute_time_column": "time_s",
+            "detail_csv_relative_time_column": "time_from_event_s",
+            "event_reference_time_s": null,
+            "export_time_origin": "absolute",
+            "relative_time_definition": "time_from_event_s = time_s - event_reference_time_s",
+            "simple_csv_time_column": "time_s"
+          },
+          "vacuum_wavelength_m": 1.55e-06,
+          "velocity_correction": {
+            "angle": {
+              "angle_deg_display": 0.0,
+              "angle_rad": 0.0,
+              "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+              "enabled": true,
+              "external_mounting_angle_may_differ_through_window": true,
+              "model": "line_of_sight_projection",
+              "snell_law_inference_applied": false,
+              "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+              "source_doi": "10.1063/1.4940935"
+            },
+            "execution_order": [
+              "apparent_velocity",
+              "geometrical_angle_correction",
+              "window_correction"
+            ],
+            "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+            "window": {
+              "b1": 0.7895,
+              "b2": 0.9918,
+              "crystal_orientation": "[100]",
+              "custom_parameters": false,
+              "enabled": true,
+              "loading_context": "dynamic compression / calibrated window correction",
+              "material": "LiF",
+              "model": "Rigg2014_Eq16",
+              "paper_velocity_unit": "km/s",
+              "parameter_provenance": "formal_default",
+              "reference_wavelength_m": 1.55e-06,
+              "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+              "source_doi": "10.1063/1.4890714",
+              "wavelength_matches_model_reference": true,
+              "wavelength_validation_message": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "snapshot": "hard_case_01__ch4__ch4",
+      "case_id": "hard_case_01",
+      "source": "ch4.csv",
+      "channel": "ch4",
+      "context": {
+        "analysis_start_s": 0.00018257975314,
+        "analysis_end_s": 0.00018457972814,
+        "manual_event_reference_s": null,
+        "analysis_range_source": "full_common_data_range"
+      },
+      "formal_export_signature": {
+        "simple_csv_sha256": "3CDA86A7AC50B79DAAE19778532D7B3FE01409CDC56D9148DCDFBD94B8A74D7E",
+        "detail_csv_sha256": "C2ACCD39C49722BE5B3A0A8613F463C319752D6B16DC3B54AE1E96279613C027",
+        "metadata_without_timestamp": {
+          "analysis_mode": "automatic",
+          "analysis_profile_name": "balanced",
+          "analysis_time_range_s": {
+            "end_time_s": 0.00018457972814,
+            "start_time_s": 0.00018257975314
+          },
+          "automatic_event_candidate_time_s": 0.00018365175314036556,
+          "automatic_ridge_selection": {
+            "continuity_reselection_count": 6,
+            "continuity_reselection_enabled": true,
+            "minimum_candidate_peak_to_background_db": 10.0,
+            "minimum_candidate_relative_to_strongest_db": -6.0,
+            "mode": "continuity_assisted",
+            "recovery_tolerance_hz": 52083333.31557261,
+            "recovery_tolerance_source": "sample_rate_hz_divided_by_window_length_samples",
+            "selection_method": "strongest local peak by default; optional isolated-jump-only event-aware continuity rescue under explicit spectral and two-neighbor hard gates; no interpolation, smoothing, filtering, or gap filling",
+            "top_k_candidates": 3
+          },
+          "compatibility_event_candidate_time_s": 0.00018357175314033828,
+          "data_file": "ch4_ch4_auto.csv",
+          "detail_data_file": "ch4_ch4_auto_detail.csv",
+          "dps_studio_version": "0.1.0",
+          "event_reference_source": null,
+          "event_reference_time_s": null,
+          "export_schema_version": "pdv-studio-formal-result-v6",
+          "physics": {
+            "vacuum_wavelength_m": 1.55e-06,
+            "velocity_relation": "v_app=lambda0*f_b/2"
+          },
+          "pre_event_display": {
+            "configured_velocity_m_s": 0.0,
+            "display_only_origin": "configured_pre_event_display_velocity_only",
+            "enabled": false,
+            "formal_measurement_modified": false,
+            "included_in_csv": true
+          },
+          "quality_configuration": {
+            "detection_method": "per-frame unmodified STFT selected ridge peak; median background and strongest competitor outside an inclusive bin guard; ordered quality gates with an explicit relative-to-strongest threshold for validated continuity alternatives, which retain their explicit single-frame production rescue status; exact legacy consecutive-frame runs without interpolation or smoothing",
+            "enabled": true,
+            "minimum_consecutive_frames": 3,
+            "minimum_cycles_in_window": 1.0,
+            "minimum_peak_to_background_db": 10.0,
+            "minimum_peak_to_competitor_db": 3.0,
+            "peak_exclusion_half_width_bins": 12
+          },
+          "result_counts": {
+            "exported_pre_event_display_only_row_count": 0,
+            "exported_row_count": 620,
+            "measured_frame_count": 52,
+            "pre_event_display_only_frame_count": 0,
+            "ridge_quality_flag_counts": {
+              "candidate": 620
+            },
+            "ridge_refinement_status_counts": {
+              "refined": 620
+            },
+            "ridge_selection_origin_counts": {
+              "continuity_assisted_alternative": 6,
+              "strongest_peak": 614
+            },
+            "signal_state_counts": {
+              "ambiguous_peak": 356,
+              "measured": 52,
+              "no_detectable_beat": 187,
+              "unstable_detection": 25
+            },
+            "stft_frame_count": 620
+          },
+          "result_status": {
+            "angle_corrected_measurement_column": "angle_corrected_apparent_velocity_m_s",
+            "channel_fusion_applied_by_export": false,
+            "display_column": "display_velocity_m_s",
+            "final_corrected_measurement_column": "corrected_velocity_m_s",
+            "formal_measurement_column": "apparent_velocity_m_s",
+            "formal_measurement_preserved": true,
+            "interpolation_or_smoothing_applied_by_export": false,
+            "simple_csv_time_column": "time_s",
+            "simple_csv_velocity_column": "display_velocity_m_s",
+            "simple_csv_velocity_source": "display_velocity_m_s",
+            "unreliable_formal_values_preserved_as_nan": true
+          },
+          "ridge_configuration": {
+            "refinement_method": "log-magnitude three-point quadratic peak interpolation",
+            "search_maximum_frequency_hz": 6000000000.0,
+            "search_minimum_frequency_hz": 50000000.0
+          },
+          "source_channel": "ch4",
+          "source_file": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch4.csv",
+          "stft_configuration": {
+            "boundary_padding_applied": false,
+            "detrend_applied": false,
+            "hop_samples": 128,
+            "nfft": 4096,
+            "one_sided": true,
+            "overlap_samples": 640,
+            "sample_rate_hz": 39999999986.359764,
+            "scaling": "spectrum",
+            "window_length_samples": 768,
+            "window_name": "hann"
+          },
+          "time_coordinate": {
+            "absolute_time_preserved": true,
+            "detail_csv_absolute_time_column": "time_s",
+            "detail_csv_relative_time_column": "time_from_event_s",
+            "event_reference_time_s": null,
+            "export_time_origin": "absolute",
+            "relative_time_definition": "time_from_event_s = time_s - event_reference_time_s",
+            "simple_csv_time_column": "time_s"
+          },
+          "vacuum_wavelength_m": 1.55e-06,
+          "velocity_correction": {
+            "angle": {
+              "angle_deg_display": 0.0,
+              "angle_rad": 0.0,
+              "definition": "angle between the PDV measurement line-of-sight and the normal direction of interface motion",
+              "enabled": true,
+              "external_mounting_angle_may_differ_through_window": true,
+              "model": "line_of_sight_projection",
+              "snell_law_inference_applied": false,
+              "source": "Lea and Jardine, Review of Scientific Instruments 87, 023101 (2016), Eq. 4",
+              "source_doi": "10.1063/1.4940935"
+            },
+            "execution_order": [
+              "apparent_velocity",
+              "geometrical_angle_correction",
+              "window_correction"
+            ],
+            "separable_model_note": "Rigg 2014 LiF calibration is fundamentally a normal-incidence/window calibration; a non-zero observation angle is treated as a separable geometrical correction, not a fully coupled refractive model.",
+            "window": {
+              "b1": 0.7895,
+              "b2": 0.9918,
+              "crystal_orientation": "[100]",
+              "custom_parameters": false,
+              "enabled": true,
+              "loading_context": "dynamic compression / calibrated window correction",
+              "material": "LiF",
+              "model": "Rigg2014_Eq16",
+              "paper_velocity_unit": "km/s",
+              "parameter_provenance": "formal_default",
+              "reference_wavelength_m": 1.55e-06,
+              "source": "Rigg et al., Journal of Applied Physics 116, 033515 (2014)",
+              "source_doi": "10.1063/1.4890714",
+              "wavelength_matches_model_reference": true,
+              "wavelength_validation_message": null
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "schema": "task020a-explicit-cases-v1",
+  "cases": [
+    {
+      "case_id": "good_case_01",
+      "classification": "Good Case",
+      "background_mode": "explicit",
+      "background_start_s": 0.00055398,
+      "background_end_s": 0.00055450,
+      "selection_note": "Explicit pre-event interval preceding both production event candidates near 554.66 us.",
+      "sources": [
+        {
+          "path": "data/raw/20260607.csv",
+          "voltage_columns": {
+            "pdv_channel_1": 1,
+            "pdv_channel_2": 2
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "hard_case_01",
+      "classification": "Hard Case",
+      "background_mode": "explicit",
+      "background_start_s": 0.00018260,
+      "background_end_s": 0.00018320,
+      "selection_note": "Explicit early-record interval preceding the later candidates in ch2-ch4; ch1 has no production event candidate.",
+      "sources": [
+        {
+          "path": "data/raw/ch1.csv",
+          "voltage_columns": {"ch1": 1}
+        },
+        {
+          "path": "data/raw/ch2.csv",
+          "voltage_columns": {"ch2": 1}
+        },
+        {
+          "path": "data/raw/ch3.csv",
+          "voltage_columns": {"ch3": 1}
+        },
+        {
+          "path": "data/raw/ch4.csv",
+          "voltage_columns": {"ch4": 1}
+        }
+      ]
+    }
+  ]
+}

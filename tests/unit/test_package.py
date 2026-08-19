@@ -7,4 +7,4 @@ def test_version() -> None:
 
 
 def test_cli() -> None:
-    assert main() == 0
+    assert main([]) == 0

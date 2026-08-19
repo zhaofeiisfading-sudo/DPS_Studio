@@ -1,0 +1,146 @@
+ .gitignore                                         |    1 [32m+[m
+ artifacts/task020a/README.md                       |   16 [32m+[m
+ .../good_case_01__20260607/20260607_ch1_auto.csv   |  621 [32m++++[m
+ .../20260607_ch1_auto.metadata.json                |  151 [32m+[m
+ .../20260607_ch1_auto_detail.csv                   |  621 [32m++++[m
+ .../good_case_01__20260607/20260607_ch2_auto.csv   |  621 [32m++++[m
+ .../20260607_ch2_auto.metadata.json                |  150 [32m+[m
+ .../20260607_ch2_auto_detail.csv                   |  621 [32m++++[m
+ .../assessment_completed/background_metrics.csv    |    7 [32m+[m
+ .../data/good_case_01__20260607__pdv_channel_1.npz |  Bin [31m0[m -> [32m29269067[m bytes
+ .../data/good_case_01__20260607__pdv_channel_2.npz |  Bin [31m0[m -> [32m29251118[m bytes
+ .../data/hard_case_01__ch1__ch1.npz                |  Bin [31m0[m -> [32m29252124[m bytes
+ .../data/hard_case_01__ch2__ch2.npz                |  Bin [31m0[m -> [32m29247353[m bytes
+ .../data/hard_case_01__ch3__ch3.npz                |  Bin [31m0[m -> [32m29257897[m bytes
+ .../data/hard_case_01__ch4__ch4.npz                |  Bin [31m0[m -> [32m29240520[m bytes
+ .../background_profile.png                         |  Bin [31m0[m -> [32m212299[m bytes
+ .../raw_stft.png                                   |  Bin [31m0[m -> [32m755778[m bytes
+ .../raw_vs_whitened.png                            |  Bin [31m0[m -> [32m1834776[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1217521[m bytes
+ .../background_profile.png                         |  Bin [31m0[m -> [32m202820[m bytes
+ .../raw_stft.png                                   |  Bin [31m0[m -> [32m529603[m bytes
+ .../raw_vs_whitened.png                            |  Bin [31m0[m -> [32m1651437[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1253236[m bytes
+ .../hard_case_01__ch1__ch1/background_profile.png  |  Bin [31m0[m -> [32m157596[m bytes
+ .../figures/hard_case_01__ch1__ch1/raw_stft.png    |  Bin [31m0[m -> [32m1085607[m bytes
+ .../hard_case_01__ch1__ch1/raw_vs_whitened.png     |  Bin [31m0[m -> [32m2315593[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1436027[m bytes
+ .../hard_case_01__ch2__ch2/background_profile.png  |  Bin [31m0[m -> [32m179679[m bytes
+ .../figures/hard_case_01__ch2__ch2/raw_stft.png    |  Bin [31m0[m -> [32m861340[m bytes
+ .../hard_case_01__ch2__ch2/raw_vs_whitened.png     |  Bin [31m0[m -> [32m2043087[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1380330[m bytes
+ .../hard_case_01__ch3__ch3/background_profile.png  |  Bin [31m0[m -> [32m209461[m bytes
+ .../figures/hard_case_01__ch3__ch3/raw_stft.png    |  Bin [31m0[m -> [32m973805[m bytes
+ .../hard_case_01__ch3__ch3/raw_vs_whitened.png     |  Bin [31m0[m -> [32m2161813[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1397734[m bytes
+ .../hard_case_01__ch4__ch4/background_profile.png  |  Bin [31m0[m -> [32m212081[m bytes
+ .../figures/hard_case_01__ch4__ch4/raw_stft.png    |  Bin [31m0[m -> [32m1012571[m bytes
+ .../hard_case_01__ch4__ch4/raw_vs_whitened.png     |  Bin [31m0[m -> [32m2185984[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1374811[m bytes
+ .../assessment_completed/production_regression.csv |    7 [32m+[m
+ .../good_case_01__20260607/20260607_ch1_auto.csv   |  621 [32m++++[m
+ .../20260607_ch1_auto.metadata.json                |  151 [32m+[m
+ .../20260607_ch1_auto_detail.csv                   |  621 [32m++++[m
+ .../good_case_01__20260607/20260607_ch2_auto.csv   |  621 [32m++++[m
+ .../20260607_ch2_auto.metadata.json                |  150 [32m+[m
+ .../20260607_ch2_auto_detail.csv                   |  621 [32m++++[m
+ .../hard_case_01__ch1/ch1_ch1_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch1/ch1_ch1_auto.metadata.json   |  151 [32m+[m
+ .../hard_case_01__ch1/ch1_ch1_auto_detail.csv      |  621 [32m++++[m
+ .../hard_case_01__ch2/ch2_ch2_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch2/ch2_ch2_auto.metadata.json   |  150 [32m+[m
+ .../hard_case_01__ch2/ch2_ch2_auto_detail.csv      |  621 [32m++++[m
+ .../hard_case_01__ch3/ch3_ch3_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch3/ch3_ch3_auto.metadata.json   |  150 [32m+[m
+ .../hard_case_01__ch3/ch3_ch3_auto_detail.csv      |  621 [32m++++[m
+ .../hard_case_01__ch4/ch4_ch4_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch4/ch4_ch4_auto.metadata.json   |  149 [32m+[m
+ .../hard_case_01__ch4/ch4_ch4_auto_detail.csv      |  621 [32m++++[m
+ .../assessment_completed/ridge_comparison.csv      | 3721 [32m++++++++++++++++++++[m
+ .../task020a/assessment_completed/summary.json     |  634 [32m++++[m
+ .../assessment_final/background_metrics.csv        |    7 [32m+[m
+ .../data/good_case_01__20260607__pdv_channel_1.npz |  Bin [31m0[m -> [32m29269067[m bytes
+ .../data/good_case_01__20260607__pdv_channel_2.npz |  Bin [31m0[m -> [32m29251118[m bytes
+ .../data/hard_case_01__ch1__ch1.npz                |  Bin [31m0[m -> [32m29252124[m bytes
+ .../data/hard_case_01__ch2__ch2.npz                |  Bin [31m0[m -> [32m29247353[m bytes
+ .../data/hard_case_01__ch3__ch3.npz                |  Bin [31m0[m -> [32m29257897[m bytes
+ .../data/hard_case_01__ch4__ch4.npz                |  Bin [31m0[m -> [32m29240520[m bytes
+ .../background_profile.png                         |  Bin [31m0[m -> [32m219375[m bytes
+ .../raw_stft.png                                   |  Bin [31m0[m -> [32m762562[m bytes
+ .../raw_vs_whitened.png                            |  Bin [31m0[m -> [32m1847777[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1225114[m bytes
+ .../background_profile.png                         |  Bin [31m0[m -> [32m210190[m bytes
+ .../raw_stft.png                                   |  Bin [31m0[m -> [32m537309[m bytes
+ .../raw_vs_whitened.png                            |  Bin [31m0[m -> [32m1664176[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1261286[m bytes
+ .../hard_case_01__ch1__ch1/background_profile.png  |  Bin [31m0[m -> [32m165319[m bytes
+ .../figures/hard_case_01__ch1__ch1/raw_stft.png    |  Bin [31m0[m -> [32m1092271[m bytes
+ .../hard_case_01__ch1__ch1/raw_vs_whitened.png     |  Bin [31m0[m -> [32m2327816[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1444694[m bytes
+ .../hard_case_01__ch2__ch2/background_profile.png  |  Bin [31m0[m -> [32m186897[m bytes
+ .../figures/hard_case_01__ch2__ch2/raw_stft.png    |  Bin [31m0[m -> [32m869241[m bytes
+ .../hard_case_01__ch2__ch2/raw_vs_whitened.png     |  Bin [31m0[m -> [32m2055623[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1388308[m bytes
+ .../hard_case_01__ch3__ch3/background_profile.png  |  Bin [31m0[m -> [32m216599[m bytes
+ .../figures/hard_case_01__ch3__ch3/raw_stft.png    |  Bin [31m0[m -> [32m981147[m bytes
+ .../hard_case_01__ch3__ch3/raw_vs_whitened.png     |  Bin [31m0[m -> [32m2174280[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1404709[m bytes
+ .../hard_case_01__ch4__ch4/background_profile.png  |  Bin [31m0[m -> [32m219300[m bytes
+ .../figures/hard_case_01__ch4__ch4/raw_stft.png    |  Bin [31m0[m -> [32m1019330[m bytes
+ .../hard_case_01__ch4__ch4/raw_vs_whitened.png     |  Bin [31m0[m -> [32m2199717[m bytes
+ .../whitened_spectrogram.png                       |  Bin [31m0[m -> [32m1382582[m bytes
+ .../assessment_final/production_regression.csv     |    7 [32m+[m
+ .../good_case_01__20260607/20260607_ch1_auto.csv   |  621 [32m++++[m
+ .../20260607_ch1_auto.metadata.json                |  151 [32m+[m
+ .../20260607_ch1_auto_detail.csv                   |  621 [32m++++[m
+ .../good_case_01__20260607/20260607_ch2_auto.csv   |  621 [32m++++[m
+ .../20260607_ch2_auto.metadata.json                |  150 [32m+[m
+ .../20260607_ch2_auto_detail.csv                   |  621 [32m++++[m
+ .../hard_case_01__ch1/ch1_ch1_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch1/ch1_ch1_auto.metadata.json   |  151 [32m+[m
+ .../hard_case_01__ch1/ch1_ch1_auto_detail.csv      |  621 [32m++++[m
+ .../hard_case_01__ch2/ch2_ch2_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch2/ch2_ch2_auto.metadata.json   |  150 [32m+[m
+ .../hard_case_01__ch2/ch2_ch2_auto_detail.csv      |  621 [32m++++[m
+ .../hard_case_01__ch3/ch3_ch3_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch3/ch3_ch3_auto.metadata.json   |  150 [32m+[m
+ .../hard_case_01__ch3/ch3_ch3_auto_detail.csv      |  621 [32m++++[m
+ .../hard_case_01__ch4/ch4_ch4_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch4/ch4_ch4_auto.metadata.json   |  149 [32m+[m
+ .../hard_case_01__ch4/ch4_ch4_auto_detail.csv      |  621 [32m++++[m
+ .../task020a/assessment_final/ridge_comparison.csv | 3721 [32m++++++++++++++++++++[m
+ artifacts/task020a/assessment_final/summary.json   |  736 [32m++++[m
+ .../good_case_01__20260607/20260607_ch1_auto.csv   |  621 [32m++++[m
+ .../20260607_ch1_auto.metadata.json                |  151 [32m+[m
+ .../20260607_ch1_auto_detail.csv                   |  621 [32m++++[m
+ .../good_case_01__20260607/20260607_ch2_auto.csv   |  621 [32m++++[m
+ .../20260607_ch2_auto.metadata.json                |  150 [32m+[m
+ .../20260607_ch2_auto_detail.csv                   |  621 [32m++++[m
+ .../hard_case_01__ch1/ch1_ch1_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch1/ch1_ch1_auto.metadata.json   |  151 [32m+[m
+ .../hard_case_01__ch1/ch1_ch1_auto_detail.csv      |  621 [32m++++[m
+ .../hard_case_01__ch2/ch2_ch2_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch2/ch2_ch2_auto.metadata.json   |  150 [32m+[m
+ .../hard_case_01__ch2/ch2_ch2_auto_detail.csv      |  621 [32m++++[m
+ .../hard_case_01__ch3/ch3_ch3_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch3/ch3_ch3_auto.metadata.json   |  150 [32m+[m
+ .../hard_case_01__ch3/ch3_ch3_auto_detail.csv      |  621 [32m++++[m
+ .../hard_case_01__ch4/ch4_ch4_auto.csv             |  621 [32m++++[m
+ .../hard_case_01__ch4/ch4_ch4_auto.metadata.json   |  149 [32m+[m
+ .../hard_case_01__ch4/ch4_ch4_auto_detail.csv      |  621 [32m++++[m
+ .../good_case_01__20260607__pdv_channel_1.npz      |  Bin [31m0[m -> [32m19424751[m bytes
+ .../good_case_01__20260607__pdv_channel_2.npz      |  Bin [31m0[m -> [32m19470625[m bytes
+ .../baseline/snapshots/hard_case_01__ch1__ch1.npz  |  Bin [31m0[m -> [32m19400152[m bytes
+ .../baseline/snapshots/hard_case_01__ch2__ch2.npz  |  Bin [31m0[m -> [32m19456693[m bytes
+ .../baseline/snapshots/hard_case_01__ch3__ch3.npz  |  Bin [31m0[m -> [32m19445278[m bytes
+ .../baseline/snapshots/hard_case_01__ch4__ch4.npz  |  Bin [31m0[m -> [32m19420115[m bytes
+ artifacts/task020a/baseline/summary.json           | 1020 [32m++++++[m
+ .../task020a/reports_completed/task020a_report.md  |   32 [32m+[m
+ .../task020a/reports_final/task020a_report.md      |   32 [32m+[m
+ src/dps_studio/cli.py                              |    7 [32m+[m[31m-[m
+ tests/unit/test_package.py                         |    2 [32m+[m[31m-[m
+ tests/unit/test_task020a_background_whitening.py   |  127 [32m+[m
+ tools/assess_task020a_background_whitening.py      | 1265 [32m+++++++[m
+ tools/task020a_background_whitening.py             |  303 [32m++[m
+ tools/task020a_cases.json                          |   48 [32m+[m
+ 145 files changed, 39533 insertions(+), 4 deletions(-)

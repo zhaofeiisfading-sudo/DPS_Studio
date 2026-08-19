@@ -1,0 +1,634 @@
+{
+  "schema": "task020a-assessment-v1",
+  "experimental": true,
+  "production_result": false,
+  "cases": [
+    {
+      "case_id": "good_case_01",
+      "classification": "Good Case",
+      "background_mode": "explicit",
+      "background_start_s": 0.00055398,
+      "background_end_s": 0.0005545,
+      "selection_note": "Explicit pre-event interval preceding both production event candidates near 554.66 us.",
+      "sources": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+          "voltage_columns": {
+            "pdv_channel_1": 1,
+            "pdv_channel_2": 2
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "hard_case_01",
+      "classification": "Hard Case",
+      "background_mode": "explicit",
+      "background_start_s": 0.0001826,
+      "background_end_s": 0.0001832,
+      "selection_note": "Explicit early-record interval preceding the later candidates in ch2-ch4; ch1 has no production event candidate.",
+      "sources": [
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch1.csv",
+          "voltage_columns": {
+            "ch1": 1
+          }
+        },
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch2.csv",
+          "voltage_columns": {
+            "ch2": 1
+          }
+        },
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch3.csv",
+          "voltage_columns": {
+            "ch3": 1
+          }
+        },
+        {
+          "path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch4.csv",
+          "voltage_columns": {
+            "ch4": 1
+          }
+        }
+      ]
+    }
+  ],
+  "mathematical_definition": {
+    "raw_spectral_quantity": "P(t,f) = abs(STFT spectrum(t,f))**2 on a linear non-negative power scale",
+    "background": "N(f) = median over explicit background frames of P(t,f)",
+    "mad_diagnostic": "M(f) = median over explicit background frames of abs(P(t,f)-N(f))",
+    "epsilon": "max(float64.eps * max(N), float64.smallest_subnormal)",
+    "whitened_ratio": "R(t,f) = P(t,f)/(N(f)+epsilon)",
+    "background_contrast_db": "C(t,f) = 10*log10((P(t,f)+epsilon)/(N(f)+epsilon))"
+  },
+  "production_search_band_hz_unchanged": [
+    50000000.0,
+    6000000000.0
+  ],
+  "channel_metrics": [
+    {
+      "case_id": "good_case_01",
+      "classification": "Good Case",
+      "source": "20260607.csv",
+      "channel": "pdv_channel_1",
+      "background_mode": "explicit",
+      "background_start_s": 0.00055398,
+      "background_end_s": 0.0005545,
+      "background_frame_count": 162,
+      "epsilon": 2.305936829156827e-23,
+      "epsilon_definition": "max(float64.eps * max(N), float64.smallest_subnormal)",
+      "full_band_background_uniformity": {
+        "raw_nonuniformity_db": 40.789575979542235,
+        "whitened_nonuniformity_db": 2.996738249199604e-10,
+        "reduction_db": 40.789575979242564,
+        "definition": "P95-P5 spread across frequency of 10*log10(per-frequency background time median)"
+      },
+      "production_search_band_background_uniformity": {
+        "raw_nonuniformity_db": 7.490022634127101,
+        "whitened_nonuniformity_db": 9.643274665533025e-14,
+        "reduction_db": 7.490022634127004,
+        "definition": "analysis-band P95-P5 spread across frequency of background time medians in dB"
+      },
+      "baseline_measured_frames": 390,
+      "experimental_gate_passing_frames_not_production": 397,
+      "newly_recovered_frames_not_production": 10,
+      "lost_frames_not_production": 3,
+      "changed_mutually_finite_ridge_frames": 553,
+      "delta_frequency_hz": {
+        "count": 553,
+        "median": -4471376.17940405,
+        "p95_absolute": 2314338945.6695786,
+        "maximum_absolute": 4259956036.808032
+      },
+      "delta_apparent_velocity_m_s": {
+        "count": 553,
+        "median": -3.4653165390381386,
+        "p95_absolute": 1793.6126828939234,
+        "maximum_absolute": 3301.4659285262246
+      },
+      "raw_frame_median_spectral_contrast_db": {
+        "count": 555,
+        "median": 26.558814592989066,
+        "p95_absolute": 55.652657174913095,
+        "maximum_absolute": 57.05398574583053
+      },
+      "whitened_frame_median_spectral_contrast_db": {
+        "count": 555,
+        "median": 29.860408894107437,
+        "p95_absolute": 57.85269133771254,
+        "maximum_absolute": 59.07459697120889
+      },
+      "baseline_ridge_background_contrast_db": {
+        "count": 555,
+        "median": 30.66347941972952,
+        "p95_absolute": 58.998177125532166,
+        "maximum_absolute": 59.88584034531593
+      },
+      "event_time_s": 0.0005546642542602401,
+      "event_time_source": "production event-level primary candidate",
+      "baseline_pre_event_gate_passing_frames": 2,
+      "experimental_pre_event_gate_passing_frames_not_production": 0,
+      "dc_contrast_db": {
+        "count": 620,
+        "median": 0.4136499307661125,
+        "p95_absolute": 2.3207076768345782,
+        "maximum_absolute": 6.846020528204222
+      },
+      "below_production_search_minimum": {
+        "frequency_bin_count": 6,
+        "maximum_absolute_contrast_db": 33.0511242998652
+      }
+    },
+    {
+      "case_id": "good_case_01",
+      "classification": "Good Case",
+      "source": "20260607.csv",
+      "channel": "pdv_channel_2",
+      "background_mode": "explicit",
+      "background_start_s": 0.00055398,
+      "background_end_s": 0.0005545,
+      "background_frame_count": 162,
+      "epsilon": 1.35750855266124e-22,
+      "epsilon_definition": "max(float64.eps * max(N), float64.smallest_subnormal)",
+      "full_band_background_uniformity": {
+        "raw_nonuniformity_db": 33.739157594185855,
+        "whitened_nonuniformity_db": 1.251229352782928e-10,
+        "reduction_db": 33.739157594060735,
+        "definition": "P95-P5 spread across frequency of 10*log10(per-frequency background time median)"
+      },
+      "production_search_band_background_uniformity": {
+        "raw_nonuniformity_db": 4.457899669536957,
+        "whitened_nonuniformity_db": 7.753192831088575e-14,
+        "reduction_db": 4.4578996695368795,
+        "definition": "analysis-band P95-P5 spread across frequency of background time medians in dB"
+      },
+      "baseline_measured_frames": 379,
+      "experimental_gate_passing_frames_not_production": 376,
+      "newly_recovered_frames_not_production": 5,
+      "lost_frames_not_production": 8,
+      "changed_mutually_finite_ridge_frames": 444,
+      "delta_frequency_hz": {
+        "count": 444,
+        "median": -8288623.718387902,
+        "p95_absolute": 18698968.945881795,
+        "maximum_absolute": 4691597863.974038
+      },
+      "delta_apparent_velocity_m_s": {
+        "count": 444,
+        "median": -6.4236833817506245,
+        "p95_absolute": 14.491700933058391,
+        "maximum_absolute": 3635.9883445798796
+      },
+      "raw_frame_median_spectral_contrast_db": {
+        "count": 444,
+        "median": 45.79784636450656,
+        "p95_absolute": 59.34731422802371,
+        "maximum_absolute": 60.59037145790312
+      },
+      "whitened_frame_median_spectral_contrast_db": {
+        "count": 444,
+        "median": 46.49815440328524,
+        "p95_absolute": 57.418330220376056,
+        "maximum_absolute": 58.81416803848927
+      },
+      "baseline_ridge_background_contrast_db": {
+        "count": 444,
+        "median": 47.33055866779514,
+        "p95_absolute": 58.786707306253184,
+        "maximum_absolute": 59.81794403842521
+      },
+      "event_time_s": 0.0005546674542602412,
+      "event_time_source": "production event-level primary candidate",
+      "baseline_pre_event_gate_passing_frames": 0,
+      "experimental_pre_event_gate_passing_frames_not_production": 0,
+      "dc_contrast_db": {
+        "count": 620,
+        "median": 0.0341272088754292,
+        "p95_absolute": 3.178791781985942,
+        "maximum_absolute": 10.64809930807559
+      },
+      "below_production_search_minimum": {
+        "frequency_bin_count": 6,
+        "maximum_absolute_contrast_db": 17.730782416605322
+      }
+    },
+    {
+      "case_id": "hard_case_01",
+      "classification": "Hard Case",
+      "source": "ch1.csv",
+      "channel": "ch1",
+      "background_mode": "explicit",
+      "background_start_s": 0.0001826,
+      "background_end_s": 0.0001832,
+      "background_frame_count": 187,
+      "epsilon": 6.933987272731852e-24,
+      "epsilon_definition": "max(float64.eps * max(N), float64.smallest_subnormal)",
+      "full_band_background_uniformity": {
+        "raw_nonuniformity_db": 45.56188715963208,
+        "whitened_nonuniformity_db": 1.7558927745266516e-10,
+        "reduction_db": 45.56188715945649,
+        "definition": "P95-P5 spread across frequency of 10*log10(per-frequency background time median)"
+      },
+      "production_search_band_background_uniformity": {
+        "raw_nonuniformity_db": 10.819185374386109,
+        "whitened_nonuniformity_db": 4.850567156763066e-14,
+        "reduction_db": 10.81918537438606,
+        "definition": "analysis-band P95-P5 spread across frequency of background time medians in dB"
+      },
+      "baseline_measured_frames": 51,
+      "experimental_gate_passing_frames_not_production": 55,
+      "newly_recovered_frames_not_production": 7,
+      "lost_frames_not_production": 3,
+      "changed_mutually_finite_ridge_frames": 583,
+      "delta_frequency_hz": {
+        "count": 583,
+        "median": -8210397.031831741,
+        "p95_absolute": 4365945726.920845,
+        "maximum_absolute": 5833022224.215996
+      },
+      "delta_apparent_velocity_m_s": {
+        "count": 583,
+        "median": -6.363057699669599,
+        "p95_absolute": 3383.6079383636547,
+        "maximum_absolute": 4520.592223767397
+      },
+      "raw_frame_median_spectral_contrast_db": {
+        "count": 583,
+        "median": 11.21249910165712,
+        "p95_absolute": 28.306550147473875,
+        "maximum_absolute": 33.84860401704448
+      },
+      "whitened_frame_median_spectral_contrast_db": {
+        "count": 583,
+        "median": 9.036500769657124,
+        "p95_absolute": 26.520612882310644,
+        "maximum_absolute": 32.706535500984984
+      },
+      "baseline_ridge_background_contrast_db": {
+        "count": 583,
+        "median": 8.521072690704193,
+        "p95_absolute": 31.210909331152344,
+        "maximum_absolute": 46.332969972024294
+      },
+      "event_time_s": null,
+      "event_time_source": null,
+      "baseline_pre_event_gate_passing_frames": null,
+      "experimental_pre_event_gate_passing_frames_not_production": null,
+      "dc_contrast_db": {
+        "count": 620,
+        "median": 1.0905906859352434,
+        "p95_absolute": 13.681248960958712,
+        "maximum_absolute": 29.02518018257776
+      },
+      "below_production_search_minimum": {
+        "frequency_bin_count": 6,
+        "maximum_absolute_contrast_db": 31.883581096849838
+      }
+    },
+    {
+      "case_id": "hard_case_01",
+      "classification": "Hard Case",
+      "source": "ch2.csv",
+      "channel": "ch2",
+      "background_mode": "explicit",
+      "background_start_s": 0.0001826,
+      "background_end_s": 0.0001832,
+      "background_frame_count": 187,
+      "epsilon": 3.006048210496042e-23,
+      "epsilon_definition": "max(float64.eps * max(N), float64.smallest_subnormal)",
+      "full_band_background_uniformity": {
+        "raw_nonuniformity_db": 37.868560870781494,
+        "whitened_nonuniformity_db": 7.680231815036939e-11,
+        "reduction_db": 37.86856087070469,
+        "definition": "P95-P5 spread across frequency of 10*log10(per-frequency background time median)"
+      },
+      "production_search_band_background_uniformity": {
+        "raw_nonuniformity_db": 3.5352050755648463,
+        "whitened_nonuniformity_db": 1.3789882771712064e-14,
+        "reduction_db": 3.5352050755648325,
+        "definition": "analysis-band P95-P5 spread across frequency of background time medians in dB"
+      },
+      "baseline_measured_frames": 127,
+      "experimental_gate_passing_frames_not_production": 124,
+      "newly_recovered_frames_not_production": 11,
+      "lost_frames_not_production": 14,
+      "changed_mutually_finite_ridge_frames": 614,
+      "delta_frequency_hz": {
+        "count": 614,
+        "median": -755192.2814407349,
+        "p95_absolute": 3172448969.794419,
+        "maximum_absolute": 5432782002.418173
+      },
+      "delta_apparent_velocity_m_s": {
+        "count": 614,
+        "median": -0.5852740181165694,
+        "p95_absolute": 2458.6479515906744,
+        "maximum_absolute": 4210.4060518740835
+      },
+      "raw_frame_median_spectral_contrast_db": {
+        "count": 614,
+        "median": 10.190287757453905,
+        "p95_absolute": 30.24496292633938,
+        "maximum_absolute": 40.319329017726425
+      },
+      "whitened_frame_median_spectral_contrast_db": {
+        "count": 614,
+        "median": 9.863743648809642,
+        "p95_absolute": 29.477439761422385,
+        "maximum_absolute": 39.65350981344317
+      },
+      "baseline_ridge_background_contrast_db": {
+        "count": 614,
+        "median": 9.773227926006472,
+        "p95_absolute": 37.37537922943915,
+        "maximum_absolute": 57.45588971710619
+      },
+      "event_time_s": 0.0001841125531405227,
+      "event_time_source": "production event-level primary candidate",
+      "baseline_pre_event_gate_passing_frames": 29,
+      "experimental_pre_event_gate_passing_frames_not_production": 31,
+      "dc_contrast_db": {
+        "count": 620,
+        "median": 0.1832058047220338,
+        "p95_absolute": 3.0891664813931508,
+        "maximum_absolute": 22.0044483663032
+      },
+      "below_production_search_minimum": {
+        "frequency_bin_count": 6,
+        "maximum_absolute_contrast_db": 22.0044483663032
+      }
+    },
+    {
+      "case_id": "hard_case_01",
+      "classification": "Hard Case",
+      "source": "ch3.csv",
+      "channel": "ch3",
+      "background_mode": "explicit",
+      "background_start_s": 0.0001826,
+      "background_end_s": 0.0001832,
+      "background_frame_count": 187,
+      "epsilon": 6.165474844279229e-24,
+      "epsilon_definition": "max(float64.eps * max(N), float64.smallest_subnormal)",
+      "full_band_background_uniformity": {
+        "raw_nonuniformity_db": 38.18404935981809,
+        "whitened_nonuniformity_db": 5.9667665560648e-11,
+        "reduction_db": 38.184049359758426,
+        "definition": "P95-P5 spread across frequency of 10*log10(per-frequency background time median)"
+      },
+      "production_search_band_background_uniformity": {
+        "raw_nonuniformity_db": 8.80579948257369,
+        "whitened_nonuniformity_db": 5.400233812698452e-14,
+        "reduction_db": 8.805799482573637,
+        "definition": "analysis-band P95-P5 spread across frequency of background time medians in dB"
+      },
+      "baseline_measured_frames": 44,
+      "experimental_gate_passing_frames_not_production": 52,
+      "newly_recovered_frames_not_production": 19,
+      "lost_frames_not_production": 11,
+      "changed_mutually_finite_ridge_frames": 619,
+      "delta_frequency_hz": {
+        "count": 619,
+        "median": -752234.9764566422,
+        "p95_absolute": 3318469304.0735664,
+        "maximum_absolute": 5175187602.339924
+      },
+      "delta_apparent_velocity_m_s": {
+        "count": 619,
+        "median": -0.5829821067538976,
+        "p95_absolute": 2571.8137106570143,
+        "maximum_absolute": 4010.770391813441
+      },
+      "raw_frame_median_spectral_contrast_db": {
+        "count": 619,
+        "median": 10.66629152618745,
+        "p95_absolute": 31.981685434473974,
+        "maximum_absolute": 39.01541773426801
+      },
+      "whitened_frame_median_spectral_contrast_db": {
+        "count": 619,
+        "median": 9.42050727658935,
+        "p95_absolute": 32.36463773988558,
+        "maximum_absolute": 40.261546724072915
+      },
+      "baseline_ridge_background_contrast_db": {
+        "count": 619,
+        "median": 11.589432382203203,
+        "p95_absolute": 45.067365727707156,
+        "maximum_absolute": 57.97624722295089
+      },
+      "event_time_s": 0.00018373495314039394,
+      "event_time_source": "production event-level primary candidate",
+      "baseline_pre_event_gate_passing_frames": 22,
+      "experimental_pre_event_gate_passing_frames_not_production": 17,
+      "dc_contrast_db": {
+        "count": 620,
+        "median": 0.3697839576590034,
+        "p95_absolute": 4.023675177381391,
+        "maximum_absolute": 21.142378273527832
+      },
+      "below_production_search_minimum": {
+        "frequency_bin_count": 6,
+        "maximum_absolute_contrast_db": 21.142378273527832
+      }
+    },
+    {
+      "case_id": "hard_case_01",
+      "classification": "Hard Case",
+      "source": "ch4.csv",
+      "channel": "ch4",
+      "background_mode": "explicit",
+      "background_start_s": 0.0001826,
+      "background_end_s": 0.0001832,
+      "background_frame_count": 187,
+      "epsilon": 6.629518822750401e-24,
+      "epsilon_definition": "max(float64.eps * max(N), float64.smallest_subnormal)",
+      "full_band_background_uniformity": {
+        "raw_nonuniformity_db": 45.96788632825215,
+        "whitened_nonuniformity_db": 7.815247303631453e-11,
+        "reduction_db": 45.967886328173996,
+        "definition": "P95-P5 spread across frequency of 10*log10(per-frequency background time median)"
+      },
+      "production_search_band_background_uniformity": {
+        "raw_nonuniformity_db": 15.282616318317707,
+        "whitened_nonuniformity_db": 5.766678249988698e-14,
+        "reduction_db": 15.28261631831765,
+        "definition": "analysis-band P95-P5 spread across frequency of background time medians in dB"
+      },
+      "baseline_measured_frames": 52,
+      "experimental_gate_passing_frames_not_production": 62,
+      "newly_recovered_frames_not_production": 24,
+      "lost_frames_not_production": 14,
+      "changed_mutually_finite_ridge_frames": 620,
+      "delta_frequency_hz": {
+        "count": 620,
+        "median": -1212780272.9056244,
+        "p95_absolute": 4149289341.511249,
+        "maximum_absolute": 5614818186.555205
+      },
+      "delta_apparent_velocity_m_s": {
+        "count": 620,
+        "median": -939.904711501859,
+        "p95_absolute": 3215.699239671218,
+        "maximum_absolute": 4351.484094580284
+      },
+      "raw_frame_median_spectral_contrast_db": {
+        "count": 620,
+        "median": 10.473942422400498,
+        "p95_absolute": 30.635412681527683,
+        "maximum_absolute": 45.7340245765156
+      },
+      "whitened_frame_median_spectral_contrast_db": {
+        "count": 620,
+        "median": 8.196350810753504,
+        "p95_absolute": 28.850844527377756,
+        "maximum_absolute": 48.21558287012252
+      },
+      "baseline_ridge_background_contrast_db": {
+        "count": 620,
+        "median": 7.014535931322641,
+        "p95_absolute": 34.88890799575632,
+        "maximum_absolute": 55.204446850052705
+      },
+      "event_time_s": 0.00018365175314036556,
+      "event_time_source": "production event-level primary candidate",
+      "baseline_pre_event_gate_passing_frames": 20,
+      "experimental_pre_event_gate_passing_frames_not_production": 16,
+      "dc_contrast_db": {
+        "count": 620,
+        "median": 0.5565044986257217,
+        "p95_absolute": 4.909077004271542,
+        "maximum_absolute": 20.708440680698168
+      },
+      "below_production_search_minimum": {
+        "frequency_bin_count": 6,
+        "maximum_absolute_contrast_db": 22.602833112919125
+      }
+    }
+  ],
+  "production_regression": [
+    {
+      "snapshot": "good_case_01__20260607__pdv_channel_1",
+      "source": "20260607.csv",
+      "channel": "pdv_channel_1",
+      "stft_time_s": true,
+      "stft_frequency_hz": true,
+      "stft_spectrum": true,
+      "formal_ridge_frequency_hz": true,
+      "formal_refined_frequency_hz": true,
+      "quality_state": true,
+      "apparent_velocity_m_s": true,
+      "corrected_velocity_m_s": true,
+      "event_time_s": true,
+      "formal_export_equal_except_timestamp": true,
+      "all_production_outputs_equal": true
+    },
+    {
+      "snapshot": "good_case_01__20260607__pdv_channel_2",
+      "source": "20260607.csv",
+      "channel": "pdv_channel_2",
+      "stft_time_s": true,
+      "stft_frequency_hz": true,
+      "stft_spectrum": true,
+      "formal_ridge_frequency_hz": true,
+      "formal_refined_frequency_hz": true,
+      "quality_state": true,
+      "apparent_velocity_m_s": true,
+      "corrected_velocity_m_s": true,
+      "event_time_s": true,
+      "formal_export_equal_except_timestamp": true,
+      "all_production_outputs_equal": true
+    },
+    {
+      "snapshot": "hard_case_01__ch1__ch1",
+      "source": "ch1.csv",
+      "channel": "ch1",
+      "stft_time_s": true,
+      "stft_frequency_hz": true,
+      "stft_spectrum": true,
+      "formal_ridge_frequency_hz": true,
+      "formal_refined_frequency_hz": true,
+      "quality_state": true,
+      "apparent_velocity_m_s": true,
+      "corrected_velocity_m_s": true,
+      "event_time_s": true,
+      "formal_export_equal_except_timestamp": true,
+      "all_production_outputs_equal": true
+    },
+    {
+      "snapshot": "hard_case_01__ch2__ch2",
+      "source": "ch2.csv",
+      "channel": "ch2",
+      "stft_time_s": true,
+      "stft_frequency_hz": true,
+      "stft_spectrum": true,
+      "formal_ridge_frequency_hz": true,
+      "formal_refined_frequency_hz": true,
+      "quality_state": true,
+      "apparent_velocity_m_s": true,
+      "corrected_velocity_m_s": true,
+      "event_time_s": true,
+      "formal_export_equal_except_timestamp": true,
+      "all_production_outputs_equal": true
+    },
+    {
+      "snapshot": "hard_case_01__ch3__ch3",
+      "source": "ch3.csv",
+      "channel": "ch3",
+      "stft_time_s": true,
+      "stft_frequency_hz": true,
+      "stft_spectrum": true,
+      "formal_ridge_frequency_hz": true,
+      "formal_refined_frequency_hz": true,
+      "quality_state": true,
+      "apparent_velocity_m_s": true,
+      "corrected_velocity_m_s": true,
+      "event_time_s": true,
+      "formal_export_equal_except_timestamp": true,
+      "all_production_outputs_equal": true
+    },
+    {
+      "snapshot": "hard_case_01__ch4__ch4",
+      "source": "ch4.csv",
+      "channel": "ch4",
+      "stft_time_s": true,
+      "stft_frequency_hz": true,
+      "stft_spectrum": true,
+      "formal_ridge_frequency_hz": true,
+      "formal_refined_frequency_hz": true,
+      "quality_state": true,
+      "apparent_velocity_m_s": true,
+      "corrected_velocity_m_s": true,
+      "event_time_s": true,
+      "formal_export_equal_except_timestamp": true,
+      "all_production_outputs_equal": true
+    }
+  ],
+  "all_production_outputs_equal": true,
+  "raw_sha256_before": {
+    ".gitkeep": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5",
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74",
+    "20260630-2.csv": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261",
+    "20260701.csv": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A",
+    "ch1.csv": "3BDCEFD19B0CABD45FF713BC104E00829876F0BE4303ABCFFF31DC5ADA727A6A",
+    "ch2.csv": "975D5EDC124754A170CAC083247D2F2BA1232F6BF6D26F2C878B498025B27A5F",
+    "ch3.csv": "401673B77829D4B2568A4B2A9B88DC649AFA926B668C6C493012D8FC30115D49",
+    "ch4.csv": "84E2859D4285C3D3D4144BA7E5EC0B51FBC0C578857F4DFAF6209E4B87842F5B"
+  },
+  "raw_sha256_after": {
+    ".gitkeep": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5",
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74",
+    "20260630-2.csv": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261",
+    "20260701.csv": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A",
+    "ch1.csv": "3BDCEFD19B0CABD45FF713BC104E00829876F0BE4303ABCFFF31DC5ADA727A6A",
+    "ch2.csv": "975D5EDC124754A170CAC083247D2F2BA1232F6BF6D26F2C878B498025B27A5F",
+    "ch3.csv": "401673B77829D4B2568A4B2A9B88DC649AFA926B668C6C493012D8FC30115D49",
+    "ch4.csv": "84E2859D4285C3D3D4144BA7E5EC0B51FBC0C578857F4DFAF6209E4B87842F5B"
+  },
+  "raw_unchanged": true,
+  "weak_ridge_assessment": "无明显改善",
+  "ridge_ab_scope": "Existing production workflow reused on a detached sqrt(whitened_ratio) STFT solely for experimental A/B; outputs are never labeled production measurements."
+}
