@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
+from dataclasses import replace
 from types import MappingProxyType
 
 import numpy as np
@@ -29,8 +30,10 @@ from dps_studio.core.ridge import (
     ContinuityReselectionConfig,
     EventAwareContinuityConfig,
     LocalPeakCandidateConfig,
+    ManualFrequencyRegion,
     RefinedRidgeResult,
     RidgeCorridorConstraint,
+    RidgeSearchConstraint,
     RidgeQualityFlag,
     RidgeRefinementStatus,
     RidgeResult,
@@ -39,9 +42,11 @@ from dps_studio.core.ridge import (
     assess_ridge_spectral_quality,
     extract_local_peak_candidates,
     extract_peak_ridge,
+    manual_frequency_region_mask,
     refine_peak_ridge_subbin,
     reselect_isolated_jump_candidates,
     select_automatic_ridge,
+    validate_manual_frequency_region_for_stft,
     validate_ridge_corridor_for_stft,
 )
 from dps_studio.core.time_frequency import STFTResult, compute_stft
@@ -111,7 +116,7 @@ def analyze_profile(
     minimum_background_bin_count: int = 2,
     assume_pre_event_zero_for_display: bool = False,
     pre_event_display_velocity_m_s: float = 0.0,
-    ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
+    ridge_constraints: Mapping[str, RidgeSearchConstraint] | None = None,
     local_peak_candidate_config: LocalPeakCandidateConfig | None = None,
     continuity_reselection_config: ContinuityReselectionConfig | None = None,
     automatic_ridge_selection_config: AutomaticRidgeSelectionConfig | None = None,
@@ -169,7 +174,7 @@ def analyze_configuration(
     minimum_background_bin_count: int = 2,
     assume_pre_event_zero_for_display: bool = False,
     pre_event_display_velocity_m_s: float = 0.0,
-    ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
+    ridge_constraints: Mapping[str, RidgeSearchConstraint] | None = None,
     local_peak_candidate_config: LocalPeakCandidateConfig | None = None,
     continuity_reselection_config: ContinuityReselectionConfig | None = None,
     automatic_ridge_selection_config: AutomaticRidgeSelectionConfig | None = None,
@@ -224,7 +229,7 @@ def analyze_stft_results(
     minimum_background_bin_count: int = 2,
     assume_pre_event_zero_for_display: bool = False,
     pre_event_display_velocity_m_s: float = 0.0,
-    ridge_constraints: Mapping[str, RidgeCorridorConstraint] | None = None,
+    ridge_constraints: Mapping[str, RidgeSearchConstraint] | None = None,
     local_peak_candidate_config: LocalPeakCandidateConfig | None = None,
     continuity_reselection_config: ContinuityReselectionConfig | None = None,
     automatic_ridge_selection_config: AutomaticRidgeSelectionConfig | None = None,
@@ -232,9 +237,10 @@ def analyze_stft_results(
 ) -> Mapping[str, ChannelAnalysis]:
     """Run post-STFT science while preserving the supplied STFT objects.
 
-    A guided corridor defines a channel-local closed time domain.  Frames
-    outside that domain are formally outside the guided analysis window and
-    therefore remain NaN; they never fall back to the automatic ridge.
+    Legacy corridors retain their closed-time-domain semantics. New manual
+    boundaries contract the candidate-search band across the full analysis
+    time range using constant endpoint extension. The supplied STFT objects are
+    never modified.
     """
     if not isinstance(stft_results, Mapping) or not stft_results:
         raise TypeError("stft_results must be a non-empty mapping of STFTResult values.")
@@ -358,7 +364,8 @@ def analyze_stft_results(
         ridge_constraint = constraints.get(channel_name)
         channel_analysis_start = analysis_start
         channel_analysis_end = analysis_end
-        if ridge_constraint is not None:
+        allowed_search_mask = None
+        if isinstance(ridge_constraint, RidgeCorridorConstraint):
             validate_ridge_corridor_for_stft(
                 ridge_constraint,
                 stft_result,
@@ -369,6 +376,21 @@ def analyze_stft_results(
             )
             channel_analysis_start = ridge_constraint.start_time_s
             channel_analysis_end = ridge_constraint.end_time_s
+        elif isinstance(ridge_constraint, ManualFrequencyRegion):
+            validate_manual_frequency_region_for_stft(
+                ridge_constraint,
+                stft_result,
+                minimum_frequency_hz=minimum_frequency_hz,
+                maximum_frequency_hz=maximum_frequency_hz,
+                analysis_start_time_s=analysis_start,
+                analysis_end_time_s=analysis_end,
+            )
+            allowed_search_mask = manual_frequency_region_mask(
+                ridge_constraint,
+                stft_result,
+                minimum_frequency_hz=minimum_frequency_hz,
+                maximum_frequency_hz=maximum_frequency_hz,
+            )
         strongest_ridge_result = extract_peak_ridge(
             stft_result,
             minimum_frequency_hz=minimum_frequency_hz,
@@ -380,7 +402,12 @@ def analyze_stft_results(
             analysis_end_time_s=(
                 channel_analysis_end if ridge_constraint is not None else None
             ),
-            ridge_constraint=ridge_constraint,
+            ridge_constraint=(
+                ridge_constraint
+                if isinstance(ridge_constraint, RidgeCorridorConstraint)
+                else None
+            ),
+            allowed_search_mask=allowed_search_mask,
         )
         strongest_refined_result = refine_peak_ridge_subbin(
             stft_result,
@@ -453,7 +480,7 @@ def analyze_stft_results(
         )
         local_peak_candidates = None
         experimental_reselection_result = None
-        if ridge_constraint is None:
+        if not isinstance(ridge_constraint, RidgeCorridorConstraint):
             local_peak_candidates = extract_local_peak_candidates(
                 stft_result,
                 minimum_frequency_hz=minimum_frequency_hz,
@@ -461,6 +488,7 @@ def analyze_stft_results(
                 background_exclusion_half_width_hz=guard_hz,
                 minimum_background_bin_count=minimum_background_bin_count,
                 config=local_peak_candidate_config,
+                allowed_search_mask=allowed_search_mask,
             )
             experimental_reselection_result = reselect_isolated_jump_candidates(
                 strongest_refined_result,
@@ -531,30 +559,40 @@ def analyze_stft_results(
             config=velocity_correction_config,
             vacuum_wavelength_m=vacuum_wavelength_m,
         )
-        display_velocity_m_s, velocity_origins = build_display_velocity(
-            stft_result.time_s,
-            signal_detection_result.signal_states,
-            velocity_correction_result.corrected_velocity_m_s,
-            manual_event_reference_time_s=manual_reference,
-            analysis_start_time_s=channel_analysis_start,
-            analysis_end_time_s=channel_analysis_end,
-            enable_pre_event_display=assume_pre_event_zero_for_display,
-            pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
-        )
         stream_event_candidates = build_stream_event_candidates(
             signal_detection_result,
             profile_name=profile_name,
             channel_name=channel_name,
             config=event_candidate_config,
         )
+        resolved_event_time_s = (
+            manual_reference
+            if manual_reference is not None
+            else stream_event_candidates.primary_candidate_time_s
+        )
+        if resolved_event_time_s is not None:
+            signal_detection_result = replace(
+                signal_detection_result,
+                manual_event_reference_time_s=resolved_event_time_s,
+            )
+        display_velocity_m_s, velocity_origins = build_display_velocity(
+            stft_result.time_s,
+            signal_detection_result.signal_states,
+            velocity_correction_result.corrected_velocity_m_s,
+            manual_event_reference_time_s=resolved_event_time_s,
+            analysis_start_time_s=channel_analysis_start,
+            analysis_end_time_s=channel_analysis_end,
+            enable_pre_event_display=assume_pre_event_zero_for_display,
+            pre_event_display_velocity_m_s=pre_event_display_velocity_m_s,
+        )
         continuity_result = assess_ridge_continuity(refined_result)
         continuity_event_time_s: float | None
         continuity_event_source: str | None
         if manual_reference is not None:
-            continuity_event_time_s = manual_reference
+            continuity_event_time_s = resolved_event_time_s
             continuity_event_source = "manual_event_reference"
         else:
-            continuity_event_time_s = stream_event_candidates.primary_candidate_time_s
+            continuity_event_time_s = resolved_event_time_s
             continuity_event_source = (
                 "event_level_primary_candidate"
                 if continuity_event_time_s is not None
@@ -593,15 +631,15 @@ def analyze_stft_results(
 
 def _validated_ridge_constraints(
     sources: Mapping[str, object],
-    value: Mapping[str, RidgeCorridorConstraint] | None,
-) -> Mapping[str, RidgeCorridorConstraint]:
+    value: Mapping[str, RidgeSearchConstraint] | None,
+) -> Mapping[str, RidgeSearchConstraint]:
     if value is None:
         return MappingProxyType({})
     if not isinstance(value, Mapping):
         raise TypeError(
             "ridge_constraints must be a channel mapping or None."
         )
-    constraints: dict[str, RidgeCorridorConstraint] = {}
+    constraints: dict[str, RidgeSearchConstraint] = {}
     for channel_name, constraint in value.items():
         if not isinstance(channel_name, str) or not channel_name:
             raise TypeError("Every ridge constraint key must be a channel name.")
@@ -609,10 +647,13 @@ def _validated_ridge_constraints(
             raise ValueError(
                 f"ridge_constraints contains unknown channel {channel_name!r}."
             )
-        if not isinstance(constraint, RidgeCorridorConstraint):
+        if not isinstance(
+            constraint,
+            (RidgeCorridorConstraint, ManualFrequencyRegion),
+        ):
             raise TypeError(
                 f"ridge_constraints[{channel_name!r}] must be a "
-                "RidgeCorridorConstraint."
+                "RidgeCorridorConstraint or ManualFrequencyRegion."
             )
         constraints[channel_name] = constraint
     return MappingProxyType(constraints)

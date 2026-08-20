@@ -69,10 +69,10 @@ def test_gui_display_parameter_refreshes_without_new_stft(
     try:
         assert window.pre_event_display_velocity_spin.value() == 0.0
         assert window.pre_event_display_velocity_spin.suffix() == " m/s"
-        assert "不修改正式表观速度" in (
+        assert "不代表正式测得速度" in (
             window.pre_event_display_velocity_spin.toolTip()
         )
-        assert "事件前显示速度" in {
+        assert "事件前平台速度" in {
             label.text() for label in window.findChildren(QLabel)
         }
         window.set_loaded_result(_event_signal_result(tmp_path))
@@ -183,7 +183,7 @@ def test_english_pre_event_display_velocity_term(qapp: QApplication) -> None:
     window = MainWindow(translation_manager=manager)
     try:
         labels = {label.text() for label in window.findChildren(QLabel)}
-        assert "Pre-event Display Velocity" in labels
+        assert "Pre-event platform velocity" in labels
         assert window.velocity_view.display_velocity_check.text() == (
             "Display Velocity (Non-formal Result)"
         )

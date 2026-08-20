@@ -65,7 +65,12 @@ from dps_studio.core.workflow import (
     derive_bin_guard_half_width_hz,
     load_workflow_config,
 )
-from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.ridge import (
+    ManualFrequencyBoundary,
+    ManualFrequencyRegion,
+    RidgeCorridorConstraint,
+    evaluate_manual_frequency_region_bounds,
+)
 from dps_studio.core.quality import (
     SignalDetectionConfig,
     SignalDetectionResult,
@@ -110,6 +115,9 @@ __all__ = [
     "ProfileConsensusStatus",
     "QualityConfiguration",
     "RidgeCorridorConstraint",
+    "ManualFrequencyBoundary",
+    "ManualFrequencyRegion",
+    "evaluate_manual_frequency_region_bounds",
     "SignalDetectionConfig",
     "SignalDetectionResult",
     "SignalState",

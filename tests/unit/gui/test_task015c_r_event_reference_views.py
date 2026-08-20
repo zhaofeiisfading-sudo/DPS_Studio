@@ -131,7 +131,7 @@ def test_gui_reference_candidates_and_result_view_fit(
         assert window.analysis_session.event_reference_time_s is None
         assert window.analysis_range_panel.confirmed_event_reference_s is None
         reference_status = window.analysis_range_panel.event_reference_status_label.text()
-        assert "未设置" in reference_status
+        assert "自动起跳时间尚未生成" in reference_status
         assert "554.668" not in reference_status
 
         full_start_s, full_end_s = window.analysis_session.data_bounds_s()
@@ -306,7 +306,8 @@ def test_english_reference_and_fit_terms(qapp: QApplication) -> None:
     window = MainWindow(translation_manager=manager)
     try:
         labels = {label.text() for label in window.findChildren(QLabel)}
-        assert "Event Reference Time" in labels
+        assert "Event time" in labels
+        assert "Manual event time" in labels
         assert window.spectrogram_view.fit_analysis_range_button.text() == (
             "Fit Analysis Range"
         )

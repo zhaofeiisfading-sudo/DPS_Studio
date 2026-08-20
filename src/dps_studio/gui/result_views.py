@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 
 from dps_studio.core.export import ExportTimeOrigin
 from dps_studio.core.quality import SignalState
-from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.ridge import ManualFrequencyRegion, RidgeSearchConstraint
 from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import ChannelAnalysis
 from dps_studio.gui.display_preferences import (
@@ -286,6 +286,7 @@ class _ChannelView(QWidget):
         self._view_search_band_hz: tuple[float, float] | None = None
         self._search_lines: list[Any] = []
         self._search_frequency_grid_hz: FloatArray | None = None
+        self._search_band_handles_enabled = True
         self.root_layout = QVBoxLayout(self)
         self.controls_layout = QHBoxLayout()
         self.controls_layout.addWidget(QLabel(self.tr("显示通道")))
@@ -359,6 +360,14 @@ class _ChannelView(QWidget):
             lower_tooltip=self.tr("拖动调整搜索频率下限"),
             upper_tooltip=self.tr("拖动调整搜索频率上限"),
         )
+        self.set_search_band_handles_enabled(self._search_band_handles_enabled)
+
+    def set_search_band_handles_enabled(self, enabled: bool) -> None:
+        """Hide all frequency drag hit targets during manual-boundary editing."""
+        self._search_band_handles_enabled = bool(enabled)
+        for line in self._search_lines:
+            line.setMovable(self._search_band_handles_enabled)
+            line.setVisible(self._search_band_handles_enabled)
 
     def _synchronize_search_lines(self) -> None:
         if self._view_search_band_hz is None or len(self._search_lines) != 2:
@@ -541,7 +550,7 @@ class SpectrogramView(_ChannelView):
         self.definition_label.setObjectName("spectrogramDefinitionLabel")
         self.root_layout.addWidget(self.definition_label)
         self.current_image_db: FloatArray | None = None
-        self._corridors: Mapping[str, RidgeCorridorConstraint] = {}
+        self._corridors: Mapping[str, RidgeSearchConstraint] = {}
         self._stft_results: Mapping[str, STFTResult] = {}
         self.corridor_controller = RidgeCorridorController(
             self.plot_widget,
@@ -607,7 +616,7 @@ class SpectrogramView(_ChannelView):
 
     def set_corridors(
         self,
-        corridors: Mapping[str, RidgeCorridorConstraint],
+        corridors: Mapping[str, RidgeSearchConstraint],
         *,
         refresh: bool = True,
     ) -> None:
@@ -664,6 +673,16 @@ class SpectrogramView(_ChannelView):
             self._corridors.get(channel_name),
             analysis_start_time_s=analysis_start,
             analysis_end_time_s=analysis_end,
+            minimum_frequency_hz=(
+                self._view_search_band_hz[0]
+                if self._view_search_band_hz is not None
+                else float(stft_result.frequency_hz[0])
+            ),
+            maximum_frequency_hz=(
+                self._view_search_band_hz[1]
+                if self._view_search_band_hz is not None
+                else float(stft_result.frequency_hz[-1])
+            ),
         )
         if fit_view:
             self.plot_widget.autoRange()
@@ -718,7 +737,7 @@ class RidgeView(_ChannelView):
         self.formal_curve: Any | None = None
         self._automatic_analyses: Mapping[str, ChannelAnalysis] = {}
         self._guided_analyses: Mapping[str, ChannelAnalysis] = {}
-        self._corridors: Mapping[str, RidgeCorridorConstraint] = {}
+        self._corridors: Mapping[str, RidgeSearchConstraint] = {}
         self._corridor_items: tuple[Any, Any, Any] | None = None
 
     @property
@@ -745,7 +764,7 @@ class RidgeView(_ChannelView):
         automatic_analyses: Mapping[str, ChannelAnalysis],
         guided_analyses: Mapping[str, ChannelAnalysis],
         *,
-        corridors: Mapping[str, RidgeCorridorConstraint],
+        corridors: Mapping[str, RidgeSearchConstraint],
         relative_db_floor: float,
         fit_view: bool = True,
     ) -> None:
@@ -759,7 +778,7 @@ class RidgeView(_ChannelView):
         if automatic_analyses:
             self.result_source_combo.addItem(self.tr("自动结果"), "automatic")
         if guided_analyses:
-            self.result_source_combo.addItem(self.tr("引导结果"), "guided")
+            self.result_source_combo.addItem(self.tr("人工范围结果"), "guided")
         index = self.result_source_combo.findData(previous)
         self.result_source_combo.setCurrentIndex(max(index, 0))
         del blocker
@@ -824,7 +843,18 @@ class RidgeView(_ChannelView):
                 self._corridor_items = draw_static_corridor(
                     self.plot_widget,
                     constraint,
-                    center_name=self.tr("脊线走廊中心"),
+                    center_name=(
+                        self.tr("人工有效搜索区域")
+                        if isinstance(constraint, ManualFrequencyRegion)
+                        else self.tr("旧版脊线走廊")
+                    ),
+                    stft_result=analysis.stft_result,
+                    minimum_frequency_hz=(
+                        analysis.ridge_result.minimum_frequency_hz
+                    ),
+                    maximum_frequency_hz=(
+                        analysis.ridge_result.maximum_frequency_hz
+                    ),
                 )
         time_us = analysis.stft_result.time_s * 1e6
         self.candidate_curve = self.plot_widget.plot(
@@ -1034,7 +1064,7 @@ class VelocityView(_ChannelView):
         if automatic_analyses:
             self.result_source_combo.addItem(self.tr("自动结果"), "automatic")
         if guided_analyses:
-            self.result_source_combo.addItem(self.tr("引导结果"), "guided")
+            self.result_source_combo.addItem(self.tr("人工范围结果"), "guided")
         index = self.result_source_combo.findData(previous)
         self.result_source_combo.setCurrentIndex(max(index, 0))
         del blocker
@@ -1125,7 +1155,9 @@ class VelocityView(_ChannelView):
         """Show a source-specific absence message without disabling Velocity."""
         source = self.result_source
         source_name = (
-            self.tr("引导结果") if source == "guided" else self.tr("自动结果")
+            self.tr("人工范围结果")
+            if source == "guided"
+            else self.tr("自动结果")
         )
         self.source_notice.setText(
             self.tr("当前通道尚无{source}：{channel}").format(
@@ -1221,20 +1253,6 @@ class VelocityView(_ChannelView):
                 self.display_connector.setToolTip(
                     self.tr("显示速度（仅显示）")
                 )
-        if reference_s is not None:
-            reference_x_us = 0.0 if event_relative else reference_s * 1.0e6
-            self.event_reference_line = pg.InfiniteLine(
-                pos=reference_x_us,
-                angle=90,
-                movable=False,
-                pen=pg.mkPen(
-                    "#6A3D9A",
-                    width=1.2,
-                    style=pg.QtCore.Qt.DashLine,
-                ),
-            )
-            self.event_reference_line.setToolTip(self.tr("事件参考时刻"))
-            self.plot_widget.addItem(self.event_reference_line)
         if fit_view:
             self.plot_widget.autoRange()
             self._fit_current_view(analysis)
@@ -1373,7 +1391,9 @@ class ComparisonView(QWidget):
             series.append(
                 (
                     f"guided:{channel_name}",
-                    self.tr("{channel} — 引导结果").format(channel=channel_name),
+                    self.tr("{channel} — 人工范围结果").format(
+                        channel=channel_name
+                    ),
                     analysis,
                 )
             )

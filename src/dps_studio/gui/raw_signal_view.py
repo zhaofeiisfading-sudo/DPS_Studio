@@ -18,6 +18,7 @@ class RawSignalView(QWidget):
     cursor_position_changed = Signal(float, float, str)
     channel_selection_changed = Signal(str)
     analysis_region_changed = Signal(float, float)
+    analysis_region_committed = Signal(float, float)
     analysis_boundary_hovered = Signal(bool)
 
     _COLORS = ("#0072B2", "#D55E00", "#009E73", "#CC79A7")
@@ -59,6 +60,9 @@ class RawSignalView(QWidget):
         self.analysis_region.setZValue(20)
         self.analysis_region.setVisible(False)
         self.analysis_region.sigRegionChanged.connect(self._on_region_changed)
+        self.analysis_region.sigRegionChangeFinished.connect(
+            self._on_region_change_finished
+        )
         boundary_tooltip = self.tr("拖动以调整分析范围")
         for line in self.analysis_region.lines:
             line.setCursor(Qt.CursorShape.SizeHorCursor)
@@ -179,14 +183,25 @@ class RawSignalView(QWidget):
         self.analysis_boundary_hovered.emit(hovered)
 
     def _on_region_changed(self) -> None:
+        region = self._current_region_s()
+        if region is not None:
+            self.analysis_region_changed.emit(*region)
+
+    def _on_region_change_finished(self) -> None:
+        region = self._current_region_s()
+        if region is not None:
+            self.analysis_region_committed.emit(*region)
+
+    def _current_region_s(self) -> tuple[float, float] | None:
         if self._data_bounds_s is None:
-            return
+            return None
         start_us, end_us = self.analysis_region.getRegion()
         lower, upper = self._data_bounds_s
         start = max(lower, float(start_us) * 1e-6)
         end = min(upper, float(end_us) * 1e-6)
         if start < end:
-            self.analysis_region_changed.emit(start, end)
+            return start, end
+        return None
 
 
 __all__ = ["RawSignalView"]

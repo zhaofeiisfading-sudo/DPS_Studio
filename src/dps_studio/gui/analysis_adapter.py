@@ -11,7 +11,7 @@ from types import MappingProxyType
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 
 from dps_studio.core.models import SignalRecord
-from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.ridge import RidgeSearchConstraint
 from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import (
     ChannelAnalysis,
@@ -34,7 +34,7 @@ class AnalysisResultSource(str, Enum):
     GUIDED = "guided"
 
 
-def _empty_constraints() -> Mapping[str, RidgeCorridorConstraint]:
+def _empty_constraints() -> Mapping[str, RidgeSearchConstraint]:
     return MappingProxyType({})
 
 
@@ -55,12 +55,13 @@ class AnalysisRequest:
     analysis_range: AnalysisRange
     configuration: AnalysisRunConfiguration
     result_source: AnalysisResultSource = AnalysisResultSource.AUTOMATIC
-    ridge_constraints: Mapping[str, RidgeCorridorConstraint] = field(
+    ridge_constraints: Mapping[str, RidgeSearchConstraint] = field(
         default_factory=_empty_constraints
     )
     stft_results: Mapping[str, STFTResult] = field(
         default_factory=_empty_stft_results
     )
+    event_reference_time_s: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +96,11 @@ class _AnalysisWorker(QRunnable):
         try:
             configuration = request.configuration
             parameters = configuration.parameters
+            event_reference_time_s = (
+                request.event_reference_time_s
+                if request.event_reference_time_s is not None
+                else configuration.event_reference_time_s
+            )
             if request.result_source is AnalysisResultSource.SPECTROGRAM:
                 stft_results = compute_configuration_stfts(
                     request.records,
@@ -113,9 +119,7 @@ class _AnalysisWorker(QRunnable):
                     profile_name=parameters.provenance_name,
                     analysis_start_time_s=request.analysis_range.start_time_s,
                     analysis_end_time_s=request.analysis_range.end_time_s,
-                    manual_event_reference_time_s=(
-                        configuration.event_reference_time_s
-                    ),
+                    manual_event_reference_time_s=event_reference_time_s,
                     vacuum_wavelength_m=configuration.vacuum_wavelength_m,
                     detection_config=configuration.detection_config,
                     event_candidate_config=configuration.event_candidate_config,
@@ -145,9 +149,7 @@ class _AnalysisWorker(QRunnable):
                     profile=configuration.profile,
                     analysis_start_time_s=request.analysis_range.start_time_s,
                     analysis_end_time_s=request.analysis_range.end_time_s,
-                    manual_event_reference_time_s=(
-                        configuration.event_reference_time_s
-                    ),
+                    manual_event_reference_time_s=event_reference_time_s,
                     vacuum_wavelength_m=configuration.vacuum_wavelength_m,
                     detection_config=configuration.detection_config,
                     event_candidate_config=configuration.event_candidate_config,
@@ -189,9 +191,7 @@ class _AnalysisWorker(QRunnable):
                     profile_name=parameters.provenance_name,
                     analysis_start_time_s=request.analysis_range.start_time_s,
                     analysis_end_time_s=request.analysis_range.end_time_s,
-                    manual_event_reference_time_s=(
-                        configuration.event_reference_time_s
-                    ),
+                    manual_event_reference_time_s=event_reference_time_s,
                     vacuum_wavelength_m=configuration.vacuum_wavelength_m,
                     detection_config=configuration.detection_config,
                     event_candidate_config=configuration.event_candidate_config,

@@ -1,0 +1,93 @@
+{
+  "task": "TASK-016R5",
+  "qt_platform": "windows",
+  "source_sha256_before": {
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74"
+  },
+  "source_sha256_after": {
+    "20260607.csv": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+    "20260630-1.csv": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74"
+  },
+  "workflow_steps": [
+    "1  数据与范围",
+    "2  时频分析",
+    "3  脊线提取",
+    "4  速度结果",
+    "5  复核与导出"
+  ],
+  "parameter_stack_count": 5,
+  "evidence": {
+    "normal": {
+      "source": "data/raw/20260607.csv",
+      "channel": "pdv_channel_1",
+      "upper_only_constant_extension_hz": [
+        850000000.0,
+        1350000000.0
+      ],
+      "lower_only_constant_extension_hz": [
+        120000000.0,
+        450000000.0
+      ],
+      "mode_fit_view_range": [
+        [
+          553.96025426,
+          555.96022926
+        ],
+        [
+          0.05,
+          6.0
+        ]
+      ],
+      "manual_event_time_s": 0.00055496024176,
+      "restored_automatic_event_time_s": 0.0005546642542602401
+    },
+    "complex": {
+      "source": "data/raw/20260630-1.csv",
+      "channel": "pdv_channel_1",
+      "full_stft_frame_count": 1557,
+      "allowed_mask_frame_count": 1557,
+      "lower_first_last_hz": [
+        80000000.0,
+        320000000.0
+      ],
+      "upper_first_last_hz": [
+        1750000000.0,
+        1950000000.0
+      ],
+      "resolved_event_time_s": 0.0007462228149907737,
+      "pre_event_platform_frame_count": 706,
+      "pre_event_display_only_frame_count": 694,
+      "automatic_apparent_velocity_sha256_before": "A64B4DCC1497054F61AD2C913CE0F9B14D39EAFD517164E16DABB30255141EE8",
+      "automatic_apparent_velocity_sha256_after": "A64B4DCC1497054F61AD2C913CE0F9B14D39EAFD517164E16DABB30255141EE8",
+      "velocity_event_reference_line": null
+    }
+  },
+  "screenshots": [
+    {
+      "path": "artifacts/task016r5/normal_upper_only.png",
+      "width_px": 2884,
+      "height_px": 1760
+    },
+    {
+      "path": "artifacts/task016r5/normal_lower_only.png",
+      "width_px": 2884,
+      "height_px": 1760
+    },
+    {
+      "path": "artifacts/task016r5/data_range_manual_event.png",
+      "width_px": 2884,
+      "height_px": 1760
+    },
+    {
+      "path": "artifacts/task016r5/complex_mismatched_boundaries.png",
+      "width_px": 2884,
+      "height_px": 1760
+    },
+    {
+      "path": "artifacts/task016r5/complex_manual_pre_event_platform.png",
+      "width_px": 2884,
+      "height_px": 1760
+    }
+  ]
+}

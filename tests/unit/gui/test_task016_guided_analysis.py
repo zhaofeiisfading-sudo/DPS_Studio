@@ -8,7 +8,11 @@ import pytest
 from PySide6.QtCore import QEventLoop, QPointF, QTimer
 from PySide6.QtWidgets import QApplication, QLabel
 
-from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.ridge import (
+    ManualFrequencyBoundary,
+    ManualFrequencyRegion,
+    RidgeCorridorConstraint,
+)
 from dps_studio.core.workflow import load_workflow_config
 from dps_studio.gui.app import translation_manager
 from dps_studio.gui.data_controller import (
@@ -103,8 +107,8 @@ def test_guided_initial_state_requires_data_and_automatic_stft(
         assert not window.draw_corridor_button.isEnabled()
         assert not window.run_guided_button.isEnabled()
         assert "STFT" in window.guided_status_label.text()
-        assert not window.spectrogram_view.corridor_controller.begin_drawing(
-            half_width_hz=50.0e6
+        assert not window.spectrogram_view.corridor_controller.begin_boundary(
+            "upper"
         )
     finally:
         window.close()
@@ -119,21 +123,12 @@ def test_corridor_editing_stores_si_coordinates_and_is_channel_local(
     try:
         _wait_for_run(window, window.run_automatic_analysis)
         assert window.action_guided.isEnabled()
-        frequency_hz = window.analysis_session.channel_analyses[
-            "pdv_channel_1"
-        ].stft_result.frequency_hz
-        assert window.corridor_half_width_spin.value() == pytest.approx(
-            5.0 * (frequency_hz[1] - frequency_hz[0]) * 1.0e-6,
-            abs=0.0005,
-        )
-        assert "不是实验标定或最佳值" in (
-            window.corridor_half_width_spin.toolTip()
-        )
+        assert window.findChild(QLabel, "corridorHalfWidthMhz") is None
         constraint = _corridor_for_current_analysis(window)
         automatic = window.analysis_session.channel_analyses
         automatic_spectrum = automatic["pdv_channel_1"].stft_result.spectrum.copy()
         controller = window.spectrogram_view.corridor_controller
-        assert controller.begin_drawing(half_width_hz=constraint.half_width_hz)
+        assert controller.begin_boundary("upper")
         controller._draft_points = list(
             zip(
                 constraint.control_times_s,
@@ -145,23 +140,33 @@ def test_corridor_editing_stores_si_coordinates_and_is_channel_local(
         qapp.processEvents()
 
         stored = window.analysis_session.ridge_constraints["pdv_channel_1"]
-        np.testing.assert_array_equal(stored.control_times_s, constraint.control_times_s)
+        assert isinstance(stored, ManualFrequencyRegion)
+        assert stored.upper_boundary is not None
         np.testing.assert_array_equal(
-            stored.control_frequencies_hz,
+            stored.upper_boundary.control_times_s,
+            constraint.control_times_s,
+        )
+        np.testing.assert_array_equal(
+            stored.upper_boundary.control_frequencies_hz,
             constraint.control_frequencies_hz,
         )
         assert "pdv_channel_2" not in window.analysis_session.ridge_constraints
         assert window.analysis_session.results_valid
         assert window.analysis_session.channel_analyses is automatic
 
-        times_before = stored.control_times_s.copy()
-        frequencies_before = stored.control_frequencies_hz.copy()
+        times_before = stored.upper_boundary.control_times_s.copy()
+        frequencies_before = stored.upper_boundary.control_frequencies_hz.copy()
         window.spectrogram_view.plot_widget.resize(990, 510)
         qapp.processEvents()
         after_resize = window.analysis_session.ridge_constraints["pdv_channel_1"]
-        np.testing.assert_array_equal(after_resize.control_times_s, times_before)
+        assert isinstance(after_resize, ManualFrequencyRegion)
+        assert after_resize.upper_boundary is not None
         np.testing.assert_array_equal(
-            after_resize.control_frequencies_hz,
+            after_resize.upper_boundary.control_times_s,
+            times_before,
+        )
+        np.testing.assert_array_equal(
+            after_resize.upper_boundary.control_frequencies_hz,
             frequencies_before,
         )
 
@@ -175,31 +180,17 @@ def test_corridor_editing_stores_si_coordinates_and_is_channel_local(
         )
         qapp.processEvents()
         moved = window.analysis_session.ridge_constraints["pdv_channel_1"]
-        assert moved.control_times_s[0] != times_before[0]
-        assert moved.control_frequencies_hz[0] == pytest.approx(0.47e9)
+        assert isinstance(moved, ManualFrequencyRegion)
+        assert moved.upper_boundary is not None
+        assert moved.upper_boundary.control_times_s[0] != times_before[0]
+        assert moved.upper_boundary.control_frequencies_hz[0] == pytest.approx(
+            0.47e9
+        )
 
-        roi = controller._roi
-        assert roi is not None
-        midpoint = QPointF(
-            float(np.mean(moved.control_times_s)) * 1.0e6,
-            0.50,
-        )
-        roi.segmentClicked(roi.segments[0], pos=midpoint)
-        qapp.processEvents()
         assert (
             window.analysis_session.ridge_constraints[
                 "pdv_channel_1"
-            ].control_point_count
-            == 3
-        )
-        roi = controller._roi
-        assert roi is not None
-        roi.removeHandle(roi.handles[1]["item"])
-        qapp.processEvents()
-        assert (
-            window.analysis_session.ridge_constraints[
-                "pdv_channel_1"
-            ].control_point_count
+            ].upper_boundary.control_point_count
             == 2
         )
         np.testing.assert_array_equal(
@@ -244,8 +235,16 @@ def test_guided_results_are_background_computed_separate_and_stale_independently
 
         previous_guided = session.guided_channel_analyses
         previous_generation = session.generation_id
-        window.corridor_half_width_spin.setValue(
-            window.corridor_half_width_spin.value() + 5.0
+        current = session.ridge_constraints["pdv_channel_1"]
+        assert isinstance(current, RidgeCorridorConstraint)
+        window._ridge_constraint_changed(
+            "pdv_channel_1",
+            ManualFrequencyRegion(
+                upper_boundary=ManualFrequencyBoundary(
+                    current.control_times_s,
+                    current.control_frequencies_hz + current.half_width_hz,
+                )
+            ),
         )
         qapp.processEvents()
         assert session.guided_results_stale
@@ -253,7 +252,7 @@ def test_guided_results_are_background_computed_separate_and_stale_independently
         assert session.guided_channel_analyses is previous_guided
         assert session.generation_id == previous_generation
         assert session.results_valid
-        assert "重新运行引导分析" in window.guided_status_label.text()
+        assert "重新运行人工范围分析" in window.guided_status_label.text()
         assert window.ridge_view.result_source_combo.findData("guided") == -1
         for name, analysis in session.channel_analyses.items():
             np.testing.assert_array_equal(
@@ -295,10 +294,11 @@ def test_guided_terminology_is_translated_without_language_branches(
     manager.install("en")
     window = MainWindow(translation_manager=manager)
     try:
-        assert window.action_guided.text() == "Guided Analysis"
-        assert window.draw_corridor_button.text() == "Draw / Edit Corridor"
-        assert window.clear_corridor_button.text() == "Clear Corridor"
-        assert any(
+        assert window.action_guided.text() == "Manual Region Analysis"
+        assert window.edit_upper_boundary_button.text() == "Edit Upper Boundary"
+        assert window.edit_lower_boundary_button.text() == "Edit Lower Boundary"
+        assert window.clear_corridor_button.text() == "Clear Manual Region"
+        assert not any(
             label.text() == "Corridor Half Width"
             for label in window.findChildren(QLabel)
         )

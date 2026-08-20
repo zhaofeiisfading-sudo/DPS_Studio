@@ -224,14 +224,14 @@ def test_step5_step6_share_correction_and_preserve_ready_state_and_upstream(
         )
         assert window.export_measurement_angle_spin.value() == pytest.approx(20.0)
 
-        window.workflow_navigation.setCurrentRow(5)
+        window.workflow_navigation.setCurrentRow(4)
         lif_index = window.export_window_material_combo.findData(
             WindowMaterial.LIF.value
         )
         window.export_window_material_combo.setCurrentIndex(lif_index)
         window.export_measurement_angle_spin.setValue(30.0)
         qapp.processEvents()
-        assert window.workflow_navigation.currentRow() == 5
+        assert window.workflow_navigation.currentRow() == 4
         assert window.workflow_state is WorkflowState.RESULT_READY
         assert window.window_material_combo.currentData() == WindowMaterial.LIF.value
         assert window.measurement_angle_spin.value() == pytest.approx(30.0)
@@ -308,16 +308,12 @@ def test_time_origin_defaults_to_event_and_controls_velocity_axis(
         assert reference_s is not None
         assert session.export_time_origin is ExportTimeOrigin.EVENT
         assert window.export_event_time_origin_radio.isChecked()
-        assert window.velocity_view.event_reference_line is not None
-        assert window.velocity_view.event_reference_line.value() == pytest.approx(0.0)
+        assert window.velocity_view.event_reference_line is None
 
         window.export_absolute_time_origin_radio.click()
         qapp.processEvents()
         assert session.export_time_origin is ExportTimeOrigin.ABSOLUTE
-        assert window.velocity_view.event_reference_line is not None
-        assert window.velocity_view.event_reference_line.value() == pytest.approx(
-            reference_s * 1e6
-        )
+        assert window.velocity_view.event_reference_line is None
     finally:
         window.close()
         qapp.processEvents()
