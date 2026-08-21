@@ -157,13 +157,21 @@ def extract_peak_ridge(
         try:
             magnitude = np.abs(stft_result.spectrum)
             search_band_magnitude = magnitude[np.ix_(band_indices, candidate_indices)]
-            relative_peak_indices = np.argmax(search_band_magnitude, axis=0)
-            frequency_indices = band_indices[relative_peak_indices]
-            frequency_hz[candidate_indices] = stft_result.frequency_hz[frequency_indices]
-            peak_magnitude[candidate_indices] = search_band_magnitude[
-                relative_peak_indices,
-                np.arange(candidate_indices.size),
-            ]
+            finite = np.isfinite(search_band_magnitude)
+            usable_columns = np.any(finite, axis=0)
+            safe_magnitude = np.where(finite, search_band_magnitude, -np.inf)
+            relative_peak_indices = np.argmax(safe_magnitude, axis=0)
+            for column_index, raw_frame_index in enumerate(candidate_indices):
+                frame_index = int(raw_frame_index)
+                if not usable_columns[column_index]:
+                    quality_flags[frame_index] = RidgeQualityFlag.NO_ALLOWED_BINS
+                    continue
+                frequency_index = int(band_indices[relative_peak_indices[column_index]])
+                frequency_hz[frame_index] = stft_result.frequency_hz[frequency_index]
+                peak_magnitude[frame_index] = search_band_magnitude[
+                    relative_peak_indices[column_index],
+                    column_index,
+                ]
         except Exception as exc:
             raise RidgeExtractionError(
                 "Could not extract the baseline peak-bin ridge from the validated "
@@ -196,7 +204,12 @@ def extract_peak_ridge(
                     quality_flags[frame_index] = RidgeQualityFlag.NO_ALLOWED_BINS
                     continue
                 allowed_magnitudes = magnitude[allowed_indices, frame_index]
-                relative_peak_index = int(np.argmax(allowed_magnitudes))
+                finite = np.isfinite(allowed_magnitudes)
+                if not np.any(finite):
+                    quality_flags[frame_index] = RidgeQualityFlag.NO_ALLOWED_BINS
+                    continue
+                safe_magnitudes = np.where(finite, allowed_magnitudes, -np.inf)
+                relative_peak_index = int(np.argmax(safe_magnitudes))
                 frequency_index = int(allowed_indices[relative_peak_index])
                 frequency_hz[frame_index] = frequency_axis[frequency_index]
                 peak_magnitude[frame_index] = allowed_magnitudes[

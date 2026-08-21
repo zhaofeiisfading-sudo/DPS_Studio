@@ -359,7 +359,7 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
         assert connector is not None
         connector_time_us, connector_velocity_m_s = connector.getData()
         finite_indices = np.flatnonzero(
-            np.isfinite(analysis.signal_detection_result.apparent_velocity_m_s)
+            np.isfinite(analysis.working_corrected_velocity_m_s)
             & (analysis.stft_result.time_s >= session.event_reference_time_s)
         )
         assert finite_indices.size > 0
@@ -373,7 +373,7 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
             * 1.0e6
         )
         assert connector_velocity_m_s[1] == pytest.approx(
-            analysis.signal_detection_result.apparent_velocity_m_s[first]
+            analysis.working_corrected_velocity_m_s[first]
         )
         np.testing.assert_array_equal(
             analysis.signal_detection_result.apparent_velocity_m_s,

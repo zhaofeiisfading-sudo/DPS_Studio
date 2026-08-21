@@ -580,6 +580,16 @@ def _metadata_document(
             ),
             "refinement_method": refined.refinement_method,
         },
+        "working_ridge": {
+            "frequency_field": "ChannelAnalysis.working_frequency_hz",
+            "working_source_field": "ChannelAnalysis.working_source",
+            "formal_frequency_field": (
+                "SignalDetectionResult.refined_frequency_hz"
+            ),
+            "formal_quality_gates_modified": False,
+            "same_frame_fallback_only": True,
+            "interpolation_or_smoothing_applied": False,
+        },
         "quality_configuration": {
             "detection_method": detection.detection_method,
             "minimum_peak_to_background_db": (
@@ -629,6 +639,12 @@ def _metadata_document(
             "stft_frame_count": int(stft.time_s.size),
             "exported_row_count": exported_row_count,
             "measured_frame_count": measured_count,
+            "working_finite_frame_count": int(
+                np.count_nonzero(np.isfinite(analysis.working_frequency_hz))
+            ),
+            "formal_frequency_finite_frame_count": int(
+                np.count_nonzero(np.isfinite(detection.refined_frequency_hz))
+            ),
             "pre_event_display_only_frame_count": display_only_count,
             "exported_pre_event_display_only_row_count": exported_display_only_count,
             "signal_state_counts": dict(
@@ -642,6 +658,9 @@ def _metadata_document(
             ),
             "ridge_selection_origin_counts": dict(
                 Counter(origin.value for origin in selection.origins)
+            ),
+            "working_source_counts": dict(
+                Counter(source.value for source in analysis.working_source)
             ),
         },
         "result_status": {

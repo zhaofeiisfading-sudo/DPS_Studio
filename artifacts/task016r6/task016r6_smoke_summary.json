@@ -1,0 +1,201 @@
+{
+  "command_semantics": "Windows Qt QApplication through the same MainWindow used by python -m dps_studio.gui",
+  "raw_hashes_unchanged": true,
+  "cases": {
+    "good": {
+      "source": "20260607.csv",
+      "workflow_state": "RESULT_READY",
+      "event_time_s": 0.0005546642542602401,
+      "event_source": "automatic_formal_event:pdv_channel_1",
+      "ch1_event_shared_across_channels": true,
+      "automatic": {
+        "pdv_channel_1": {
+          "analysis_frames": 620,
+          "working_finite_frames": 620,
+          "working_coverage": 1.0,
+          "formal_finite_frames": 390,
+          "formal_coverage": 0.6290322580645161,
+          "fallback_frames": 230,
+          "fallback_ratio": 0.3709677419354839,
+          "refined_frames": 555,
+          "quality_fail_but_working_frames": 230,
+          "hard_unavailable_frames": 0,
+          "formal_gate_consistent": true,
+          "working_velocity_conversion_exact": true,
+          "pre_event_platform_complete": true,
+          "pre_event_frame_count": 217,
+          "working_source_counts": {
+            "refined": 388,
+            "continuity_selected": 2,
+            "discrete_fallback": 65,
+            "low_confidence_fallback": 165,
+            "outside_analysis_window": 0,
+            "no_allowed_finite_bin": 0
+          },
+          "quality_state_counts": {
+            "measured": 390,
+            "no_detectable_beat": 54,
+            "ambiguous_peak": 168,
+            "insufficient_cycles": 0,
+            "peak_at_band_boundary": 1,
+            "refinement_failed": 0,
+            "unstable_detection": 7,
+            "outside_analysis_window": 0
+          }
+        },
+        "pdv_channel_2": {
+          "analysis_frames": 620,
+          "working_finite_frames": 620,
+          "working_coverage": 1.0,
+          "formal_finite_frames": 379,
+          "formal_coverage": 0.6112903225806452,
+          "fallback_frames": 241,
+          "fallback_ratio": 0.38870967741935486,
+          "refined_frames": 444,
+          "quality_fail_but_working_frames": 241,
+          "hard_unavailable_frames": 0,
+          "formal_gate_consistent": true,
+          "working_velocity_conversion_exact": true,
+          "pre_event_platform_complete": true,
+          "pre_event_frame_count": 217,
+          "working_source_counts": {
+            "refined": 379,
+            "continuity_selected": 0,
+            "discrete_fallback": 176,
+            "low_confidence_fallback": 65,
+            "outside_analysis_window": 0,
+            "no_allowed_finite_bin": 0
+          },
+          "quality_state_counts": {
+            "measured": 379,
+            "no_detectable_beat": 34,
+            "ambiguous_peak": 129,
+            "insufficient_cycles": 0,
+            "peak_at_band_boundary": 73,
+            "refinement_failed": 0,
+            "unstable_detection": 5,
+            "outside_analysis_window": 0
+          }
+        }
+      },
+      "yellow_curve_is_working_ridge": true,
+      "green_curve_is_formal_ridge": true,
+      "working_display_enabled_by_default": true
+    },
+    "bad": {
+      "source": "20260630-1.csv",
+      "workflow_state": "RESULT_READY",
+      "event_time_s": 0.0007462228149907737,
+      "event_source": "automatic_formal_event:pdv_channel_1",
+      "ch1_event_shared_across_channels": true,
+      "automatic": {
+        "pdv_channel_1": {
+          "analysis_frames": 1557,
+          "working_finite_frames": 1557,
+          "working_coverage": 1.0,
+          "formal_finite_frames": 820,
+          "formal_coverage": 0.5266538214515093,
+          "fallback_frames": 737,
+          "fallback_ratio": 0.4733461785484907,
+          "refined_frames": 932,
+          "quality_fail_but_working_frames": 737,
+          "hard_unavailable_frames": 0,
+          "formal_gate_consistent": true,
+          "working_velocity_conversion_exact": true,
+          "pre_event_platform_complete": true,
+          "pre_event_frame_count": 706,
+          "working_source_counts": {
+            "refined": 820,
+            "continuity_selected": 0,
+            "discrete_fallback": 625,
+            "low_confidence_fallback": 112,
+            "outside_analysis_window": 0,
+            "no_allowed_finite_bin": 0
+          },
+          "quality_state_counts": {
+            "measured": 820,
+            "no_detectable_beat": 2,
+            "ambiguous_peak": 120,
+            "insufficient_cycles": 0,
+            "peak_at_band_boundary": 562,
+            "refinement_failed": 0,
+            "unstable_detection": 53,
+            "outside_analysis_window": 0
+          }
+        },
+        "pdv_channel_2": {
+          "analysis_frames": 1557,
+          "working_finite_frames": 1557,
+          "working_coverage": 1.0,
+          "formal_finite_frames": 770,
+          "formal_coverage": 0.4945407835581246,
+          "fallback_frames": 787,
+          "fallback_ratio": 0.5054592164418754,
+          "refined_frames": 877,
+          "quality_fail_but_working_frames": 787,
+          "hard_unavailable_frames": 0,
+          "formal_gate_consistent": true,
+          "working_velocity_conversion_exact": true,
+          "pre_event_platform_complete": true,
+          "pre_event_frame_count": 706,
+          "working_source_counts": {
+            "refined": 769,
+            "continuity_selected": 1,
+            "discrete_fallback": 680,
+            "low_confidence_fallback": 107,
+            "outside_analysis_window": 0,
+            "no_allowed_finite_bin": 0
+          },
+          "quality_state_counts": {
+            "measured": 770,
+            "no_detectable_beat": 11,
+            "ambiguous_peak": 174,
+            "insufficient_cycles": 0,
+            "peak_at_band_boundary": 578,
+            "refinement_failed": 0,
+            "unstable_detection": 24,
+            "outside_analysis_window": 0
+          }
+        }
+      },
+      "yellow_curve_is_working_ridge": true,
+      "green_curve_is_formal_ridge": true,
+      "working_display_enabled_by_default": true,
+      "guided": {
+        "analysis_frames": 1557,
+        "working_finite_frames": 1557,
+        "working_coverage": 1.0,
+        "formal_finite_frames": 820,
+        "formal_coverage": 0.5266538214515093,
+        "fallback_frames": 737,
+        "fallback_ratio": 0.4733461785484907,
+        "refined_frames": 931,
+        "quality_fail_but_working_frames": 737,
+        "hard_unavailable_frames": 0,
+        "formal_gate_consistent": true,
+        "working_velocity_conversion_exact": true,
+        "pre_event_platform_complete": true,
+        "pre_event_frame_count": 706,
+        "working_source_counts": {
+          "refined": 820,
+          "continuity_selected": 0,
+          "discrete_fallback": 626,
+          "low_confidence_fallback": 111,
+          "outside_analysis_window": 0,
+          "no_allowed_finite_bin": 0
+        },
+        "quality_state_counts": {
+          "measured": 820,
+          "no_detectable_beat": 3,
+          "ambiguous_peak": 119,
+          "insufficient_cycles": 0,
+          "peak_at_band_boundary": 562,
+          "refinement_failed": 0,
+          "unstable_detection": 53,
+          "outside_analysis_window": 0
+        }
+      },
+      "guided_uses_shared_event": true
+    }
+  }
+}

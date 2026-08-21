@@ -2373,7 +2373,14 @@ class MainWindow(QMainWindow):
             return
         source = self._session.event_reference_source
         if self._session.event_time_source is EventTimeSource.AUTOMATIC:
-            source_text = self.tr("自动检测")
+            channel_name = next(iter(self._session.records), "pdv_channel_1")
+            automatic_source = self._session.resolved_event_source(channel_name)
+            source_text = (
+                self.tr("自动检测（低可信候选回退）")
+                if automatic_source is not None
+                and "low_confidence_fallback" in automatic_source
+                else self.tr("自动检测（CH1 共享）")
+            )
         elif source == "configuration":
             source_text = self.tr("当前配置")
         elif source is not None and source.startswith(
@@ -3474,7 +3481,7 @@ class MainWindow(QMainWindow):
             (
                 self._session.event_reference_source
                 if self._session.event_time_source is EventTimeSource.MANUAL
-                else EventTimeSource.AUTOMATIC.value
+                else self._session.resolved_event_source(channel_name)
             )
             if has_event_reference
             else None

@@ -213,7 +213,9 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         assert metadata["event_reference_time_s"] == (
             window.analysis_session.event_reference_time_s
         )
-        assert metadata["event_reference_source"] == "automatic"
+        assert metadata["event_reference_source"] == (
+            "automatic_formal_event:pdv_channel_1"
+        )
         assert metadata["event_time_source"] == "automatic"
         assert metadata["event_time_s"] == metadata["event_reference_time_s"]
         assert metadata["pre_event_display"]["included_in_csv"] is True

@@ -492,7 +492,11 @@ def validate_manual_frequency_region_for_stft(
     analysis_start_time_s: float | None = None,
     analysis_end_time_s: float | None = None,
 ) -> None:
-    """Validate the effective grid intersection while retaining physical points."""
+    """Validate physical bounds while allowing explicit per-frame empty masks.
+
+    An empty grid intersection is a hard unavailable frame in the production
+    Working Ridge, not a reason to reject an otherwise valid manual region.
+    """
     if not isinstance(stft_result, STFTResult):
         raise RidgeConfigurationError("stft_result must be an STFTResult instance.")
     analysis_start = _optional_finite_float(
@@ -519,7 +523,7 @@ def validate_manual_frequency_region_for_stft(
             raise RidgeConfigurationError(
                 "Manual boundary frequencies must not exceed the STFT maximum."
             )
-    mask = manual_frequency_region_mask(
+    manual_frequency_region_mask(
         region,
         stft_result,
         minimum_frequency_hz=minimum_frequency_hz,
@@ -537,13 +541,6 @@ def validate_manual_frequency_region_for_stft(
         minimum_frequency_hz=minimum_frequency_hz,
         maximum_frequency_hz=maximum_frequency_hz,
     )
-    empty_frames = active_frames & ~np.any(mask, axis=0)
-    if np.any(empty_frames):
-        first = int(np.flatnonzero(empty_frames)[0])
-        raise RidgeConfigurationError(
-            "The manual frequency region has no STFT frequency bin at "
-            f"time_s={float(stft_result.time_s[first])!r}."
-        )
 
 
 def _float_array(value: object, *, field_name: str) -> FloatArray:

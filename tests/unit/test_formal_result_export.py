@@ -214,7 +214,6 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
         row for row in detail_rows if row["is_pre_event_display_only"] == "true"
     ]
     assert display_only_rows
-    assert all(math.isnan(float(row["apparent_velocity_m_s"])) for row in display_only_rows)
     assert all(float(row["display_velocity_m_s"]) == 12.5 for row in display_only_rows)
     assert all(row["analysis_mode"] == "automatic" for row in detail_rows)
     assert all(row["channel"] == "pdv_channel_1" for row in detail_rows)
@@ -227,7 +226,10 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     ]
     assert post_event_invalid_indices
     assert all(
-        math.isnan(float(simple_rows[index]["display_velocity_m_s"]))
+        _same_float(
+            simple_rows[index]["display_velocity_m_s"],
+            analysis.working_corrected_velocity_m_s[index],
+        )
         for index in post_event_invalid_indices
     )
 
@@ -310,6 +312,20 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert metadata["pre_event_display"]["included_in_csv"] is True
     assert metadata["pre_event_display"]["formal_measurement_modified"] is False
     assert metadata["result_counts"]["exported_row_count"] == len(simple_rows)
+    assert metadata["working_ridge"] == {
+        "frequency_field": "ChannelAnalysis.working_frequency_hz",
+        "working_source_field": "ChannelAnalysis.working_source",
+        "formal_frequency_field": (
+            "SignalDetectionResult.refined_frequency_hz"
+        ),
+        "formal_quality_gates_modified": False,
+        "same_frame_fallback_only": True,
+        "interpolation_or_smoothing_applied": False,
+    }
+    assert metadata["result_counts"]["working_finite_frame_count"] == int(
+        np.count_nonzero(np.isfinite(analysis.working_frequency_hz))
+    )
+    assert metadata["result_counts"]["working_source_counts"]
     assert metadata["result_status"]["simple_csv_velocity_source"] == (
         "display_velocity_m_s"
     )

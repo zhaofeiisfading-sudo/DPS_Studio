@@ -97,6 +97,10 @@ def test_gui_display_parameter_refreshes_without_new_stft(
             name: analysis.apparent_velocity_m_s.copy()
             for name, analysis in original.items()
         }
+        working = {
+            name: analysis.working_corrected_velocity_m_s.copy()
+            for name, analysis in original.items()
+        }
         stft_objects = {
             name: analysis.stft_result for name, analysis in original.items()
         }
@@ -116,20 +120,22 @@ def test_gui_display_parameter_refreshes_without_new_stft(
                 ),
                 dtype=np.bool_,
             )
-            pre_event = (analysis.stft_result.time_s < reference_s) & ~measured
+            pre_event = analysis.stft_result.time_s < reference_s
             post_event_invalid = (
                 (analysis.stft_result.time_s >= reference_s) & ~measured
             )
             assert pre_event.any()
             assert post_event_invalid.any()
             assert np.equal(analysis.display_velocity_m_s[pre_event], 0.0).all()
+            post_event_measured = measured & ~pre_event
             np.testing.assert_array_equal(
-                analysis.display_velocity_m_s[measured],
-                formal[name][measured],
+                analysis.display_velocity_m_s[post_event_measured],
+                formal[name][post_event_measured],
             )
-            assert np.isnan(
-                analysis.display_velocity_m_s[post_event_invalid]
-            ).all()
+            np.testing.assert_array_equal(
+                analysis.display_velocity_m_s[post_event_invalid],
+                working[name][post_event_invalid],
+            )
             np.testing.assert_array_equal(
                 analysis.signal_detection_result.apparent_velocity_m_s,
                 apparent[name],
@@ -149,7 +155,7 @@ def test_gui_display_parameter_refreshes_without_new_stft(
                 ),
                 dtype=np.bool_,
             )
-            pre_event = (analysis.stft_result.time_s < reference_s) & ~measured
+            pre_event = analysis.stft_result.time_s < reference_s
             post_event_invalid = (
                 (analysis.stft_result.time_s >= reference_s) & ~measured
             )
@@ -157,9 +163,10 @@ def test_gui_display_parameter_refreshes_without_new_stft(
                 analysis.display_velocity_m_s[pre_event],
                 12.5,
             ).all()
-            assert np.isnan(
-                analysis.display_velocity_m_s[post_event_invalid]
-            ).all()
+            np.testing.assert_array_equal(
+                analysis.display_velocity_m_s[post_event_invalid],
+                working[name][post_event_invalid],
+            )
             np.testing.assert_array_equal(
                 analysis.signal_detection_result.apparent_velocity_m_s,
                 apparent[name],
@@ -185,7 +192,7 @@ def test_english_pre_event_display_velocity_term(qapp: QApplication) -> None:
         labels = {label.text() for label in window.findChildren(QLabel)}
         assert "Pre-event platform velocity" in labels
         assert window.velocity_view.display_velocity_check.text() == (
-            "Display Velocity (Non-formal Result)"
+            "Working/Display Velocity (Non-formal Result)"
         )
     finally:
         window.close()

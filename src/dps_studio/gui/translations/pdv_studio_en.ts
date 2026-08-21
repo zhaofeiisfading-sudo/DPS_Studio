@@ -2135,8 +2135,12 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
     </message>
     <message>
         <location filename="../main_window.py" line="2376"/>
-        <source>自动检测</source>
-        <translation>Automatic detection</translation>
+        <source>自动检测（低可信候选回退）</source>
+        <translation>Automatic detection (low-confidence candidate fallback)</translation>
+    </message>
+    <message>
+        <source>自动检测（CH1 共享）</source>
+        <translation>Automatic detection (shared from CH1)</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="2602"/>
@@ -3006,8 +3010,8 @@ The TASK-014 version connects only read-only data import and raw-signal display.
     </message>
     <message>
         <location filename="../result_views.py" line="874"/>
-        <source>亚频点精修脊线</source>
-        <translation>Sub-bin Refined Ridge</translation>
+        <source>工作脊线</source>
+        <translation>Working Ridge</translation>
     </message>
     <message>
         <location filename="../result_views.py" line="882"/>
@@ -3016,8 +3020,8 @@ The TASK-014 version connects only read-only data import and raw-signal display.
     </message>
     <message>
         <location filename="../result_views.py" line="889"/>
-        <source>逐帧质量状态：{summary}</source>
-        <translation>Per-frame quality states: {summary}</translation>
+        <source>逐帧质量状态：{summary}；工作点来源：{working}</source>
+        <translation>Per-frame quality states: {summary}; working-point sources: {working}</translation>
     </message>
 </context>
 <context>
@@ -3071,8 +3075,8 @@ The TASK-014 version connects only read-only data import and raw-signal display.
     </message>
     <message>
         <location filename="../result_views.py" line="936"/>
-        <source>显示速度（非正式结果）</source>
-        <translation>Display Velocity (Non-formal Result)</translation>
+        <source>工作/显示速度（非正式结果）</source>
+        <translation>Working/Display Velocity (Non-formal Result)</translation>
     </message>
     <message>
         <source>窗口修正尚未接入</source>
@@ -3170,8 +3174,8 @@ The TASK-014 version connects only read-only data import and raw-signal display.
     <message>
         <location filename="../result_views.py" line="1235"/>
         <location filename="../result_views.py" line="1254"/>
-        <source>显示速度（仅显示）</source>
-        <translation>Display Velocity (Display Only)</translation>
+        <source>工作/显示速度（非正式）</source>
+        <translation>Working/Display Velocity (Non-formal)</translation>
     </message>
     <message>
         <source>事件参考时刻</source>

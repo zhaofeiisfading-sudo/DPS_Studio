@@ -97,6 +97,7 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
     try:
         _prepare_result(window, tmp_path)
         view = window.velocity_view
+        view.display_velocity_check.setChecked(False)
         window.science_tabs.setCurrentWidget(view)
         qapp.processEvents()
         analysis = next(iter(window.analysis_session.channel_analyses.values()))

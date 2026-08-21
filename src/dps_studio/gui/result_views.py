@@ -126,35 +126,35 @@ def finite_velocity_xy_view_range(
 def display_velocity_connector_points(
     analysis: ChannelAnalysis,
 ) -> tuple[FloatArray, FloatArray] | None:
-    """Return a display-only pre-event-to-first-formal two-point connector.
+    """Return a display-only pre-event-to-first-working two-point connector.
 
-    The formal array is only read here.  In particular, no NaN is filled and
-    no intermediate sample is synthesized for scientific data.
+    No NaN is filled and no intermediate sample is synthesized for scientific
+    data; this only joins two already available display endpoints.
     """
     reference_s = analysis.signal_detection_result.manual_event_reference_time_s
     if reference_s is None:
         return None
     time_s = analysis.stft_result.time_s
     display_velocity = analysis.display_velocity_m_s
-    formal_velocity = analysis.signal_detection_result.apparent_velocity_m_s
+    working_velocity = analysis.working_corrected_velocity_m_s
     platform_indices = np.flatnonzero(
         (time_s < reference_s) & np.isfinite(display_velocity)
     )
-    formal_indices = np.flatnonzero(
-        (time_s >= reference_s) & np.isfinite(formal_velocity)
+    working_indices = np.flatnonzero(
+        (time_s >= reference_s) & np.isfinite(working_velocity)
     )
-    if platform_indices.size == 0 or formal_indices.size == 0:
+    if platform_indices.size == 0 or working_indices.size == 0:
         return None
     platform_index = int(platform_indices[-1])
-    formal_index = int(formal_indices[0])
+    working_index = int(working_indices[0])
     return (
         np.asarray(
-            [reference_s, time_s[formal_index]],
+            [reference_s, time_s[working_index]],
             dtype=np.float64,
         )
         * 1.0e6,
         np.asarray(
-            [display_velocity[platform_index], formal_velocity[formal_index]],
+            [display_velocity[platform_index], working_velocity[working_index]],
             dtype=np.float64,
         ),
     )
@@ -868,10 +868,10 @@ class RidgeView(_ChannelView):
         )
         self.refined_curve = self.plot_widget.plot(
             time_us,
-            analysis.refined_result.refined_frequency_hz * 1e-9,
+            analysis.working_frequency_hz * 1e-9,
             pen=pg.mkPen("#F0E442", width=1.2),
             connect="finite",
-            name=self.tr("亚频点精修脊线"),
+            name=self.tr("工作脊线"),
         )
         formal_frequency = analysis.signal_detection_result.refined_frequency_hz
         self.formal_curve = self.plot_widget.plot(
@@ -885,8 +885,15 @@ class RidgeView(_ChannelView):
             state.name for state in analysis.signal_detection_result.signal_states
         )
         summary = ", ".join(f"{name}={count}" for name, count in counts.items())
+        working_counts = Counter(source.name for source in analysis.working_source)
+        working_summary = ", ".join(
+            f"{name}={count}" for name, count in working_counts.items()
+        )
         self.quality_label.setText(
-            self.tr("逐帧质量状态：{summary}").format(summary=summary)
+            self.tr("逐帧质量状态：{summary}；工作点来源：{working}").format(
+                summary=summary,
+                working=working_summary,
+            )
         )
         if fit_view:
             self.plot_widget.autoRange()
@@ -933,7 +940,9 @@ class VelocityView(_ChannelView):
         source_row.addStretch(1)
         self.root_layout.addLayout(source_row)
         option_row = QHBoxLayout()
-        self.display_velocity_check = QCheckBox(self.tr("显示速度（非正式结果）"))
+        self.display_velocity_check = QCheckBox(
+            self.tr("工作/显示速度（非正式结果）")
+        )
         self.display_velocity_check.setObjectName("displayVelocityCheck")
         self.display_velocity_check.setChecked(False)
         self.display_velocity_check.toggled.connect(self._rerender)
@@ -1230,9 +1239,9 @@ class VelocityView(_ChannelView):
             self.display_curve = self.plot_widget.plot(
                 time_us,
                 analysis.display_velocity_m_s,
-                pen=pg.mkPen("#777777", width=1.2, style=pg.QtCore.Qt.DashLine),
+                pen=pg.mkPen("#6C5CE7", width=2.0),
                 connect="finite",
-                name=self.tr("显示速度（仅显示）"),
+                name=self.tr("工作/显示速度（非正式）"),
             )
             connector = display_velocity_connector_points(analysis)
             if connector is not None:
@@ -1244,14 +1253,14 @@ class VelocityView(_ChannelView):
                     connector_time_us,
                     connector_velocity_m_s,
                     pen=pg.mkPen(
-                        "#777777",
+                        "#6C5CE7",
                         width=1.0,
                         style=pg.QtCore.Qt.DashLine,
                     ),
                     connect="all",
                 )
                 self.display_connector.setToolTip(
-                    self.tr("显示速度（仅显示）")
+                    self.tr("工作/显示速度（非正式）")
                 )
         if fit_view:
             self.plot_widget.autoRange()
