@@ -8,7 +8,7 @@ import pytest
 from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 
-from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.ridge import ManualFrequencyRegion, RidgeCorridorConstraint
 from dps_studio.core.workflow import load_workflow_config
 from dps_studio.gui.app import translation_manager
 from dps_studio.gui.data_controller import (
@@ -173,7 +173,7 @@ def test_guided_reuses_stft_auto_fits_once_and_is_local_nan(
         qapp.processEvents()
 
 
-def test_undo_clear_and_width_changes_preserve_stft_and_automatic(
+def test_undo_and_clear_manual_region_preserve_stft_and_automatic(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -185,7 +185,7 @@ def test_undo_clear_and_width_changes_preserve_stft_and_automatic(
         automatic = session.channel_analyses
         stft = session.stft_results["pdv_channel_1"]
         controller = window.spectrogram_view.corridor_controller
-        assert controller.begin_drawing(half_width_hz=70.0e6)
+        assert controller.begin_boundary("upper")
         four_points = _constraint(window, count=4)
         controller._draft_points = list(
             zip(
@@ -195,13 +195,17 @@ def test_undo_clear_and_width_changes_preserve_stft_and_automatic(
         )
         controller._refresh_draft()
         controller._commit_live_draft()
-        assert session.ridge_constraints["pdv_channel_1"].control_point_count == 4
+        region = session.ridge_constraints["pdv_channel_1"]
+        assert isinstance(region, ManualFrequencyRegion)
+        assert region.upper_boundary is not None
+        assert region.upper_boundary.control_point_count == 4
         window.undo_corridor_button.click()
         window.action_backspace_corridor.trigger()
         qapp.processEvents()
-        assert session.ridge_constraints["pdv_channel_1"].control_point_count == 2
-        width_before = session.ridge_constraints["pdv_channel_1"].half_width_hz
-        window.corridor_half_width_spin.setValue(width_before * 1.0e-6 + 5.0)
+        region = session.ridge_constraints["pdv_channel_1"]
+        assert isinstance(region, ManualFrequencyRegion)
+        assert region.upper_boundary is not None
+        assert region.upper_boundary.control_point_count == 2
         qapp.processEvents()
         assert session.stft_results["pdv_channel_1"] is stft
         assert session.channel_analyses is automatic
@@ -212,9 +216,9 @@ def test_undo_clear_and_width_changes_preserve_stft_and_automatic(
         assert not session.ridge_constraints
         assert controller.constraint is None
         assert controller._roi is None
-        assert controller._upper_curve is None
-        assert controller._lower_curve is None
-        assert controller._fill_item is None
+        assert controller._upper_curve is not None
+        assert controller._lower_curve is not None
+        assert controller._fill_item is not None
         assert session.stft_results["pdv_channel_1"] is stft
         assert session.channel_analyses is automatic
         assert session.results_valid
@@ -237,10 +241,10 @@ def test_step_panels_and_1280_by_720_layout_use_scroll_areas(
         assert window.velocity_parameter_scroll.widgetResizable()
         assert window.action_guided not in window.main_toolbar.actions()
         assert window.compute_stft_button.text() == "计算时频图"
-        assert window.draw_corridor_button.text() == "绘制 / 编辑走廊"
-        assert window.undo_corridor_button.text() == "撤回上一点"
-        assert window.clear_corridor_button.text() == "清除走廊"
+        assert window.edit_upper_boundary_button.text() == "编辑上边界"
+        assert window.edit_lower_boundary_button.text() == "编辑下边界"
+        assert window.undo_corridor_button.text() == "撤销上一点"
+        assert window.clear_corridor_button.text() == "清除人工范围"
     finally:
         window.close()
         qapp.processEvents()
-

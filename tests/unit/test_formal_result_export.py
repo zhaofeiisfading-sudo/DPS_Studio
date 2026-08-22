@@ -19,7 +19,11 @@ from dps_studio.core.export import (
     export_formal_results,
 )
 from dps_studio.core.models import SignalRecord
-from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.ridge import (
+    ManualFrequencyBoundary,
+    ManualFrequencyRegion,
+    RidgeCorridorConstraint,
+)
 from dps_studio.core.workflow import (
     PRE_EVENT_DISPLAY_ORIGIN,
     analyze_configuration,
@@ -100,6 +104,7 @@ def _options(
     include_pre_event_display_rows: bool = True,
     protected_output_directories: tuple[Path, ...] = (),
     event_reference_source: str | None = "config",
+    event_time_source: str | None = "manual",
     time_origin: ExportTimeOrigin = ExportTimeOrigin.EVENT,
 ) -> ResultExportOptions:
     return ResultExportOptions(
@@ -113,6 +118,7 @@ def _options(
         pre_event_display_enabled=True,
         pre_event_display_velocity_m_s=12.5,
         event_reference_source=event_reference_source,
+        event_time_source=event_time_source,
         protected_output_directories=protected_output_directories,
     )
 
@@ -208,7 +214,6 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
         row for row in detail_rows if row["is_pre_event_display_only"] == "true"
     ]
     assert display_only_rows
-    assert all(math.isnan(float(row["apparent_velocity_m_s"])) for row in display_only_rows)
     assert all(float(row["display_velocity_m_s"]) == 12.5 for row in display_only_rows)
     assert all(row["analysis_mode"] == "automatic" for row in detail_rows)
     assert all(row["channel"] == "pdv_channel_1" for row in detail_rows)
@@ -221,7 +226,10 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     ]
     assert post_event_invalid_indices
     assert all(
-        math.isnan(float(simple_rows[index]["display_velocity_m_s"]))
+        _same_float(
+            simple_rows[index]["display_velocity_m_s"],
+            analysis.working_corrected_velocity_m_s[index],
+        )
         for index in post_event_invalid_indices
     )
 
@@ -304,6 +312,20 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert metadata["pre_event_display"]["included_in_csv"] is True
     assert metadata["pre_event_display"]["formal_measurement_modified"] is False
     assert metadata["result_counts"]["exported_row_count"] == len(simple_rows)
+    assert metadata["working_ridge"] == {
+        "frequency_field": "ChannelAnalysis.working_frequency_hz",
+        "working_source_field": "ChannelAnalysis.working_source",
+        "formal_frequency_field": (
+            "SignalDetectionResult.refined_frequency_hz"
+        ),
+        "formal_quality_gates_modified": False,
+        "same_frame_fallback_only": True,
+        "interpolation_or_smoothing_applied": False,
+    }
+    assert metadata["result_counts"]["working_finite_frame_count"] == int(
+        np.count_nonzero(np.isfinite(analysis.working_frequency_hz))
+    )
+    assert metadata["result_counts"]["working_source_counts"]
     assert metadata["result_status"]["simple_csv_velocity_source"] == (
         "display_velocity_m_s"
     )
@@ -343,7 +365,7 @@ def test_actual_stft_window_is_recorded_in_the_single_metadata_json(
     assert metadata["stft_configuration"]["nfft"] == 1024
 
 
-def test_event_metadata_case_a_candidates_exist_without_adopted_reference(
+def test_event_metadata_case_a_automatic_candidate_is_the_resolved_reference(
     tmp_path: Path,
 ) -> None:
     results = _analyses(tmp_path, manual_event_reference_time_s=None)
@@ -355,7 +377,8 @@ def test_event_metadata_case_a_candidates_exist_without_adopted_reference(
             mode=ResultAnalysisMode.AUTOMATIC,
             analyses={"pdv_channel_1": analysis},
             source_path=results["source_path"],
-            event_reference_source=None,
+            event_reference_source="automatic",
+            event_time_source="automatic",
             time_origin=ExportTimeOrigin.ABSOLUTE,
         )
     )
@@ -365,8 +388,12 @@ def test_event_metadata_case_a_candidates_exist_without_adopted_reference(
 
     assert metadata["automatic_event_candidate_time_s"] is not None
     assert metadata["compatibility_event_candidate_time_s"] is not None
-    assert metadata["event_reference_time_s"] is None
-    assert metadata["event_reference_source"] is None
+    assert metadata["event_reference_time_s"] == metadata[
+        "automatic_event_candidate_time_s"
+    ]
+    assert metadata["event_reference_source"] == "automatic"
+    assert metadata["event_time_source"] == "automatic"
+    assert metadata["event_time_s"] == metadata["event_reference_time_s"]
     assert len(tuple(tmp_path.iterdir())) == 4  # source fixture plus exactly three exports
     assert len(tuple(tmp_path.glob("*.metadata.json"))) == 1
 
@@ -440,6 +467,7 @@ def test_event_metadata_case_d_absent_candidates_remain_null(tmp_path: Path) -> 
             analyses={"pdv_channel_1": analysis},
             source_path=results["source_path"],
             event_reference_source=None,
+            event_time_source=None,
             time_origin=ExportTimeOrigin.ABSOLUTE,
         )
     )
@@ -525,6 +553,53 @@ def test_dual_channels_and_automatic_guided_results_export_independently(
         )
         assert metadata["velocity_correction"]["angle"]["angle_rad"] == 0.0
         assert "event_reference_time_s" in metadata
+
+
+def test_guided_export_records_manual_frequency_boundaries_in_si(
+    tmp_path: Path,
+) -> None:
+    results = _analyses(tmp_path)
+    analysis = results["guided"]["pdv_channel_1"]
+    region = ManualFrequencyRegion(
+        upper_boundary=ManualFrequencyBoundary(
+            np.array([0.2e-6, 0.8e-6]),
+            np.array([300.0e6, 850.0e6]),
+        ),
+        lower_boundary=ManualFrequencyBoundary(
+            np.array([0.3e-6, 0.7e-6]),
+            np.array([100.0e6, 650.0e6]),
+        ),
+    )
+    options = replace(
+        _options(
+            tmp_path,
+            mode=ResultAnalysisMode.GUIDED,
+            analyses={"pdv_channel_1": analysis},
+            source_path=results["source_path"],
+        ),
+        ridge_constraints={"pdv_channel_1": region},
+    )
+
+    exported = export_formal_results(options).exported_channels[0]
+    metadata = json.loads(exported.metadata_path.read_text(encoding="utf-8"))
+    manual = metadata["manual_frequency_region"]
+
+    assert manual["constraint_model"] == "manual_upper_lower_boundaries"
+    assert manual["outside_manual_time_range"] == "endpoint_constant_extension"
+    assert manual["boundary_interpolation"] == "piecewise_linear"
+    assert manual["boundary_extrapolation"] == (
+        "constant_first_and_last_frequency"
+    )
+    assert manual["legacy_corridor"] is None
+    assert manual["upper_boundary"] == [
+        {"time_s": 0.2e-6, "frequency_hz": 300.0e6},
+        {"time_s": 0.8e-6, "frequency_hz": 850.0e6},
+    ]
+    assert manual["lower_boundary"] == [
+        {"time_s": 0.3e-6, "frequency_hz": 100.0e6},
+        {"time_s": 0.7e-6, "frequency_hz": 650.0e6},
+    ]
+    assert "corridor_half_width_hz" not in manual
 
 
 def test_existing_exports_receive_a_consistent_suffix_without_overwrite(

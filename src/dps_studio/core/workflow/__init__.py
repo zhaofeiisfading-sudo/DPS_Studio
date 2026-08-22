@@ -24,7 +24,7 @@ from dps_studio.core.workflow.display import (
     configure_channel_display_velocity,
     configure_channel_velocity_correction,
 )
-from dps_studio.core.workflow.models import ChannelAnalysis
+from dps_studio.core.workflow.models import ChannelAnalysis, WorkingRidgeSource
 from dps_studio.core.workflow.quality_parameters import (
     derive_background_exclusion_half_width_hz,
     derive_bin_guard_half_width_hz,
@@ -39,6 +39,7 @@ __all__ = [
     "QualityConfiguration",
     "WorkflowConfiguration",
     "WorkflowConfigurationError",
+    "WorkingRidgeSource",
     "PRE_EVENT_DISPLAY_ORIGIN",
     "analyze_configuration",
     "analyze_profile",

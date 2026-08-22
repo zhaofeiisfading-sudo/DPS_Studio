@@ -27,7 +27,13 @@ from dps_studio.core.ridge.diagnostics import (
     assess_ridge_continuity,
 )
 from dps_studio.core.ridge.guidance import (
+    ManualFrequencyBoundary,
+    ManualFrequencyRegion,
     RidgeCorridorConstraint,
+    RidgeSearchConstraint,
+    evaluate_manual_frequency_region_bounds,
+    manual_frequency_region_mask,
+    validate_manual_frequency_region_for_stft,
     validate_ridge_corridor_for_stft,
 )
 from dps_studio.core.ridge.models import (
@@ -72,6 +78,8 @@ __all__ = [
     "LocalPeakCandidate",
     "LocalPeakCandidateConfig",
     "LocalPeakCandidateResult",
+    "ManualFrequencyBoundary",
+    "ManualFrequencyRegion",
     "CandidateReselectionEvidence",
     "CandidateReselectionReason",
     "ContinuityReselectionConfig",
@@ -86,6 +94,7 @@ __all__ = [
     "RidgeContinuityResult",
     "RidgeContinuityStatus",
     "RidgeCorridorConstraint",
+    "RidgeSearchConstraint",
     "RidgeQualityFlag",
     "RidgeRefinementStatus",
     "RidgeResult",
@@ -97,9 +106,12 @@ __all__ = [
     "assess_ridge_spectral_quality",
     "extract_local_peak_candidates",
     "extract_peak_ridge",
+    "evaluate_manual_frequency_region_bounds",
+    "manual_frequency_region_mask",
     "refine_peak_ridge_subbin",
     "refine_three_point_log_magnitude",
     "reselect_isolated_jump_candidates",
     "select_automatic_ridge",
+    "validate_manual_frequency_region_for_stft",
     "validate_ridge_corridor_for_stft",
 ]

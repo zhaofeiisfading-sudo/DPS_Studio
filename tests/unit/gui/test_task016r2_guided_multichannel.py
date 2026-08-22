@@ -178,7 +178,9 @@ def test_guided_channels_are_independent_and_runs_target_displayed_channel(
         _select_spectrogram_channel(window, "pdv_channel_1")
         qapp.processEvents()
         assert controller.constraint is corridor_1
-        assert window.corridor_half_width_spin.value() == pytest.approx(70.0)
+        assert window.upper_boundary_point_count_label.text() == "2"
+        assert window.lower_boundary_point_count_label.text() == "2"
+        assert "旧版走廊" in window.corridor_state_label.text()
 
         _select_spectrogram_channel(window, "pdv_channel_2")
         changed_2 = RidgeCorridorConstraint(
@@ -227,7 +229,7 @@ def test_guided_only_velocity_source_keeps_missing_channel_selectable(
         assert channel_2_index >= 0
         view.channel_combo.setCurrentIndex(channel_2_index)
         qapp.processEvents()
-        assert "当前通道尚无引导结果" in view.source_notice.text()
+        assert "当前通道尚无人工范围结果" in view.source_notice.text()
         assert not view.source_notice.isHidden()
         assert view.formal_curve is None
     finally:
@@ -357,7 +359,7 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
         assert connector is not None
         connector_time_us, connector_velocity_m_s = connector.getData()
         finite_indices = np.flatnonzero(
-            np.isfinite(analysis.signal_detection_result.apparent_velocity_m_s)
+            np.isfinite(analysis.working_corrected_velocity_m_s)
             & (analysis.stft_result.time_s >= session.event_reference_time_s)
         )
         assert finite_indices.size > 0
@@ -371,7 +373,7 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
             * 1.0e6
         )
         assert connector_velocity_m_s[1] == pytest.approx(
-            analysis.signal_detection_result.apparent_velocity_m_s[first]
+            analysis.working_corrected_velocity_m_s[first]
         )
         np.testing.assert_array_equal(
             analysis.signal_detection_result.apparent_velocity_m_s,

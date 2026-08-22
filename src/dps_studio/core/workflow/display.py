@@ -33,11 +33,11 @@ def build_display_velocity(
 ) -> tuple[FloatArray, tuple[str, ...]]:
     """Build a separate display array from an explicit event reference.
 
-    A formal ``MEASURED`` frame always retains its final corrected velocity.
-    Only non-measured frames inside the explicit analysis range and strictly
-    before ``manual_event_reference_time_s`` receive the configured
-    display-only platform. Every post-event invalid frame remains NaN. A
-    reference outside the active analysis/data domain produces no platform.
+    Every frame inside the explicit analysis range and strictly before the
+    resolved event reference receives the configured platform, regardless of
+    formal quality or working-ridge frequency. Post-event values come from the
+    supplied non-formal working velocity array. A reference outside the active
+    analysis/data domain produces no platform.
     """
     if not isinstance(enable_pre_event_display, bool):
         raise TypeError("enable_pre_event_display must be a boolean.")
@@ -89,9 +89,7 @@ def build_display_velocity(
     display = formal.copy()
     origins: list[str] = []
     for index, state in enumerate(states):
-        if state is SignalState.MEASURED:
-            origins.append("quality_gated_measurement")
-        elif (
+        if (
             enable_pre_event_display
             and reference_is_active
             and time[index] >= display_start
@@ -102,6 +100,8 @@ def build_display_velocity(
             origins.append(PRE_EVENT_DISPLAY_ORIGIN)
         elif state is SignalState.OUTSIDE_ANALYSIS_WINDOW:
             origins.append("outside_analysis_window")
+        elif np.isfinite(display[index]):
+            origins.append("working_ridge_velocity")
         else:
             origins.append(state.value)
     return display, tuple(origins)
@@ -120,7 +120,7 @@ def configure_channel_display_velocity(
     display, origins = build_display_velocity(
         detection.time_s,
         detection.signal_states,
-        analysis.corrected_velocity_m_s,
+        analysis.working_corrected_velocity_m_s,
         manual_event_reference_time_s=(
             detection.manual_event_reference_time_s
         ),
@@ -156,9 +156,15 @@ def configure_channel_velocity_correction(
         config=velocity_correction_config,
         vacuum_wavelength_m=vacuum_wavelength_m,
     )
+    working_correction = apply_velocity_corrections(
+        analysis.working_apparent_velocity_m_s,
+        config=velocity_correction_config,
+        vacuum_wavelength_m=vacuum_wavelength_m,
+    )
     updated = replace(
         analysis,
         velocity_correction_result=correction,
+        working_velocity_correction_result=working_correction,
     )
     return configure_channel_display_velocity(
         updated,

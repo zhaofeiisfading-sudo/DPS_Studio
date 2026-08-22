@@ -23,12 +23,15 @@ from dps_studio.core.quality import SignalDetectionConfig
 from dps_studio.core.ridge import (
     AutomaticRidgeExtractionMode,
     AutomaticRidgeSelectionConfig,
+    ManualFrequencyRegion,
     RidgeCorridorConstraint,
+    RidgeSearchConstraint,
 )
 from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import (
     ChannelAnalysis,
     WorkflowConfiguration,
+    configure_channel_display_velocity,
     configure_channel_event_reference,
     configure_channel_velocity_correction,
 )
@@ -53,6 +56,13 @@ class RidgeExtractionMode(str, Enum):
 
     AUTOMATIC = "automatic"
     GUIDED = "guided"
+
+
+class EventTimeSource(str, Enum):
+    """User-selected source for the resolved event-time workflow."""
+
+    AUTOMATIC = "automatic"
+    MANUAL = "manual"
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,7 +131,7 @@ def _empty_analyses() -> Mapping[str, ChannelAnalysis]:
     return MappingProxyType({})
 
 
-def _empty_constraints() -> Mapping[str, RidgeCorridorConstraint]:
+def _empty_constraints() -> Mapping[str, RidgeSearchConstraint]:
     return MappingProxyType({})
 
 
@@ -147,7 +157,7 @@ class AnalysisSession:
     guided_channel_analyses: Mapping[str, ChannelAnalysis] = field(
         default_factory=_empty_analyses
     )
-    ridge_constraints: Mapping[str, RidgeCorridorConstraint] = field(
+    ridge_constraints: Mapping[str, RidgeSearchConstraint] = field(
         default_factory=_empty_constraints
     )
     stft_valid: bool = False
@@ -157,6 +167,13 @@ class AnalysisSession:
     guided_result_valid_channels: frozenset[str] = field(default_factory=frozenset)
     guided_result_stale_channels: frozenset[str] = field(default_factory=frozenset)
     ridge_extraction_mode: RidgeExtractionMode = RidgeExtractionMode.AUTOMATIC
+    event_time_source: EventTimeSource = EventTimeSource.AUTOMATIC
+    automatic_event_reference_times_s: Mapping[str, float | None] = field(
+        default_factory=dict
+    )
+    automatic_event_reference_sources: Mapping[str, str | None] = field(
+        default_factory=dict
+    )
     generation_id: int = 0
     guided_generation_id: int = 0
     event_reference_source: str | None = None
@@ -179,6 +196,9 @@ class AnalysisSession:
         self.records = MappingProxyType(dict(records))
         self.analysis_range = None
         self.ridge_constraints = _empty_constraints()
+        self.event_time_source = EventTimeSource.AUTOMATIC
+        self.automatic_event_reference_times_s = MappingProxyType({})
+        self.automatic_event_reference_sources = MappingProxyType({})
         self.export_time_origin = ExportTimeOrigin.EVENT
         self._reset_event_reference_for_current_records()
         self._invalidate()
@@ -251,6 +271,11 @@ class AnalysisSession:
             "configuration"
             if configuration.analysis.event_reference_time_s is not None
             else None
+        )
+        self.event_time_source = (
+            EventTimeSource.MANUAL
+            if configuration.analysis.event_reference_time_s is not None
+            else EventTimeSource.AUTOMATIC
         )
         self.rejected_event_reference_time_s = None
         self._reset_event_reference_for_current_records()
@@ -397,15 +422,42 @@ class AnalysisSession:
             enable_pre_event_display=enabled,
             pre_event_display_velocity_m_s=value,
         )
-        self._refresh_display_results()
+        self._refresh_display_velocity_only()
         return True
 
     @property
     def event_reference_time_s(self) -> float | None:
-        """Return the current validated per-experiment event reference."""
+        """Return the current resolved reference for the first available channel."""
         if self.run_configuration is None:
             return None
-        return self.run_configuration.event_reference_time_s
+        if self.event_time_source is EventTimeSource.MANUAL:
+            return self.run_configuration.event_reference_time_s
+        return next(
+            (
+                value
+                for value in self.automatic_event_reference_times_s.values()
+                if value is not None
+            ),
+            None,
+        )
+
+    def resolved_event_time_s(self, channel_name: str) -> float | None:
+        """Return the manual override or production shared automatic event."""
+        if self.run_configuration is None:
+            return None
+        if self.event_time_source is EventTimeSource.MANUAL:
+            return self.run_configuration.event_reference_time_s
+        return self.automatic_event_reference_times_s.get(channel_name)
+
+    def resolved_event_source(self, channel_name: str) -> str | None:
+        """Return auditable manual/formal/fallback event provenance."""
+        if self.event_time_source is EventTimeSource.MANUAL:
+            return self.event_reference_source
+        return self.automatic_event_reference_sources.get(channel_name)
+
+    @property
+    def manual_event_override_enabled(self) -> bool:
+        return self.event_time_source is EventTimeSource.MANUAL
 
     def set_event_reference_time_s(
         self,
@@ -429,33 +481,37 @@ class AnalysisSession:
         reference_changed = (
             reference != self.run_configuration.event_reference_time_s
         )
+        mode_changed = self.event_time_source is not EventTimeSource.MANUAL
         normalized_source = source.strip()
         source_changed = normalized_source != self.event_reference_source
         self.run_configuration = replace(
             self.run_configuration,
             event_reference_time_s=reference,
         )
+        self.event_time_source = EventTimeSource.MANUAL
         self.event_reference_source = normalized_source
         self.rejected_event_reference_time_s = None
-        if reference_changed or source_changed:
+        if reference_changed or source_changed or mode_changed:
             self._refresh_display_results()
-        return reference_changed or source_changed
+        return reference_changed or source_changed or mode_changed
 
     def clear_event_reference(self) -> bool:
         """Unset the display/review reference without changing formal results."""
         if self.run_configuration is None:
             return False
         previous = self.run_configuration.event_reference_time_s
-        if previous is None:
+        was_manual = self.event_time_source is EventTimeSource.MANUAL
+        if previous is None and not was_manual:
             return False
         self.run_configuration = replace(
             self.run_configuration,
             event_reference_time_s=None,
         )
         self.event_reference_source = None
+        self.event_time_source = EventTimeSource.AUTOMATIC
         self.rejected_event_reference_time_s = None
         self._refresh_display_results()
-        return True
+        return previous is not None or was_manual
 
     def accept_results(
         self,
@@ -476,6 +532,19 @@ class AnalysisSession:
         )
         self.stft_valid = True
         self.results_valid = True
+        reference_channel = (
+            "pdv_channel_1" if "pdv_channel_1" in analyses else next(iter(analyses))
+        )
+        shared_reference, shared_source = _automatic_event_resolution(
+            analyses[reference_channel],
+            reference_channel=reference_channel,
+        )
+        self.automatic_event_reference_times_s = MappingProxyType(
+            {channel_name: shared_reference for channel_name in analyses}
+        )
+        self.automatic_event_reference_sources = MappingProxyType(
+            {channel_name: shared_source for channel_name in analyses}
+        )
         self._refresh_display_results()
         return True
 
@@ -560,6 +629,20 @@ class AnalysisSession:
         merged = dict(self.guided_channel_analyses)
         merged.update(analyses)
         self.guided_channel_analyses = MappingProxyType(merged)
+        if self.event_time_source is EventTimeSource.AUTOMATIC:
+            references = dict(self.automatic_event_reference_times_s)
+            sources = dict(self.automatic_event_reference_sources)
+            for channel_name, analysis in analyses.items():
+                references.setdefault(
+                    channel_name,
+                    analysis.signal_detection_result.manual_event_reference_time_s,
+                )
+                sources.setdefault(
+                    channel_name,
+                    analysis.event_aware_continuity_result.event_reference_source,
+                )
+            self.automatic_event_reference_times_s = MappingProxyType(references)
+            self.automatic_event_reference_sources = MappingProxyType(sources)
         valid_channels = set(self.guided_result_valid_channels)
         valid_channels.update(analyses)
         stale_channels = set(self.guided_result_stale_channels)
@@ -570,13 +653,19 @@ class AnalysisSession:
     def set_ridge_constraint(
         self,
         channel_name: str,
-        constraint: RidgeCorridorConstraint,
+        constraint: RidgeSearchConstraint,
     ) -> bool:
-        """Set one channel-local corridor and stale only guided results."""
+        """Set one channel-local search constraint and stale only its result."""
         if channel_name not in self.records:
             raise ValueError(f"Unknown channel {channel_name!r}.")
-        if not isinstance(constraint, RidgeCorridorConstraint):
-            raise TypeError("constraint must be a RidgeCorridorConstraint.")
+        if not isinstance(
+            constraint,
+            (RidgeCorridorConstraint, ManualFrequencyRegion),
+        ):
+            raise TypeError(
+                "constraint must be a RidgeCorridorConstraint or "
+                "ManualFrequencyRegion."
+            )
         previous = self.ridge_constraints.get(channel_name)
         if previous is constraint:
             return False
@@ -618,6 +707,8 @@ class AnalysisSession:
         self.stft_results = _empty_stft_results()
         self.channel_analyses = _empty_analyses()
         self.guided_channel_analyses = _empty_analyses()
+        self.automatic_event_reference_times_s = MappingProxyType({})
+        self.automatic_event_reference_sources = MappingProxyType({})
         self.stft_valid = False
         self.results_valid = False
         self._set_guided_result_state((), ())
@@ -628,6 +719,8 @@ class AnalysisSession:
         self.guided_generation_id += 1
         self.channel_analyses = _empty_analyses()
         self.guided_channel_analyses = _empty_analyses()
+        self.automatic_event_reference_times_s = MappingProxyType({})
+        self.automatic_event_reference_sources = MappingProxyType({})
         self.results_valid = False
         self._set_guided_result_state((), ())
 
@@ -666,15 +759,33 @@ class AnalysisSession:
         configuration = self.run_configuration
         if configuration is None:
             return
+
+        def resolved_reference(
+            channel_name: str,
+            analysis: ChannelAnalysis,
+        ) -> float | None:
+            if self.event_time_source is EventTimeSource.MANUAL:
+                return configuration.event_reference_time_s
+            automatic = self.automatic_event_reference_times_s.get(channel_name)
+            if automatic is not None:
+                return automatic
+            return analysis.signal_detection_result.manual_event_reference_time_s
+
         if self.channel_analyses:
             self.channel_analyses = MappingProxyType(
                 {
                     channel_name: configure_channel_event_reference(
                         analysis,
-                        event_reference_time_s=(
-                            configuration.event_reference_time_s
+                        event_reference_time_s=resolved_reference(
+                            channel_name, analysis
                         ),
-                        event_reference_source=self.event_reference_source,
+                        event_reference_source=(
+                            self.event_reference_source
+                            if self.event_time_source is EventTimeSource.MANUAL
+                            else self.automatic_event_reference_sources.get(
+                                channel_name
+                            )
+                        ),
                         enable_pre_event_display=(
                             configuration.enable_pre_event_display
                         ),
@@ -690,10 +801,16 @@ class AnalysisSession:
                 {
                     channel_name: configure_channel_event_reference(
                         analysis,
-                        event_reference_time_s=(
-                            configuration.event_reference_time_s
+                        event_reference_time_s=resolved_reference(
+                            channel_name, analysis
                         ),
-                        event_reference_source=self.event_reference_source,
+                        event_reference_source=(
+                            self.event_reference_source
+                            if self.event_time_source is EventTimeSource.MANUAL
+                            else self.automatic_event_reference_sources.get(
+                                channel_name
+                            )
+                        ),
                         enable_pre_event_display=(
                             configuration.enable_pre_event_display
                         ),
@@ -701,6 +818,36 @@ class AnalysisSession:
                             configuration.pre_event_display_velocity_m_s
                         ),
                     )
+                    for channel_name, analysis in self.guided_channel_analyses.items()
+                }
+            )
+
+    def _refresh_display_velocity_only(self) -> None:
+        """Rebuild display arrays while preserving every upstream object."""
+        configuration = self.run_configuration
+        if configuration is None:
+            return
+
+        def refreshed(analysis: ChannelAnalysis) -> ChannelAnalysis:
+            return configure_channel_display_velocity(
+                analysis,
+                enable_pre_event_display=configuration.enable_pre_event_display,
+                pre_event_display_velocity_m_s=(
+                    configuration.pre_event_display_velocity_m_s
+                ),
+            )
+
+        if self.channel_analyses:
+            self.channel_analyses = MappingProxyType(
+                {
+                    channel_name: refreshed(analysis)
+                    for channel_name, analysis in self.channel_analyses.items()
+                }
+            )
+        if self.guided_channel_analyses:
+            self.guided_channel_analyses = MappingProxyType(
+                {
+                    channel_name: refreshed(analysis)
                     for channel_name, analysis in self.guided_channel_analyses.items()
                 }
             )
@@ -752,6 +899,7 @@ class AnalysisSession:
                 event_reference_time_s=None,
             )
             self.event_reference_source = None
+            self.event_time_source = EventTimeSource.AUTOMATIC
             self.rejected_event_reference_time_s = None
             return
         if self.records and not self._reference_is_valid_for_current_records(
@@ -762,6 +910,7 @@ class AnalysisSession:
                 event_reference_time_s=None,
             )
             self.event_reference_source = None
+            self.event_time_source = EventTimeSource.AUTOMATIC
             self.rejected_event_reference_time_s = configured
             return
         self.run_configuration = replace(
@@ -769,6 +918,7 @@ class AnalysisSession:
             event_reference_time_s=configured,
         )
         self.event_reference_source = "configuration"
+        self.event_time_source = EventTimeSource.MANUAL
         self.rejected_event_reference_time_s = None
 
     def _clear_reference_outside_current_domain(self) -> None:
@@ -785,6 +935,7 @@ class AnalysisSession:
             event_reference_time_s=None,
         )
         self.event_reference_source = None
+        self.event_time_source = EventTimeSource.AUTOMATIC
         self.rejected_event_reference_time_s = reference
 
     def _reference_is_valid_for_current_records(self, value: float) -> bool:
@@ -803,8 +954,25 @@ class AnalysisSession:
         )
 
 
+def _automatic_event_resolution(
+    analysis: ChannelAnalysis,
+    *,
+    reference_channel: str,
+) -> tuple[float | None, str | None]:
+    """Resolve an existing formal event or detector candidate without invention."""
+    formal = analysis.stream_event_candidates.primary_candidate_time_s
+    if formal is not None:
+        return formal, f"automatic_formal_event:{reference_channel}"
+    fallback = analysis.signal_detection_result.detected_event_candidate_time_s
+    if fallback is not None:
+        return fallback, f"automatic_low_confidence_fallback:{reference_channel}"
+    return None, None
+
+
 __all__ = [
     "AnalysisRange",
     "AnalysisRunConfiguration",
     "AnalysisSession",
+    "EventTimeSource",
+    "RidgeExtractionMode",
 ]

@@ -25,7 +25,7 @@ def test_default_pre_event_display_velocity_is_zero_m_s() -> None:
     assert origins[:2] == (PRE_EVENT_DISPLAY_ORIGIN,) * 2
 
 
-def test_nonzero_platform_changes_only_pre_event_nonmeasured_frames() -> None:
+def test_nonzero_platform_changes_every_pre_event_frame() -> None:
     time_s, states, formal = _mixed_states()
     formal_bytes = formal.tobytes()
     display, origins = build_display_velocity(
@@ -36,15 +36,14 @@ def test_nonzero_platform_changes_only_pre_event_nonmeasured_frames() -> None:
         enable_pre_event_display=True,
         pre_event_display_velocity_m_s=12.5,
     )
-    np.testing.assert_array_equal(display[:2], [12.5, 12.5])
-    assert display[2] == formal[2]
+    np.testing.assert_array_equal(display[:3], [12.5, 12.5, 12.5])
     assert display[3] == formal[3]
     assert np.isnan(display[4:]).all()
     assert formal.tobytes() == formal_bytes
     assert np.isnan(formal[[0, 1, 4, 5]]).all()
     assert origins[0] == PRE_EVENT_DISPLAY_ORIGIN
     assert origins[1] == PRE_EVENT_DISPLAY_ORIGIN
-    assert origins[2] == "quality_gated_measurement"
+    assert origins[2] == PRE_EVENT_DISPLAY_ORIGIN
     assert origins[4] == SignalState.NO_DETECTABLE_BEAT.value
     assert origins[5] == SignalState.REFINEMENT_FAILED.value
 
@@ -102,8 +101,8 @@ def test_channels_apply_their_own_state_masks_without_fusion() -> None:
         enable_pre_event_display=True,
         pre_event_display_velocity_m_s=12.5,
     )
-    np.testing.assert_array_equal(first, [12.5, 30.0, np.nan])
-    np.testing.assert_array_equal(second, [20.0, 12.5, np.nan])
+    np.testing.assert_array_equal(first, [12.5, 12.5, np.nan])
+    np.testing.assert_array_equal(second, [12.5, 12.5, np.nan])
 
 
 def test_platform_is_limited_to_analysis_start_and_valid_reference() -> None:

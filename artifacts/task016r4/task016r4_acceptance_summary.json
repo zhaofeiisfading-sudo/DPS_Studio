@@ -1,0 +1,66 @@
+{
+  "task": "TASK-016R4",
+  "qt_platform": "windows",
+  "source": "data/raw/20260607.csv",
+  "source_sha256_before": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+  "source_sha256_after": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353",
+  "channel": "pdv_channel_1",
+  "constraint_model": "manual_upper_lower_boundaries",
+  "upper_boundary": [
+    {
+      "time_s": 0.0005543666542601386,
+      "frequency_hz": 800000000.0
+    },
+    {
+      "time_s": 0.0005547634542602739,
+      "frequency_hz": 800000000.0
+    },
+    {
+      "time_s": 0.0005551602542604092,
+      "frequency_hz": 1350000000.0
+    },
+    {
+      "time_s": 0.0005555570542605446,
+      "frequency_hz": 1350000000.0
+    }
+  ],
+  "lower_boundary": [
+    {
+      "time_s": 0.0005543666542601386,
+      "frequency_hz": 150000000.0
+    },
+    {
+      "time_s": 0.0005547634542602739,
+      "frequency_hz": 150000000.0
+    },
+    {
+      "time_s": 0.0005551602542604092,
+      "frequency_hz": 550000000.0
+    },
+    {
+      "time_s": 0.0005555570542605446,
+      "frequency_hz": 550000000.0
+    }
+  ],
+  "outside_manual_time_range": "global_search_band",
+  "allowed_mask_true_bins": 178053,
+  "allowed_mask_total_bins": 1270380,
+  "stft_sha256_before": "B2E2EE32EF32F34935F76AEB1880B0E60641F22B76FF20BD1FCABF179CBB5D3B",
+  "stft_sha256_after": "B2E2EE32EF32F34935F76AEB1880B0E60641F22B76FF20BD1FCABF179CBB5D3B",
+  "automatic_velocity_sha256_before": "B58541BD36075012187E0574CBF86B84DD917EC3A2F78DF5D70936B5C1BDC14B",
+  "automatic_velocity_sha256_after": "B58541BD36075012187E0574CBF86B84DD917EC3A2F78DF5D70936B5C1BDC14B",
+  "guided_finite_frequency_frames": 303,
+  "guided_nan_frequency_frames": 317,
+  "screenshots": [
+    {
+      "path": "artifacts/task016r4/manual_frequency_region.png",
+      "width_px": 2880,
+      "height_px": 1760
+    },
+    {
+      "path": "artifacts/task016r4/manual_frequency_velocity.png",
+      "width_px": 2880,
+      "height_px": 1760
+    }
+  ]
+}

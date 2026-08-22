@@ -304,7 +304,7 @@ def test_manual_reference_changes_no_formal_detection_values() -> None:
     )
 
 
-def test_explicit_pre_event_platform_preserves_measured_frames() -> None:
+def test_explicit_pre_event_platform_overrides_measured_display_only() -> None:
     time_s = np.arange(4096, dtype=np.float64) / SAMPLE_RATE_HZ
     voltage = np.sin(2.0 * np.pi * 200.0e6 * time_s)
     reference_s = 0.5e-6
@@ -324,12 +324,13 @@ def test_explicit_pre_event_platform_preserves_measured_frames() -> None:
     assert measured[before].all()
     np.testing.assert_array_equal(
         analysis.display_velocity_m_s[before],
-        analysis.corrected_velocity_m_s[before],
+        0.0,
     )
+    assert np.isfinite(analysis.corrected_velocity_m_s[before]).all()
     assert set(
         np.asarray(analysis.velocity_origins, dtype=object)[before]
     ) == {
-        "quality_gated_measurement"
+        "configured_pre_event_display_velocity_only"
     }
 
 

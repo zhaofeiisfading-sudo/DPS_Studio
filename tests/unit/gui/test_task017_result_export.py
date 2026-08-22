@@ -143,8 +143,8 @@ def test_toolbar_review_and_export_only_navigates_without_writing(
         window.action_export.trigger()
         qapp.processEvents()
 
-        assert window.workflow_navigation.currentRow() == 5
-        assert window.parameter_stack.currentIndex() == 5
+        assert window.workflow_navigation.currentRow() == 4
+        assert window.parameter_stack.currentIndex() == 4
         assert {path.name for path in export_parent.iterdir()} == before_paths
         assert not calls
         assert window.workflow_state is result_state
@@ -182,6 +182,7 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         window._set_export_output_directory(export_parent)
         assert window.export_button.isEnabled()
         success_messages: list[str] = []
+        failure_messages: list[str] = []
         monkeypatch.setattr(
             QMessageBox,
             "information",
@@ -189,7 +190,14 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
                 lambda _parent, _title, message: success_messages.append(message)
             ),
         )
-        assert window._export_current_result()
+        monkeypatch.setattr(
+            QMessageBox,
+            "critical",
+            staticmethod(
+                lambda _parent, _title, message: failure_messages.append(message)
+            ),
+        )
+        assert window._export_current_result(), failure_messages
         assert not list(export_parent.glob("pdv_studio_export_*"))
         metadata_path = export_parent / "task017_dual_channel_ch1_auto.metadata.json"
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
@@ -206,8 +214,10 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
             window.analysis_session.event_reference_time_s
         )
         assert metadata["event_reference_source"] == (
-            window.analysis_session.event_reference_source
+            "automatic_formal_event:pdv_channel_1"
         )
+        assert metadata["event_time_source"] == "automatic"
+        assert metadata["event_time_s"] == metadata["event_reference_time_s"]
         assert metadata["pre_event_display"]["included_in_csv"] is True
         assert len(tuple(export_parent.glob("*.metadata.json"))) == 1
         assert (export_parent / "task017_dual_channel_ch1_auto.csv").is_file()

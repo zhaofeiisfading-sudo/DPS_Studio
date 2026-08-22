@@ -96,7 +96,7 @@ def test_import_dialog_initial_size_fits_common_work_areas(
     assert height >= 400
 
 
-def test_range_reset_is_draft_only_and_has_no_current_view_action(
+def test_range_reset_commits_directly_and_has_no_current_view_action(
     qapp: QApplication,
 ) -> None:
     window = MainWindow(translation_manager=translation_manager())
@@ -109,7 +109,7 @@ def test_range_reset_is_draft_only_and_has_no_current_view_action(
         panel.full_range_button.click()
         qapp.processEvents()
         assert panel.draft_range_s == pytest.approx((1.0e-6, 2.0e-6))
-        assert not confirmed
+        assert confirmed == [pytest.approx((1.0e-6, 2.0e-6))]
         assert not hasattr(panel, "current_view_button")
 
         visible_button_text = {
@@ -313,7 +313,7 @@ def test_new_usability_controls_have_finished_english_translations(
         assert window.automatic_ridge_extraction_combo.currentText() == (
             "Continuity-assisted"
         )
-        assert window.lif_parameter_toggle.text() == "LiF Material Parameters…"
+        assert window.lif_parameter_toggle.text() == "Material Parameters…"
         assert window.restore_lif_defaults_button.text() == "Restore LiF Defaults"
         assert dialog.windowTitle() == "Data Import Settings"
         assert dialog.button_box.parentWidget() is dialog

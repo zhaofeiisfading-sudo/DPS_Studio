@@ -313,20 +313,18 @@ def test_workflow_navigation_changes_tabs_once_at_semantic_boundaries(
     window = _analysis_window(qapp, tmp_path)
     try:
         window.science_tabs.setCurrentIndex(0)
-        assert window.select_workflow_step(1)
-        assert window.science_tabs.currentWidget() is window.raw_signal_view
+        _wait_for_analysis(window, lambda: window.select_workflow_step(1))
+        assert window.science_tabs.currentWidget() is window.spectrogram_view
         assert window.select_workflow_step(0)
         assert window.science_tabs.currentWidget() is window.raw_signal_view
 
-        _wait_for_analysis(window, lambda: window.select_workflow_step(2))
+        assert window.select_workflow_step(2)
         assert window.science_tabs.currentWidget() is window.spectrogram_view
 
-        assert window.select_workflow_step(3)
-        assert window.science_tabs.currentWidget() is window.spectrogram_view
         _wait_for_analysis(window, window.run_staged_automatic_analysis)
         assert window.science_tabs.currentWidget() is window.ridge_view
 
-        assert window.select_workflow_step(4)
+        assert window.select_workflow_step(3)
         assert window.science_tabs.currentWidget() is window.velocity_view
 
         window.science_tabs.setCurrentWidget(window.raw_signal_view)
@@ -339,7 +337,7 @@ def test_workflow_navigation_changes_tabs_once_at_semantic_boundaries(
         qapp.processEvents()
 
 
-def test_step6_export_target_drives_velocity_preview_and_clears_missing_guided(
+def test_review_step_export_target_drives_velocity_preview_and_clears_missing_guided(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -356,7 +354,7 @@ def test_step6_export_target_drives_velocity_preview_and_clears_missing_guided(
             ),
         )
         _wait_for_analysis(window, window.run_guided_analysis)
-        assert window.select_workflow_step(5)
+        assert window.select_workflow_step(4)
         assert window.science_tabs.currentWidget() is window.velocity_view
 
         automatic_index = window.export_mode_combo.findData(
@@ -420,7 +418,7 @@ def test_single_and_three_channel_analysis_and_preview_remain_independent(
             f"pdv_channel_{index + 1}" for index in range(channel_count)
         )
         assert tuple(window.analysis_session.channel_analyses) == expected_channels
-        assert window.select_workflow_step(5)
+        assert window.select_workflow_step(4)
         target_channel = expected_channels[-1]
         window.export_channel_combo.setCurrentIndex(
             window.export_channel_combo.findData(target_channel)

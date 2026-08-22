@@ -32,7 +32,7 @@ def test_main_window_has_required_workstation_regions(qapp: QApplication) -> Non
         assert window.diagnostics_dock.objectName() == "diagnosticsDock"
         assert window.statusBar().objectName() == "mainStatusBar"
         assert window.science_tabs.count() == 5
-        assert window.parameter_stack.count() == 6
+        assert window.parameter_stack.count() == 5
         assert window.diagnostics_tabs.count() == 3
     finally:
         window.close()
@@ -50,7 +50,7 @@ def test_initial_state_is_empty_and_analysis_actions_are_disabled(
         assert not window.action_run_ridge.isEnabled()
         assert not window.action_velocity.isEnabled()
         assert not window.action_export.isEnabled()
-        for row in range(1, 6):
+        for row in range(1, 5):
             assert not window.select_workflow_step(row)
         for tab_index in range(1, window.science_tabs.count()):
             assert not window.science_tabs.isTabEnabled(tab_index)
@@ -107,7 +107,6 @@ def test_real_reader_keeps_source_and_channels_independent_and_switches_page(
         assert window.load_result is result
         assert window.select_workflow_step(1)
         assert window.parameter_stack.currentIndex() == 1
-        assert window.select_workflow_step(2)
         assert source.read_bytes() == before
     finally:
         window.close()
@@ -141,7 +140,7 @@ def test_english_translation_covers_key_navigation(
         assert window.settings_menu.title() == "Settings"
         assert window.help_menu.title() == "Help"
         assert window.science_tabs.tabText(0) == "Raw Signal"
-        assert window.workflow_navigation.item(0).text() == "1  Data Import"
+        assert window.workflow_navigation.item(0).text() == "1  Data & Range"
     finally:
         window.close()
         manager.install("zh_CN")

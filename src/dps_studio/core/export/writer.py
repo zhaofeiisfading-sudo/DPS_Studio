@@ -27,6 +27,11 @@ from dps_studio.core.export.models import (
 )
 from dps_studio.core.export.time_coordinates import event_relative_time_s
 from dps_studio.core.physics import velocity_correction_metadata
+from dps_studio.core.ridge import (
+    ManualFrequencyBoundary,
+    ManualFrequencyRegion,
+    RidgeCorridorConstraint,
+)
 from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN
 from dps_studio.core.workflow.models import ChannelAnalysis
 
@@ -529,7 +534,7 @@ def _metadata_document(
                 selection.reselected_frame_indices
             ),
         }
-    return {
+    document = {
         "export_schema_version": EXPORT_SCHEMA_VERSION,
         "dps_studio_version": options.dps_studio_version,
         "exported_at_utc": timestamp.isoformat().replace("+00:00", "Z"),
@@ -575,6 +580,16 @@ def _metadata_document(
             ),
             "refinement_method": refined.refinement_method,
         },
+        "working_ridge": {
+            "frequency_field": "ChannelAnalysis.working_frequency_hz",
+            "working_source_field": "ChannelAnalysis.working_source",
+            "formal_frequency_field": (
+                "SignalDetectionResult.refined_frequency_hz"
+            ),
+            "formal_quality_gates_modified": False,
+            "same_frame_fallback_only": True,
+            "interpolation_or_smoothing_applied": False,
+        },
         "quality_configuration": {
             "detection_method": detection.detection_method,
             "minimum_peak_to_background_db": (
@@ -611,6 +626,8 @@ def _metadata_document(
         "compatibility_event_candidate_time_s": compatibility_candidate_time_s,
         "event_reference_time_s": detection.manual_event_reference_time_s,
         "event_reference_source": options.event_reference_source,
+        "event_time_source": options.event_time_source,
+        "event_time_s": detection.manual_event_reference_time_s,
         "pre_event_display": {
             "enabled": options.pre_event_display_enabled,
             "configured_velocity_m_s": options.pre_event_display_velocity_m_s,
@@ -622,6 +639,12 @@ def _metadata_document(
             "stft_frame_count": int(stft.time_s.size),
             "exported_row_count": exported_row_count,
             "measured_frame_count": measured_count,
+            "working_finite_frame_count": int(
+                np.count_nonzero(np.isfinite(analysis.working_frequency_hz))
+            ),
+            "formal_frequency_finite_frame_count": int(
+                np.count_nonzero(np.isfinite(detection.refined_frequency_hz))
+            ),
             "pre_event_display_only_frame_count": display_only_count,
             "exported_pre_event_display_only_row_count": exported_display_only_count,
             "signal_state_counts": dict(
@@ -635,6 +658,9 @@ def _metadata_document(
             ),
             "ridge_selection_origin_counts": dict(
                 Counter(origin.value for origin in selection.origins)
+            ),
+            "working_source_counts": dict(
+                Counter(source.value for source in analysis.working_source)
             ),
         },
         "result_status": {
@@ -653,6 +679,78 @@ def _metadata_document(
             "channel_fusion_applied_by_export": False,
         },
     }
+    if options.analysis_mode is ResultAnalysisMode.GUIDED:
+        document["manual_frequency_region"] = _manual_frequency_region_metadata(
+            options.ridge_constraints.get(channel_name)
+        )
+    return document
+
+
+def _manual_frequency_region_metadata(
+    constraint: ManualFrequencyRegion | RidgeCorridorConstraint | None,
+) -> dict[str, Any]:
+    """Serialize exact SI manual operations and identify historical models."""
+    if isinstance(constraint, ManualFrequencyRegion):
+        return {
+            "constraint_model": "manual_upper_lower_boundaries",
+            "upper_boundary": _manual_boundary_metadata(
+                constraint.upper_boundary
+            ),
+            "lower_boundary": _manual_boundary_metadata(
+                constraint.lower_boundary
+            ),
+            "outside_manual_time_range": "endpoint_constant_extension",
+            "boundary_interpolation": "piecewise_linear",
+            "boundary_extrapolation": "constant_first_and_last_frequency",
+            "legacy_corridor": None,
+        }
+    if isinstance(constraint, RidgeCorridorConstraint):
+        return {
+            "constraint_model": "legacy_centerline_half_width",
+            "upper_boundary": None,
+            "lower_boundary": None,
+            "outside_manual_time_range": "legacy_corridor_semantics",
+            "legacy_corridor": {
+                "control_points": [
+                    {
+                        "time_s": float(time_s),
+                        "frequency_hz": float(frequency_hz),
+                    }
+                    for time_s, frequency_hz in zip(
+                        constraint.control_times_s,
+                        constraint.control_frequencies_hz,
+                        strict=True,
+                    )
+                ],
+                "corridor_half_width_hz": constraint.half_width_hz,
+                "used_for_manual_boundary_mode": False,
+            },
+        }
+    return {
+        "constraint_model": "global_search_band_only",
+        "upper_boundary": [],
+        "lower_boundary": [],
+        "outside_manual_time_range": "global_search_band",
+        "legacy_corridor": None,
+    }
+
+
+def _manual_boundary_metadata(
+    boundary: ManualFrequencyBoundary | None,
+) -> list[dict[str, float]]:
+    if boundary is None:
+        return []
+    return [
+        {
+            "time_s": float(time_s),
+            "frequency_hz": float(frequency_hz),
+        }
+        for time_s, frequency_hz in zip(
+            boundary.control_times_s,
+            boundary.control_frequencies_hz,
+            strict=True,
+        )
+    ]
 
 
 def _simple_time_column(time_origin: ExportTimeOrigin) -> str:

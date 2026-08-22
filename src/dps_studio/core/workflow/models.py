@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 
 import numpy as np
 from numpy.typing import NDArray
@@ -26,6 +27,17 @@ from dps_studio.core.time_frequency import STFTResult
 FloatArray = NDArray[np.float64]
 
 
+class WorkingRidgeSource(str, Enum):
+    """Auditable source of one non-formal production working point."""
+
+    REFINED = "refined"
+    CONTINUITY_SELECTED = "continuity_selected"
+    DISCRETE_FALLBACK = "discrete_fallback"
+    LOW_CONFIDENCE_FALLBACK = "low_confidence_fallback"
+    OUTSIDE_ANALYSIS_WINDOW = "outside_analysis_window"
+    NO_ALLOWED_FINITE_BIN = "no_allowed_finite_bin"
+
+
 @dataclass(frozen=True, slots=True, eq=False)
 class ChannelAnalysis:
     """Complete numerical results for one independently analyzed channel."""
@@ -37,6 +49,10 @@ class ChannelAnalysis:
     formal_discrete_velocity_m_s: FloatArray
     refined_velocity_m_s: FloatArray
     velocity_correction_result: VelocityCorrectionResult
+    working_frequency_hz: FloatArray
+    working_source: tuple[WorkingRidgeSource, ...]
+    working_velocity_m_s: FloatArray
+    working_velocity_correction_result: VelocityCorrectionResult
     display_velocity_m_s: FloatArray
     velocity_origins: tuple[str, ...]
     spectral_quality_result: RidgeSpectralQualityResult
@@ -57,6 +73,14 @@ class ChannelAnalysis:
             self.refined_velocity_m_s,
             field_name="refined_velocity_m_s",
         )
+        working_frequency = _immutable_float_array(
+            self.working_frequency_hz,
+            field_name="working_frequency_hz",
+        )
+        working_velocity = _immutable_float_array(
+            self.working_velocity_m_s,
+            field_name="working_velocity_m_s",
+        )
         display_velocity = _immutable_float_array(
             self.display_velocity_m_s,
             field_name="display_velocity_m_s",
@@ -68,8 +92,42 @@ class ChannelAnalysis:
             )
         if refined_velocity.shape != (frame_count,):
             raise ValueError("refined_velocity_m_s must match the STFT time axis.")
+        if working_frequency.shape != (frame_count,):
+            raise ValueError("working_frequency_hz must match the STFT time axis.")
+        if working_velocity.shape != (frame_count,):
+            raise ValueError("working_velocity_m_s must match the STFT time axis.")
         if display_velocity.shape != (frame_count,):
             raise ValueError("display_velocity_m_s must match the STFT time axis.")
+        working_source = tuple(self.working_source)
+        if len(working_source) != frame_count or not all(
+            isinstance(source, WorkingRidgeSource) for source in working_source
+        ):
+            raise ValueError(
+                "working_source must contain one WorkingRidgeSource per STFT frame."
+            )
+        unavailable = np.fromiter(
+            (
+                source
+                in {
+                    WorkingRidgeSource.OUTSIDE_ANALYSIS_WINDOW,
+                    WorkingRidgeSource.NO_ALLOWED_FINITE_BIN,
+                }
+                for source in working_source
+            ),
+            dtype=np.bool_,
+            count=frame_count,
+        )
+        if np.any(np.isfinite(working_frequency) == unavailable):
+            raise ValueError(
+                "working_frequency_hz must be finite exactly for available sources."
+            )
+        if not np.array_equal(
+            np.isfinite(working_frequency),
+            np.isfinite(working_velocity),
+        ):
+            raise ValueError(
+                "working_velocity_m_s must be finite exactly where working frequency is."
+            )
         origins = tuple(self.velocity_origins)
         if len(origins) != frame_count:
             raise ValueError("velocity_origins must match the STFT time axis.")
@@ -92,6 +150,22 @@ class ChannelAnalysis:
         ):
             raise ValueError(
                 "Velocity correction input must equal the formal apparent velocity."
+            )
+        if not isinstance(
+            self.working_velocity_correction_result,
+            VelocityCorrectionResult,
+        ):
+            raise TypeError(
+                "working_velocity_correction_result must be a "
+                "VelocityCorrectionResult."
+            )
+        if not np.array_equal(
+            working_velocity,
+            self.working_velocity_correction_result.apparent_velocity_m_s,
+            equal_nan=True,
+        ):
+            raise ValueError(
+                "Working velocity correction input must equal working velocity."
             )
         if not np.array_equal(
             self.stft_result.time_s,
@@ -143,6 +217,9 @@ class ChannelAnalysis:
             formal_discrete_velocity,
         )
         object.__setattr__(self, "refined_velocity_m_s", refined_velocity)
+        object.__setattr__(self, "working_frequency_hz", working_frequency)
+        object.__setattr__(self, "working_source", working_source)
+        object.__setattr__(self, "working_velocity_m_s", working_velocity)
         object.__setattr__(self, "display_velocity_m_s", display_velocity)
         object.__setattr__(self, "velocity_origins", origins)
 
@@ -171,6 +248,16 @@ class ChannelAnalysis:
         """Formal final velocity after angle then selected window correction."""
         return self.velocity_correction_result.corrected_velocity_m_s
 
+    @property
+    def working_apparent_velocity_m_s(self) -> FloatArray:
+        """Quality-unfiltered velocity converted from the working ridge."""
+        return self.working_velocity_m_s
+
+    @property
+    def working_corrected_velocity_m_s(self) -> FloatArray:
+        """Non-formal corrected velocity converted from the working ridge."""
+        return self.working_velocity_correction_result.corrected_velocity_m_s
+
 
 def _immutable_float_array(value: object, *, field_name: str) -> FloatArray:
     try:
@@ -183,4 +270,4 @@ def _immutable_float_array(value: object, *, field_name: str) -> FloatArray:
     return stored
 
 
-__all__ = ["ChannelAnalysis"]
+__all__ = ["ChannelAnalysis", "WorkingRidgeSource"]
