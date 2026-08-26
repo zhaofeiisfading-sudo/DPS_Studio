@@ -1,0 +1,19 @@
+{
+  "frame_count": 620,
+  "global_null_frame_count": 620,
+  "low_frequency_selected_below_0_5ghz_count": 0,
+  "manual_reference_used_for_path": false,
+  "multiple_parallel_candidate_frame_count": 620,
+  "pre_reference_global_selected_count": 0,
+  "production_array_sha256": "B9720F42F5EF2E559E9DE6770548A476C815EA6C90B3E47900B3CA54BED390EC",
+  "production_array_unchanged_after_global": true,
+  "production_global_disagreement_frame_count": 51,
+  "production_nan_global_rank_gt1_count": 0,
+  "selected_rank_1_count": 0,
+  "selected_rank_2_count": 0,
+  "selected_rank_3_count": 0,
+  "selected_rank_4_plus_count": 0,
+  "stream": "balanced__pdv_channel_1",
+  "tail_physical_identity": "unreviewed",
+  "tail_selected_frame_count": 0
+}

@@ -1,0 +1,6 @@
+top_k,continuity_weight,ridge_entry_cost,total_wrong_branch_frames,total_null_false_negatives,total_false_pre_event_detections
+3,1.0,3.0,0,0,0
+5,1.0,3.0,0,0,0
+10,1.0,3.0,0,0,0
+5,0.5,3.0,0,0,0
+5,2.0,3.0,0,0,0

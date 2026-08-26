@@ -1,0 +1,2 @@
+frame_index,time_s,truth_frequency_hz,argmax_frequency_hz,production_frequency_hz,global_frequency_hz,selected_rank,node_cost,transition_cost,cumulative_cost
+31,7.75e-08,1200000000.0,2000087335.4087133,2000087335.4087133,1198701929.266432,2,0.30262646998135234,0.0002260997116153935,4.198956500855393
