@@ -17,9 +17,34 @@ from dps_studio.gui.app import translation_manager
 from dps_studio.gui.main_window import MainWindow
 from dps_studio.gui.preset_repository import CUSTOM_PRESET_ID, PresetRepository
 from dps_studio.gui.state import WorkflowState
+from dps_studio.runtime_paths import application_resource_root
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_main_window_requests_the_application_resource_root(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import dps_studio.gui.main_window as main_window_module
+
+    expected = application_resource_root()
+    calls: list[object] = []
+    monkeypatch.setattr(
+        main_window_module,
+        "application_resource_root",
+        lambda: calls.append(object()) or expected,
+    )
+
+    window = main_window_module.MainWindow()
+    try:
+        assert calls
+        assert window._repository_root == expected
+        assert window.analysis_session.run_configuration is not None
+    finally:
+        window.close()
+        qapp.processEvents()
 
 
 def _load_result(

@@ -116,6 +116,7 @@ from dps_studio.gui.result_views import (
 )
 from dps_studio.gui.state import WorkflowState, state_reaches
 from dps_studio.gui.styles import configure_action_button_cursors
+from dps_studio.runtime_paths import application_resource_root
 
 
 _LAYOUT_STATE_VERSION = 1
@@ -179,7 +180,7 @@ class MainWindow(QMainWindow):
         self._display_preferences = DisplayPreferences(self._settings)
         self._data_controller = DataImportController()
         self._load_result: DelimitedSignalLoadResult | None = None
-        self._repository_root = Path(__file__).resolve().parents[3]
+        self._repository_root = application_resource_root()
         self._preset_repository: PresetRepository | None = None
         self._session = AnalysisSession()
         self._analysis_adapter = AutomaticAnalysisAdapter(self)

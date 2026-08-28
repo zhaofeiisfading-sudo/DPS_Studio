@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from PySide6.QtCore import QSettings, QTranslator
 from PySide6.QtWidgets import QApplication
+
+from dps_studio.runtime_paths import package_resource_path
 
 
 LANGUAGE_ZH_CN = "zh_CN"
@@ -48,10 +48,10 @@ class TranslationManager:
             self._application.removeTranslator(self._translator)
             self._installed = False
         if resolved == LANGUAGE_EN:
-            translation_path = (
-                Path(__file__).resolve().parent
-                / "translations"
-                / "pdv_studio_en.qm"
+            translation_path = package_resource_path(
+                "gui",
+                "translations",
+                "pdv_studio_en.qm",
             )
             if not self._translator.load(str(translation_path)):
                 raise RuntimeError(

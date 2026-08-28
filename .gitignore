@@ -41,6 +41,7 @@ coverage.xml
 
 /build/
 /dist/
+/release/
 *.egg-info/
 .eggs/
 pip-wheel-metadata/
