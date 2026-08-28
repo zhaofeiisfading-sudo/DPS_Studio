@@ -103,8 +103,11 @@ def test_startup_loads_traceable_balanced_defaults_without_data(
         )
         assert not window.run_analysis_button.isEnabled()
         assert window.run_analysis_button.toolTip() == "请先导入实验数据。"
-        assert window.action_automatic in window.main_toolbar.actions()
-        assert window.action_automatic in window.analysis_menu.actions()
+        assert window.action_quick_analysis in window.main_toolbar.actions()
+        assert window.action_full_automatic not in window.main_toolbar.actions()
+        assert window.action_full_automatic in window.analysis_menu.actions()
+        assert window.action_automatic not in window.main_toolbar.actions()
+        assert window.action_automatic not in window.analysis_menu.actions()
         assert not hasattr(window, "load_config_button")
         assert not hasattr(window, "wavelength_confirm_check")
     finally:
@@ -184,7 +187,7 @@ def test_data_import_builds_common_range_and_enables_shared_action(
         qapp.processEvents()
 
 
-def test_configured_range_wins_only_when_fully_inside_data(
+def test_production_import_uses_full_record_despite_legacy_configured_range(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -203,8 +206,13 @@ def test_configured_range_wins_only_when_fully_inside_data(
         window.set_analysis_configuration(configuration)
         window.set_loaded_result(result)
         assert window.analysis_session.analysis_range is not None
-        assert window.analysis_session.analysis_range.start_time_s == pytest.approx(start)
-        assert window.analysis_session.analysis_range.end_time_s == pytest.approx(end)
+        record = result.records["pdv_channel_1"]
+        assert window.analysis_session.analysis_range.start_time_s == pytest.approx(
+            record.start_time_s
+        )
+        assert window.analysis_session.analysis_range.end_time_s == pytest.approx(
+            record.end_time_s
+        )
     finally:
         window.close()
         qapp.processEvents()

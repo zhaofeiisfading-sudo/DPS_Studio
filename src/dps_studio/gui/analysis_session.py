@@ -9,6 +9,8 @@ from enum import Enum
 from pathlib import Path
 from types import MappingProxyType
 
+import numpy as np
+
 from dps_studio.core.analysis_profiles import (
     AnalysisParameterOverrides,
     AnalysisProfile,
@@ -49,6 +51,32 @@ class AnalysisRange:
             raise ValueError("Analysis range endpoints must be finite seconds.")
         if self.start_time_s >= self.end_time_s:
             raise ValueError("start_time_s must be smaller than end_time_s.")
+
+
+@dataclass(frozen=True, slots=True)
+class RidgeSearchRegion:
+    """One global rectangular ridge constraint stored in physical SI units."""
+
+    time_start_s: float
+    time_end_s: float
+    frequency_min_hz: float
+    frequency_max_hz: float
+
+    def __post_init__(self) -> None:
+        values = (
+            self.time_start_s,
+            self.time_end_s,
+            self.frequency_min_hz,
+            self.frequency_max_hz,
+        )
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError("Ridge search region coordinates must be finite SI values.")
+        if self.time_start_s >= self.time_end_s:
+            raise ValueError("time_start_s must be smaller than time_end_s.")
+        if self.frequency_min_hz < 0.0:
+            raise ValueError("frequency_min_hz must be non-negative.")
+        if self.frequency_min_hz >= self.frequency_max_hz:
+            raise ValueError("frequency_min_hz must be smaller than frequency_max_hz.")
 
 
 class RidgeExtractionMode(str, Enum):
@@ -151,6 +179,7 @@ class AnalysisSession:
     stft_results: Mapping[str, STFTResult] = field(
         default_factory=_empty_stft_results
     )
+    ridge_search_region: RidgeSearchRegion | None = None
     channel_analyses: Mapping[str, ChannelAnalysis] = field(
         default_factory=_empty_analyses
     )
@@ -195,6 +224,7 @@ class AnalysisSession:
         self.source_path = Path(source_path)
         self.records = MappingProxyType(dict(records))
         self.analysis_range = None
+        self.ridge_search_region = None
         self.ridge_constraints = _empty_constraints()
         self.event_time_source = EventTimeSource.AUTOMATIC
         self.automatic_event_reference_times_s = MappingProxyType({})
@@ -518,6 +548,7 @@ class AnalysisSession:
         *,
         generation_id: int,
         analyses: Mapping[str, ChannelAnalysis],
+        ridge_search_region: RidgeSearchRegion | None = None,
     ) -> bool:
         """Accept only complete results from the current generation."""
         if generation_id != self.generation_id:
@@ -532,6 +563,11 @@ class AnalysisSession:
         )
         self.stft_valid = True
         self.results_valid = True
+        if ridge_search_region is not None:
+            self._validate_ridge_search_region(ridge_search_region)
+            self.ridge_search_region = ridge_search_region
+        elif self.ridge_search_region is None:
+            self.ensure_default_ridge_search_region()
         reference_channel = (
             "pdv_channel_1" if "pdv_channel_1" in analyses else next(iter(analyses))
         )
@@ -563,7 +599,101 @@ class AnalysisSession:
             raise ValueError("STFT results must match every loaded channel.")
         self.stft_results = MappingProxyType(dict(stft_results))
         self.stft_valid = True
+        self.ensure_default_ridge_search_region()
         return True
+
+    def ensure_default_ridge_search_region(self) -> RidgeSearchRegion:
+        """Create the Production default from full STFT time and validated band."""
+        if self.ridge_search_region is not None:
+            return self.ridge_search_region
+        if not self.stft_results or self.run_configuration is None:
+            raise RuntimeError("A valid STFT and run configuration are required.")
+        time_start = max(
+            float(result.time_s[0]) for result in self.stft_results.values()
+        )
+        time_end = min(
+            float(result.time_s[-1]) for result in self.stft_results.values()
+        )
+        frequency_axis_min = max(
+            float(result.frequency_hz[0]) for result in self.stft_results.values()
+        )
+        frequency_axis_max = min(
+            float(result.frequency_hz[-1]) for result in self.stft_results.values()
+        )
+        parameters = self.run_configuration.parameters
+        frequency_min = max(parameters.minimum_frequency_hz, frequency_axis_min)
+        frequency_max = min(parameters.maximum_frequency_hz, frequency_axis_max)
+        if frequency_min >= frequency_max or any(
+            int(
+                np.count_nonzero(
+                    (result.frequency_hz >= frequency_min)
+                    & (result.frequency_hz <= frequency_max)
+                )
+            )
+            < 2
+            for result in self.stft_results.values()
+        ):
+            frequency_min = frequency_axis_min
+            frequency_max = frequency_axis_max
+        region = RidgeSearchRegion(
+            time_start_s=time_start,
+            time_end_s=time_end,
+            frequency_min_hz=frequency_min,
+            frequency_max_hz=frequency_max,
+        )
+        self._validate_ridge_search_region(region)
+        self.ridge_search_region = region
+        return region
+
+    def set_ridge_search_region(self, value: RidgeSearchRegion) -> bool:
+        """Set the global t-f constraint and stale only post-STFT products."""
+        if not isinstance(value, RidgeSearchRegion):
+            raise TypeError("value must be a RidgeSearchRegion.")
+        self._validate_ridge_search_region(value)
+        if value == self.ridge_search_region:
+            return False
+        self.ridge_search_region = value
+        self.generation_id += 1
+        self.guided_generation_id += 1
+        self.channel_analyses = _empty_analyses()
+        self.automatic_event_reference_times_s = MappingProxyType({})
+        self.automatic_event_reference_sources = MappingProxyType({})
+        self.results_valid = False
+        self._set_guided_result_state((), self.guided_channel_analyses)
+        return True
+
+    def _validate_ridge_search_region(self, value: RidgeSearchRegion) -> None:
+        if not self.stft_results:
+            raise RuntimeError("Ridge search region requires a computed STFT.")
+        for channel_name, result in self.stft_results.items():
+            time_tolerance = (
+                max(float(result.time_s[-1] - result.time_s[0]), 1.0) * 1e-12
+            )
+            frequency_tolerance = max(float(result.frequency_hz[-1]), 1.0) * 1e-12
+            if (
+                value.time_start_s < float(result.time_s[0]) - time_tolerance
+                or value.time_end_s > float(result.time_s[-1]) + time_tolerance
+            ):
+                raise ValueError(
+                    f"Ridge time region must stay inside channel {channel_name!r} STFT."
+                )
+            if (
+                value.frequency_min_hz
+                < float(result.frequency_hz[0]) - frequency_tolerance
+                or value.frequency_max_hz
+                > float(result.frequency_hz[-1]) + frequency_tolerance
+            ):
+                raise ValueError(
+                    f"Ridge frequency region must stay inside channel {channel_name!r} STFT."
+                )
+            bin_count = int(
+                np.count_nonzero(
+                    (result.frequency_hz >= value.frequency_min_hz)
+                    & (result.frequency_hz <= value.frequency_max_hz)
+                )
+            )
+            if bin_count < 2:
+                raise ValueError("Ridge frequency region must contain at least two bins.")
 
     @property
     def automatic_channel_analyses(self) -> Mapping[str, ChannelAnalysis]:
@@ -705,6 +835,7 @@ class AnalysisSession:
         self.generation_id += 1
         self.guided_generation_id += 1
         self.stft_results = _empty_stft_results()
+        self.ridge_search_region = None
         self.channel_analyses = _empty_analyses()
         self.guided_channel_analyses = _empty_analyses()
         self.automatic_event_reference_times_s = MappingProxyType({})
@@ -962,10 +1093,10 @@ def _automatic_event_resolution(
     """Resolve an existing formal event or detector candidate without invention."""
     formal = analysis.stream_event_candidates.primary_candidate_time_s
     if formal is not None:
-        return formal, f"automatic_formal_event:{reference_channel}"
+        return formal, f"automatic_event_candidate:{reference_channel}"
     fallback = analysis.signal_detection_result.detected_event_candidate_time_s
     if fallback is not None:
-        return fallback, f"automatic_low_confidence_fallback:{reference_channel}"
+        return fallback, f"automatic_low_confidence_event_candidate:{reference_channel}"
     return None, None
 
 
@@ -975,4 +1106,5 @@ __all__ = [
     "AnalysisSession",
     "EventTimeSource",
     "RidgeExtractionMode",
+    "RidgeSearchRegion",
 ]

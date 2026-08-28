@@ -98,22 +98,20 @@ def test_independent_stft_reaches_ready_and_view_shortcuts_are_display_only(
         assert not session.results_valid
         assert window.workflow_state is WorkflowState.STFT_READY
         assert window.science_tabs.isTabEnabled(1)
-        assert window.science_tabs.isTabEnabled(2)
+        assert not window.science_tabs.isTabEnabled(2)
         spectrum_before = session.stft_results["pdv_channel_1"].spectrum.copy()
 
         window.spectrogram_view.fit_search_region()
         x_range, y_range = window.spectrogram_view.plot_widget.viewRange()
-        analysis_range = session.analysis_range
-        configuration = session.run_configuration
-        assert analysis_range is not None
-        assert configuration is not None
+        region = session.ridge_search_region
+        assert region is not None
         assert x_range == pytest.approx(
-            [analysis_range.start_time_s * 1.0e6, analysis_range.end_time_s * 1.0e6]
+            [region.time_start_s * 1.0e6, region.time_end_s * 1.0e6]
         )
         assert y_range == pytest.approx(
             [
-                configuration.parameters.minimum_frequency_hz * 1.0e-9,
-                configuration.parameters.maximum_frequency_hz * 1.0e-9,
+                region.frequency_min_hz * 1.0e-9,
+                region.frequency_max_hz * 1.0e-9,
             ]
         )
         window.spectrogram_view.show_full_spectrum()

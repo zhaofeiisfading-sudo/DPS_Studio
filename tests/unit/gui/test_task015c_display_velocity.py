@@ -97,10 +97,6 @@ def test_gui_display_parameter_refreshes_without_new_stft(
             name: analysis.apparent_velocity_m_s.copy()
             for name, analysis in original.items()
         }
-        working = {
-            name: analysis.working_corrected_velocity_m_s.copy()
-            for name, analysis in original.items()
-        }
         stft_objects = {
             name: analysis.stft_result for name, analysis in original.items()
         }
@@ -134,7 +130,7 @@ def test_gui_display_parameter_refreshes_without_new_stft(
             )
             np.testing.assert_array_equal(
                 analysis.display_velocity_m_s[post_event_invalid],
-                working[name][post_event_invalid],
+                formal[name][post_event_invalid],
             )
             np.testing.assert_array_equal(
                 analysis.signal_detection_result.apparent_velocity_m_s,
@@ -165,7 +161,7 @@ def test_gui_display_parameter_refreshes_without_new_stft(
             ).all()
             np.testing.assert_array_equal(
                 analysis.display_velocity_m_s[post_event_invalid],
-                working[name][post_event_invalid],
+                formal[name][post_event_invalid],
             )
             np.testing.assert_array_equal(
                 analysis.signal_detection_result.apparent_velocity_m_s,
@@ -192,7 +188,7 @@ def test_english_pre_event_display_velocity_term(qapp: QApplication) -> None:
         labels = {label.text() for label in window.findChildren(QLabel)}
         assert "Pre-event platform velocity" in labels
         assert window.velocity_view.display_velocity_check.text() == (
-            "Working/Display Velocity (Non-formal Result)"
+            "Formal Display Velocity (Including Pre-event Platform Convention)"
         )
     finally:
         window.close()

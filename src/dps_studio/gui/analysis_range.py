@@ -43,6 +43,7 @@ class AnalysisRangePanel(QWidget):
 
         layout = QVBoxLayout(self)
         form = QFormLayout()
+        self.form = form
         self.full_range_label = QLabel(self.tr("未加载数据"))
         self.full_range_label.setObjectName("fullRangeLabel")
         self.start_spin = self._time_spin("analysisStartTimeUs")
@@ -50,13 +51,14 @@ class AnalysisRangePanel(QWidget):
         self.event_reference_spin = self._time_spin("eventReferenceTimeUs")
         self.event_reference_spin.setToolTip(
             self.tr(
-                "手动起跳时间使用实验绝对时间，必须位于当前分析范围内；"
-                "默认使用自动起跳时间。"
+                "手动事件参考使用实验绝对时间，必须位于当前分析范围内；"
+                "默认使用自动事件候选。"
             )
         )
         form.addRow(self.tr("完整时间范围"), self.full_range_label)
         form.addRow(self.tr("分析起点"), self.start_spin)
         end_editor = QWidget()
+        self.end_editor = end_editor
         end_layout = QHBoxLayout(end_editor)
         end_layout.setContentsMargins(0, 0, 0, 0)
         end_layout.addWidget(self.end_spin, 1)
@@ -159,6 +161,21 @@ class AnalysisRangePanel(QWidget):
             self.candidate_detection_requested
         )
         self._set_enabled(False)
+
+    def set_analysis_range_controls_visible(self, visible: bool) -> None:
+        """Hide legacy time-crop controls while retaining event review controls."""
+        range_widgets = (
+            self.full_range_label,
+            self.start_spin,
+            self.end_editor,
+            self.apply_button,
+            self.status_label,
+        )
+        for widget in range_widgets:
+            widget.setVisible(visible)
+            label = self.form.labelForField(widget)
+            if label is not None:
+                label.setVisible(visible)
 
     @property
     def bounds_s(self) -> tuple[float, float] | None:

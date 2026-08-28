@@ -595,6 +595,9 @@ def _metadata_document(
             "minimum_peak_to_background_db": (
                 detection.detection_config.minimum_peak_to_background_db
             ),
+            "tracking_minimum_peak_to_background_db": (
+                detection.detection_config.tracking_minimum_peak_to_background_db
+            ),
             "minimum_peak_to_competitor_db": (
                 detection.detection_config.minimum_peak_to_competitor_db
             ),
@@ -603,6 +606,9 @@ def _metadata_document(
             ),
             "minimum_consecutive_frames": (
                 detection.detection_config.minimum_consecutive_frames
+            ),
+            "maximum_tracking_frequency_step_hz": (
+                detection.detection_config.maximum_tracking_frequency_step_hz
             ),
             "minimum_cycles_in_window": (
                 detection.detection_config.minimum_cycles_in_window

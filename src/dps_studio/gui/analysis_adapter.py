@@ -15,14 +15,13 @@ from dps_studio.core.ridge import RidgeSearchConstraint
 from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import (
     ChannelAnalysis,
-    analyze_configuration,
-    analyze_profile,
     analyze_stft_results,
     compute_configuration_stfts,
 )
 from dps_studio.gui.analysis_session import (
     AnalysisRange,
     AnalysisRunConfiguration,
+    RidgeSearchRegion,
 )
 
 
@@ -62,6 +61,7 @@ class AnalysisRequest:
         default_factory=_empty_stft_results
     )
     event_reference_time_s: float | None = None
+    ridge_search_region: RidgeSearchRegion | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +74,7 @@ class AnalysisRunResult:
     stft_results: Mapping[str, STFTResult] = field(
         default_factory=_empty_stft_results
     )
+    ridge_search_region: RidgeSearchRegion | None = None
 
 
 class _WorkerSignals(QObject):
@@ -93,6 +94,7 @@ class _AnalysisWorker(QRunnable):
         """Call only the public core workflow; never touch a QWidget."""
         request = self.request
         self.signals.started.emit(request.generation_id)
+        region: RidgeSearchRegion | None = None
         try:
             configuration = request.configuration
             parameters = configuration.parameters
@@ -110,15 +112,30 @@ class _AnalysisWorker(QRunnable):
                     window_name=parameters.window_name,
                 )
                 analyses = _empty_analyses()
-            elif request.stft_results:
-                stft_results = request.stft_results
-                analyses = analyze_stft_results(
+            else:
+                stft_results = (
+                    request.stft_results
+                    if request.stft_results
+                    else compute_configuration_stfts(
+                        request.records,
+                        window_length_samples=parameters.window_length_samples,
+                        overlap_samples=parameters.overlap_samples,
+                        nfft=parameters.nfft,
+                        window_name=parameters.window_name,
+                    )
+                )
+                region = request.ridge_search_region or _default_ridge_search_region(
                     stft_results,
                     minimum_frequency_hz=parameters.minimum_frequency_hz,
                     maximum_frequency_hz=parameters.maximum_frequency_hz,
+                )
+                analyses = analyze_stft_results(
+                    stft_results,
+                    minimum_frequency_hz=region.frequency_min_hz,
+                    maximum_frequency_hz=region.frequency_max_hz,
                     profile_name=parameters.provenance_name,
-                    analysis_start_time_s=request.analysis_range.start_time_s,
-                    analysis_end_time_s=request.analysis_range.end_time_s,
+                    analysis_start_time_s=region.time_start_s,
+                    analysis_end_time_s=region.time_end_s,
                     manual_event_reference_time_s=event_reference_time_s,
                     vacuum_wavelength_m=configuration.vacuum_wavelength_m,
                     detection_config=configuration.detection_config,
@@ -142,84 +159,6 @@ class _AnalysisWorker(QRunnable):
                         configuration.pre_event_display_velocity_m_s
                     ),
                     ridge_constraints=request.ridge_constraints,
-                )
-            elif configuration.profile is not None:
-                analyses = analyze_profile(
-                    request.records,
-                    profile=configuration.profile,
-                    analysis_start_time_s=request.analysis_range.start_time_s,
-                    analysis_end_time_s=request.analysis_range.end_time_s,
-                    manual_event_reference_time_s=event_reference_time_s,
-                    vacuum_wavelength_m=configuration.vacuum_wavelength_m,
-                    detection_config=configuration.detection_config,
-                    event_candidate_config=configuration.event_candidate_config,
-                    automatic_ridge_selection_config=(
-                        configuration.automatic_ridge_selection_config
-                    ),
-                    velocity_correction_config=(
-                        configuration.velocity_correction_config
-                    ),
-                    background_guard_window_scale=(
-                        configuration.background_guard_window_scale
-                    ),
-                    minimum_background_bin_count=(
-                        configuration.minimum_background_bin_count
-                    ),
-                    assume_pre_event_zero_for_display=(
-                        configuration.enable_pre_event_display
-                    ),
-                    pre_event_display_velocity_m_s=(
-                        configuration.pre_event_display_velocity_m_s
-                    ),
-                    ridge_constraints=request.ridge_constraints,
-                )
-                stft_results = MappingProxyType(
-                    {
-                        name: analysis.stft_result
-                        for name, analysis in analyses.items()
-                    }
-                )
-            else:
-                analyses = analyze_configuration(
-                    request.records,
-                    window_length_samples=parameters.window_length_samples,
-                    overlap_samples=parameters.overlap_samples,
-                    nfft=parameters.nfft,
-                    window_name=parameters.window_name,
-                    minimum_frequency_hz=parameters.minimum_frequency_hz,
-                    maximum_frequency_hz=parameters.maximum_frequency_hz,
-                    profile_name=parameters.provenance_name,
-                    analysis_start_time_s=request.analysis_range.start_time_s,
-                    analysis_end_time_s=request.analysis_range.end_time_s,
-                    manual_event_reference_time_s=event_reference_time_s,
-                    vacuum_wavelength_m=configuration.vacuum_wavelength_m,
-                    detection_config=configuration.detection_config,
-                    event_candidate_config=configuration.event_candidate_config,
-                    automatic_ridge_selection_config=(
-                        configuration.automatic_ridge_selection_config
-                    ),
-                    velocity_correction_config=(
-                        configuration.velocity_correction_config
-                    ),
-                    background_guard_window_scale=(
-                        configuration.background_guard_window_scale
-                    ),
-                    minimum_background_bin_count=(
-                        configuration.minimum_background_bin_count
-                    ),
-                    assume_pre_event_zero_for_display=(
-                        configuration.enable_pre_event_display
-                    ),
-                    pre_event_display_velocity_m_s=(
-                        configuration.pre_event_display_velocity_m_s
-                    ),
-                    ridge_constraints=request.ridge_constraints,
-                )
-                stft_results = MappingProxyType(
-                    {
-                        name: analysis.stft_result
-                        for name, analysis in analyses.items()
-                    }
                 )
         except Exception as exc:
             self.signals.failed.emit(
@@ -235,8 +174,32 @@ class _AnalysisWorker(QRunnable):
                 analyses,
                 request.result_source,
                 stft_results,
+                region,
             )
         )
+
+
+def _default_ridge_search_region(
+    stft_results: Mapping[str, STFTResult],
+    *,
+    minimum_frequency_hz: float,
+    maximum_frequency_hz: float,
+) -> RidgeSearchRegion:
+    """Resolve the same clamped default used after an explicit STFT run."""
+    time_start = max(float(result.time_s[0]) for result in stft_results.values())
+    time_end = min(float(result.time_s[-1]) for result in stft_results.values())
+    axis_min = max(float(result.frequency_hz[0]) for result in stft_results.values())
+    axis_max = min(float(result.frequency_hz[-1]) for result in stft_results.values())
+    frequency_min = max(float(minimum_frequency_hz), axis_min)
+    frequency_max = min(float(maximum_frequency_hz), axis_max)
+    if frequency_min >= frequency_max:
+        frequency_min, frequency_max = axis_min, axis_max
+    return RidgeSearchRegion(
+        time_start_s=time_start,
+        time_end_s=time_end,
+        frequency_min_hz=frequency_min,
+        frequency_max_hz=frequency_max,
+    )
 
 
 class AutomaticAnalysisAdapter(QObject):

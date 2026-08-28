@@ -39,8 +39,12 @@ lif_reference_wavelength_m = 1.55e-6
 [quality]
 background_guard_window_scale = 2.0
 minimum_background_bin_count = 2
+# A new or reacquired formal segment must meet the strict 10 dB gate for three
+# consecutive frames. Once established, a continuous path may track at 7 dB.
 minimum_peak_to_background_db = 10.0
+tracking_minimum_peak_to_background_db = 7.0
 minimum_peak_to_competitor_db = 3.0
+maximum_tracking_frequency_step_hz = 1.5e8
 peak_exclusion_half_width_bins = 12
 minimum_consecutive_frames = 3
 minimum_cycles_in_window = 1.0
@@ -59,7 +63,7 @@ minimum_candidate_relative_to_strongest_db = -6.0
 [event_candidate]
 minimum_segment_frames = 8
 minimum_segment_duration_s = 2.0e-8
-maximum_adjacent_frequency_step_hz = 1.0e8
+maximum_adjacent_frequency_step_hz = 1.5e8
 
 [event_consensus]
 channel_start_time_tolerance_s = 2.5e-8

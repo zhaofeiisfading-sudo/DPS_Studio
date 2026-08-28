@@ -228,7 +228,7 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert all(
         _same_float(
             simple_rows[index]["display_velocity_m_s"],
-            analysis.working_corrected_velocity_m_s[index],
+            analysis.corrected_velocity_m_s[index],
         )
         for index in post_event_invalid_indices
     )

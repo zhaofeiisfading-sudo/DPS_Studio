@@ -91,6 +91,7 @@ from dps_studio.gui.analysis_session import (
     AnalysisSession,
     EventTimeSource,
     RidgeExtractionMode,
+    RidgeSearchRegion,
 )
 from dps_studio.gui.advanced_parameters_dialog import AdvancedParametersDialog
 from dps_studio.gui.data_controller import DataImportController
@@ -187,6 +188,8 @@ class MainWindow(QMainWindow):
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
         self._pending_navigation_tab: int | None = None
         self._pending_candidate_detection = False
+        self._quick_analysis_waiting = False
+        self._continue_to_velocity_after_analysis = False
         self._current_guided_channel: str | None = None
         self._export_output_directory: Path | None = None
         self._workflow_state = WorkflowState.EMPTY
@@ -260,6 +263,7 @@ class MainWindow(QMainWindow):
             )
         self._sync_export_time_origin_controls()
         self.raw_signal_view.set_records(result.records)
+        self.raw_signal_view.analysis_region.setVisible(False)
         range_start, range_end = self._session.data_bounds_s()
         self.analysis_range_panel.set_data_bounds(range_start, range_end)
         self._populate_data_summary(result)
@@ -441,10 +445,20 @@ class MainWindow(QMainWindow):
         self.action_exit.setShortcut(QKeySequence.StandardKey.Quit)
 
         planned_tooltip = self.tr("请先加载配置、确认范围和真空波长。")
+        self.action_quick_analysis = QAction(self.tr("快速分析"), self)
+        self.action_quick_analysis.setObjectName("actionQuickAnalysis")
+        self.action_quick_analysis.setEnabled(False)
+        self.action_quick_analysis.setToolTip(planned_tooltip)
+        # Hidden compatibility hook for older automation. Production menus and
+        # toolbar expose Quick Analysis and Full Automatic Analysis explicitly.
         self.action_automatic = QAction(self.tr("一键分析"), self)
         self.action_automatic.setObjectName("actionAutomaticAnalysis")
         self.action_automatic.setEnabled(False)
         self.action_automatic.setToolTip(planned_tooltip)
+        self.action_full_automatic = QAction(self.tr("全自动分析"), self)
+        self.action_full_automatic.setObjectName("actionFullAutomaticAnalysis")
+        self.action_full_automatic.setEnabled(False)
+        self.action_full_automatic.setToolTip(planned_tooltip)
         self.action_guided = QAction(self.tr("人工范围分析"), self)
         self.action_guided.setObjectName("actionGuidedAnalysis")
         self.action_guided.setEnabled(False)
@@ -537,7 +551,8 @@ class MainWindow(QMainWindow):
 
         self.analysis_menu = self.menuBar().addMenu(self.tr("分析"))
         self.analysis_menu.setObjectName("analysisMenu")
-        self.analysis_menu.addAction(self.action_automatic)
+        self.analysis_menu.addAction(self.action_quick_analysis)
+        self.analysis_menu.addAction(self.action_full_automatic)
 
         self.view_menu = self.menuBar().addMenu(self.tr("视图"))
         self.view_menu.setObjectName("viewMenu")
@@ -574,7 +589,7 @@ class MainWindow(QMainWindow):
         )
         self.main_toolbar.addAction(self.action_open_data)
         self.main_toolbar.addSeparator()
-        self.main_toolbar.addAction(self.action_automatic)
+        self.main_toolbar.addAction(self.action_quick_analysis)
         self.main_toolbar.addSeparator()
         self.main_toolbar.addAction(self.action_export)
         self.addToolBar(self.main_toolbar)
@@ -592,7 +607,7 @@ class MainWindow(QMainWindow):
         self.workflow_navigation = QListWidget()
         self.workflow_navigation.setObjectName("workflowNavigation")
         self._workflow_labels = (
-            self.tr("1  数据与范围"),
+            self.tr("1  数据导入"),
             self.tr("2  时频分析"),
             self.tr("3  脊线提取"),
             self.tr("4  速度结果"),
@@ -772,6 +787,7 @@ class MainWindow(QMainWindow):
             )
         )
         self.analysis_range_panel = AnalysisRangePanel()
+        self.analysis_range_panel.set_analysis_range_controls_visible(False)
         data_layout.addWidget(self.analysis_range_panel)
         data_layout.addStretch(1)
         self.analysis_range_scroll = QScrollArea()
@@ -846,13 +862,25 @@ class MainWindow(QMainWindow):
         ridge_mode_layout.addWidget(self.automatic_mode_radio)
         ridge_mode_layout.addWidget(self.guided_mode_radio)
         guided_layout.addWidget(ridge_mode_group)
-        self.automatic_ridge_panel = QGroupBox(self.tr("自动脊线"))
+        self.automatic_ridge_panel = QGroupBox(self.tr("脊线搜索区域"))
         automatic_layout = QVBoxLayout(self.automatic_ridge_panel)
         automatic_form = QFormLayout()
+        self.ridge_time_start_spin = _CompactDoubleSpinBox(minimum_decimals=3)
+        self.ridge_time_start_spin.setObjectName("ridgeSearchTimeStartUs")
+        self.ridge_time_start_spin.setDecimals(9)
+        self.ridge_time_start_spin.setRange(-1.0e12, 1.0e12)
+        self.ridge_time_start_spin.setSuffix(" μs")
+        self.ridge_time_end_spin = _CompactDoubleSpinBox(minimum_decimals=3)
+        self.ridge_time_end_spin.setObjectName("ridgeSearchTimeEndUs")
+        self.ridge_time_end_spin.setDecimals(9)
+        self.ridge_time_end_spin.setRange(-1.0e12, 1.0e12)
+        self.ridge_time_end_spin.setSuffix(" μs")
         automatic_form.addRow(
             self.tr("自动脊线提取"),
             self.automatic_ridge_extraction_combo,
         )
+        automatic_form.addRow(self.tr("时间起点"), self.ridge_time_start_spin)
+        automatic_form.addRow(self.tr("时间终点"), self.ridge_time_end_spin)
         automatic_form.addRow(
             self.tr("搜索频率下限"), self.minimum_frequency_spin
         )
@@ -865,12 +893,13 @@ class MainWindow(QMainWindow):
         )
         automatic_layout.addWidget(self.automatic_ridge_status_label)
         self.extract_automatic_ridge_button = QPushButton(
-            self.tr("提取自动脊线")
+            self.tr("确认区域并继续分析")
         )
         self.extract_automatic_ridge_button.setObjectName(
             "extractAutomaticRidgeButton"
         )
         automatic_layout.addWidget(self.extract_automatic_ridge_button)
+        self.confirm_search_region_button = self.extract_automatic_ridge_button
         guided_layout.addWidget(self.automatic_ridge_panel)
         self.guided_ridge_panel = QGroupBox(self.tr("人工频率范围"))
         guided_panel_layout = QVBoxLayout(self.guided_ridge_panel)
@@ -1297,6 +1326,8 @@ class MainWindow(QMainWindow):
     def _connect_signals(self) -> None:
         self.action_open_data.triggered.connect(self._open_data)
         self.action_export.triggered.connect(self._show_review_and_export)
+        self.action_quick_analysis.triggered.connect(self.run_quick_analysis)
+        self.action_full_automatic.triggered.connect(self.run_automatic_analysis)
         self.action_automatic.triggered.connect(self.run_automatic_analysis)
         self.action_guided.triggered.connect(self._activate_guided_analysis)
         self.action_run_stft.triggered.connect(self.run_stft_analysis)
@@ -1403,11 +1434,13 @@ class MainWindow(QMainWindow):
         self.spectrogram_view.channel_selection_changed.connect(
             self._guided_channel_changed
         )
-        self.spectrogram_view.search_band_changed.connect(
-            self._search_band_dragged
+        self.spectrogram_view.search_region_changed.connect(
+            self._ridge_search_region_graphically_changed
         )
         self.science_tabs.currentChanged.connect(self._science_tab_changed)
-        self.ridge_view.search_band_changed.connect(self._search_band_dragged)
+        self.ridge_view.search_region_changed.connect(
+            self._ridge_search_region_graphically_changed
+        )
         corridor_controller = self.spectrogram_view.corridor_controller
         corridor_controller.constraint_changed.connect(
             self._ridge_constraint_changed
@@ -1442,7 +1475,7 @@ class MainWindow(QMainWindow):
         self.clear_corridor_button.clicked.connect(self._clear_current_corridor)
         self.run_guided_button.clicked.connect(self.run_guided_analysis)
         self.extract_automatic_ridge_button.clicked.connect(
-            self.run_staged_automatic_analysis
+            self.confirm_search_region_and_continue
         )
         self.action_undo_corridor.triggered.connect(self._undo_corridor_point)
         self.action_backspace_corridor.triggered.connect(
@@ -1458,10 +1491,17 @@ class MainWindow(QMainWindow):
             self.window_length_spin,
             self.overlap_spin,
             self.nfft_spin,
+        ):
+            control.valueChanged.connect(self._scientific_parameter_changed)
+        for region_control in (
+            self.ridge_time_start_spin,
+            self.ridge_time_end_spin,
             self.minimum_frequency_spin,
             self.maximum_frequency_spin,
         ):
-            control.valueChanged.connect(self._scientific_parameter_changed)
+            region_control.valueChanged.connect(
+                self._ridge_search_region_numeric_changed
+            )
         self.restore_preset_button.clicked.connect(self._restore_selected_preset)
         self.advanced_parameters_button.clicked.connect(
             self._show_advanced_parameters
@@ -1688,17 +1728,7 @@ class MainWindow(QMainWindow):
         data_start_s: float,
         data_end_s: float,
     ) -> tuple[float, float]:
-        configuration = self._session.workflow_configuration
-        if configuration is None:
-            return data_start_s, data_end_s
-        configured_start = configuration.analysis.analysis_start_time_s
-        configured_end = configuration.analysis.analysis_end_time_s
-        if (
-            configured_start is not None
-            and configured_end is not None
-            and data_start_s <= configured_start < configured_end <= data_end_s
-        ):
-            return configured_start, configured_end
+        """Production STFT always starts from the complete imported record."""
         return data_start_s, data_end_s
 
     def _set_parameter_controls(
@@ -1763,6 +1793,8 @@ class MainWindow(QMainWindow):
             self.window_length_spin,
             self.overlap_spin,
             self.nfft_spin,
+            self.ridge_time_start_spin,
+            self.ridge_time_end_spin,
             self.minimum_frequency_spin,
             self.maximum_frequency_spin,
             self.pre_event_display_velocity_spin,
@@ -1798,8 +1830,8 @@ class MainWindow(QMainWindow):
             window_length_samples=self.window_length_spin.value(),
             overlap_samples=self.overlap_spin.value(),
             nfft=self.nfft_spin.value(),
-            minimum_frequency_hz=self.minimum_frequency_spin.value() * 1e9,
-            maximum_frequency_hz=self.maximum_frequency_spin.value() * 1e9,
+            minimum_frequency_hz=configuration.parameters.minimum_frequency_hz,
+            maximum_frequency_hz=configuration.parameters.maximum_frequency_hz,
         )
         stft_was_valid = self._session.stft_valid
         try:
@@ -1814,6 +1846,7 @@ class MainWindow(QMainWindow):
             self._set_parameter_validation_state(False, self._parameter_error)
             changed = True
         else:
+            self._constrain_search_band_to_records()
             updated = self._session.run_configuration
             if updated is None:
                 return
@@ -1898,25 +1931,88 @@ class MainWindow(QMainWindow):
         self._set_search_spin_limits()
 
     def _search_band_dragged(self, minimum_hz: float, maximum_hz: float) -> None:
-        """Apply one graphically selected, grid-snapped authoritative band."""
-        if not minimum_hz < maximum_hz:
-            self.statusBar().showMessage(
-                self.tr("搜索频带下限必须小于上限。"),
-                5000,
-            )
-            self._sync_scientific_view_configuration()
+        """Compatibility entry for frequency-only drag integrations."""
+        region = self._session.ridge_search_region
+        if region is None:
             return
-        usable_hz = self._usable_stft_frequency_max_hz()
-        if usable_hz is not None:
-            maximum_hz = min(maximum_hz, usable_hz)
+        self._apply_ridge_search_region(
+            RidgeSearchRegion(
+                region.time_start_s,
+                region.time_end_s,
+                minimum_hz,
+                maximum_hz,
+            )
+        )
+
+    def _ridge_search_region_graphically_changed(
+        self,
+        time_start_s: float,
+        time_end_s: float,
+        frequency_min_hz: float,
+        frequency_max_hz: float,
+    ) -> None:
+        """Commit one grid-snapped ROI edit in physical coordinates."""
+        try:
+            region = RidgeSearchRegion(
+                time_start_s,
+                time_end_s,
+                frequency_min_hz,
+                frequency_max_hz,
+            )
+        except ValueError as exc:
+            self.statusBar().showMessage(str(exc), 5000)
+            self._sync_ridge_search_region_controls()
+            return
+        self._apply_ridge_search_region(region)
+
+    def _ridge_search_region_numeric_changed(self, _value: float) -> None:
+        if self._updating_parameter_controls or self._session.ridge_search_region is None:
+            return
+        try:
+            region = RidgeSearchRegion(
+                self.ridge_time_start_spin.value() * 1.0e-6,
+                self.ridge_time_end_spin.value() * 1.0e-6,
+                self.minimum_frequency_spin.value() * 1.0e9,
+                self.maximum_frequency_spin.value() * 1.0e9,
+            )
+        except ValueError as exc:
+            self.statusBar().showMessage(str(exc), 5000)
+            self._sync_ridge_search_region_controls()
+            return
+        self._apply_ridge_search_region(region)
+
+    def _apply_ridge_search_region(self, region: RidgeSearchRegion) -> None:
+        try:
+            changed = self._session.set_ridge_search_region(region)
+        except (RuntimeError, ValueError) as exc:
+            self.statusBar().showMessage(str(exc), 5000)
+            self._sync_ridge_search_region_controls()
+            return
+        self._sync_ridge_search_region_controls()
+        if not changed:
+            return
+        self._quick_analysis_waiting = True
+        self._clear_downstream_presentation(
+            self.tr("脊线搜索区域已变化；STFT 保持有效，请确认区域后继续。")
+        )
+        self._sync_workflow_state_after_invalidation()
+
+    def _sync_ridge_search_region_controls(self) -> None:
+        region = self._session.ridge_search_region
+        if region is None:
+            return
         blockers = [
+            QSignalBlocker(self.ridge_time_start_spin),
+            QSignalBlocker(self.ridge_time_end_spin),
             QSignalBlocker(self.minimum_frequency_spin),
             QSignalBlocker(self.maximum_frequency_spin),
         ]
-        self.minimum_frequency_spin.setValue(minimum_hz * 1e-9)
-        self.maximum_frequency_spin.setValue(maximum_hz * 1e-9)
+        self.ridge_time_start_spin.setValue(region.time_start_s * 1.0e6)
+        self.ridge_time_end_spin.setValue(region.time_end_s * 1.0e6)
+        self.minimum_frequency_spin.setValue(region.frequency_min_hz * 1.0e-9)
+        self.maximum_frequency_spin.setValue(region.frequency_max_hz * 1.0e-9)
         del blockers
-        self._scientific_parameter_changed(0)
+        self._sync_scientific_view_configuration()
 
     def _velocity_correction_changed(self, _value: float | int) -> None:
         """Apply the velocity-step correction controls to stored apparent velocity."""
@@ -2295,7 +2391,7 @@ class MainWindow(QMainWindow):
     def _event_reference_cleared(self) -> None:
         if self._session.clear_event_reference():
             self._refresh_event_reference_results()
-            self._append_log(self.tr("已恢复自动起跳时间。"))
+            self._append_log(self.tr("已恢复自动事件候选参考。"))
         self._sync_event_reference_panel()
 
     def _event_time_source_changed(self, source: str) -> None:
@@ -2363,7 +2459,7 @@ class MainWindow(QMainWindow):
             rejected = self._session.rejected_event_reference_time_s
             if rejected is None:
                 reason = self.tr(
-                    "自动起跳时间尚未生成；运行分析后将使用自动候选。"
+                    "自动事件候选尚未生成；运行分析后将使用候选参考。"
                 )
             else:
                 reason = self.tr(
@@ -2799,8 +2895,8 @@ class MainWindow(QMainWindow):
 
     def _guided_validation_error(self, channel_name: str | None = None) -> str | None:
         configuration = self._session.run_configuration
-        analysis_range = self._session.analysis_range
-        if configuration is None or analysis_range is None:
+        region = self._session.ridge_search_region
+        if configuration is None or region is None:
             return self.tr("分析配置或分析范围尚未就绪。")
         target = channel_name or self._current_guided_channel_name()
         if target is None:
@@ -2822,26 +2918,26 @@ class MainWindow(QMainWindow):
                     constraint,
                     stft_result,
                     minimum_frequency_hz=(
-                        configuration.parameters.minimum_frequency_hz
+                        region.frequency_min_hz
                     ),
                     maximum_frequency_hz=(
-                        configuration.parameters.maximum_frequency_hz
+                        region.frequency_max_hz
                     ),
-                    analysis_start_time_s=analysis_range.start_time_s,
-                    analysis_end_time_s=analysis_range.end_time_s,
+                    analysis_start_time_s=region.time_start_s,
+                    analysis_end_time_s=region.time_end_s,
                 )
             else:
                 validate_ridge_corridor_for_stft(
                     constraint,
                     stft_result,
                     minimum_frequency_hz=(
-                        configuration.parameters.minimum_frequency_hz
+                        region.frequency_min_hz
                     ),
                     maximum_frequency_hz=(
-                        configuration.parameters.maximum_frequency_hz
+                        region.frequency_max_hz
                     ),
-                    analysis_start_time_s=analysis_range.start_time_s,
-                    analysis_end_time_s=analysis_range.end_time_s,
+                    analysis_start_time_s=region.time_start_s,
+                    analysis_end_time_s=region.time_end_s,
                 )
         except RidgeConfigurationError as exc:
             return self.tr("通道 {channel} 的约束无效：{reason}").format(
@@ -2898,6 +2994,7 @@ class MainWindow(QMainWindow):
             event_reference_time_s=self._session.resolved_event_time_s(
                 channel_name
             ),
+            ridge_search_region=self._session.ridge_search_region,
         )
         self._pending_analysis_source = AnalysisResultSource.GUIDED
         self._pending_navigation_tab = 2
@@ -2946,11 +3043,51 @@ class MainWindow(QMainWindow):
             self.analysis_status_label.setText(self.tr("分析任务已在运行。"))
         return started
 
+    def run_quick_analysis(self) -> bool:
+        """Compute STFT if needed, then stop at the region checkpoint."""
+        self._pending_candidate_detection = False
+        self._continue_to_velocity_after_analysis = False
+        self._quick_analysis_waiting = True
+        if self._session.stft_valid and self._session.stft_results:
+            self._sync_ridge_search_region_controls()
+            self.select_workflow_step(2)
+            self.science_tabs.setCurrentWidget(self.spectrogram_view)
+            self.spectrogram_view.set_search_region_interaction(
+                visible=True,
+                editable=True,
+            )
+            self.analysis_status_label.setText(
+                self.tr("请调整脊线搜索区域，然后确认并继续分析。")
+            )
+            return True
+        started = self.run_stft_analysis()
+        if not started:
+            self._quick_analysis_waiting = False
+        return started
+
+    def confirm_search_region_and_continue(self) -> bool:
+        """Run the shared automatic post-STFT workflow after human confirmation."""
+        if self._session.ridge_search_region is None:
+            self.automatic_ridge_status_label.setText(
+                self.tr("请先计算时频图并建立脊线搜索区域。")
+            )
+            return False
+        self._quick_analysis_waiting = False
+        self._continue_to_velocity_after_analysis = True
+        started = self.run_staged_automatic_analysis()
+        if not started:
+            self._continue_to_velocity_after_analysis = False
+        return started
+
     def run_staged_automatic_analysis(self) -> bool:
         """Extract automatic ridge and velocity from the cached current STFT."""
         self._pending_candidate_detection = False
         ready = self._analysis_request_ready()
-        if ready is None or not self._session.stft_valid:
+        if (
+            ready is None
+            or not self._session.stft_valid
+            or self._session.ridge_search_region is None
+        ):
             self.automatic_ridge_status_label.setText(
                 self.tr("请先计算当前 STFT。")
             )
@@ -2963,6 +3100,7 @@ class MainWindow(QMainWindow):
             configuration=configuration,
             result_source=AnalysisResultSource.AUTOMATIC,
             stft_results=self._session.stft_results,
+            ridge_search_region=self._session.ridge_search_region,
         )
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
         self._pending_navigation_tab = 2
@@ -2983,7 +3121,13 @@ class MainWindow(QMainWindow):
             records=self._session.records,
             analysis_range=analysis_range,
             configuration=configuration,
+            stft_results=(
+                self._session.stft_results if self._session.stft_valid else {}
+            ),
+            ridge_search_region=self._session.ridge_search_region,
         )
+        self._quick_analysis_waiting = False
+        self._continue_to_velocity_after_analysis = True
         self._set_ridge_extraction_mode(RidgeExtractionMode.AUTOMATIC)
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
         self._pending_navigation_tab = 3
@@ -3093,6 +3237,7 @@ class MainWindow(QMainWindow):
             accepted = self._session.accept_results(
                 generation_id=value.generation_id,
                 analyses=value.channel_analyses,
+                ridge_search_region=value.ridge_search_region,
             )
         if not accepted:
             self._pending_navigation_tab = None
@@ -3122,6 +3267,7 @@ class MainWindow(QMainWindow):
             return
         analyses = self._session.channel_analyses
         self._workflow_state = WorkflowState.STFT_READY
+        self._sync_ridge_search_region_controls()
         self._sync_scientific_view_configuration()
         self._apply_state()
         self.spectrogram_view.set_analyses(
@@ -3158,12 +3304,16 @@ class MainWindow(QMainWindow):
         )
         self._sync_guided_panel()
         self._complete_pending_navigation()
+        if self._continue_to_velocity_after_analysis:
+            self._continue_to_velocity_after_analysis = False
+            self.select_workflow_step(3)
 
     def _finish_stft_presentation(self) -> None:
         configuration = self._session.run_configuration
         if configuration is None:
             return
         self._workflow_state = WorkflowState.STFT_READY
+        self._sync_ridge_search_region_controls()
         self._sync_scientific_view_configuration()
         self.spectrogram_view.set_stft_results(
             self._session.stft_results,
@@ -3180,6 +3330,21 @@ class MainWindow(QMainWindow):
                 channels=len(self._session.stft_results)
             )
         )
+        if self._quick_analysis_waiting:
+            self.select_workflow_step(2)
+            self.science_tabs.setCurrentWidget(self.spectrogram_view)
+            self.spectrogram_view.set_search_region_interaction(
+                visible=True,
+                editable=True,
+            )
+            self.analysis_status_label.setText(
+                self.tr("请调整脊线搜索区域，然后确认并继续分析。")
+            )
+        else:
+            self.spectrogram_view.set_search_region_interaction(
+                visible=False,
+                editable=False,
+            )
 
     def _finish_guided_presentation(
         self,
@@ -3228,6 +3393,9 @@ class MainWindow(QMainWindow):
     ) -> None:
         candidate_detection = self._pending_candidate_detection
         self._pending_candidate_detection = False
+        self._continue_to_velocity_after_analysis = False
+        if self._pending_analysis_source is AnalysisResultSource.SPECTROGRAM:
+            self._quick_analysis_waiting = False
         expected_generation = (
             self._session.guided_generation_id
             if self._pending_analysis_source is AnalysisResultSource.GUIDED
@@ -3597,16 +3765,15 @@ class MainWindow(QMainWindow):
 
     def _sync_scientific_view_configuration(self) -> None:
         configuration = self._session.run_configuration
-        analysis_range = self._session.analysis_range
-        if configuration is None or analysis_range is None:
+        region = self._session.ridge_search_region
+        if configuration is None or region is None:
             return
-        parameters = configuration.parameters
         for view in (self.spectrogram_view, self.ridge_view):
             view.set_view_configuration(
-                analysis_start_time_s=analysis_range.start_time_s,
-                analysis_end_time_s=analysis_range.end_time_s,
-                minimum_frequency_hz=parameters.minimum_frequency_hz,
-                maximum_frequency_hz=parameters.maximum_frequency_hz,
+                analysis_start_time_s=region.time_start_s,
+                analysis_end_time_s=region.time_end_s,
+                minimum_frequency_hz=region.frequency_min_hz,
+                maximum_frequency_hz=region.frequency_max_hz,
             )
 
     def _sync_workflow_state_after_invalidation(self) -> None:
@@ -3685,12 +3852,14 @@ class MainWindow(QMainWindow):
             self._workflow_state,
             WorkflowState.RANGE_DEFINED,
         )
+        stft_ready = self._session.stft_valid and bool(self._session.stft_results)
+        result_ready = self._session.any_formal_results_available
         availability = (
             True,
-            range_defined,
-            state_reaches(self._workflow_state, WorkflowState.STFT_READY),
-            range_defined,
-            state_reaches(self._workflow_state, WorkflowState.RESULT_READY),
+            loaded,
+            stft_ready,
+            result_ready,
+            result_ready,
         )
         unavailable_tooltip = self.tr(
             "当前状态不可用，或该功能尚未接入本版 GUI。"
@@ -3706,14 +3875,8 @@ class MainWindow(QMainWindow):
             else:
                 item.setFlags(flags & ~Qt.ItemFlag.ItemIsEnabled)
                 item.setToolTip(unavailable_tooltip)
-        tab_requirements = (
-            WorkflowState.STFT_READY,
-            WorkflowState.STFT_READY,
-            WorkflowState.RESULT_READY,
-            WorkflowState.RESULT_READY,
-        )
-        for tab_index, required_state in enumerate(tab_requirements, start=1):
-            enabled = state_reaches(self._workflow_state, required_state)
+        tab_availability = (loaded, result_ready, result_ready, result_ready)
+        for tab_index, enabled in enumerate(tab_availability, start=1):
             self.science_tabs.setTabEnabled(tab_index, enabled)
             self.science_tabs.setTabToolTip(
                 tab_index,
@@ -3737,6 +3900,10 @@ class MainWindow(QMainWindow):
             run_tooltip = self._parameter_error
         self.action_automatic.setEnabled(can_run)
         self.action_automatic.setToolTip(run_tooltip)
+        self.action_quick_analysis.setEnabled(can_run)
+        self.action_quick_analysis.setToolTip(run_tooltip)
+        self.action_full_automatic.setEnabled(can_run)
+        self.action_full_automatic.setToolTip(run_tooltip)
         self.action_run_stft.setEnabled(can_run)
         self.action_run_stft.setToolTip(run_tooltip)
         self.run_analysis_button.setEnabled(can_run)
@@ -3792,6 +3959,17 @@ class MainWindow(QMainWindow):
         self._set_parameter_editability(
             has_configuration and not self._analysis_adapter.busy
         )
+        region_editable = (
+            has_configuration and stft_ready and not self._analysis_adapter.busy
+        )
+        for region_control in (
+            self.ridge_time_start_spin,
+            self.ridge_time_end_spin,
+            self.minimum_frequency_spin,
+            self.maximum_frequency_spin,
+        ):
+            region_control.setReadOnly(not region_editable)
+        self.confirm_search_region_button.setEnabled(region_editable)
         self._refresh_export_controls()
         if not loaded:
             self.workflow_navigation.setCurrentRow(0)
@@ -3824,23 +4002,36 @@ class MainWindow(QMainWindow):
         if row == 0:
             self.science_tabs.setCurrentWidget(self.raw_signal_view)
         elif row == 1:
+            self.spectrogram_view.set_search_region_interaction(
+                visible=False,
+                editable=False,
+            )
+            self.science_tabs.setCurrentWidget(self.spectrogram_view)
             if self._session.stft_valid:
-                self.science_tabs.setCurrentWidget(self.spectrogram_view)
-            else:
-                self.run_stft_analysis()
+                configuration = self._session.run_configuration
+                if configuration is not None:
+                    self.spectrogram_view.set_stft_results(
+                        self._session.stft_results,
+                        relative_db_floor=configuration.relative_db_floor,
+                    )
         elif row == 2:
+            self.spectrogram_view.set_search_region_interaction(
+                visible=True,
+                editable=True,
+            )
             if (
                 self._session.automatic_results_available
                 or self._session.guided_results_available
             ):
                 self.science_tabs.setCurrentWidget(self.ridge_view)
+                self.ridge_view.set_search_region_interaction(
+                    visible=True,
+                    editable=True,
+                )
             else:
                 self.science_tabs.setCurrentWidget(self.spectrogram_view)
         elif row == 3:
-            if self._session.any_formal_results_available:
-                self.science_tabs.setCurrentWidget(self.velocity_view)
-            else:
-                self.run_automatic_analysis()
+            self.science_tabs.setCurrentWidget(self.velocity_view)
         elif row == 4:
             self._sync_review_preview()
 
@@ -3904,6 +4095,9 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         """Close without claiming to interrupt an active numerical worker."""
         self._save_layout_settings()
+        self.spectrogram_view.dispose_search_region_interactions()
+        self.spectrogram_view.corridor_controller.detach_context()
+        self.ridge_view.dispose_search_region_interactions()
         event.accept()
 
     @staticmethod

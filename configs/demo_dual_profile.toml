@@ -37,7 +37,9 @@ minimum_background_bin_count = 2
 # criterion, so the deterministic fallback retains 10/3 dB.
 # This is not an absolute experimental standard.
 minimum_peak_to_background_db = 10.0
+tracking_minimum_peak_to_background_db = 7.0
 minimum_peak_to_competitor_db = 3.0
+maximum_tracking_frequency_step_hz = 1.5e8
 peak_exclusion_half_width_bins = 12
 minimum_consecutive_frames = 3
 minimum_cycles_in_window = 1.0
@@ -48,7 +50,7 @@ enabled = true
 # Duration is first-to-last STFT frame-center span, not window coverage.
 minimum_segment_frames = 8
 minimum_segment_duration_s = 2.0e-8
-maximum_adjacent_frequency_step_hz = 1.0e8
+maximum_adjacent_frequency_step_hz = 1.5e8
 # Optional median contrast gates are deliberately omitted. The per-frame
 # 10 dB / 3 dB rules are not silently duplicated at the event level.
 

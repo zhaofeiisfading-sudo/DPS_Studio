@@ -140,7 +140,13 @@ def test_english_translation_covers_key_navigation(
         assert window.settings_menu.title() == "Settings"
         assert window.help_menu.title() == "Help"
         assert window.science_tabs.tabText(0) == "Raw Signal"
-        assert window.workflow_navigation.item(0).text() == "1  Data & Range"
+        assert window.workflow_navigation.item(0).text() == "1  Data Import"
+        assert window.action_quick_analysis.text() == "Quick Analysis"
+        assert window.action_full_automatic.text() == "Full Automatic Analysis"
+        assert (
+            window.confirm_search_region_button.text()
+            == "Confirm Region and Continue Analysis"
+        )
     finally:
         window.close()
         manager.install("zh_CN")

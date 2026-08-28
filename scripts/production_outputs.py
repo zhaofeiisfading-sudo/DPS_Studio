@@ -1794,9 +1794,19 @@ def _threshold_candidate_detection_config(
     peak_to_competitor_db: float,
 ) -> SignalDetectionConfig:
     """Change only the two approved spectral-contrast thresholds."""
+    base_tracking_threshold = base.tracking_minimum_peak_to_background_db
+    if base_tracking_threshold is None:
+        raise RuntimeError("Validated tracking background threshold is missing.")
     return SignalDetectionConfig(
         minimum_peak_to_background_db=peak_to_background_db,
+        tracking_minimum_peak_to_background_db=min(
+            peak_to_background_db,
+            base_tracking_threshold,
+        ),
         minimum_peak_to_competitor_db=peak_to_competitor_db,
+        maximum_tracking_frequency_step_hz=(
+            base.maximum_tracking_frequency_step_hz
+        ),
         peak_exclusion_half_width_bins=base.peak_exclusion_half_width_bins,
         minimum_consecutive_frames=base.minimum_consecutive_frames,
         minimum_cycles_in_window=base.minimum_cycles_in_window,

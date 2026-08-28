@@ -1,0 +1,57 @@
+{
+  "source": "D:\\files\\DPS原始数据\\PDV数据-质量中等\\PDV数据-质量中等\\1\\20201210m.dat",
+  "source_sha256_before": "08a8b8af06dd241f6f1b2ceb08e60f8b6b110d755b867f36935e48a28495e956",
+  "source_sha256_after": "08a8b8af06dd241f6f1b2ceb08e60f8b6b110d755b867f36935e48a28495e956",
+  "ridge_search_region": {
+    "time_start_s": 0.00013885,
+    "time_end_s": 0.00013968880753033718,
+    "frequency_min_hz": 2200000000.0,
+    "frequency_max_hz": 4000000000.0
+  },
+  "stft": {
+    "profile": "balanced",
+    "window_length_samples": 768,
+    "overlap_samples": 640,
+    "hop_samples": 128,
+    "nfft": 4096,
+    "window_name": "hann",
+    "frame_count": 307,
+    "frequency_bin_spacing_hz": 9765624.996669864
+  },
+  "quality_background": {
+    "statistic": "per-frame median magnitude outside inclusive +/-12-bin guard within current RidgeSearchRegion",
+    "contrast_formula": "20*log10(peak/background_median)"
+  },
+  "before": {
+    "formal_finite_frames": 163,
+    "measured_segment_count": 2,
+    "eligible_event_candidate_count": 0,
+    "selected_candidate_time_s": null,
+    "selected_candidate_provenance": null,
+    "post_139_5_us_formal_frames": 0,
+    "post_139_5_us_working_frames": 60,
+    "post_139_5_us_candidate_frames": 60
+  },
+  "after": {
+    "formal_finite_frames": 164,
+    "measured_segment_count": 2,
+    "eligible_event_candidate_count": 1,
+    "selected_candidate_time_s": 0.00013885040753005128,
+    "selected_candidate_provenance": "automatic_event_candidate",
+    "post_139_5_us_formal_frames": 0,
+    "post_139_5_us_working_frames": 60,
+    "post_139_5_us_candidate_frames": 60
+  },
+  "production_quality_rules": {
+    "establishment_p2b_db": 10.0,
+    "tracking_p2b_db": 7.0,
+    "p2c_db": 3.0,
+    "minimum_consecutive_establishment_and_reacquisition_frames": 3,
+    "maximum_tracking_frequency_step_hz": 150000000.0
+  },
+  "production_event_rules": {
+    "minimum_segment_frames": 8,
+    "minimum_segment_duration_s": 2e-08,
+    "maximum_adjacent_frequency_step_hz": 150000000.0
+  }
+}

@@ -133,7 +133,7 @@ def test_gui_reference_candidates_and_result_view_fit(
         assert window.analysis_session.event_reference_time_s is None
         assert window.analysis_range_panel.confirmed_event_reference_s is None
         reference_status = window.analysis_range_panel.event_reference_status_label.text()
-        assert "自动起跳时间尚未生成" in reference_status
+        assert "自动事件候选尚未生成" in reference_status
         assert "554.668" not in reference_status
 
         full_start_s, full_end_s = window.analysis_session.data_bounds_s()
@@ -184,8 +184,10 @@ def test_gui_reference_candidates_and_result_view_fit(
         ).toolTip()
         assert "必须由用户显式采用" in candidate_tooltip
 
-        expected_start_us = analysis_start_s * 1e6
-        expected_end_us = analysis_end_s * 1e6
+        region = window.analysis_session.ridge_search_region
+        assert region is not None
+        expected_start_us = region.time_start_s * 1e6
+        expected_end_us = region.time_end_s * 1e6
         for view in (
             window.spectrogram_view,
             window.ridge_view,
@@ -194,8 +196,8 @@ def test_gui_reference_candidates_and_result_view_fit(
             _assert_view_x(view, expected_start_us, expected_end_us)
         _assert_view_x(
             window.velocity_view,
-            (analysis_start_s - manual_reference_s) * 1e6,
-            (analysis_end_s - manual_reference_s) * 1e6,
+            (region.time_start_s - manual_reference_s) * 1e6,
+            (region.time_end_s - manual_reference_s) * 1e6,
         )
 
         raw_x = window.raw_signal_view.plot_widget.plotItem.vb.viewRange()[0]
@@ -245,11 +247,11 @@ def test_gui_reference_candidates_and_result_view_fit(
                 dtype=np.bool_,
             )
             pre_event = (
-                (analysis.stft_result.time_s >= analysis_start_s)
+                (analysis.stft_result.time_s >= region.time_start_s)
                 & (analysis.stft_result.time_s < candidate_s)
                 & ~measured
             )
-            before_analysis = analysis.stft_result.time_s < analysis_start_s
+            before_analysis = analysis.stft_result.time_s < region.time_start_s
             post_event_invalid = (
                 (analysis.stft_result.time_s >= candidate_s) & ~measured
             )
@@ -258,9 +260,11 @@ def test_gui_reference_candidates_and_result_view_fit(
             assert np.isnan(
                 analysis.display_velocity_m_s[before_analysis]
             ).all()
-            assert np.isnan(
-                analysis.display_velocity_m_s[post_event_invalid]
-            ).all()
+            np.testing.assert_allclose(
+                analysis.display_velocity_m_s[post_event_invalid],
+                analysis.corrected_velocity_m_s[post_event_invalid],
+                equal_nan=True,
+            )
 
         manual_x = (expected_start_us + 0.01, expected_start_us + 0.03)
         manual_y = (-2.0, 2.0)
@@ -275,8 +279,8 @@ def test_gui_reference_candidates_and_result_view_fit(
         window.velocity_view.fit_analysis_range_button.click()
         _assert_view_x(
             window.velocity_view,
-            (analysis_start_s - candidate_s) * 1e6,
-            (analysis_end_s - candidate_s) * 1e6,
+            (region.time_start_s - candidate_s) * 1e6,
+            (region.time_end_s - candidate_s) * 1e6,
         )
         current = window.analysis_session.channel_analyses[first_name]
         expected_refit_y = finite_velocity_view_range(
@@ -294,8 +298,8 @@ def test_gui_reference_candidates_and_result_view_fit(
         qapp.processEvents()
         _assert_view_x(
             window.velocity_view,
-            (analysis_start_s - candidate_s) * 1e6,
-            (analysis_end_s - candidate_s) * 1e6,
+            (region.time_start_s - candidate_s) * 1e6,
+            (region.time_end_s - candidate_s) * 1e6,
         )
     finally:
         window.close()
@@ -317,12 +321,12 @@ def test_one_click_uses_ch1_shared_event_and_working_curves(
         analyses = session.channel_analyses
         ch1 = analyses["pdv_channel_1"]
         expected_event_s = ch1.stream_event_candidates.primary_candidate_time_s
-        expected_source_fragment = "automatic_formal_event"
+        expected_source_fragment = "automatic_event_candidate"
         if expected_event_s is None:
             expected_event_s = (
                 ch1.signal_detection_result.detected_event_candidate_time_s
             )
-            expected_source_fragment = "automatic_low_confidence_fallback"
+            expected_source_fragment = "automatic_low_confidence_event_candidate"
         assert expected_event_s is not None
         assert set(session.automatic_event_reference_times_s.values()) == {
             expected_event_s
@@ -409,7 +413,7 @@ def test_one_click_marks_existing_ch1_detector_candidate_as_event_fallback(
             fallback_s
         }
         assert all(
-            "automatic_low_confidence_fallback:pdv_channel_1"
+            "automatic_low_confidence_event_candidate:pdv_channel_1"
             == session.resolved_event_source(name)
             for name in session.channel_analyses
         )

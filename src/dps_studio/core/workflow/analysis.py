@@ -596,7 +596,7 @@ def analyze_stft_results(
         display_velocity_m_s, velocity_origins = build_display_velocity(
             stft_result.time_s,
             signal_detection_result.signal_states,
-            working_velocity_correction_result.corrected_velocity_m_s,
+            velocity_correction_result.corrected_velocity_m_s,
             manual_event_reference_time_s=resolved_event_time_s,
             analysis_start_time_s=channel_analysis_start,
             analysis_end_time_s=channel_analysis_end,

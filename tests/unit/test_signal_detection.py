@@ -32,14 +32,22 @@ WAVELENGTH_M = 1550e-9
 def _detection_config(
     *,
     minimum_peak_to_background_db: float = 18.0,
+    tracking_minimum_peak_to_background_db: float | None = None,
     minimum_peak_to_competitor_db: float = 4.0,
+    maximum_tracking_frequency_step_hz: float | None = None,
     peak_exclusion_half_width_bins: int = 8,
     minimum_consecutive_frames: int = 3,
     minimum_cycles_in_window: float = 1.0,
 ) -> SignalDetectionConfig:
     return SignalDetectionConfig(
         minimum_peak_to_background_db=minimum_peak_to_background_db,
+        tracking_minimum_peak_to_background_db=(
+            tracking_minimum_peak_to_background_db
+        ),
         minimum_peak_to_competitor_db=minimum_peak_to_competitor_db,
+        maximum_tracking_frequency_step_hz=(
+            maximum_tracking_frequency_step_hz
+        ),
         peak_exclusion_half_width_bins=peak_exclusion_half_width_bins,
         minimum_consecutive_frames=minimum_consecutive_frames,
         minimum_cycles_in_window=minimum_cycles_in_window,
@@ -285,6 +293,67 @@ def test_two_frame_isolated_run_is_unstable_and_has_no_event_candidate() -> None
     assert np.isnan(result.apparent_velocity_m_s).all()
 
 
+def test_hysteresis_tracks_brief_weaker_frames_without_fragmenting_segment() -> None:
+    spectrum = np.ones((11, 12), dtype=np.complex128)
+    spectrum[4, :] = 100.0
+    spectrum[4, 5:7] = 2.5
+    result = _manual_detection(
+        spectrum,
+        config=_detection_config(
+            minimum_peak_to_background_db=10.0,
+            tracking_minimum_peak_to_background_db=7.0,
+            minimum_peak_to_competitor_db=3.0,
+            maximum_tracking_frequency_step_hz=75.0,
+            peak_exclusion_half_width_bins=1,
+            minimum_consecutive_frames=3,
+        ),
+    )
+    assert result.signal_states == (SignalState.MEASURED,) * 12
+    assert result.peak_to_background_db[5] < 10.0
+    assert result.peak_to_background_db[5] >= 7.0
+
+
+def test_hysteresis_does_not_reacquire_random_strong_noise_path() -> None:
+    spectrum = np.ones((11, 18), dtype=np.complex128)
+    spectrum[4, :6] = 100.0
+    for frame, peak_bin in enumerate((2, 7, 3, 6, 2, 7, 3, 6, 2, 7, 3, 6), 6):
+        spectrum[peak_bin, frame] = 100.0
+    result = _manual_detection(
+        spectrum,
+        config=_detection_config(
+            minimum_peak_to_background_db=10.0,
+            tracking_minimum_peak_to_background_db=7.0,
+            minimum_peak_to_competitor_db=3.0,
+            maximum_tracking_frequency_step_hz=75.0,
+            peak_exclusion_half_width_bins=1,
+            minimum_consecutive_frames=3,
+        ),
+    )
+    assert result.signal_states[:6] == (SignalState.MEASURED,) * 6
+    assert SignalState.MEASURED not in result.signal_states[6:]
+    assert np.isnan(result.refined_frequency_hz[6:]).all()
+
+
+def test_hysteresis_strictly_reacquires_a_sustained_returning_signal() -> None:
+    spectrum = np.ones((11, 18), dtype=np.complex128)
+    spectrum[4, :6] = 100.0
+    spectrum[6, 11:] = 100.0
+    result = _manual_detection(
+        spectrum,
+        config=_detection_config(
+            minimum_peak_to_background_db=10.0,
+            tracking_minimum_peak_to_background_db=7.0,
+            minimum_peak_to_competitor_db=3.0,
+            maximum_tracking_frequency_step_hz=75.0,
+            peak_exclusion_half_width_bins=1,
+            minimum_consecutive_frames=3,
+        ),
+    )
+    assert result.signal_states[:6] == (SignalState.MEASURED,) * 6
+    assert SignalState.MEASURED not in result.signal_states[6:11]
+    assert result.signal_states[11:] == (SignalState.MEASURED,) * 7
+
+
 def test_manual_reference_changes_no_formal_detection_values() -> None:
     time_s = np.arange(4096, dtype=np.float64) / SAMPLE_RATE_HZ
     voltage = np.sin(2.0 * np.pi * 200.0e6 * time_s)
@@ -339,7 +408,12 @@ def test_explicit_pre_event_platform_overrides_measured_display_only() -> None:
     [
         {"minimum_peak_to_background_db": math.nan},
         {"minimum_peak_to_background_db": -1.0},
+        {
+            "minimum_peak_to_background_db": 6.0,
+            "tracking_minimum_peak_to_background_db": 7.0,
+        },
         {"minimum_peak_to_competitor_db": math.inf},
+        {"maximum_tracking_frequency_step_hz": 0.0},
         {"peak_exclusion_half_width_bins": -1},
         {"minimum_consecutive_frames": 0},
         {"minimum_cycles_in_window": 0.0},

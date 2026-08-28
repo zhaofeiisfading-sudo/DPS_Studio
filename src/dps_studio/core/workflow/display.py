@@ -35,8 +35,8 @@ def build_display_velocity(
 
     Every frame inside the explicit analysis range and strictly before the
     resolved event reference receives the configured platform, regardless of
-    formal quality or working-ridge frequency. Post-event values come from the
-    supplied non-formal working velocity array. A reference outside the active
+    formal quality. Post-event values come only from the supplied formal
+    corrected-velocity array. A reference outside the active
     analysis/data domain produces no platform.
     """
     if not isinstance(enable_pre_event_display, bool):
@@ -101,7 +101,7 @@ def build_display_velocity(
         elif state is SignalState.OUTSIDE_ANALYSIS_WINDOW:
             origins.append("outside_analysis_window")
         elif np.isfinite(display[index]):
-            origins.append("working_ridge_velocity")
+            origins.append("formal_corrected_velocity")
         else:
             origins.append(state.value)
     return display, tuple(origins)
@@ -120,7 +120,7 @@ def configure_channel_display_velocity(
     display, origins = build_display_velocity(
         detection.time_s,
         detection.signal_states,
-        analysis.working_corrected_velocity_m_s,
+        analysis.corrected_velocity_m_s,
         manual_event_reference_time_s=(
             detection.manual_event_reference_time_s
         ),

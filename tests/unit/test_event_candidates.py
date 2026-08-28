@@ -174,6 +174,25 @@ def test_long_stable_and_low_frequency_segments_are_eligible() -> None:
     )
 
 
+def test_later_larger_sustained_transition_does_not_replace_initial_segment() -> None:
+    """Primary means earliest eligible onset, not largest later frequency state."""
+    frequencies = np.full(100, 650.0e6)
+    frequencies[45:90] = 1.8e9
+    stream = _stream(
+        "balanced",
+        "pdv_channel_1",
+        ((8, 24), (45, 90)),
+        frequency_hz=frequencies,
+    )
+    assert len(stream.eligible_segments) == 2
+    assert stream.eligible_segments[1].median_frequency_hz > (
+        stream.eligible_segments[0].median_frequency_hz
+    )
+    assert stream.eligible_segments[1].frame_count > stream.eligible_segments[0].frame_count
+    assert stream.primary_candidate_segment_id == stream.eligible_segments[0].segment_id
+    assert stream.primary_candidate_time_s == pytest.approx(554.0e-6 + 8 * HOP_S)
+
+
 def test_seeded_long_random_frequency_path_is_rejected() -> None:
     generator = np.random.default_rng(20260726)
     frequency = np.full(100, 650.0e6)
@@ -192,6 +211,34 @@ def test_seeded_long_random_frequency_path_is_rejected() -> None:
         EventSegmentRejectionReason.FREQUENCY_PATH_UNSTABLE
         in stream.segment_assessments[0].rejection_reasons
     )
+
+
+def test_production_step_sensitivity_keeps_rule_and_accepts_150_mhz() -> None:
+    frequency = np.linspace(3.8e9, 2.4e9, 160)
+    frequency[90] = frequency[89] - 126.0e6
+    frequency[91:] = np.linspace(frequency[90] - 5.0e6, 2.4e9, 69)
+    strict = _stream(
+        "balanced",
+        "pdv_channel_1",
+        ((0, 160),),
+        frame_count=160,
+        frequency_hz=frequency,
+        candidate_config=EventCandidateConfig(
+            maximum_adjacent_frequency_step_hz=100.0e6
+        ),
+    )
+    production = _stream(
+        "balanced",
+        "pdv_channel_1",
+        ((0, 160),),
+        frame_count=160,
+        frequency_hz=frequency,
+        candidate_config=EventCandidateConfig(
+            maximum_adjacent_frequency_step_hz=150.0e6
+        ),
+    )
+    assert strict.segment_assessments[0].candidate_eligible is False
+    assert production.segment_assessments[0].candidate_eligible is True
 
 
 def test_nearby_dual_channel_segments_form_profile_consensus() -> None:

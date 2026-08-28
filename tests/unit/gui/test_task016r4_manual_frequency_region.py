@@ -423,7 +423,7 @@ def test_r5_five_step_direct_commit_and_manual_event_override(
         assert tuple(
             window.workflow_navigation.item(index).text() for index in range(5)
         ) == (
-            "1  数据与范围",
+            "1  数据导入",
             "2  时频分析",
             "3  脊线提取",
             "4  速度结果",

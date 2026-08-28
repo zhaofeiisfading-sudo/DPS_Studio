@@ -313,8 +313,11 @@ def test_workflow_navigation_changes_tabs_once_at_semantic_boundaries(
     window = _analysis_window(qapp, tmp_path)
     try:
         window.science_tabs.setCurrentIndex(0)
-        _wait_for_analysis(window, lambda: window.select_workflow_step(1))
+        assert window.select_workflow_step(1)
         assert window.science_tabs.currentWidget() is window.spectrogram_view
+        assert not window.analysis_session.stft_valid
+        _wait_for_analysis(window, window.run_stft_analysis)
+        assert window.analysis_session.stft_valid
         assert window.select_workflow_step(0)
         assert window.science_tabs.currentWidget() is window.raw_signal_view
 

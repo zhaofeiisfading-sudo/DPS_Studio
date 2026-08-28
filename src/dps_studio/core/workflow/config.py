@@ -268,6 +268,26 @@ def load_workflow_config(
         ),
     )
 
+    establishment_peak_to_background_db = _nonnegative_float(
+        _required(
+            quality_table,
+            "minimum_peak_to_background_db",
+            parent="quality",
+        ),
+        field_name="quality.minimum_peak_to_background_db",
+    )
+    tracking_peak_to_background_db = _nonnegative_float(
+        quality_table.get(
+            "tracking_minimum_peak_to_background_db",
+            establishment_peak_to_background_db,
+        ),
+        field_name="quality.tracking_minimum_peak_to_background_db",
+    )
+    maximum_tracking_frequency_step_hz = _optional_table_float(
+        quality_table,
+        "maximum_tracking_frequency_step_hz",
+        parent="quality",
+    )
     quality_configuration = QualityConfiguration(
         background_guard_window_scale=_positive_float(
             _required(
@@ -287,13 +307,11 @@ def load_workflow_config(
             minimum=1,
         ),
         signal_detection=SignalDetectionConfig(
-            minimum_peak_to_background_db=_nonnegative_float(
-                _required(
-                    quality_table,
-                    "minimum_peak_to_background_db",
-                    parent="quality",
-                ),
-                field_name="quality.minimum_peak_to_background_db",
+            minimum_peak_to_background_db=(
+                establishment_peak_to_background_db
+            ),
+            tracking_minimum_peak_to_background_db=(
+                tracking_peak_to_background_db
             ),
             minimum_peak_to_competitor_db=_nonnegative_float(
                 _required(
@@ -302,6 +320,9 @@ def load_workflow_config(
                     parent="quality",
                 ),
                 field_name="quality.minimum_peak_to_competitor_db",
+            ),
+            maximum_tracking_frequency_step_hz=(
+                maximum_tracking_frequency_step_hz
             ),
             peak_exclusion_half_width_bins=_integer(
                 _required(
