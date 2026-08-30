@@ -5,7 +5,7 @@ from __future__ import annotations
 import codecs
 import csv
 import math
-from collections.abc import Iterator, Mapping
+from collections.abc import Mapping
 from numbers import Integral, Real
 from os import PathLike
 from pathlib import Path
@@ -19,6 +19,11 @@ from dps_studio.core.io.exceptions import (
     SignalFileTypeError,
     SignalIOError,
     SignalParseError,
+)
+from dps_studio.core.io.delimiter import (
+    DelimitedRowReader,
+    WHITESPACE_DELIMITER,
+    create_delimited_row_reader,
 )
 from dps_studio.core.io.models import DelimitedSignalLoadResult
 from dps_studio.core.models import SignalRecord, SignalValidationError
@@ -39,7 +44,10 @@ def read_delimited_signals(
 
     Column indices are zero based. Only selected columns are interpreted as
     numeric data, but every field must be non-empty and every data record must
-    have the same number of columns.
+    have the same number of columns. ``WHITESPACE_DELIMITER`` splits each
+    physical line on one or more Unicode whitespace characters and ignores
+    leading and trailing whitespace; a one-character delimiter retains strict
+    CSV semantics.
     """
     source_path = _normalize_path(path)
     validated_time_column = _validate_column_index(time_column, name="time_column")
@@ -142,13 +150,16 @@ def _validate_distinct_columns(
 
 
 def _validate_delimiter(value: object) -> str:
+    if value == WHITESPACE_DELIMITER:
+        return WHITESPACE_DELIMITER
     if (
         not isinstance(value, str)
         or len(value) != 1
         or value in {"\r", "\n"}
     ):
         raise SignalConfigurationError(
-            "delimiter must be one character and cannot be a newline or carriage return; "
+            "delimiter must be one character or the whitespace mode and cannot be a "
+            "newline or carriage return; "
             f"got {value!r}."
         )
     return value
@@ -248,11 +259,9 @@ def _read_open_file(
     time_scale: float,
     voltage_scales: Mapping[str, float],
 ) -> DelimitedSignalLoadResult:
-    reader = csv.reader(
+    reader = create_delimited_row_reader(
         handle,
         delimiter=delimiter,
-        skipinitialspace=delimiter != " ",
-        strict=True,
     )
     try:
         return _parse_records(
@@ -274,7 +283,7 @@ def _read_open_file(
 
 
 def _parse_records(
-    reader: Iterator[list[str]],
+    reader: DelimitedRowReader,
     *,
     source_path: Path,
     time_column: int,
@@ -380,11 +389,8 @@ def _parse_records(
     )
 
 
-def _reader_line_number(reader: Iterator[list[str]]) -> int:
-    line_number = getattr(reader, "line_num", None)
-    if isinstance(line_number, int):
-        return line_number
-    raise RuntimeError("csv.reader did not expose a physical line number")
+def _reader_line_number(reader: DelimitedRowReader) -> int:
+    return reader.line_num
 
 
 def _validate_requested_columns_exist(

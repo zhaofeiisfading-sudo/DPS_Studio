@@ -459,157 +459,208 @@
 <context>
     <name>ImportSettingsDialog</name>
     <message>
-        <location filename="../import_dialog.py" line="56"/>
+        <location filename="../import_dialog.py" line="59"/>
         <source>数据导入设置</source>
         <translation>Data Import Settings</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="66"/>
+        <location filename="../import_dialog.py" line="69"/>
         <source>源文件（只读）</source>
         <translation>Source File (Read-only)</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="84"/>
+        <location filename="../import_dialog.py" line="87"/>
         <source>文件结构与时间单位</source>
         <translation>File Structure and Time Unit</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="89"/>
+        <location filename="../import_dialog.py" line="91"/>
+        <source>自动检测</source>
+        <translation>Auto Detect</translation>
+    </message>
+    <message>
+        <location filename="../import_dialog.py" line="92"/>
+        <source>逗号 (,)</source>
+        <translation>Comma (,)</translation>
+    </message>
+    <message>
+        <location filename="../import_dialog.py" line="93"/>
+        <location filename="../import_dialog.py" line="427"/>
+        <source>制表符 (Tab)</source>
+        <translation>Tab</translation>
+    </message>
+    <message>
+        <location filename="../import_dialog.py" line="95"/>
+        <location filename="../import_dialog.py" line="425"/>
+        <source>空白字符（空格 / Tab）</source>
+        <translation>Whitespace (spaces / tabs)</translation>
+    </message>
+    <message>
+        <location filename="../import_dialog.py" line="97"/>
+        <source>分号 (;)</source>
+        <translation>Semicolon (;)</translation>
+    </message>
+    <message>
+        <location filename="../import_dialog.py" line="98"/>
+        <source>自定义</source>
+        <translation>Custom</translation>
+    </message>
+    <message>
+        <location filename="../import_dialog.py" line="107"/>
         <source>第一行是表头</source>
         <translation>First row is a header</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="94"/>
+        <location filename="../import_dialog.py" line="112"/>
         <source>秒 (s)</source>
         <translation>seconds (s)</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="95"/>
+        <location filename="../import_dialog.py" line="113"/>
         <source>毫秒 (ms)</source>
         <translation>milliseconds (ms)</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="96"/>
+        <location filename="../import_dialog.py" line="114"/>
         <source>微秒 (μs)</source>
         <translation>microseconds (μs)</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="97"/>
+        <location filename="../import_dialog.py" line="115"/>
         <source>纳秒 (ns)</source>
         <translation>nanoseconds (ns)</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="100"/>
+        <location filename="../import_dialog.py" line="118"/>
         <source>时间列（从 0 开始）</source>
         <translation>Time column (zero-based)</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="101"/>
+        <location filename="../import_dialog.py" line="119"/>
         <source>分隔符</source>
         <translation>Delimiter</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="102"/>
+        <location filename="../import_dialog.py" line="120"/>
         <source>表头</source>
         <translation>Header</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="103"/>
+        <location filename="../import_dialog.py" line="121"/>
         <source>文本编码</source>
         <translation>Text encoding</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="104"/>
+        <location filename="../import_dialog.py" line="122"/>
         <source>源时间单位</source>
         <translation>Source time unit</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="107"/>
+        <location filename="../import_dialog.py" line="125"/>
         <source>轻量文件预览</source>
         <translation>Lightweight File Preview</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="122"/>
+        <location filename="../import_dialog.py" line="140"/>
         <source>信号列（最多选择 3 个）</source>
         <translation>Signal Columns (select up to 3)</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="127"/>
+        <location filename="../import_dialog.py" line="145"/>
         <source>导入信号 {number}</source>
         <translation>Import Signal {number}</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="159"/>
-        <source>V / mV 表示 CSV 中该列数值的单位，只用于转换为内部 SI 单位；它不是示波器 V/div 或硬件量程。未选择的源列会被忽略。</source>
-        <translation>V / mV is the unit of the values in this CSV column and is used only for conversion to internal SI units. It is not the oscilloscope V/div or hardware range. Unselected source columns are ignored.</translation>
+        <location filename="../import_dialog.py" line="177"/>
+        <source>V / mV 表示源文件中该列数值的单位，只用于转换为内部 SI 单位；它不是示波器 V/div 或硬件量程。未选择的源列会被忽略。</source>
+        <translation>V / mV is the unit of the values in this source-file column and is used only for conversion to internal SI units. It is not the oscilloscope V/div or hardware range. Unselected source columns are ignored.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="240"/>
+        <location filename="../import_dialog.py" line="442"/>
+        <source>源文件数值单位；不是 V/div 或示波器硬件量程。</source>
+        <translation>Source-file value unit; not V/div or the oscilloscope hardware range.</translation>
+    </message>
+    <message>
+        <location filename="../import_dialog.py" line="446"/>
+        <source>源文件中该列的单位</source>
+        <translation>Unit of this source-file column</translation>
+    </message>
+    <message>
+        <source>V / mV 表示 CSV 中该列数值的单位，只用于转换为内部 SI 单位；它不是示波器 V/div 或硬件量程。未选择的源列会被忽略。</source>
+        <translation type="vanished">V / mV is the unit of the values in this CSV column and is used only for conversion to internal SI units. It is not the oscilloscope V/div or hardware range. Unselected source columns are ignored.</translation>
+    </message>
+    <message>
+        <location filename="../import_dialog.py" line="261"/>
+        <source>请先完成分隔符检测。</source>
+        <translation>Complete delimiter detection first.</translation>
+    </message>
+    <message>
+        <location filename="../import_dialog.py" line="263"/>
         <source>分隔符必须恰好是一个字符。</source>
         <translation>The delimiter must be exactly one character.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="243"/>
+        <location filename="../import_dialog.py" line="266"/>
         <source>请至少启用一个信号列。</source>
         <translation>Enable at least one signal column.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="246"/>
+        <location filename="../import_dialog.py" line="269"/>
         <source>时间列超出实际列范围。</source>
         <translation>The time column is outside the actual column range.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="249"/>
+        <location filename="../import_dialog.py" line="272"/>
         <source>每个启用信号的名称都不能为空。</source>
         <translation>Every enabled signal must have a non-empty name.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="251"/>
+        <location filename="../import_dialog.py" line="274"/>
         <source>启用信号的名称不能重复。</source>
         <translation>Enabled signal names must be unique.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="254"/>
+        <location filename="../import_dialog.py" line="277"/>
         <source>启用信号的电压列超出实际列范围。</source>
         <translation>An enabled voltage column is outside the actual column range.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="256"/>
+        <location filename="../import_dialog.py" line="279"/>
         <source>时间列不能同时作为电压列。</source>
         <translation>The time column cannot also be used as a voltage column.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="258"/>
+        <location filename="../import_dialog.py" line="281"/>
         <source>启用信号的电压列不能重复。</source>
         <translation>Enabled voltage columns must be unique.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="295"/>
+        <location filename="../import_dialog.py" line="318"/>
         <source>文件结构预览失败：{message}</source>
         <translation>Could not preview the file structure: {message}</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="300"/>
+        <location filename="../import_dialog.py" line="323"/>
         <source>文件尚不可读取；将在确认时由严格读取器校验。</source>
         <translation>The file is not readable yet; the strict reader will validate it on confirmation.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="333"/>
+        <location filename="../import_dialog.py" line="356"/>
         <source>检测到 {count} 列，可用列索引：0–{maximum}；分隔符：{delimiter}；编码：{encoding}；表头判断为初步检测，可手动修改。</source>
         <translation>Detected {count} columns; available indices: 0–{maximum}; delimiter: {delimiter}; encoding: {encoding}. Header detection is tentative and can be changed manually.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="348"/>
+        <location filename="../import_dialog.py" line="371"/>
         <source>无表头</source>
         <translation>No header</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="357"/>
+        <location filename="../import_dialog.py" line="380"/>
         <source>列 {index}：{header}&#x3000;示例：{sample}</source>
         <translation>Column {index}: {header}  Sample: {sample}</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="360"/>
+        <location filename="../import_dialog.py" line="383"/>
         <source>无数据行</source>
         <translation>No data rows</translation>
     </message>
@@ -638,42 +689,40 @@
         <translation type="vanished">Check the settings: the delimiter and channel names cannot be empty; channel names and selected columns must be unique; the time column cannot also be a voltage column.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="374"/>
+        <location filename="../import_dialog.py" line="439"/>
         <source>通道名</source>
         <translation>Channel name</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="375"/>
+        <location filename="../import_dialog.py" line="440"/>
         <source>源文件列索引（从 0 开始）</source>
         <translation>Source column index (zero-based)</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="377"/>
         <source>CSV 数值单位；不是 V/div 或示波器硬件量程。</source>
-        <translation>Unit of the CSV values; not V/div or an oscilloscope hardware range.</translation>
+        <translation type="vanished">Unit of the CSV values; not V/div or an oscilloscope hardware range.</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="379"/>
+        <location filename="../import_dialog.py" line="444"/>
         <source>名称</source>
         <translation>Name</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="380"/>
+        <location filename="../import_dialog.py" line="445"/>
         <source>电压列（从 0 开始）</source>
         <translation>Voltage column (zero-based)</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="381"/>
         <source>CSV 中该列的单位</source>
-        <translation>Unit of this column in the CSV</translation>
+        <translation type="vanished">Unit of this column in the CSV</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="387"/>
+        <location filename="../import_dialog.py" line="452"/>
         <source>伏 (V)</source>
         <translation>volts (V)</translation>
     </message>
     <message>
-        <location filename="../import_dialog.py" line="388"/>
+        <location filename="../import_dialog.py" line="453"/>
         <source>毫伏 (mV)</source>
         <translation>millivolts (mV)</translation>
     </message>

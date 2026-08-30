@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from dps_studio.core.io import (
+    WHITESPACE_DELIMITER,
     DelimitedSignalLoadResult,
     SignalColumnError,
     SignalConfigurationError,
@@ -12,6 +13,8 @@ from dps_studio.core.io import (
     SignalFileNotFoundError,
     SignalFileTypeError,
     SignalParseError,
+    detect_delimiter,
+    preview_delimited_file,
     read_delimited_signals,
 )
 from dps_studio.core.models import (
@@ -73,6 +76,111 @@ def test_reads_two_channels_scientific_notation_spacing_and_crlf(tmp_path: Path)
     assert result.channel_names == ("channel_2", "channel_1")
     np.testing.assert_array_equal(result.records["channel_2"].voltage_v, [-20.0, -21.0])
     np.testing.assert_array_equal(result.records["channel_1"].voltage_v, [10.0, 11.0])
+
+
+@pytest.mark.parametrize(
+    "content",
+    (
+        "0 1\n1 2\n",
+        "  0    1  \n  1  2  \n",
+        "0\t1\n1\t2\n",
+        " 0\t  1\n1  \t2 \n",
+        "0\u20031\n1\u20032\n",
+    ),
+)
+def test_whitespace_mode_collapses_unicode_whitespace_runs(
+    tmp_path: Path,
+    content: str,
+) -> None:
+    path = _write_text_file(tmp_path, content)
+
+    result = read_delimited_signals(
+        path,
+        time_column=0,
+        voltage_columns={"pdv": 1},
+        delimiter=WHITESPACE_DELIMITER,
+    )
+
+    assert result.column_count == 2
+    assert result.delimiter == WHITESPACE_DELIMITER
+    np.testing.assert_array_equal(result.records["pdv"].time_s, [0.0, 1.0])
+    np.testing.assert_array_equal(result.records["pdv"].voltage_v, [1.0, 2.0])
+
+
+def test_whitespace_mode_keeps_blank_rows_strict(tmp_path: Path) -> None:
+    path = _write_text_file(tmp_path, "0 1\n\n1 2\n")
+
+    with pytest.raises(
+        SignalColumnError,
+        match=r"physical line 2: expected 2, got 0",
+    ):
+        read_delimited_signals(
+            path,
+            time_column=0,
+            voltage_columns={"pdv": 1},
+            delimiter=WHITESPACE_DELIMITER,
+        )
+
+
+def test_explicit_comma_mode_preserves_empty_field_error(tmp_path: Path) -> None:
+    path = _write_text_file(tmp_path, "0,,1\n1,2,3\n")
+
+    with pytest.raises(SignalParseError, match=r"zero-based column 1"):
+        read_delimited_signals(
+            path,
+            time_column=0,
+            voltage_columns={"pdv": 2},
+            delimiter=",",
+        )
+
+
+def test_explicit_semicolon_delimiter_behavior_is_unchanged(tmp_path: Path) -> None:
+    path = _write_text_file(
+        tmp_path,
+        '0;"unselected; text";1\n1;"other; text";2\n',
+    )
+
+    result = read_delimited_signals(
+        path,
+        time_column=0,
+        voltage_columns={"pdv": 2},
+        delimiter=";",
+    )
+
+    assert result.column_count == 3
+    assert result.unselected_column_indices == (1,)
+    np.testing.assert_array_equal(result.records["pdv"].voltage_v, [1.0, 2.0])
+
+
+@pytest.mark.parametrize(
+    ("content", "expected_delimiter"),
+    (
+        ("0,1\n1,2\n", ","),
+        ("0\t1\n1\t2\n", "\t"),
+        ("0 1\n1 2\n", WHITESPACE_DELIMITER),
+        ("  0   1\n 1\t 2\n", WHITESPACE_DELIMITER),
+    ),
+)
+def test_auto_detection_and_formal_reader_share_tokenization(
+    tmp_path: Path,
+    content: str,
+    expected_delimiter: str,
+) -> None:
+    path = _write_text_file(tmp_path, content)
+
+    preview = preview_delimited_file(path)
+    result = read_delimited_signals(
+        path,
+        time_column=0,
+        voltage_columns={"pdv": 1},
+        delimiter=preview.delimiter,
+        has_header=preview.has_header,
+    )
+
+    assert detect_delimiter(content) == expected_delimiter
+    assert preview.delimiter == expected_delimiter
+    assert preview.column_count == result.column_count == 2
+    assert result.row_count == 2
 
 
 def test_reads_and_strips_complete_header(tmp_path: Path) -> None:

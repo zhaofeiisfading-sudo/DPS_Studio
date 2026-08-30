@@ -10,7 +10,7 @@ from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 
 from dps_studio.core.export import ResultAnalysisMode
-from dps_studio.core.io import SignalColumnError
+from dps_studio.core.io import WHITESPACE_DELIMITER, SignalColumnError
 from dps_studio.core.ridge import RidgeCorridorConstraint
 from dps_studio.core.workflow import load_workflow_config
 from dps_studio.gui.app import translation_manager
@@ -121,6 +121,67 @@ def test_preview_reports_tentative_header_and_short_column_samples(
         qapp.processEvents()
 
 
+def test_whitespace_preview_request_and_controller_share_one_mode(
+    qapp: QApplication,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "production.dat"
+    source.write_text(
+        "  -1.0e-6   4.2e2\n\t-0.5e-6\t  4.3e2\n",
+        encoding="utf-8",
+        newline="",
+    )
+
+    dialog = ImportSettingsDialog(source)
+    try:
+        assert dialog.detected_column_count == 2
+        assert dialog.delimiter_combo.currentData() == WHITESPACE_DELIMITER
+        assert "空白字符" in dialog.delimiter_combo.currentText()
+        assert dialog.validation_error() is None
+
+        request = dialog.load_request()
+        assert request.delimiter == WHITESPACE_DELIMITER
+        result = DataImportController().load(request)
+        assert result.column_count == 2
+        assert result.row_count == 2
+        assert result.delimiter == WHITESPACE_DELIMITER
+        np.testing.assert_array_equal(
+            result.records["pdv_channel_1"].time_s,
+            [-1.0e-6, -0.5e-6],
+        )
+        np.testing.assert_array_equal(
+            result.records["pdv_channel_1"].voltage_v,
+            [420.0, 430.0],
+        )
+    finally:
+        dialog.close()
+        qapp.processEvents()
+
+
+def test_import_dialog_offers_explicit_delimiter_modes(
+    qapp: QApplication,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "signal.csv"
+    source.write_text("0,1\n1,2\n", encoding="utf-8", newline="")
+    dialog = ImportSettingsDialog(source)
+    try:
+        available_modes = {
+            dialog.delimiter_combo.itemData(index)
+            for index in range(dialog.delimiter_combo.count())
+        }
+        assert {None, ",", "\t", WHITESPACE_DELIMITER, ";", "custom"} <= (
+            available_modes
+        )
+
+        whitespace_index = dialog.delimiter_combo.findData(WHITESPACE_DELIMITER)
+        dialog.delimiter_combo.setCurrentIndex(whitespace_index)
+        assert dialog.load_request().delimiter == WHITESPACE_DELIMITER
+    finally:
+        dialog.close()
+        qapp.processEvents()
+
+
 def test_dialog_rejects_missing_duplicate_and_time_signal_mappings(
     qapp: QApplication,
     tmp_path: Path,
@@ -166,6 +227,10 @@ def test_import_mapping_semantics_are_translated_in_english(
     dialog = ImportSettingsDialog(source)
     try:
         assert dialog.channel_1_enabled.text() == "Import Signal 1"
+        whitespace_index = dialog.delimiter_combo.findData(WHITESPACE_DELIMITER)
+        assert dialog.delimiter_combo.itemText(whitespace_index) == (
+            "Whitespace (spaces / tabs)"
+        )
         assert "Detected 2 columns" in dialog.structure_status_label.text()
         for enabled in (
             dialog.channel_1_enabled,

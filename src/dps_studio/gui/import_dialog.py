@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QGroupBox,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QScrollArea,
@@ -23,16 +24,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from dps_studio.gui.data_controller import ChannelImportSpec, SignalLoadRequest
-from dps_studio.gui.delimited_preview import (
+from dps_studio.core.io import (
+    WHITESPACE_DELIMITER,
     DelimitedFilePreview,
     DelimitedPreviewError,
     preview_delimited_file,
 )
+from dps_studio.gui.data_controller import ChannelImportSpec, SignalLoadRequest
 
 
 _SIGNAL_SLOT_COUNT = 3
 _FALLBACK_COLUMN_COUNT = 3
+_CUSTOM_DELIMITER = "custom"
 
 
 @dataclass(slots=True)
@@ -84,8 +87,23 @@ class ImportSettingsDialog(QDialog):
         file_group = QGroupBox(self.tr("文件结构与时间单位"))
         file_form = QFormLayout(file_group)
         self.time_column_spin = self._column_spin_box(0)
-        self.delimiter_edit = QLineEdit(",")
-        self.delimiter_edit.setMaxLength(1)
+        self.delimiter_combo = QComboBox()
+        self.delimiter_combo.addItem(self.tr("自动检测"), None)
+        self.delimiter_combo.addItem(self.tr("逗号 (,)"), ",")
+        self.delimiter_combo.addItem(self.tr("制表符 (Tab)"), "\t")
+        self.delimiter_combo.addItem(
+            self.tr("空白字符（空格 / Tab）"), WHITESPACE_DELIMITER
+        )
+        self.delimiter_combo.addItem(self.tr("分号 (;)"), ";")
+        self.delimiter_combo.addItem(self.tr("自定义"), _CUSTOM_DELIMITER)
+        self.delimiter_custom_edit = QLineEdit("|")
+        self.delimiter_custom_edit.setMaxLength(1)
+        self.delimiter_custom_edit.hide()
+        delimiter_control = QWidget()
+        delimiter_layout = QHBoxLayout(delimiter_control)
+        delimiter_layout.setContentsMargins(0, 0, 0, 0)
+        delimiter_layout.addWidget(self.delimiter_combo, 1)
+        delimiter_layout.addWidget(self.delimiter_custom_edit)
         self.header_check = QCheckBox(self.tr("第一行是表头"))
         self.encoding_combo = QComboBox()
         self.encoding_combo.addItems(["utf-8", "utf-8-sig", "gb18030"])
@@ -98,7 +116,7 @@ class ImportSettingsDialog(QDialog):
             )
         )
         file_form.addRow(self.tr("时间列（从 0 开始）"), self.time_column_spin)
-        file_form.addRow(self.tr("分隔符"), self.delimiter_edit)
+        file_form.addRow(self.tr("分隔符"), delimiter_control)
         file_form.addRow(self.tr("表头"), self.header_check)
         file_form.addRow(self.tr("文本编码"), self.encoding_combo)
         file_form.addRow(self.tr("源时间单位"), self.time_unit_combo)
@@ -156,7 +174,7 @@ class ImportSettingsDialog(QDialog):
 
         notice = QLabel(
             self.tr(
-                "V / mV 表示 CSV 中该列数值的单位，只用于转换为内部 SI 单位；"
+                "V / mV 表示源文件中该列数值的单位，只用于转换为内部 SI 单位；"
                 "它不是示波器 V/div 或硬件量程。未选择的源列会被忽略。"
             )
         )
@@ -180,7 +198,10 @@ class ImportSettingsDialog(QDialog):
         self.button_box.rejected.connect(self.reject)
         root_layout.addWidget(self.button_box)
 
-        self.delimiter_edit.editingFinished.connect(self._refresh_preview)
+        self.delimiter_combo.currentIndexChanged.connect(
+            self._delimiter_selection_changed
+        )
+        self.delimiter_custom_edit.editingFinished.connect(self._refresh_preview)
         self.encoding_combo.currentTextChanged.connect(self._refresh_preview)
         self._refresh_preview(initialize_slots=True, detect_delimiter=True)
 
@@ -227,7 +248,7 @@ class ImportSettingsDialog(QDialog):
             path=self._source_path,
             time_column=self.time_column_spin.value(),
             channels=channels,
-            delimiter=self.delimiter_edit.text(),
+            delimiter=self._required_delimiter(),
             has_header=self.header_check.isChecked(),
             encoding=self.encoding_combo.currentText(),
             time_scale=float(self.time_unit_combo.currentData()),
@@ -235,8 +256,10 @@ class ImportSettingsDialog(QDialog):
 
     def validation_error(self) -> str | None:
         """Return a user-readable validation error, or ``None`` when valid."""
-        delimiter = self.delimiter_edit.text()
-        if len(delimiter) != 1:
+        delimiter = self._selected_delimiter()
+        if delimiter is None:
+            return self.tr("请先完成分隔符检测。")
+        if delimiter != WHITESPACE_DELIMITER and len(delimiter) != 1:
             return self.tr("分隔符必须恰好是一个字符。")
         enabled_slots = [slot for slot in self._slots if slot.enabled.isChecked()]
         if not enabled_slots:
@@ -282,7 +305,7 @@ class ImportSettingsDialog(QDialog):
         initialize_slots: bool = False,
         detect_delimiter: bool = False,
     ) -> None:
-        delimiter = None if detect_delimiter else self.delimiter_edit.text()
+        delimiter = None if detect_delimiter else self._selected_delimiter()
         try:
             preview = preview_delimited_file(
                 self._source_path,
@@ -299,14 +322,14 @@ class ImportSettingsDialog(QDialog):
                 self.structure_status_label.setText(
                     self.tr("文件尚不可读取；将在确认时由严格读取器校验。")
                 )
+                if self._selected_delimiter() is None:
+                    self._set_delimiter_control(",")
             self._set_column_count(self._column_count, initialize_slots)
             return
 
         initialize_slots = initialize_slots or self._preview is None
         self._preview = preview
-        delimiter_blocker = QSignalBlocker(self.delimiter_edit)
-        self.delimiter_edit.setText(preview.delimiter)
-        del delimiter_blocker
+        self._set_delimiter_control(preview.delimiter)
         if initialize_slots:
             header_blocker = QSignalBlocker(self.header_check)
             self.header_check.setChecked(preview.has_header)
@@ -335,7 +358,7 @@ class ImportSettingsDialog(QDialog):
             ).format(
                 count=preview.column_count,
                 maximum=preview.column_count - 1,
-                delimiter=repr(preview.delimiter),
+                delimiter=self._delimiter_label(preview.delimiter),
                 encoding=preview.encoding,
             )
         )
@@ -362,6 +385,48 @@ class ImportSettingsDialog(QDialog):
             )
         self.column_preview_label.setText("\n".join(lines))
 
+    def _delimiter_selection_changed(self, _index: int) -> None:
+        is_custom = self.delimiter_combo.currentData() == _CUSTOM_DELIMITER
+        self.delimiter_custom_edit.setVisible(is_custom)
+        self._refresh_preview(detect_delimiter=self._selected_delimiter() is None)
+
+    def _selected_delimiter(self) -> str | None:
+        selection = self.delimiter_combo.currentData()
+        if selection == _CUSTOM_DELIMITER:
+            return self.delimiter_custom_edit.text()
+        if selection is None:
+            return None
+        if not isinstance(selection, str):  # pragma: no cover - fixed combo data.
+            raise TypeError("delimiter combo data must be a string or None")
+        return selection
+
+    def _required_delimiter(self) -> str:
+        delimiter = self._selected_delimiter()
+        if delimiter is None:
+            raise ValueError("delimiter detection has not completed")
+        return delimiter
+
+    def _set_delimiter_control(self, delimiter: str) -> None:
+        index = self.delimiter_combo.findData(delimiter)
+        if index < 0:
+            index = self.delimiter_combo.findData(_CUSTOM_DELIMITER)
+            custom_blocker = QSignalBlocker(self.delimiter_custom_edit)
+            self.delimiter_custom_edit.setText(delimiter)
+            del custom_blocker
+        combo_blocker = QSignalBlocker(self.delimiter_combo)
+        self.delimiter_combo.setCurrentIndex(index)
+        del combo_blocker
+        self.delimiter_custom_edit.setVisible(
+            self.delimiter_combo.currentData() == _CUSTOM_DELIMITER
+        )
+
+    def _delimiter_label(self, delimiter: str) -> str:
+        if delimiter == WHITESPACE_DELIMITER:
+            return self.tr("空白字符（空格 / Tab）")
+        if delimiter == "\t":
+            return self.tr("制表符 (Tab)")
+        return repr(delimiter)
+
     def _channel_editor(
         self,
         name_edit: QLineEdit,
@@ -374,11 +439,11 @@ class ImportSettingsDialog(QDialog):
         name_edit.setPlaceholderText(self.tr("通道名"))
         column_spin.setToolTip(self.tr("源文件列索引（从 0 开始）"))
         unit_combo.setToolTip(
-            self.tr("CSV 数值单位；不是 V/div 或示波器硬件量程。")
+            self.tr("源文件数值单位；不是 V/div 或示波器硬件量程。")
         )
         layout.addRow(self.tr("名称"), name_edit)
         layout.addRow(self.tr("电压列（从 0 开始）"), column_spin)
-        layout.addRow(self.tr("CSV 中该列的单位"), unit_combo)
+        layout.addRow(self.tr("源文件中该列的单位"), unit_combo)
         return widget
 
     def _voltage_unit_combo(self) -> QComboBox:
