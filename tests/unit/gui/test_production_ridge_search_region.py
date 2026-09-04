@@ -85,7 +85,8 @@ def test_navigation_never_computes_stft_and_cached_plot_is_reused(
     window._analysis_adapter.started.connect(starts.append)
     try:
         window.set_loaded_result(_event_result(tmp_path))
-        assert window.select_workflow_step(1)
+        assert not window.select_workflow_step(1)
+        window.science_tabs.setCurrentWidget(window.spectrogram_view)
         qapp.processEvents()
         assert starts == []
         assert not window.analysis_session.stft_valid
@@ -114,14 +115,14 @@ def test_quick_analysis_waits_for_region_then_continues_to_velocity(
         assert window.analysis_session.stft_valid
         assert not window.analysis_session.channel_analyses
         assert window.workflow_state is WorkflowState.STFT_READY
-        assert window.workflow_navigation.currentRow() == 2
+        assert window.workflow_navigation.currentRow() == 1
         assert window.analysis_session.ridge_search_region is not None
         assert window.spectrogram_view._search_region_roi.isVisible()
 
         _wait_for_analysis(window, window.confirm_search_region_button.click)
         assert window.workflow_state is WorkflowState.RESULT_READY
         assert window.analysis_session.automatic_results_available
-        assert window.workflow_navigation.currentRow() == 3
+        assert window.workflow_navigation.currentRow() == 2
         assert window.science_tabs.currentWidget() is window.velocity_view
         region = window.analysis_session.ridge_search_region
         assert region is not None
@@ -161,7 +162,7 @@ def test_full_automatic_is_secondary_and_skips_region_checkpoint(
         _wait_for_analysis(window, window.action_full_automatic.trigger)
         assert window.workflow_state is WorkflowState.RESULT_READY
         assert window.analysis_session.ridge_search_region is not None
-        assert window.workflow_navigation.currentRow() == 3
+        assert window.workflow_navigation.currentRow() == 2
     finally:
         window.close()
 
@@ -174,7 +175,7 @@ def test_four_edges_and_numeric_inputs_share_si_region(
     try:
         window.set_loaded_result(_event_result(tmp_path))
         _accept_stft(window)
-        window.select_workflow_step(2)
+        window.select_workflow_step(1)
         view = window.spectrogram_view
         stft = next(iter(window.analysis_session.stft_results.values()))
 

@@ -63,7 +63,7 @@ class ResultExportOptions:
     output_directory: Path
     analysis_mode: ResultAnalysisMode
     channel_analyses: Mapping[str, ChannelAnalysis]
-    time_origin: ExportTimeOrigin = ExportTimeOrigin.EVENT
+    time_origin: ExportTimeOrigin = ExportTimeOrigin.ABSOLUTE
     include_pre_event_display_rows: bool = True
     source_path: Path | None = None
     analysis_profile_name: str | None = None
@@ -153,9 +153,9 @@ class ResultExportOptions:
             self.event_time_source,
             field_name="event_time_source",
         )
-        if event_time_source not in {None, "automatic", "manual"}:
+        if event_time_source not in {None, "unset", "automatic", "manual"}:
             raise ResultExportValidationError(
-                "event_time_source must be 'automatic', 'manual', or None."
+                "event_time_source must be 'unset', 'automatic', 'manual', or None."
             )
         try:
             protected_directories = tuple(

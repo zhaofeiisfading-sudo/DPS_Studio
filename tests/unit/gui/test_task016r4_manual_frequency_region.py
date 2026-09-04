@@ -390,7 +390,7 @@ def test_r5_mode_click_is_one_shot_fit_and_velocity_has_no_event_line(
         qapp.processEvents()
         fitted = plot.plotItem.vb.viewRange()
         assert window.science_tabs.currentWidget() is window.spectrogram_view
-        assert window.workflow_navigation.currentRow() == 2
+        assert window.workflow_navigation.currentRow() == 1
         assert fitted[0][0] > 500.0
         plot.setXRange(-20.0, -10.0, padding=0.0)
         before_refresh = plot.plotItem.vb.viewRange()
@@ -412,28 +412,27 @@ def test_r5_mode_click_is_one_shot_fit_and_velocity_has_no_event_line(
         qapp.processEvents()
 
 
-def test_r5_five_step_direct_commit_and_manual_event_override(
+def test_four_step_direct_commit_and_optional_manual_event_reference(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
     window = _window(qapp, tmp_path)
     try:
         panel = window.analysis_range_panel
-        assert window.parameter_stack.count() == 5
+        assert window.parameter_stack.count() == 4
         assert tuple(
-            window.workflow_navigation.item(index).text() for index in range(5)
+            window.workflow_navigation.item(index).text() for index in range(4)
         ) == (
-            "1  数据导入",
-            "2  时频分析",
-            "3  脊线提取",
-            "4  速度结果",
-            "5  复核与导出",
+            "1  数据与时频",
+            "2  脊线提取",
+            "3  速度结果",
+            "4  复核与导出",
         )
         assert panel.apply_button.isHidden()
         assert panel.apply_event_reference_button.isHidden()
-        assert panel.automatic_event_time_radio.isChecked()
+        assert panel.unset_event_time_radio.isChecked()
         assert not panel.event_reference_spin.isEnabled()
-        assert window.analysis_session.event_time_source is EventTimeSource.AUTOMATIC
+        assert window.analysis_session.event_time_source is EventTimeSource.UNSET
 
         start_s, end_s = window.analysis_session.data_bounds_s()
         manual_s = 0.5 * (start_s + end_s)
@@ -448,7 +447,7 @@ def test_r5_five_step_direct_commit_and_manual_event_override(
 
         panel.automatic_event_time_radio.click()
         qapp.processEvents()
-        assert window.analysis_session.event_time_source is EventTimeSource.AUTOMATIC
+        assert window.analysis_session.event_time_source is EventTimeSource.UNSET
         assert not panel.event_reference_spin.isEnabled()
     finally:
         window.close()

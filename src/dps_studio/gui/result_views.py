@@ -126,7 +126,7 @@ def finite_velocity_xy_view_range(
 def display_velocity_connector_points(
     analysis: ChannelAnalysis,
 ) -> tuple[FloatArray, FloatArray] | None:
-    """Return a pre-event-to-first-formal display-only connector.
+    """Return a pre-event-to-first-continuous display-only connector.
 
     No NaN is filled and no intermediate sample is synthesized for scientific
     data; this only joins two already available display endpoints.
@@ -136,25 +136,28 @@ def display_velocity_connector_points(
         return None
     time_s = analysis.stft_result.time_s
     display_velocity = analysis.display_velocity_m_s
-    formal_velocity = analysis.corrected_velocity_m_s
+    continuous_velocity = analysis.continuous_corrected_velocity_m_s
     platform_indices = np.flatnonzero(
         (time_s < reference_s) & np.isfinite(display_velocity)
     )
-    formal_indices = np.flatnonzero(
-        (time_s >= reference_s) & np.isfinite(formal_velocity)
+    continuous_indices = np.flatnonzero(
+        (time_s >= reference_s) & np.isfinite(continuous_velocity)
     )
-    if platform_indices.size == 0 or formal_indices.size == 0:
+    if platform_indices.size == 0 or continuous_indices.size == 0:
         return None
     platform_index = int(platform_indices[-1])
-    formal_index = int(formal_indices[0])
+    continuous_index = int(continuous_indices[0])
     return (
         np.asarray(
-            [reference_s, time_s[formal_index]],
+            [reference_s, time_s[continuous_index]],
             dtype=np.float64,
         )
         * 1.0e6,
         np.asarray(
-            [display_velocity[platform_index], formal_velocity[formal_index]],
+            [
+                display_velocity[platform_index],
+                continuous_velocity[continuous_index],
+            ],
             dtype=np.float64,
         ),
     )
@@ -1121,7 +1124,7 @@ class RidgeView(_ChannelView):
 
 
 class VelocityView(_ChannelView):
-    """Show formal apparent velocity and an optional display-only curve."""
+    """Show one continuous final curve with optional diagnostic overlays."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -1149,15 +1152,18 @@ class VelocityView(_ChannelView):
         source_row.addStretch(1)
         self.root_layout.addLayout(source_row)
         option_row = QHBoxLayout()
-        self.display_velocity_check = QCheckBox(
-            self.tr("正式显示速度（含事件前平台约定）")
+        self.diagnostic_velocity_check = QCheckBox(self.tr("显示诊断曲线"))
+        self.diagnostic_velocity_check.setObjectName("diagnosticVelocityCheck")
+        self.diagnostic_velocity_check.setChecked(False)
+        self.diagnostic_velocity_check.setToolTip(
+            self.tr("显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。")
         )
-        self.display_velocity_check.setObjectName("displayVelocityCheck")
-        self.display_velocity_check.setChecked(False)
-        self.display_velocity_check.toggled.connect(self._rerender)
+        self.diagnostic_velocity_check.toggled.connect(self._rerender)
+        # Compatibility alias for existing integrations.
+        self.display_velocity_check = self.diagnostic_velocity_check
         self._export_preview_mode = False
         self._display_velocity_before_export_preview = False
-        option_row.addWidget(self.display_velocity_check)
+        option_row.addWidget(self.diagnostic_velocity_check)
         option_row.addStretch(1)
         self.root_layout.addLayout(option_row)
         self.plot_widget = pg.PlotWidget(background="w")
@@ -1224,26 +1230,25 @@ class VelocityView(_ChannelView):
         return channel_name in self._analyses
 
     def set_export_preview_mode(self, enabled: bool) -> None:
-        """Show the simple export's display-velocity curve while reviewing."""
+        """Keep the final plot visible and de-emphasize diagnostics in review."""
         if enabled == self._export_preview_mode:
             return
         self._export_preview_mode = enabled
         if enabled:
             self._display_velocity_before_export_preview = (
-                self.display_velocity_check.isChecked()
+                self.diagnostic_velocity_check.isChecked()
             )
-            self.display_velocity_check.setChecked(True)
-            self.display_velocity_check.setEnabled(False)
-            self.display_velocity_check.setToolTip(
-                self.tr(
-                    "复核与导出使用 display_velocity_m_s 作为简表速度列；"
-                    "此处固定显示同一数组。"
-                )
+            self.diagnostic_velocity_check.setChecked(False)
+            self.diagnostic_velocity_check.setEnabled(False)
+            self.diagnostic_velocity_check.setToolTip(
+                self.tr("复核页显示与两列简表相同的最终速度数组。")
             )
             return
-        self.display_velocity_check.setEnabled(True)
-        self.display_velocity_check.setToolTip("")
-        self.display_velocity_check.setChecked(
+        self.diagnostic_velocity_check.setEnabled(True)
+        self.diagnostic_velocity_check.setToolTip(
+            self.tr("显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。")
+        )
+        self.diagnostic_velocity_check.setChecked(
             self._display_velocity_before_export_preview
         )
 
@@ -1426,51 +1431,51 @@ class VelocityView(_ChannelView):
             self.tr("相对起跳时间") if event_relative else self.tr("时间"),
             units="μs",
         )
-        self.apparent_curve = self.plot_widget.plot(
+        self.display_curve = self.plot_widget.plot(
             time_us,
-            analysis.apparent_velocity_m_s,
-            pen=pg.mkPen("#0072B2", width=1.4, style=pg.QtCore.Qt.DashLine),
+            analysis.plot_velocity_m_s,
+            pen=pg.mkPen("#6C5CE7", width=2.2),
             connect="finite",
-            name=self.tr("正式表观速度"),
+            name=self.tr("最终速度"),
         )
-        self.corrected_curve = self.plot_widget.plot(
-            time_us,
-            analysis.corrected_velocity_m_s,
-            pen=pg.mkPen("#D55E00", width=2.0),
-            connect="finite",
-            name=self.tr("正式修正速度"),
-        )
-        self.formal_curve = self.corrected_curve
-        self.display_curve = None
+        self.apparent_curve = None
+        self.corrected_curve = None
+        self.formal_curve = None
         self.display_connector = None
         self.event_reference_line = None
-        if self.display_velocity_check.isChecked():
-            self.display_curve = self.plot_widget.plot(
+        if self.diagnostic_velocity_check.isChecked():
+            self.apparent_curve = self.plot_widget.plot(
                 time_us,
-                analysis.display_velocity_m_s,
-                pen=pg.mkPen("#6C5CE7", width=2.0),
+                analysis.apparent_velocity_m_s,
+                pen=pg.mkPen("#0072B2", width=1.2, style=pg.QtCore.Qt.DashLine),
                 connect="finite",
-                name=self.tr("正式显示速度（含事件前平台约定）"),
+                name=self.tr("诊断：formal 表观速度"),
             )
-            connector = display_velocity_connector_points(analysis)
-            if connector is not None:
-                connector_time_us, connector_velocity_m_s = connector
-                if event_relative:
-                    assert reference_s is not None
-                    connector_time_us = connector_time_us - reference_s * 1.0e6
-                self.display_connector = self.plot_widget.plot(
-                    connector_time_us,
-                    connector_velocity_m_s,
-                    pen=pg.mkPen(
-                        "#6C5CE7",
-                        width=1.0,
-                        style=pg.QtCore.Qt.DashLine,
-                    ),
-                    connect="all",
-                )
-                self.display_connector.setToolTip(
-                    self.tr("正式显示速度（含事件前平台约定）")
-                )
+            self.corrected_curve = self.plot_widget.plot(
+                time_us,
+                analysis.corrected_velocity_m_s,
+                pen=pg.mkPen("#D55E00", width=1.4, style=pg.QtCore.Qt.DashLine),
+                connect="finite",
+                name=self.tr("诊断：formal 修正速度"),
+            )
+            self.formal_curve = self.corrected_curve
+        connector = display_velocity_connector_points(analysis)
+        if connector is not None:
+            connector_time_us, connector_velocity_m_s = connector
+            if event_relative:
+                assert reference_s is not None
+                connector_time_us = connector_time_us - reference_s * 1.0e6
+            self.display_connector = self.plot_widget.plot(
+                connector_time_us,
+                connector_velocity_m_s,
+                pen=pg.mkPen(
+                    "#6C5CE7",
+                    width=1.0,
+                    style=pg.QtCore.Qt.DashLine,
+                ),
+                connect="all",
+            )
+            self.display_connector.setToolTip(self.tr("最终速度"))
         if fit_view:
             self.plot_widget.autoRange()
             self._fit_current_view(analysis)
@@ -1688,9 +1693,9 @@ class QualitySummaryWidget(QWidget):
             [
                 self.tr("通道"),
                 self.tr("信号状态计数"),
-                self.tr("MEASURED 帧"),
-                self.tr("NaN 帧"),
-                self.tr("频谱质量状态"),
+                self.tr("可信帧"),
+                self.tr("低可信/候选帧"),
+                self.tr("连续结果回退"),
                 self.tr("连续性诊断"),
                 self.tr("通道警告"),
             ]
@@ -1709,10 +1714,15 @@ class QualitySummaryWidget(QWidget):
             detection = analysis.signal_detection_result
             state_counts = Counter(state.name for state in detection.signal_states)
             measured_count = state_counts.get(SignalState.MEASURED.name, 0)
-            nan_count = int(np.count_nonzero(np.isnan(detection.apparent_velocity_m_s)))
-            spectral_counts = Counter(
-                status.name
-                for status in analysis.spectral_quality_result.assessment_statuses
+            outside_count = state_counts.get(
+                SignalState.OUTSIDE_ANALYSIS_WINDOW.name,
+                0,
+            )
+            low_confidence_count = len(detection.signal_states) - measured_count - outside_count
+            fallback_counts = Counter(
+                source.name
+                for source in analysis.working_source
+                if source.name != "REFINED"
             )
             continuity_counts = Counter(
                 status.name for status in analysis.continuity_result.continuity_statuses
@@ -1720,23 +1730,28 @@ class QualitySummaryWidget(QWidget):
             warnings = []
             if measured_count == 0:
                 warnings.append(self.tr("无 MEASURED 帧"))
-            if nan_count:
+            formal_nan_count = int(
+                np.count_nonzero(np.isnan(detection.apparent_velocity_m_s))
+            )
+            if formal_nan_count:
                 warnings.append(
-                    self.tr("{count} 帧正式速度为 NaN").format(count=nan_count)
+                    self.tr("{count} 帧仅缺少 formal/trusted 值").format(
+                        count=formal_nan_count
+                    )
                 )
             values = (
                 channel_name,
                 self._format_counts(state_counts),
                 str(measured_count),
-                str(nan_count),
-                self._format_counts(spectral_counts),
+                str(low_confidence_count),
+                self._format_counts(fallback_counts) or self.tr("无"),
                 self._format_counts(continuity_counts),
                 "; ".join(warnings) if warnings else self.tr("无额外警告"),
             )
             for column, value in enumerate(values):
                 self.table.setItem(row, column, QTableWidgetItem(value))
         self.notice.setText(
-            self.tr("下表直接统计 public core 返回的逐帧状态和诊断枚举。")
+            self.tr("质量仅描述连续速度的可信程度；展开此诊断可查看 formal/trusted 子集。")
         )
 
     def clear_results(self, message: str | None = None) -> None:

@@ -97,7 +97,7 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
     try:
         _prepare_result(window, tmp_path)
         view = window.velocity_view
-        view.display_velocity_check.setChecked(False)
+        view.display_velocity_check.setChecked(True)
         window.science_tabs.setCurrentWidget(view)
         qapp.processEvents()
         analysis = next(iter(window.analysis_session.channel_analyses.values()))
@@ -191,7 +191,7 @@ def test_step5_step6_share_correction_and_preserve_ready_state_and_upstream(
         corrected_before = first.corrected_velocity_m_s.copy()
         analysis_range_before = session.analysis_range
 
-        window.workflow_navigation.setCurrentRow(4)
+        window.workflow_navigation.setCurrentRow(3)
         none_index = window.window_material_combo.findData(
             WindowMaterial.NONE.value
         )
@@ -199,7 +199,7 @@ def test_step5_step6_share_correction_and_preserve_ready_state_and_upstream(
         window.measurement_angle_spin.setValue(20.0)
         qapp.processEvents()
         assert window.workflow_state is WorkflowState.RESULT_READY
-        assert window.workflow_navigation.currentRow() == 4
+        assert window.workflow_navigation.currentRow() == 3
         assert session.generation_id == generation
         assert session.guided_generation_id == guided_generation
         assert session.analysis_range is analysis_range_before
@@ -225,14 +225,14 @@ def test_step5_step6_share_correction_and_preserve_ready_state_and_upstream(
         )
         assert window.export_measurement_angle_spin.value() == pytest.approx(20.0)
 
-        window.workflow_navigation.setCurrentRow(4)
+        window.workflow_navigation.setCurrentRow(3)
         lif_index = window.export_window_material_combo.findData(
             WindowMaterial.LIF.value
         )
         window.export_window_material_combo.setCurrentIndex(lif_index)
         window.export_measurement_angle_spin.setValue(30.0)
         qapp.processEvents()
-        assert window.workflow_navigation.currentRow() == 4
+        assert window.workflow_navigation.currentRow() == 3
         assert window.workflow_state is WorkflowState.RESULT_READY
         assert window.window_material_combo.currentData() == WindowMaterial.LIF.value
         assert window.measurement_angle_spin.value() == pytest.approx(30.0)
@@ -296,7 +296,7 @@ def test_gui_export_uses_the_visible_shared_correction_and_time_origin(
         qapp.processEvents()
 
 
-def test_time_origin_defaults_to_event_and_controls_velocity_axis(
+def test_time_origin_defaults_to_absolute_and_controls_velocity_axis(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -307,10 +307,13 @@ def test_time_origin_defaults_to_event_and_controls_velocity_axis(
         analysis = next(iter(session.channel_analyses.values()))
         reference_s = analysis.signal_detection_result.manual_event_reference_time_s
         assert reference_s is not None
-        assert session.export_time_origin is ExportTimeOrigin.EVENT
-        assert window.export_event_time_origin_radio.isChecked()
+        assert session.export_time_origin is ExportTimeOrigin.ABSOLUTE
+        assert window.export_absolute_time_origin_radio.isChecked()
         assert window.velocity_view.event_reference_line is None
 
+        window.export_event_time_origin_radio.click()
+        qapp.processEvents()
+        assert session.export_time_origin is ExportTimeOrigin.EVENT
         window.export_absolute_time_origin_radio.click()
         qapp.processEvents()
         assert session.export_time_origin is ExportTimeOrigin.ABSOLUTE

@@ -111,7 +111,11 @@ def test_refinement_failure_falls_back_to_same_frame_discrete_peak() -> None:
     assert np.isnan(
         analysis.signal_detection_result.refined_frequency_hz
     ).all()
-    assert np.isnan(analysis.display_velocity_m_s).all()
+    assert np.isfinite(analysis.display_velocity_m_s).all()
+    np.testing.assert_array_equal(
+        analysis.display_velocity_m_s,
+        analysis.continuous_corrected_velocity_m_s,
+    )
     np.testing.assert_array_equal(
         analysis.working_frequency_hz,
         analysis.ridge_result.frequency_hz,
@@ -183,7 +187,11 @@ def test_low_quality_states_keep_working_and_formal_nan(
     assert np.isnan(
         analysis.signal_detection_result.refined_frequency_hz
     ).all()
-    assert np.isnan(analysis.display_velocity_m_s).all()
+    assert np.isfinite(analysis.display_velocity_m_s).all()
+    np.testing.assert_array_equal(
+        analysis.display_velocity_m_s,
+        analysis.continuous_corrected_velocity_m_s,
+    )
     assert set(analysis.working_source) == {
         WorkingRidgeSource.LOW_CONFIDENCE_FALLBACK
     }

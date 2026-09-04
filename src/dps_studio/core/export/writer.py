@@ -42,15 +42,20 @@ _DETAIL_CSV_FIELDS = (
     "time_from_event_s",
     "coarse_peak_frequency_hz",
     "refined_frequency_hz",
+    "working_frequency_hz",
     "apparent_velocity_m_s",
     "angle_corrected_apparent_velocity_m_s",
     "corrected_velocity_m_s",
+    "continuous_apparent_velocity_m_s",
+    "continuous_angle_corrected_apparent_velocity_m_s",
+    "continuous_corrected_velocity_m_s",
     "display_velocity_m_s",
     "ridge_quality_flag",
     "ridge_refinement_status",
     "ridge_selection_origin",
     "selected_candidate_rank",
     "signal_state",
+    "working_source",
     "velocity_origin",
     "is_pre_event_display_only",
     "channel",
@@ -353,10 +358,19 @@ def _export_row_indices(
     analysis: ChannelAnalysis,
     options: ResultExportOptions,
 ) -> tuple[int, ...]:
+    detection = analysis.signal_detection_result
+    time_s = detection.time_s
+    start_s = detection.analysis_start_time_s
+    end_s = detection.analysis_end_time_s
     return tuple(
         index
         for index, origin in enumerate(analysis.velocity_origins)
-        if options.include_pre_event_display_rows or origin != PRE_EVENT_DISPLAY_ORIGIN
+        if (start_s is None or time_s[index] >= start_s)
+        and (end_s is None or time_s[index] <= end_s)
+        and (
+            options.include_pre_event_display_rows
+            or origin != PRE_EVENT_DISPLAY_ORIGIN
+        )
     )
 
 
@@ -366,7 +380,7 @@ def _write_simple_csv(
     options: ResultExportOptions,
     row_indices: tuple[int, ...],
 ) -> int:
-    """Write the user-facing time--display-velocity CSV without recalculation."""
+    """Write the two-column time--plot-velocity CSV without recalculation."""
     detection = analysis.signal_detection_result
     relative_time_s = event_relative_time_s(
         detection.time_s,
@@ -391,7 +405,7 @@ def _write_simple_csv(
                     {
                         time_column: _csv_float(time_values[index]),
                         "display_velocity_m_s": _csv_float(
-                            analysis.display_velocity_m_s[index]
+                            analysis.plot_velocity_m_s[index]
                         ),
                     }
                 )
@@ -435,6 +449,9 @@ def _write_detail_csv(
                         "refined_frequency_hz": _csv_float(
                             detection.refined_frequency_hz[index]
                         ),
+                        "working_frequency_hz": _csv_float(
+                            analysis.continuous_frequency_hz[index]
+                        ),
                         "apparent_velocity_m_s": _csv_float(
                             detection.apparent_velocity_m_s[index]
                         ),
@@ -443,6 +460,17 @@ def _write_detail_csv(
                         ),
                         "corrected_velocity_m_s": _csv_float(
                             analysis.corrected_velocity_m_s[index]
+                        ),
+                        "continuous_apparent_velocity_m_s": _csv_float(
+                            analysis.continuous_apparent_velocity_m_s[index]
+                        ),
+                        "continuous_angle_corrected_apparent_velocity_m_s": _csv_float(
+                            analysis.continuous_angle_corrected_apparent_velocity_m_s[
+                                index
+                            ]
+                        ),
+                        "continuous_corrected_velocity_m_s": _csv_float(
+                            analysis.continuous_corrected_velocity_m_s[index]
                         ),
                         "display_velocity_m_s": _csv_float(
                             analysis.display_velocity_m_s[index]
@@ -464,6 +492,7 @@ def _write_detail_csv(
                             ]
                         ),
                         "signal_state": detection.signal_states[index].value,
+                        "working_source": analysis.working_source[index].value,
                         "velocity_origin": origin,
                         "is_pre_event_display_only": str(display_only).lower(),
                         "channel": channel_name,
@@ -589,6 +618,13 @@ def _metadata_document(
             "formal_quality_gates_modified": False,
             "same_frame_fallback_only": True,
             "interpolation_or_smoothing_applied": False,
+            "continuous_apparent_velocity_field": (
+                "ChannelAnalysis.continuous_apparent_velocity_m_s"
+            ),
+            "continuous_corrected_velocity_field": (
+                "ChannelAnalysis.continuous_corrected_velocity_m_s"
+            ),
+            "plot_velocity_field": "ChannelAnalysis.plot_velocity_m_s",
         },
         "quality_configuration": {
             "detection_method": detection.detection_method,
@@ -627,6 +663,9 @@ def _metadata_document(
         "velocity_correction": velocity_correction_metadata(
             analysis.velocity_correction_result
         ),
+        "continuous_velocity_correction": velocity_correction_metadata(
+            analysis.working_velocity_correction_result
+        ),
         "automatic_ridge_selection": automatic_selection_metadata,
         "automatic_event_candidate_time_s": automatic_candidate_time_s,
         "compatibility_event_candidate_time_s": compatibility_candidate_time_s,
@@ -647,6 +686,14 @@ def _metadata_document(
             "measured_frame_count": measured_count,
             "working_finite_frame_count": int(
                 np.count_nonzero(np.isfinite(analysis.working_frequency_hz))
+            ),
+            "continuous_velocity_finite_frame_count": int(
+                np.count_nonzero(
+                    np.isfinite(analysis.continuous_corrected_velocity_m_s)
+                )
+            ),
+            "plot_velocity_finite_frame_count": int(
+                np.count_nonzero(np.isfinite(analysis.plot_velocity_m_s))
             ),
             "formal_frequency_finite_frame_count": int(
                 np.count_nonzero(np.isfinite(detection.refined_frequency_hz))
@@ -672,13 +719,16 @@ def _metadata_document(
         "result_status": {
             "simple_csv_time_column": _simple_time_column(options.time_origin),
             "simple_csv_velocity_column": "display_velocity_m_s",
-            "simple_csv_velocity_source": "display_velocity_m_s",
+            "simple_csv_velocity_source": "ChannelAnalysis.plot_velocity_m_s",
             "formal_measurement_column": "apparent_velocity_m_s",
             "angle_corrected_measurement_column": (
                 "angle_corrected_apparent_velocity_m_s"
             ),
             "final_corrected_measurement_column": "corrected_velocity_m_s",
             "display_column": "display_velocity_m_s",
+            "display_semantics": (
+                "continuous corrected velocity plus optional pre-event platform"
+            ),
             "formal_measurement_preserved": True,
             "unreliable_formal_values_preserved_as_nan": True,
             "interpolation_or_smoothing_applied_by_export": False,

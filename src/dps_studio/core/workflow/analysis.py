@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from dataclasses import replace
 from types import MappingProxyType
 
 import numpy as np
@@ -427,42 +426,11 @@ def analyze_stft_results(
                 detection_config.peak_exclusion_half_width_bins
             ),
         )
-        strongest_spectral_quality_result = assess_ridge_spectral_quality(
-            stft_result,
-            strongest_refined_result,
-            background_exclusion_half_width_hz=guard_hz,
-            minimum_background_bin_count=minimum_background_bin_count,
-        )
-        strongest_signal_detection_result = detect_beat_signal(
-            stft_result,
-            strongest_refined_result,
-            strongest_spectral_quality_result,
-            detection_config=detection_config,
-            vacuum_wavelength_m=vacuum_wavelength_m,
-            analysis_start_time_s=channel_analysis_start,
-            analysis_end_time_s=channel_analysis_end,
-            manual_event_reference_time_s=manual_reference,
-        )
-        strongest_stream_event_candidates = build_stream_event_candidates(
-            strongest_signal_detection_result,
-            profile_name=profile_name,
-            channel_name=channel_name,
-            config=event_candidate_config,
-        )
-        selection_event_time_s: float | None
-        selection_event_source: str | None
-        if manual_reference is not None:
-            selection_event_time_s = manual_reference
-            selection_event_source = "manual_event_reference"
-        else:
-            selection_event_time_s = (
-                strongest_stream_event_candidates.primary_candidate_time_s
-            )
-            selection_event_source = (
-                "event_level_primary_candidate"
-                if selection_event_time_s is not None
-                else None
-            )
+        # Event Reference is a downstream display/time-coordinate convention.
+        # Candidate detection remains available, but must not steer Production
+        # working-ridge selection.
+        selection_event_time_s = None
+        selection_event_source = None
         continuity_config = EventAwareContinuityConfig(
             isolated_jump_threshold_hz=(
                 event_candidate_config.maximum_adjacent_frequency_step_hz
@@ -583,20 +551,11 @@ def analyze_stft_results(
             channel_name=channel_name,
             config=event_candidate_config,
         )
-        resolved_event_time_s = (
-            manual_reference
-            if manual_reference is not None
-            else stream_event_candidates.primary_candidate_time_s
-        )
-        if resolved_event_time_s is not None:
-            signal_detection_result = replace(
-                signal_detection_result,
-                manual_event_reference_time_s=resolved_event_time_s,
-            )
+        resolved_event_time_s = manual_reference
         display_velocity_m_s, velocity_origins = build_display_velocity(
             stft_result.time_s,
             signal_detection_result.signal_states,
-            velocity_correction_result.corrected_velocity_m_s,
+            working_velocity_correction_result.corrected_velocity_m_s,
             manual_event_reference_time_s=resolved_event_time_s,
             analysis_start_time_s=channel_analysis_start,
             analysis_end_time_s=channel_analysis_end,
@@ -606,16 +565,12 @@ def analyze_stft_results(
         continuity_result = assess_ridge_continuity(refined_result)
         continuity_event_time_s: float | None
         continuity_event_source: str | None
-        if manual_reference is not None:
+        if resolved_event_time_s is not None:
             continuity_event_time_s = resolved_event_time_s
             continuity_event_source = "manual_event_reference"
         else:
-            continuity_event_time_s = resolved_event_time_s
-            continuity_event_source = (
-                "event_level_primary_candidate"
-                if continuity_event_time_s is not None
-                else None
-            )
+            continuity_event_time_s = None
+            continuity_event_source = None
         event_aware_continuity_result = assess_event_aware_ridge_continuity(
             refined_result,
             event_reference_time_s=continuity_event_time_s,
@@ -688,17 +643,17 @@ def _build_working_ridge(
         )
         if not refinement_succeeded:
             frequency_hz[index] = discrete_frequency
-            sources.append(WorkingRidgeSource.DISCRETE_FALLBACK)
+            sources.append(WorkingRidgeSource.COARSE_BIN_FALLBACK)
             continue
 
         frequency_hz[index] = refined_frequency
-        if signal_states[index] is not SignalState.MEASURED:
-            sources.append(WorkingRidgeSource.LOW_CONFIDENCE_FALLBACK)
-        elif (
+        if (
             selection_origins[index]
             is RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE
         ):
             sources.append(WorkingRidgeSource.CONTINUITY_SELECTED)
+        elif signal_states[index] is not SignalState.MEASURED:
+            sources.append(WorkingRidgeSource.STRONGEST_REFINED_FALLBACK)
         else:
             sources.append(WorkingRidgeSource.REFINED)
     return frequency_hz, tuple(sources)

@@ -28,12 +28,16 @@ FloatArray = NDArray[np.float64]
 
 
 class WorkingRidgeSource(str, Enum):
-    """Auditable source of one non-formal production working point."""
+    """Auditable source of one non-formal continuous Production point."""
 
     REFINED = "refined"
     CONTINUITY_SELECTED = "continuity_selected"
-    DISCRETE_FALLBACK = "discrete_fallback"
-    LOW_CONFIDENCE_FALLBACK = "low_confidence_fallback"
+    STRONGEST_REFINED_FALLBACK = "strongest_refined_fallback"
+    COARSE_BIN_FALLBACK = "coarse_bin_fallback"
+    # Source-compatible aliases retained for existing integrations.
+    LOW_CONFIDENCE_FALLBACK = "strongest_refined_fallback"
+    DISCRETE_FALLBACK = "coarse_bin_fallback"
+    INTERPOLATED = "interpolated"
     OUTSIDE_ANALYSIS_WINDOW = "outside_analysis_window"
     NO_ALLOWED_FINITE_BIN = "no_allowed_finite_bin"
 
@@ -250,13 +254,41 @@ class ChannelAnalysis:
 
     @property
     def working_apparent_velocity_m_s(self) -> FloatArray:
-        """Quality-unfiltered velocity converted from the working ridge."""
+        """Continuous apparent velocity converted from the working ridge."""
         return self.working_velocity_m_s
 
     @property
     def working_corrected_velocity_m_s(self) -> FloatArray:
-        """Non-formal corrected velocity converted from the working ridge."""
+        """Continuous corrected velocity converted from the working ridge."""
         return self.working_velocity_correction_result.corrected_velocity_m_s
+
+    @property
+    def continuous_frequency_hz(self) -> FloatArray:
+        """Production plotting frequency; quality describes but does not erase it."""
+        return self.working_frequency_hz
+
+    @property
+    def continuous_apparent_velocity_m_s(self) -> FloatArray:
+        """Continuous apparent velocity before angle/window corrections."""
+        return self.working_velocity_m_s
+
+    @property
+    def continuous_angle_corrected_apparent_velocity_m_s(self) -> FloatArray:
+        """Continuous apparent velocity after observation-angle correction."""
+        return (
+            self.working_velocity_correction_result
+            .angle_corrected_apparent_velocity_m_s
+        )
+
+    @property
+    def continuous_corrected_velocity_m_s(self) -> FloatArray:
+        """Continuous final physical velocity after configured corrections."""
+        return self.working_velocity_correction_result.corrected_velocity_m_s
+
+    @property
+    def plot_velocity_m_s(self) -> FloatArray:
+        """Final plotting/export velocity after optional event display convention."""
+        return self.display_velocity_m_s
 
 
 def _immutable_float_array(value: object, *, field_name: str) -> FloatArray:

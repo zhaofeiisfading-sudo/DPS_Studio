@@ -382,7 +382,8 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
 
         window.velocity_view.display_velocity_check.setChecked(False)
         qapp.processEvents()
-        assert window.velocity_view.display_curve is None
+        assert window.velocity_view.display_curve is not None
+        assert window.velocity_view.formal_curve is None
         assert window.velocity_view.display_connector is None
         np.testing.assert_array_equal(
             analysis.signal_detection_result.apparent_velocity_m_s,

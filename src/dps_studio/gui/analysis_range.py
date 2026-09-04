@@ -52,7 +52,7 @@ class AnalysisRangePanel(QWidget):
         self.event_reference_spin.setToolTip(
             self.tr(
                 "手动事件参考使用实验绝对时间，必须位于当前分析范围内；"
-                "默认使用自动事件候选。"
+                "事件参考完全可选。"
             )
         )
         form.addRow(self.tr("完整时间范围"), self.full_range_label)
@@ -74,18 +74,22 @@ class AnalysisRangePanel(QWidget):
         source_widget = QWidget()
         source_layout = QHBoxLayout(source_widget)
         source_layout.setContentsMargins(0, 0, 0, 0)
-        self.automatic_event_time_radio = QRadioButton(self.tr("自动"))
+        self.unset_event_time_radio = QRadioButton(self.tr("不使用"))
+        self.unset_event_time_radio.setObjectName("unsetEventTimeRadio")
+        self.automatic_event_time_radio = QRadioButton(self.tr("自动候选"))
         self.automatic_event_time_radio.setObjectName("automaticEventTimeRadio")
         self.manual_event_time_radio = QRadioButton(self.tr("手动"))
         self.manual_event_time_radio.setObjectName("manualEventTimeRadio")
         self.event_time_button_group = QButtonGroup(self)
         self.event_time_button_group.setExclusive(True)
+        self.event_time_button_group.addButton(self.unset_event_time_radio)
         self.event_time_button_group.addButton(self.automatic_event_time_radio)
         self.event_time_button_group.addButton(self.manual_event_time_radio)
-        self.automatic_event_time_radio.setChecked(True)
+        self.unset_event_time_radio.setChecked(True)
+        source_layout.addWidget(self.unset_event_time_radio)
         source_layout.addWidget(self.automatic_event_time_radio)
         source_layout.addWidget(self.manual_event_time_radio)
-        form.addRow(self.tr("起跳时间"), source_widget)
+        form.addRow(self.tr("事件参考（可选）"), source_widget)
         form.addRow(self.tr("手动起跳时间"), self.event_reference_spin)
         layout.addLayout(form)
 
@@ -156,6 +160,7 @@ class AnalysisRangePanel(QWidget):
         self.automatic_event_time_radio.toggled.connect(
             self._event_time_mode_toggled
         )
+        self.unset_event_time_radio.toggled.connect(self._event_time_mode_toggled)
         self.manual_event_time_radio.toggled.connect(self._event_time_mode_toggled)
         self.detect_candidates_button.clicked.connect(
             self.candidate_detection_requested
@@ -212,7 +217,7 @@ class AnalysisRangePanel(QWidget):
         self.show_event_reference_unset(self.tr("事件参考时刻未设置。"))
         self.clear_detected_candidates()
         self._set_enabled(True)
-        self.set_event_time_source("automatic")
+        self.set_event_time_source("unset")
 
     def clear(self) -> None:
         """Clear bounds when a source is removed."""
@@ -247,7 +252,7 @@ class AnalysisRangePanel(QWidget):
         self.event_reference_spin.setStyleSheet("")
         self.apply_event_reference_button.setEnabled(True)
         self.clear_event_reference_button.setEnabled(
-            self.manual_event_time_radio.isChecked()
+            not self.unset_event_time_radio.isChecked()
         )
         self.event_reference_status_label.setText(
             self.tr("事件参考已确认：{value:.9f} μs；来源：{source}").format(
@@ -270,18 +275,20 @@ class AnalysisRangePanel(QWidget):
 
     def set_event_time_source(self, source: str) -> None:
         """Synchronize Automatic/Manual controls without emitting a request."""
-        if source not in {"automatic", "manual"}:
-            raise ValueError("source must be 'automatic' or 'manual'.")
+        if source not in {"unset", "automatic", "manual"}:
+            raise ValueError("source must be 'unset', 'automatic', or 'manual'.")
         blockers = [
+            QSignalBlocker(self.unset_event_time_radio),
             QSignalBlocker(self.automatic_event_time_radio),
             QSignalBlocker(self.manual_event_time_radio),
         ]
         manual = source == "manual"
+        self.unset_event_time_radio.setChecked(source == "unset")
+        self.automatic_event_time_radio.setChecked(source == "automatic")
         self.manual_event_time_radio.setChecked(manual)
-        self.automatic_event_time_radio.setChecked(not manual)
         self.event_reference_spin.setEnabled(manual and self._bounds_s is not None)
         self.clear_event_reference_button.setEnabled(
-            manual and self._confirmed_event_reference_s is not None
+            source != "unset" and self._confirmed_event_reference_s is not None
         )
         del blockers
 
@@ -449,7 +456,12 @@ class AnalysisRangePanel(QWidget):
             return
         manual = self.manual_event_time_radio.isChecked()
         self.event_reference_spin.setEnabled(manual)
-        source = "manual" if manual else "automatic"
+        if manual:
+            source = "manual"
+        elif self.automatic_event_time_radio.isChecked():
+            source = "automatic"
+        else:
+            source = "unset"
         self.event_time_source_changed.emit(source)
         if manual:
             self._event_reference_draft_set = True

@@ -19,8 +19,8 @@ profiles = ["balanced", "high_time_resolution"]
 # The analysis window explicitly covers the complete current raw record.
 analysis_start_time_s = 5.5396025426e-4
 analysis_end_time_s = 5.5596022926e-4
-# Optional plotting/review reference only; it never gates ridge or quality work.
-manual_event_reference_time_s = 5.54668e-4
+# Event Reference is intentionally unset by default. Users may adopt an
+# automatic candidate or enter a manual reference on the Velocity page.
 # Demonstration value only; not confirmed against the experiment record.
 vacuum_wavelength_m = 1.55e-6
 

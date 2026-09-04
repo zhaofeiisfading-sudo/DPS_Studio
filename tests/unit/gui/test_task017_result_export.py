@@ -143,7 +143,7 @@ def test_toolbar_review_and_export_only_navigates_without_writing(
         window.action_export.trigger()
         qapp.processEvents()
 
-        assert window.workflow_navigation.currentRow() == 4
+        assert window.workflow_navigation.currentRow() == 3
         assert window.parameter_stack.currentIndex() == 4
         assert {path.name for path in export_parent.iterdir()} == before_paths
         assert not calls
@@ -213,9 +213,8 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         assert metadata["event_reference_time_s"] == (
             window.analysis_session.event_reference_time_s
         )
-        assert metadata["event_reference_source"] == (
-            "automatic_event_candidate:pdv_channel_1"
-        )
+        assert metadata["event_reference_source"] is None
+        assert metadata["event_time_source"] == "unset"
         assert metadata["event_time_source"] == "automatic"
         assert metadata["event_time_s"] == metadata["event_reference_time_s"]
         assert metadata["pre_event_display"]["included_in_csv"] is True

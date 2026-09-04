@@ -607,11 +607,10 @@ class MainWindow(QMainWindow):
         self.workflow_navigation = QListWidget()
         self.workflow_navigation.setObjectName("workflowNavigation")
         self._workflow_labels = (
-            self.tr("1  数据导入"),
-            self.tr("2  时频分析"),
-            self.tr("3  脊线提取"),
-            self.tr("4  速度结果"),
-            self.tr("5  复核与导出"),
+            self.tr("1  数据与时频"),
+            self.tr("2  脊线提取"),
+            self.tr("3  速度结果"),
+            self.tr("4  复核与导出"),
         )
         for label in self._workflow_labels:
             self.workflow_navigation.addItem(QListWidgetItem(label))
@@ -788,7 +787,6 @@ class MainWindow(QMainWindow):
         )
         self.analysis_range_panel = AnalysisRangePanel()
         self.analysis_range_panel.set_analysis_range_controls_visible(False)
-        data_layout.addWidget(self.analysis_range_panel)
         data_layout.addStretch(1)
         self.analysis_range_scroll = QScrollArea()
         self.analysis_range_scroll.setObjectName("analysisRangeScrollArea")
@@ -803,7 +801,8 @@ class MainWindow(QMainWindow):
         stft_layout = QVBoxLayout(stft_page)
         stft_layout.addWidget(self.common_analysis_panel)
         stft_layout.addWidget(self._section_title(self.tr("STFT 状态")))
-        stft_form = QFormLayout()
+        stft_status_widget = QWidget()
+        stft_form = QFormLayout(stft_status_widget)
         self.analysis_range_label = QLabel("—")
         self.quality_source_label = QLabel(self.tr("内置默认质量配置"))
         self.quality_source_label.setToolTip(
@@ -811,7 +810,7 @@ class MainWindow(QMainWindow):
         )
         stft_form.addRow(self.tr("分析时间范围"), self.analysis_range_label)
         stft_form.addRow(self.tr("质量配置来源"), self.quality_source_label)
-        stft_layout.addLayout(stft_form)
+        stft_layout.addWidget(stft_status_widget)
         self.stft_ready_label = self._notice(self.tr("尚未计算时频图。"))
         self.stft_ready_label.setObjectName("stftReadyStatus")
         stft_layout.addWidget(self.stft_ready_label)
@@ -837,7 +836,12 @@ class MainWindow(QMainWindow):
         )
         stft_page.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.stft_parameter_scroll.setWidget(stft_page)
-        self.parameter_stack.addWidget(self.stft_parameter_scroll)
+        # Data import and STFT are one user-facing stage. Keep the legacy
+        # scroll object for source compatibility, but place its controls on the
+        # first page and do not add a fifth workflow page.
+        data_layout.insertWidget(data_layout.count() - 1, self.common_analysis_panel)
+        data_layout.insertWidget(data_layout.count() - 1, stft_status_widget)
+        data_layout.insertWidget(data_layout.count() - 1, self.cancel_analysis_button)
 
         guided_page = QWidget()
         guided_layout = QVBoxLayout(guided_page)
@@ -1001,15 +1005,16 @@ class MainWindow(QMainWindow):
         velocity_layout.addWidget(
             self._notice(
                 self.tr(
-                    "表观速度、角度修正表观速度、窗口修正速度与显示速度分别保存。"
+                    "当前速度曲线已应用所选修正；详细诊断和中间速度保存在分析记录中。"
                 )
             )
         )
+        velocity_layout.addWidget(self.analysis_range_panel)
         velocity_form = QFormLayout()
-        self.formal_velocity_status_label = QLabel(self.tr("尚无正式修正结果"))
+        self.formal_velocity_status_label = QLabel(self.tr("尚无速度结果"))
         self.display_velocity_status_label = QLabel(self.tr("关闭"))
         velocity_form.addRow(
-            self.tr("正式修正速度"), self.formal_velocity_status_label
+            self.tr("最终速度"), self.formal_velocity_status_label
         )
         velocity_form.addRow(
             self.tr("显示速度"), self.display_velocity_status_label
@@ -2135,7 +2140,7 @@ class MainWindow(QMainWindow):
         angle_degrees = math.degrees(correction.measurement_angle_rad)
         if correction.window_material is WindowMaterial.LIF:
             summary = self.tr(
-                "{material} · {angle:.6g}°；最终导出 display_velocity_m_s。"
+                "{material} · {angle:.6g}°；最终导出连续绘图速度。"
             ).format(
                 material=(
                     self.tr("Custom LiF")
@@ -2146,16 +2151,21 @@ class MainWindow(QMainWindow):
             )
         elif correction.measurement_angle_rad > 0.0:
             summary = self.tr(
-                "display_velocity_m_s；正式测量段来自角度修正表观速度"
+                "最终绘图速度；连续 working 结果已应用角度修正"
                 "（无窗口修正，观测角 {angle:.6g}°）。"
             ).format(angle=angle_degrees)
         else:
             summary = self.tr(
-                "display_velocity_m_s；正式测量段为表观速度（无窗口或角度修正）。"
+                "最终绘图速度；连续 working 结果未应用窗口或角度修正。"
             )
         self.export_velocity_summary_label.setText(summary)
 
     def _sync_export_time_origin_controls(self) -> None:
+        if (
+            self._session.event_reference_time_s is None
+            and self._session.export_time_origin is ExportTimeOrigin.EVENT
+        ):
+            self._session.set_export_time_origin(ExportTimeOrigin.ABSOLUTE)
         blockers = [
             QSignalBlocker(self.export_event_time_origin_radio),
             QSignalBlocker(self.export_absolute_time_origin_radio),
@@ -2164,6 +2174,16 @@ class MainWindow(QMainWindow):
         self.export_event_time_origin_radio.setChecked(is_event)
         self.export_absolute_time_origin_radio.setChecked(not is_event)
         del blockers
+        self.export_event_time_origin_radio.setEnabled(
+            self._session.event_reference_time_s is not None
+        )
+        self.export_event_time_origin_radio.setToolTip(
+            self.tr("需要先设置事件参考。")
+            if self._session.event_reference_time_s is None
+            else self.tr(
+                "简表使用 time_from_event_s；详细表仍同时保留绝对 time_s。"
+            )
+        )
         self.velocity_view.set_time_origin(self._session.export_time_origin)
 
     def _export_time_origin_changed(self, checked: bool) -> None:
@@ -2174,6 +2194,11 @@ class MainWindow(QMainWindow):
             if self.export_event_time_origin_radio.isChecked()
             else ExportTimeOrigin.ABSOLUTE
         )
+        if (
+            time_origin is ExportTimeOrigin.EVENT
+            and self._session.event_reference_time_s is None
+        ):
+            time_origin = ExportTimeOrigin.ABSOLUTE
         self._session.set_export_time_origin(time_origin)
         self._sync_export_time_origin_controls()
         self._refresh_export_controls()
@@ -2391,15 +2416,32 @@ class MainWindow(QMainWindow):
     def _event_reference_cleared(self) -> None:
         if self._session.clear_event_reference():
             self._refresh_event_reference_results()
-            self._append_log(self.tr("已恢复自动事件候选参考。"))
+            self._append_log(self.tr("事件参考已清除；使用实验绝对时间。"))
         self._sync_event_reference_panel()
 
     def _event_time_source_changed(self, source: str) -> None:
+        if source == EventTimeSource.UNSET.value:
+            self._event_reference_cleared()
+            return
         if source != EventTimeSource.AUTOMATIC.value:
             return
-        if self._session.clear_event_reference():
-            self._refresh_event_reference_results()
-        self._sync_event_reference_panel()
+        candidate = next(
+            (
+                (channel_name, value)
+                for channel_name, value in (
+                    self._session.automatic_event_reference_times_s.items()
+                )
+                if value is not None
+            ),
+            None,
+        )
+        if candidate is None:
+            self.analysis_range_panel.set_event_time_source("unset")
+            self.analysis_range_panel.show_event_reference_unset(
+                self.tr("尚无可采用的自动候选；可保持不使用或改为手动。")
+            )
+            return
+        self._adopt_event_candidate(candidate[0], candidate[1])
 
     def _adopt_event_candidate(self, channel_name: str, value_s: float) -> None:
         self._set_event_reference(
@@ -2431,7 +2473,9 @@ class MainWindow(QMainWindow):
             value_s,
             source_text=source_text,
         )
-        self.analysis_range_panel.set_event_time_source("manual")
+        self.analysis_range_panel.set_event_time_source(
+            self._session.event_time_source.value
+        )
         if changed:
             self._refresh_event_reference_results()
         self._append_log(
@@ -2459,7 +2503,7 @@ class MainWindow(QMainWindow):
             rejected = self._session.rejected_event_reference_time_s
             if rejected is None:
                 reason = self.tr(
-                    "自动事件候选尚未生成；运行分析后将使用候选参考。"
+                    "事件参考未设置；速度使用实验绝对时间，自动候选仅供选择。"
                 )
             else:
                 reason = self.tr(
@@ -2624,7 +2668,7 @@ class MainWindow(QMainWindow):
             controller.cancel_drawing()
             self._sync_guided_panel()
         if user_initiated and self._session.stft_valid:
-            self.select_workflow_step(2)
+            self.select_workflow_step(1)
             self.science_tabs.setCurrentWidget(self.spectrogram_view)
             self.spectrogram_view.fit_search_region()
 
@@ -2632,7 +2676,7 @@ class MainWindow(QMainWindow):
         """Present the current displayed channel's Guided controls."""
         self.automatic_ridge_panel.setVisible(False)
         self.guided_ridge_panel.setVisible(True)
-        self.select_workflow_step(2)
+        self.select_workflow_step(1)
         self.science_tabs.setCurrentWidget(self.spectrogram_view)
         self._sync_guided_panel()
 
@@ -3045,12 +3089,16 @@ class MainWindow(QMainWindow):
 
     def run_quick_analysis(self) -> bool:
         """Compute STFT if needed, then stop at the region checkpoint."""
+        if not self._session.records:
+            self._open_data()
+            if not self._session.records:
+                return False
         self._pending_candidate_detection = False
         self._continue_to_velocity_after_analysis = False
         self._quick_analysis_waiting = True
         if self._session.stft_valid and self._session.stft_results:
             self._sync_ridge_search_region_controls()
-            self.select_workflow_step(2)
+            self.select_workflow_step(1)
             self.science_tabs.setCurrentWidget(self.spectrogram_view)
             self.spectrogram_view.set_search_region_interaction(
                 visible=True,
@@ -3296,7 +3344,6 @@ class MainWindow(QMainWindow):
         self.formal_velocity_status_label.setText(self.tr("当前正式结果有效"))
         self.stft_ready_label.setText(self.tr("当前 STFT 有效。"))
         self.automatic_ridge_status_label.setText(self.tr("自动脊线结果有效。"))
-        self.diagnostics_tabs.setCurrentWidget(self.quality_summary)
         self._append_log(
             self.tr("自动分析完成：{channels} 个独立通道。").format(
                 channels=len(analyses)
@@ -3306,7 +3353,7 @@ class MainWindow(QMainWindow):
         self._complete_pending_navigation()
         if self._continue_to_velocity_after_analysis:
             self._continue_to_velocity_after_analysis = False
-            self.select_workflow_step(3)
+            self.select_workflow_step(2)
 
     def _finish_stft_presentation(self) -> None:
         configuration = self._session.run_configuration
@@ -3331,7 +3378,7 @@ class MainWindow(QMainWindow):
             )
         )
         if self._quick_analysis_waiting:
-            self.select_workflow_step(2)
+            self.select_workflow_step(1)
             self.science_tabs.setCurrentWidget(self.spectrogram_view)
             self.spectrogram_view.set_search_region_interaction(
                 visible=True,
@@ -3543,7 +3590,7 @@ class MainWindow(QMainWindow):
         )
         self.action_export.setEnabled(result_available and not busy)
         self.action_export.setToolTip(action_tooltip)
-        if self.workflow_navigation.currentRow() == 4:
+        if self.workflow_navigation.currentRow() == 3:
             self._sync_review_preview()
 
     def _refresh_export_channels(self) -> None:
@@ -3609,7 +3656,7 @@ class MainWindow(QMainWindow):
     def _show_review_and_export(self) -> None:
         """Navigate to the review step without writing files or changing state."""
         self._refresh_export_controls()
-        review_index = 4
+        review_index = 3
         review_item = self.workflow_navigation.item(review_index)
         if review_item is None or not bool(
             review_item.flags() & Qt.ItemFlag.ItemIsEnabled
@@ -3647,11 +3694,7 @@ class MainWindow(QMainWindow):
             is not None
         )
         event_reference_source = (
-            (
-                self._session.event_reference_source
-                if self._session.event_time_source is EventTimeSource.MANUAL
-                else self._session.resolved_event_source(channel_name)
-            )
+            self._session.resolved_event_source(channel_name)
             if has_event_reference
             else None
         )
@@ -3854,13 +3897,7 @@ class MainWindow(QMainWindow):
         )
         stft_ready = self._session.stft_valid and bool(self._session.stft_results)
         result_ready = self._session.any_formal_results_available
-        availability = (
-            True,
-            loaded,
-            stft_ready,
-            result_ready,
-            result_ready,
-        )
+        availability = (True, stft_ready, result_ready, result_ready)
         unavailable_tooltip = self.tr(
             "当前状态不可用，或该功能尚未接入本版 GUI。"
         )
@@ -3900,8 +3937,12 @@ class MainWindow(QMainWindow):
             run_tooltip = self._parameter_error
         self.action_automatic.setEnabled(can_run)
         self.action_automatic.setToolTip(run_tooltip)
-        self.action_quick_analysis.setEnabled(can_run)
-        self.action_quick_analysis.setToolTip(run_tooltip)
+        self.action_quick_analysis.setEnabled(not self._analysis_adapter.busy)
+        self.action_quick_analysis.setToolTip(
+            run_tooltip
+            if loaded
+            else self.tr("打开数据后计算 STFT，并停在脊线搜索区域确认。")
+        )
         self.action_full_automatic.setEnabled(can_run)
         self.action_full_automatic.setToolTip(run_tooltip)
         self.action_run_stft.setEnabled(can_run)
@@ -3998,23 +4039,10 @@ class MainWindow(QMainWindow):
         if item is None or not bool(item.flags() & Qt.ItemFlag.ItemIsEnabled):
             return
         self.parameter_stack.setCurrentIndex(row)
-        self.velocity_view.set_export_preview_mode(row == 4)
+        self.velocity_view.set_export_preview_mode(row == 3)
         if row == 0:
             self.science_tabs.setCurrentWidget(self.raw_signal_view)
         elif row == 1:
-            self.spectrogram_view.set_search_region_interaction(
-                visible=False,
-                editable=False,
-            )
-            self.science_tabs.setCurrentWidget(self.spectrogram_view)
-            if self._session.stft_valid:
-                configuration = self._session.run_configuration
-                if configuration is not None:
-                    self.spectrogram_view.set_stft_results(
-                        self._session.stft_results,
-                        relative_db_floor=configuration.relative_db_floor,
-                    )
-        elif row == 2:
             self.spectrogram_view.set_search_region_interaction(
                 visible=True,
                 editable=True,
@@ -4030,9 +4058,9 @@ class MainWindow(QMainWindow):
                 )
             else:
                 self.science_tabs.setCurrentWidget(self.spectrogram_view)
-        elif row == 3:
+        elif row == 2:
             self.science_tabs.setCurrentWidget(self.velocity_view)
-        elif row == 4:
+        elif row == 3:
             self._sync_review_preview()
 
     def _workflow_item_clicked(self, item: QListWidgetItem) -> None:

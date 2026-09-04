@@ -155,6 +155,8 @@ def test_gui_reference_candidates_and_result_view_fit(
         )
 
         _run(window)
+        window.export_event_time_origin_radio.click()
+        qapp.processEvents()
         analyses = window.analysis_session.channel_analyses
         assert window.analysis_session.event_reference_time_s == pytest.approx(
             manual_reference_s
@@ -262,7 +264,7 @@ def test_gui_reference_candidates_and_result_view_fit(
             ).all()
             np.testing.assert_allclose(
                 analysis.display_velocity_m_s[post_event_invalid],
-                analysis.corrected_velocity_m_s[post_event_invalid],
+                analysis.continuous_corrected_velocity_m_s[post_event_invalid],
                 equal_nan=True,
             )
 
@@ -306,7 +308,7 @@ def test_gui_reference_candidates_and_result_view_fit(
         qapp.processEvents()
 
 
-def test_one_click_uses_ch1_shared_event_and_working_curves(
+def test_one_click_keeps_ch1_candidate_optional_and_working_curves(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -321,27 +323,19 @@ def test_one_click_uses_ch1_shared_event_and_working_curves(
         analyses = session.channel_analyses
         ch1 = analyses["pdv_channel_1"]
         expected_event_s = ch1.stream_event_candidates.primary_candidate_time_s
-        expected_source_fragment = "automatic_event_candidate"
         if expected_event_s is None:
             expected_event_s = (
                 ch1.signal_detection_result.detected_event_candidate_time_s
             )
-            expected_source_fragment = "automatic_low_confidence_event_candidate"
         assert expected_event_s is not None
         assert set(session.automatic_event_reference_times_s.values()) == {
             expected_event_s
         }
+        assert session.event_reference_time_s is None
+        assert all(session.resolved_event_time_s(name) is None for name in analyses)
+        assert all(session.resolved_event_source(name) is None for name in analyses)
         assert all(
-            session.resolved_event_time_s(name) == pytest.approx(expected_event_s)
-            for name in analyses
-        )
-        assert all(
-            expected_source_fragment in (session.resolved_event_source(name) or "")
-            for name in analyses
-        )
-        assert all(
-            analysis.signal_detection_result.manual_event_reference_time_s
-            == pytest.approx(expected_event_s)
+            analysis.signal_detection_result.manual_event_reference_time_s is None
             for analysis in analyses.values()
         )
         for analysis in analyses.values():
@@ -349,7 +343,7 @@ def test_one_click_uses_ch1_shared_event_and_working_curves(
             assert pre_event.any()
             np.testing.assert_array_equal(
                 analysis.display_velocity_m_s[pre_event],
-                0.0,
+                analysis.continuous_corrected_velocity_m_s[pre_event],
             )
             assert np.isfinite(analysis.working_frequency_hz[pre_event]).all()
 
@@ -364,7 +358,7 @@ def test_one_click_uses_ch1_shared_event_and_working_curves(
             ].signal_detection_result.refined_frequency_hz
             * 1e-9,
         )
-        assert window.velocity_view.display_velocity_check.isChecked()
+        assert not window.velocity_view.display_velocity_check.isChecked()
 
         manual_event_s = expected_event_s + 2.0e-9
         assert session.set_event_reference_time_s(
@@ -384,7 +378,7 @@ def test_one_click_uses_ch1_shared_event_and_working_curves(
         qapp.processEvents()
 
 
-def test_one_click_marks_existing_ch1_detector_candidate_as_event_fallback(
+def test_one_click_keeps_existing_ch1_detector_candidate_as_suggestion(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -413,8 +407,7 @@ def test_one_click_marks_existing_ch1_detector_candidate_as_event_fallback(
             fallback_s
         }
         assert all(
-            "automatic_low_confidence_event_candidate:pdv_channel_1"
-            == session.resolved_event_source(name)
+            session.resolved_event_source(name) is None
             for name in session.channel_analyses
         )
         for analysis in session.channel_analyses.values():
@@ -422,7 +415,7 @@ def test_one_click_marks_existing_ch1_detector_candidate_as_event_fallback(
             assert pre_event.any()
             np.testing.assert_array_equal(
                 analysis.display_velocity_m_s[pre_event],
-                0.0,
+                analysis.continuous_corrected_velocity_m_s[pre_event],
             )
     finally:
         window.close()
@@ -435,7 +428,7 @@ def test_english_reference_and_fit_terms(qapp: QApplication) -> None:
     window = MainWindow(translation_manager=manager)
     try:
         labels = {label.text() for label in window.findChildren(QLabel)}
-        assert "Event time" in labels
+        assert "Event Reference (Optional)" in labels
         assert "Manual event time" in labels
         assert window.spectrogram_view.fit_analysis_range_button.text() == (
             "Fit Analysis Range"
