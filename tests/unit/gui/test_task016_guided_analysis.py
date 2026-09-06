@@ -231,7 +231,8 @@ def test_guided_results_are_background_computed_separate_and_stale_independently
         assert any(key.startswith("automatic:") for key in window.comparison_view.curves)
         assert any(key.startswith("guided:") for key in window.comparison_view.curves)
         assert window.ridge_view.formal_curve.opts["connect"] == "finite"
-        assert window.velocity_view.formal_curve.opts["connect"] == "finite"
+        assert window.velocity_view.formal_curve is None
+        assert window.velocity_view.display_curve.opts["connect"] == "finite"
 
         previous_guided = session.guided_channel_analyses
         previous_generation = session.generation_id

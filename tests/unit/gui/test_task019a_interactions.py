@@ -98,6 +98,7 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
         _prepare_result(window, tmp_path)
         view = window.velocity_view
         view.display_velocity_check.setChecked(True)
+        window.export_event_time_origin_radio.click()
         window.science_tabs.setCurrentWidget(view)
         qapp.processEvents()
         analysis = next(iter(window.analysis_session.channel_analyses.values()))
@@ -121,6 +122,11 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
             np.asarray([-0.1, 0.0, 0.2]),
             np.asarray([15.0, np.nan, np.nan]),
         )
+        assert view.display_curve is not None
+        view.display_curve.setData(
+            np.asarray([-0.1, 0.0, 0.2]),
+            np.asarray([12.0, 18.0, np.nan]),
+        )
         view.fit_analysis_range()
         plot_range = view.plot_widget.plotItem.vb.viewRange()
         assert plot_range[0] == pytest.approx([-0.1, 0.1])
@@ -128,12 +134,14 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
             (
                 (np.asarray([-0.1, 0.0]), np.asarray([10.0, 20.0])),
                 (np.asarray([-0.1]), np.asarray([15.0])),
+                (np.asarray([-0.1, 0.0]), np.asarray([12.0, 18.0])),
             )
         )
         assert expected_analysis is not None
         assert plot_range[1] == pytest.approx(expected_analysis[1])
 
         view.apparent_curve.hide()
+        view.display_curve.hide()
         view.corrected_curve.setData(
             np.asarray([5.0, 6.0, 7.0]),
             np.asarray([50.0, 60.0, np.nan]),

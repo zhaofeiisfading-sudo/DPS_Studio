@@ -327,9 +327,7 @@ class MainWindow(QMainWindow):
         display_velocity_blocker = QSignalBlocker(
             self.pre_event_display_velocity_spin
         )
-        display_check_blocker = QSignalBlocker(
-            self.velocity_view.display_velocity_check
-        )
+        display_check_blocker = QSignalBlocker(self.pre_event_display_check)
         self.vacuum_wavelength_spin.setValue(
             configuration.analysis.vacuum_wavelength_m * 1e9
         )
@@ -351,7 +349,7 @@ class MainWindow(QMainWindow):
         self.pre_event_display_velocity_spin.setValue(
             configuration.plot.pre_event_display_velocity_m_s
         )
-        self.velocity_view.display_velocity_check.setChecked(
+        self.pre_event_display_check.setChecked(
             configuration.plot.assume_pre_event_zero_for_display
         )
         self.display_velocity_status_label.setText(
@@ -1016,8 +1014,13 @@ class MainWindow(QMainWindow):
         velocity_form.addRow(
             self.tr("最终速度"), self.formal_velocity_status_label
         )
+        self.pre_event_display_check = QCheckBox(self.tr("启用"))
+        self.pre_event_display_check.setObjectName("preEventDisplayCheck")
+        self.pre_event_display_check.setToolTip(
+            self.tr("仅在已设置事件参考时，用指定速度显示事件前平台。")
+        )
         velocity_form.addRow(
-            self.tr("显示速度"), self.display_velocity_status_label
+            self.tr("事件前平台"), self.pre_event_display_check
         )
         velocity_form.addRow(self.tr("真空波长"), self.vacuum_wavelength_spin)
         self.pre_event_display_velocity_spin = QDoubleSpinBox()
@@ -1430,7 +1433,7 @@ class MainWindow(QMainWindow):
         self.pre_event_display_velocity_spin.valueChanged.connect(
             self._pre_event_display_velocity_changed
         )
-        self.velocity_view.display_velocity_check.toggled.connect(
+        self.pre_event_display_check.toggled.connect(
             self._display_velocity_toggled
         )
         self.spectrogram_view.colormap_changed.connect(
@@ -1805,6 +1808,7 @@ class MainWindow(QMainWindow):
             self.pre_event_display_velocity_spin,
         ):
             control.setReadOnly(not editable)
+        self.pre_event_display_check.setEnabled(editable)
         self.window_name_combo.setEnabled(editable)
         self.automatic_ridge_extraction_combo.setEnabled(editable)
         self.window_material_combo.setEnabled(editable)
@@ -2436,7 +2440,7 @@ class MainWindow(QMainWindow):
             None,
         )
         if candidate is None:
-            self.analysis_range_panel.set_event_time_source("unset")
+            self._event_reference_cleared()
             self.analysis_range_panel.show_event_reference_unset(
                 self.tr("尚无可采用的自动候选；可保持不使用或改为手动。")
             )
@@ -2565,7 +2569,7 @@ class MainWindow(QMainWindow):
 
     def _pre_event_display_velocity_changed(self, value_m_s: float) -> None:
         self._refresh_display_velocity_configuration(
-            enabled=self.velocity_view.display_velocity_check.isChecked(),
+            enabled=self.pre_event_display_check.isChecked(),
             value_m_s=value_m_s,
         )
 

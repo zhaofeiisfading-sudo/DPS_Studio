@@ -167,14 +167,19 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
         "time_from_event_s",
         "coarse_peak_frequency_hz",
         "refined_frequency_hz",
+        "working_frequency_hz",
         "apparent_velocity_m_s",
         "angle_corrected_apparent_velocity_m_s",
         "corrected_velocity_m_s",
+        "continuous_apparent_velocity_m_s",
+        "continuous_angle_corrected_apparent_velocity_m_s",
+        "continuous_corrected_velocity_m_s",
         "display_velocity_m_s",
         "ridge_quality_flag",
         "ridge_refinement_status",
         "ridge_selection_origin",
         "selected_candidate_rank",
+        "working_source",
         "signal_state",
         "velocity_origin",
         "is_pre_event_display_only",
@@ -182,32 +187,50 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
         "analysis_mode",
     }
     assert len(simple_rows) == len(detail_rows)
-    for index, (simple, detail) in enumerate(zip(simple_rows, detail_rows, strict=True)):
+    exported_source_indices = [
+        int(
+            np.flatnonzero(
+                np.isclose(
+                    analysis.signal_detection_result.time_s,
+                    float(detail["time_s"]),
+                    rtol=0.0,
+                    atol=1.0e-18,
+                )
+            )[0]
+        )
+        for detail in detail_rows
+    ]
+    for source_index, simple, detail in zip(
+        exported_source_indices,
+        simple_rows,
+        detail_rows,
+        strict=True,
+    ):
         assert _same_float(
             simple["time_from_event_s"],
-            analysis.signal_detection_result.time_s[index] - 0.4e-6,
+            analysis.signal_detection_result.time_s[source_index] - 0.4e-6,
         )
         assert _same_float(
             detail["time_s"],
-            analysis.signal_detection_result.time_s[index],
+            analysis.signal_detection_result.time_s[source_index],
         )
         assert simple["time_from_event_s"] == detail["time_from_event_s"]
         assert _same_float(
             simple["display_velocity_m_s"],
-            analysis.display_velocity_m_s[index],
+            analysis.display_velocity_m_s[source_index],
         )
         assert simple["display_velocity_m_s"] == detail["display_velocity_m_s"]
         assert _same_float(
             detail["apparent_velocity_m_s"],
-            analysis.apparent_velocity_m_s[index],
+            analysis.apparent_velocity_m_s[source_index],
         )
         assert _same_float(
             detail["angle_corrected_apparent_velocity_m_s"],
-            analysis.angle_corrected_apparent_velocity_m_s[index],
+            analysis.angle_corrected_apparent_velocity_m_s[source_index],
         )
         assert _same_float(
             detail["corrected_velocity_m_s"],
-            analysis.corrected_velocity_m_s[index],
+            analysis.corrected_velocity_m_s[source_index],
         )
 
     display_only_rows = [
@@ -218,19 +241,21 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert all(row["analysis_mode"] == "automatic" for row in detail_rows)
     assert all(row["channel"] == "pdv_channel_1" for row in detail_rows)
 
-    post_event_invalid_indices = [
-        index
-        for index, origin in enumerate(analysis.velocity_origins)
-        if origin != PRE_EVENT_DISPLAY_ORIGIN
-        and math.isnan(analysis.signal_detection_result.apparent_velocity_m_s[index])
+    post_event_invalid_rows = [
+        (row_index, source_index)
+        for row_index, source_index in enumerate(exported_source_indices)
+        if analysis.velocity_origins[source_index] != PRE_EVENT_DISPLAY_ORIGIN
+        and math.isnan(
+            analysis.signal_detection_result.apparent_velocity_m_s[source_index]
+        )
     ]
-    assert post_event_invalid_indices
+    assert post_event_invalid_rows
     assert all(
         _same_float(
-            simple_rows[index]["display_velocity_m_s"],
-            analysis.corrected_velocity_m_s[index],
+            simple_rows[row_index]["display_velocity_m_s"],
+            analysis.continuous_corrected_velocity_m_s[source_index],
         )
-        for index in post_event_invalid_indices
+        for row_index, source_index in post_event_invalid_rows
     )
 
     metadata = json.loads(exported.metadata_path.read_text(encoding="utf-8"))
@@ -315,6 +340,13 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert metadata["working_ridge"] == {
         "frequency_field": "ChannelAnalysis.working_frequency_hz",
         "working_source_field": "ChannelAnalysis.working_source",
+        "continuous_apparent_velocity_field": (
+            "ChannelAnalysis.continuous_apparent_velocity_m_s"
+        ),
+        "continuous_corrected_velocity_field": (
+            "ChannelAnalysis.continuous_corrected_velocity_m_s"
+        ),
+        "plot_velocity_field": "ChannelAnalysis.plot_velocity_m_s",
         "formal_frequency_field": (
             "SignalDetectionResult.refined_frequency_hz"
         ),
@@ -327,7 +359,7 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     )
     assert metadata["result_counts"]["working_source_counts"]
     assert metadata["result_status"]["simple_csv_velocity_source"] == (
-        "display_velocity_m_s"
+        "ChannelAnalysis.plot_velocity_m_s"
     )
     assert metadata["result_status"]["unreliable_formal_values_preserved_as_nan"]
     assert analysis.signal_detection_result.apparent_velocity_m_s.tobytes() == formal_before
@@ -365,7 +397,7 @@ def test_actual_stft_window_is_recorded_in_the_single_metadata_json(
     assert metadata["stft_configuration"]["nfft"] == 1024
 
 
-def test_event_metadata_case_a_automatic_candidate_is_the_resolved_reference(
+def test_event_metadata_case_a_automatic_candidate_remains_an_optional_suggestion(
     tmp_path: Path,
 ) -> None:
     results = _analyses(tmp_path, manual_event_reference_time_s=None)
@@ -377,8 +409,8 @@ def test_event_metadata_case_a_automatic_candidate_is_the_resolved_reference(
             mode=ResultAnalysisMode.AUTOMATIC,
             analyses={"pdv_channel_1": analysis},
             source_path=results["source_path"],
-            event_reference_source="automatic",
-            event_time_source="automatic",
+            event_reference_source=None,
+            event_time_source="unset",
             time_origin=ExportTimeOrigin.ABSOLUTE,
         )
     )
@@ -388,12 +420,10 @@ def test_event_metadata_case_a_automatic_candidate_is_the_resolved_reference(
 
     assert metadata["automatic_event_candidate_time_s"] is not None
     assert metadata["compatibility_event_candidate_time_s"] is not None
-    assert metadata["event_reference_time_s"] == metadata[
-        "automatic_event_candidate_time_s"
-    ]
-    assert metadata["event_reference_source"] == "automatic"
-    assert metadata["event_time_source"] == "automatic"
-    assert metadata["event_time_s"] == metadata["event_reference_time_s"]
+    assert metadata["event_reference_time_s"] is None
+    assert metadata["event_reference_source"] is None
+    assert metadata["event_time_source"] == "unset"
+    assert metadata["event_time_s"] is None
     assert len(tuple(tmp_path.iterdir())) == 4  # source fixture plus exactly three exports
     assert len(tuple(tmp_path.glob("*.metadata.json"))) == 1
 

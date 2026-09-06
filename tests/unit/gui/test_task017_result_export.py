@@ -144,7 +144,7 @@ def test_toolbar_review_and_export_only_navigates_without_writing(
         qapp.processEvents()
 
         assert window.workflow_navigation.currentRow() == 3
-        assert window.parameter_stack.currentIndex() == 4
+        assert window.parameter_stack.currentIndex() == 3
         assert {path.name for path in export_parent.iterdir()} == before_paths
         assert not calls
         assert window.workflow_state is result_state
@@ -215,7 +215,6 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         )
         assert metadata["event_reference_source"] is None
         assert metadata["event_time_source"] == "unset"
-        assert metadata["event_time_source"] == "automatic"
         assert metadata["event_time_s"] == metadata["event_reference_time_s"]
         assert metadata["pre_event_display"]["included_in_csv"] is True
         assert len(tuple(export_parent.glob("*.metadata.json"))) == 1

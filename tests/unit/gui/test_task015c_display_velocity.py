@@ -107,7 +107,7 @@ def test_gui_display_parameter_refreshes_without_new_stft(
         new_starts: list[int] = []
         window._analysis_adapter.started.connect(new_starts.append)
 
-        window.velocity_view.display_velocity_check.setChecked(True)
+        window.pre_event_display_check.setChecked(True)
         qapp.processEvents()
         assert window.analysis_session.generation_id == generation
         assert window.analysis_session.results_valid
@@ -194,6 +194,7 @@ def test_english_pre_event_display_velocity_term(qapp: QApplication) -> None:
         assert window.velocity_view.display_velocity_check.text() == (
             "Show Diagnostic Curves"
         )
+        assert window.pre_event_display_check.text() == "Enable"
     finally:
         window.close()
         manager.install("zh_CN")

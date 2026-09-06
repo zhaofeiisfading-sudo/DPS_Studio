@@ -336,6 +336,8 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
             enabled=True,
             pre_event_display_velocity_m_s=0.0,
         )
+        window.export_event_time_origin_radio.click()
+        qapp.processEvents()
         window.guided_mode_radio.click()
         window._ridge_constraint_changed(
             "pdv_channel_1",
@@ -384,7 +386,7 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
         qapp.processEvents()
         assert window.velocity_view.display_curve is not None
         assert window.velocity_view.formal_curve is None
-        assert window.velocity_view.display_connector is None
+        assert window.velocity_view.display_connector is not None
         np.testing.assert_array_equal(
             analysis.signal_detection_result.apparent_velocity_m_s,
             formal_before,

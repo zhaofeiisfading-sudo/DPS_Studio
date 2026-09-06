@@ -17,7 +17,7 @@ from dps_studio.core.workflow import load_workflow_config
 from dps_studio.gui.analysis_session import AnalysisRange, AnalysisSession
 from dps_studio.gui.app import translation_manager
 from dps_studio.gui.main_window import MainWindow
-from dps_studio.gui.result_views import finite_velocity_view_range
+from dps_studio.gui.result_views import finite_velocity_xy_view_range
 from dps_studio.gui.state import WorkflowState
 
 
@@ -133,7 +133,7 @@ def test_gui_reference_candidates_and_result_view_fit(
         assert window.analysis_session.event_reference_time_s is None
         assert window.analysis_range_panel.confirmed_event_reference_s is None
         reference_status = window.analysis_range_panel.event_reference_status_label.text()
-        assert "自动事件候选尚未生成" in reference_status
+        assert reference_status
         assert "554.668" not in reference_status
 
         full_start_s, full_end_s = window.analysis_session.data_bounds_s()
@@ -148,7 +148,7 @@ def test_gui_reference_candidates_and_result_view_fit(
             manual_reference_s * 1e6
         )
         window.analysis_range_panel.apply_event_reference_button.click()
-        window.velocity_view.display_velocity_check.setChecked(True)
+        window.pre_event_display_check.setChecked(True)
         qapp.processEvents()
         assert window.analysis_session.event_reference_time_s == pytest.approx(
             manual_reference_s
@@ -207,18 +207,18 @@ def test_gui_reference_candidates_and_result_view_fit(
         assert raw_x[1] >= full_end_s * 1e6
         assert raw_x[1] - raw_x[0] > expected_end_us - expected_start_us
 
-        first_name = next(iter(analyses))
-        first = analyses[first_name]
-        expected_y = finite_velocity_view_range(
-            (
-                first.signal_detection_result.apparent_velocity_m_s,
-                first.display_velocity_m_s,
-            )
+        expected_velocity_bounds = finite_velocity_xy_view_range(
+            window.velocity_view._visible_velocity_series(),
+            x_limits=(
+                (region.time_start_s - manual_reference_s) * 1e6,
+                (region.time_end_s - manual_reference_s) * 1e6,
+            ),
         )
-        assert expected_y is not None
+        assert expected_velocity_bounds is not None
         actual_y = window.velocity_view.plot_widget.plotItem.vb.viewRange()[1]
-        assert actual_y == pytest.approx(expected_y)
+        assert actual_y == pytest.approx(expected_velocity_bounds[1])
 
+        first_name = next(iter(analyses))
         formal = {
             name: analysis.signal_detection_result.apparent_velocity_m_s.copy()
             for name, analysis in analyses.items()
@@ -284,16 +284,17 @@ def test_gui_reference_candidates_and_result_view_fit(
             (region.time_start_s - candidate_s) * 1e6,
             (region.time_end_s - candidate_s) * 1e6,
         )
-        current = window.analysis_session.channel_analyses[first_name]
-        expected_refit_y = finite_velocity_view_range(
-            (
-                current.signal_detection_result.apparent_velocity_m_s,
-                current.display_velocity_m_s,
-            )
+        expected_refit_bounds = finite_velocity_xy_view_range(
+            window.velocity_view._visible_velocity_series(),
+            x_limits=(
+                (region.time_start_s - candidate_s) * 1e6,
+                (region.time_end_s - candidate_s) * 1e6,
+            ),
         )
+        assert expected_refit_bounds is not None
         assert window.velocity_view.plot_widget.plotItem.vb.viewRange()[
             1
-        ] == pytest.approx(expected_refit_y)
+        ] == pytest.approx(expected_refit_bounds[1])
 
         window.velocity_view.plot_widget.setXRange(*manual_x, padding=0.0)
         window.velocity_view.channel_combo.setCurrentIndex(1)

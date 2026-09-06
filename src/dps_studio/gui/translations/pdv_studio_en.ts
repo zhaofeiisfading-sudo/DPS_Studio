@@ -766,25 +766,25 @@
         <translation>Loaded {rows} rows and {channels} independent voltage channel(s): {path}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="430"/>
+        <location filename="../main_window.py" line="428"/>
         <source>不同预设代表不同时间—频率分辨率取舍。结果仍需结合频谱和质量状态复核。</source>
         <translation>Presets represent different time-frequency resolution tradeoffs. Review results with the spectrum and quality states.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="358"/>
-        <location filename="../main_window.py" line="2573"/>
+        <location filename="../main_window.py" line="356"/>
+        <location filename="../main_window.py" line="2578"/>
         <source>开启</source>
         <translation>Enabled</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="360"/>
-        <location filename="../main_window.py" line="1014"/>
-        <location filename="../main_window.py" line="2573"/>
+        <location filename="../main_window.py" line="358"/>
+        <location filename="../main_window.py" line="1013"/>
+        <location filename="../main_window.py" line="2578"/>
         <source>关闭</source>
         <translation>Disabled</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="384"/>
+        <location filename="../main_window.py" line="382"/>
         <source>分析配置已变化；旧结果已失效。</source>
         <translation>The analysis configuration changed; previous results are stale.</translation>
     </message>
@@ -793,17 +793,17 @@
         <translation type="vanished">Loaded formal workflow configuration: {path}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="436"/>
+        <location filename="../main_window.py" line="434"/>
         <source>打开数据…</source>
         <translation>Open Data…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="441"/>
+        <location filename="../main_window.py" line="439"/>
         <source>选择文件并显式配置列与单位</source>
         <translation>Select a file and configure columns and units explicitly</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="443"/>
+        <location filename="../main_window.py" line="441"/>
         <source>退出</source>
         <translation>Exit</translation>
     </message>
@@ -812,7 +812,7 @@
         <translation type="vanished">Planned feature: the complete analysis is not connected to the GUI.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3534"/>
+        <location filename="../main_window.py" line="3539"/>
         <source>自动分析</source>
         <translation>Automatic Analysis</translation>
     </message>
@@ -829,42 +829,57 @@
         <translation type="vanished">Run STFT</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="489"/>
+        <location filename="../main_window.py" line="487"/>
         <source>提取脊线</source>
         <translation>Extract Ridge</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="493"/>
+        <location filename="../main_window.py" line="491"/>
         <source>计算速度</source>
         <translation>Calculate Velocity</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="915"/>
+        <location filename="../main_window.py" line="914"/>
         <source>默认使用完整搜索频带。可绘制上边界或下边界限制候选谱峰搜索区域。人工边界在控制点之间线性连接，并以首末点高度延伸至当前分析范围两端。</source>
         <translation>The full search band is used by default. Draw an upper or lower boundary to limit candidate peak search. Manual boundaries are linear between control points and extend at the first/last point height to both ends of the current analysis range.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="953"/>
+        <location filename="../main_window.py" line="952"/>
         <source>边界控制点范围</source>
         <translation>Boundary control-point span</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1007"/>
+        <location filename="../main_window.py" line="1006"/>
         <source>当前速度曲线已应用所选修正；详细诊断和中间速度保存在分析记录中。</source>
         <translation>The current velocity curve includes the selected corrections; diagnostics and intermediate velocities remain in the analysis record.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1013"/>
+        <location filename="../main_window.py" line="1012"/>
         <source>尚无速度结果</source>
         <translation>No Velocity Result</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1016"/>
+        <location filename="../main_window.py" line="1015"/>
         <source>最终速度</source>
         <translation>Final Velocity</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1245"/>
+        <location filename="../main_window.py" line="1017"/>
+        <source>启用</source>
+        <translation>Enable</translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="1020"/>
+        <source>仅在已设置事件参考时，用指定速度显示事件前平台。</source>
+        <translation>Show the pre-event platform at the specified velocity only when an event reference is set.</translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="1023"/>
+        <source>事件前平台</source>
+        <translation>Pre-event Platform</translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="1249"/>
         <source>导出结果</source>
         <translation>Export Results</translation>
     </message>
@@ -873,63 +888,63 @@
         <translation type="vanished">Not connected: no public core export API is currently available to the GUI.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="520"/>
+        <location filename="../main_window.py" line="518"/>
         <source>恢复默认布局</source>
         <translation>Restore Default Layout</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="527"/>
+        <location filename="../main_window.py" line="525"/>
         <source>简体中文</source>
         <translation>Simplified Chinese</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="530"/>
+        <location filename="../main_window.py" line="528"/>
         <source>English</source>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="541"/>
-        <location filename="../main_window.py" line="4111"/>
+        <location filename="../main_window.py" line="539"/>
+        <location filename="../main_window.py" line="4116"/>
         <source>关于 PDV Studio</source>
         <translation>About PDV Studio</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="545"/>
+        <location filename="../main_window.py" line="543"/>
         <source>文件</source>
         <translation>File</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="552"/>
+        <location filename="../main_window.py" line="550"/>
         <source>分析</source>
         <translation>Analysis</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="557"/>
+        <location filename="../main_window.py" line="555"/>
         <source>视图</source>
         <translation>View</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="561"/>
+        <location filename="../main_window.py" line="559"/>
         <source>设置</source>
         <translation>Settings</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="572"/>
+        <location filename="../main_window.py" line="570"/>
         <source>语言</source>
         <translation>Language</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="578"/>
+        <location filename="../main_window.py" line="576"/>
         <source>帮助</source>
         <translation>Help</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="583"/>
+        <location filename="../main_window.py" line="581"/>
         <source>常用工具</source>
         <translation>Common Tools</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="606"/>
+        <location filename="../main_window.py" line="604"/>
         <source>处理流程</source>
         <translation>Workflow</translation>
     </message>
@@ -958,7 +973,7 @@
         <translation type="vanished">6  Review &amp; Export</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="634"/>
+        <location filename="../main_window.py" line="632"/>
         <source>原始信号</source>
         <translation>Raw Signal</translation>
     </message>
@@ -967,7 +982,7 @@
         <translation type="vanished">Spectrogram results are not connected.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="636"/>
+        <location filename="../main_window.py" line="634"/>
         <source>时频图</source>
         <translation>Spectrogram</translation>
     </message>
@@ -976,7 +991,7 @@
         <translation type="vanished">Ridge results are not connected.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="638"/>
+        <location filename="../main_window.py" line="636"/>
         <source>频谱脊线</source>
         <translation>Spectral Ridge</translation>
     </message>
@@ -985,7 +1000,7 @@
         <translation type="vanished">Velocity results are not connected.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="640"/>
+        <location filename="../main_window.py" line="638"/>
         <source>速度曲线</source>
         <translation>Velocity</translation>
     </message>
@@ -994,12 +1009,12 @@
         <translation type="vanished">The comparison view is not connected.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="642"/>
+        <location filename="../main_window.py" line="640"/>
         <source>结果比较</source>
         <translation>Comparison</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="647"/>
+        <location filename="../main_window.py" line="645"/>
         <source>当前参数</source>
         <translation>Current Parameters</translation>
     </message>
@@ -1016,12 +1031,12 @@
         <translation type="vanished">Manual constraints and polygon ROIs are not connected.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="776"/>
+        <location filename="../main_window.py" line="774"/>
         <source>选择并导入数据…</source>
         <translation>Select and Import Data…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="783"/>
+        <location filename="../main_window.py" line="781"/>
         <source>时间、电压和列映射必须在导入对话框中明确指定。内部数据保持 s 和 V。</source>
         <translation>Time, voltage, and column mappings must be specified in the import dialog. Internal data remain in s and V.</translation>
     </message>
@@ -1054,7 +1069,7 @@
         <translation type="vanished">Planned controls include automatic/guided analysis, candidate peaks, sub-bin refinement, and quality gates. Ridge algorithms are not currently called.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1003"/>
+        <location filename="../main_window.py" line="1002"/>
         <source>速度参数</source>
         <translation>Velocity Parameters</translation>
     </message>
@@ -1063,8 +1078,8 @@
         <translation type="vanished">Apparent velocity, display velocity, and a future verified corrected velocity will remain separate. No velocity conversion is currently run.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="497"/>
-        <location filename="../main_window.py" line="1147"/>
+        <location filename="../main_window.py" line="495"/>
+        <location filename="../main_window.py" line="1151"/>
         <source>复核与导出</source>
         <translation>Review &amp; Export</translation>
     </message>
@@ -1073,7 +1088,7 @@
         <translation type="vanished">Dual-channel comparison, quality review, and export are planned. The production script is not a GUI runtime dependency.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1254"/>
+        <location filename="../main_window.py" line="1258"/>
         <source>诊断与数据</source>
         <translation>Diagnostics and Data</translation>
     </message>
@@ -1082,7 +1097,7 @@
         <translation type="vanished">No analysis has run; no formal quality results are available.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="447"/>
+        <location filename="../main_window.py" line="445"/>
         <source>请先加载配置、确认范围和真空波长。</source>
         <translation>Load a configuration and confirm the range and vacuum wavelength first.</translation>
     </message>
@@ -1099,8 +1114,8 @@
         <translation type="vanished">Not loaded</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="674"/>
-        <location filename="../main_window.py" line="735"/>
+        <location filename="../main_window.py" line="672"/>
+        <location filename="../main_window.py" line="733"/>
         <source>分析配置</source>
         <translation>Analysis Profile</translation>
     </message>
@@ -1109,22 +1124,22 @@
         <translation type="vanished">Window Function</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="737"/>
+        <location filename="../main_window.py" line="735"/>
         <source>窗长</source>
         <translation>Window Length</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="738"/>
+        <location filename="../main_window.py" line="736"/>
         <source>重叠长度</source>
         <translation>Overlap Length</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="739"/>
+        <location filename="../main_window.py" line="737"/>
         <source>步长</source>
         <translation>Hop Length</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="740"/>
+        <location filename="../main_window.py" line="738"/>
         <source>FFT 长度</source>
         <translation>FFT Length</translation>
     </message>
@@ -1133,12 +1148,12 @@
         <translation type="vanished">Search Band</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="811"/>
+        <location filename="../main_window.py" line="809"/>
         <source>分析时间范围</source>
         <translation>Analysis Time Range</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="812"/>
+        <location filename="../main_window.py" line="810"/>
         <source>质量配置来源</source>
         <translation>Quality Configuration Source</translation>
     </message>
@@ -1147,12 +1162,12 @@
         <translation type="vanished">Run Full Automatic Analysis</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="818"/>
+        <location filename="../main_window.py" line="816"/>
         <source>取消分析（不可用）</source>
         <translation>Cancel Analysis (Unavailable)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="825"/>
+        <location filename="../main_window.py" line="823"/>
         <source>当前 core 没有协作取消 API；参数变化只会使迟到结果失效，不会立即中断 NumPy/SciPy 计算。</source>
         <translation>The current core has no cooperative cancellation API. Parameter changes only invalidate late results and do not immediately interrupt NumPy/SciPy computation.</translation>
     </message>
@@ -1165,7 +1180,7 @@
         <translation type="vanished">Automatic analysis uses public-core candidate peaks, sub-bin refinement, quality gates, and continuity diagnostics. Guided analysis and polygon ROIs are not connected.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1021"/>
+        <location filename="../main_window.py" line="1025"/>
         <source>真空波长</source>
         <translation>Vacuum Wavelength</translation>
     </message>
@@ -1186,93 +1201,93 @@
         <translation type="vanished">Formal apparent-velocity comparison and quality review are available for two channels. Formal export remains disabled, and production scripts are not GUI runtime dependencies.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1273"/>
+        <location filename="../main_window.py" line="1277"/>
         <source>质量</source>
         <translation>Quality</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1278"/>
+        <location filename="../main_window.py" line="1282"/>
         <source>字段</source>
         <translation>Field</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1278"/>
+        <location filename="../main_window.py" line="1282"/>
         <source>值</source>
         <translation>Value</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1287"/>
+        <location filename="../main_window.py" line="1291"/>
         <source>数据</source>
         <translation>Data</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1292"/>
+        <location filename="../main_window.py" line="1296"/>
         <source>日志</source>
         <translation>Log</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1308"/>
-        <location filename="../main_window.py" line="4026"/>
+        <location filename="../main_window.py" line="1312"/>
+        <location filename="../main_window.py" line="4031"/>
         <source>文件：未加载</source>
         <translation>File: none</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1310"/>
+        <location filename="../main_window.py" line="1314"/>
         <source>通道：—</source>
         <translation>Channel: —</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1312"/>
+        <location filename="../main_window.py" line="1316"/>
         <source>状态：EMPTY</source>
         <translation>State: EMPTY</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1314"/>
+        <location filename="../main_window.py" line="1318"/>
         <source>时间：—</source>
         <translation>Time: —</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1316"/>
+        <location filename="../main_window.py" line="1320"/>
         <source>数值：—</source>
         <translation>Value: —</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1318"/>
+        <location filename="../main_window.py" line="1322"/>
         <source>未保存修改：否</source>
         <translation>Unsaved: no</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1553"/>
+        <location filename="../main_window.py" line="1557"/>
         <source>拖动以调整分析范围</source>
         <translation>Drag to adjust the analysis range</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1639"/>
+        <location filename="../main_window.py" line="1643"/>
         <source>已恢复默认布局。</source>
         <translation>Default layout restored.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1644"/>
+        <location filename="../main_window.py" line="1648"/>
         <source>选择时间—电压数据文件</source>
         <translation>Select a Time–Voltage Data File</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1646"/>
+        <location filename="../main_window.py" line="1650"/>
         <source>分隔文本文件 (*.csv *.txt *.dat);;所有文件 (*)</source>
         <translation>Delimited text files (*.csv *.txt *.dat);;All files (*)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1657"/>
+        <location filename="../main_window.py" line="1661"/>
         <source>数据加载失败：{error_type}: {message}</source>
         <translation>Data load failed: {error_type}: {message}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1664"/>
+        <location filename="../main_window.py" line="1668"/>
         <source>数据加载失败</source>
         <translation>Data Load Failed</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1665"/>
+        <location filename="../main_window.py" line="1669"/>
         <source>无法按当前列和单位设置读取文件。
 
 {message}</source>
@@ -1281,27 +1296,27 @@
 {message}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1675"/>
+        <location filename="../main_window.py" line="1679"/>
         <source>选择 workflow TOML 配置</source>
         <translation>Select Workflow TOML Configuration</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1677"/>
+        <location filename="../main_window.py" line="1681"/>
         <source>TOML 配置 (*.toml);;所有文件 (*)</source>
         <translation>TOML Configuration (*.toml);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1689"/>
+        <location filename="../main_window.py" line="1693"/>
         <source>配置加载失败：{error_type}: {message}</source>
         <translation>Configuration load failed: {error_type}: {message}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1696"/>
+        <location filename="../main_window.py" line="1700"/>
         <source>配置加载失败</source>
         <translation>Configuration Load Failed</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1697"/>
+        <location filename="../main_window.py" line="1701"/>
         <source>无法加载所选 workflow 配置。
 
 {message}</source>
@@ -1314,22 +1329,22 @@
         <translation type="vanished">Scientific parameters changed; rerun automatic analysis.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2310"/>
+        <location filename="../main_window.py" line="2315"/>
         <source>自定义（基于 {name}）</source>
         <translation>Custom (based on {name})</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2354"/>
+        <location filename="../main_window.py" line="2359"/>
         <source>已恢复预设值；请重新运行自动分析。</source>
         <translation>Preset values restored; rerun automatic analysis.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2390"/>
+        <location filename="../main_window.py" line="2395"/>
         <source>分析范围已变化；请重新运行自动分析。</source>
         <translation>The analysis range changed; run the automatic analysis again.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2395"/>
+        <location filename="../main_window.py" line="2400"/>
         <source>分析范围已确认：{start:.9f} – {end:.9f} μs</source>
         <translation>Analysis range confirmed: {start:.9f} – {end:.9f} μs</translation>
     </message>
@@ -1346,78 +1361,78 @@
         <translation type="vanished">Data, a confirmed range, a formal configuration, or a verified vacuum wavelength is missing.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3184"/>
+        <location filename="../main_window.py" line="3189"/>
         <source>自动分析已在运行。</source>
         <translation>Automatic analysis is already running.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3218"/>
-        <location filename="../main_window.py" line="3219"/>
+        <location filename="../main_window.py" line="3223"/>
+        <location filename="../main_window.py" line="3224"/>
         <source>正在运行人工范围分析…</source>
         <translation>Running manual region analysis…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3220"/>
+        <location filename="../main_window.py" line="3225"/>
         <source>后台人工范围分析已开始（请求 {generation}）。</source>
         <translation>Background manual region analysis started (request {generation}).</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3222"/>
+        <location filename="../main_window.py" line="3227"/>
         <source>正在分析…</source>
         <translation>Analyzing…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3223"/>
+        <location filename="../main_window.py" line="3228"/>
         <source>后台自动分析已开始（请求 {generation}）。</source>
         <translation>Background automatic analysis started (request {generation}).</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3292"/>
+        <location filename="../main_window.py" line="3297"/>
         <source>分析期间参数已变化；已忽略迟到结果。</source>
         <translation>Parameters changed during analysis; the late result was ignored.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3295"/>
+        <location filename="../main_window.py" line="3300"/>
         <source>请求 {generation} 的迟到结果已忽略。</source>
         <translation>Late result for request {generation} was ignored.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3342"/>
+        <location filename="../main_window.py" line="3347"/>
         <source>自动分析完成；结果为当前有效。</source>
         <translation>Automatic analysis completed; results are current and valid.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3347"/>
+        <location filename="../main_window.py" line="3352"/>
         <source>自动分析完成：{channels} 个独立通道。</source>
         <translation>Automatic analysis completed for {channels} independent channels.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3415"/>
+        <location filename="../main_window.py" line="3420"/>
         <source>人工范围分析完成；自动结果仍保持有效。</source>
         <translation>Manual region analysis completed; automatic results remain valid.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3417"/>
+        <location filename="../main_window.py" line="3422"/>
         <source>人工范围分析完成；当前已获得正式结果。</source>
         <translation>Manual region analysis completed; formal results are now available.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3427"/>
+        <location filename="../main_window.py" line="3432"/>
         <source>人工范围分析完成：{channels} 个当前有效通道；自动结果未覆盖。</source>
         <translation>Manual region analysis completed for {channels} valid channel(s); automatic results were not overwritten.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3453"/>
+        <location filename="../main_window.py" line="3458"/>
         <source>已忽略失效请求 {generation} 的异常。</source>
         <translation>An exception from stale request {generation} was ignored.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3461"/>
+        <location filename="../main_window.py" line="3466"/>
         <source>人工范围分析失败：{summary}</source>
         <translation>Manual region analysis failed: {summary}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3477"/>
+        <location filename="../main_window.py" line="3482"/>
         <source>自动分析失败：{summary}</source>
         <translation>Automatic analysis failed: {summary}</translation>
     </message>
@@ -1440,57 +1455,57 @@
         <translation type="vanished">Custom</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="386"/>
+        <location filename="../main_window.py" line="384"/>
         <source>默认科学参数已就绪；请导入实验数据。</source>
         <translation>Default scientific parameters are ready; import experimental data.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="391"/>
+        <location filename="../main_window.py" line="389"/>
         <source>已加载分析参数源：{path}</source>
         <translation>Loaded analysis parameter source: {path}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="406"/>
+        <location filename="../main_window.py" line="404"/>
         <source>平衡</source>
         <translation>Balanced</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="407"/>
+        <location filename="../main_window.py" line="405"/>
         <source>高时间分辨率</source>
         <translation>High Time Resolution</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="408"/>
+        <location filename="../main_window.py" line="406"/>
         <source>高频率分辨率</source>
         <translation>High Frequency Resolution</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="410"/>
+        <location filename="../main_window.py" line="408"/>
         <source>极高时间分辨率（实验）</source>
         <translation>Very High Time Resolution (Experimental)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="413"/>
+        <location filename="../main_window.py" line="411"/>
         <source>极高频率分辨率（实验）</source>
         <translation>Very High Frequency Resolution (Experimental)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="422"/>
+        <location filename="../main_window.py" line="420"/>
         <source>使用更短时间窗，提高局部时间响应能力，但有限窗频率分辨能力更弱。</source>
         <translation>A shorter time window improves local temporal response, but has weaker finite-window frequency resolution.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="425"/>
+        <location filename="../main_window.py" line="423"/>
         <source>使用更长时间窗，提高有限窗频率分辨能力，但会牺牲快速瞬态的时间定位能力。</source>
         <translation>A longer time window improves finite-window frequency resolution, but sacrifices temporal localization of rapid transients.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="448"/>
+        <location filename="../main_window.py" line="446"/>
         <source>快速分析</source>
         <translation>Quick Analysis</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="454"/>
+        <location filename="../main_window.py" line="452"/>
         <source>一键分析</source>
         <translation>Run Analysis</translation>
     </message>
@@ -1507,28 +1522,28 @@
         <translation type="vanished">Finish Corridor Drawing</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="485"/>
-        <location filename="../main_window.py" line="756"/>
+        <location filename="../main_window.py" line="483"/>
+        <location filename="../main_window.py" line="754"/>
         <source>计算时频图</source>
         <translation>Compute Spectrogram</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="501"/>
+        <location filename="../main_window.py" line="499"/>
         <source>查看当前有效结果并设置导出参数。</source>
         <translation>Review current valid results and configure export parameters.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="505"/>
+        <location filename="../main_window.py" line="503"/>
         <source>导入配置…</source>
         <translation>Import Configuration…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="512"/>
+        <location filename="../main_window.py" line="510"/>
         <source>恢复默认参数</source>
         <translation>Restore Defaults</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="563"/>
+        <location filename="../main_window.py" line="561"/>
         <source>分析参数</source>
         <translation>Analysis Parameters</translation>
     </message>
@@ -1553,85 +1568,85 @@
         <translation type="vanished">5  Review &amp; Export</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="687"/>
+        <location filename="../main_window.py" line="685"/>
         <source>当前默认值为实验室 PDV 系统的 1550 nm 真空波长；实验条件变化时请直接修改。</source>
         <translation>The current default is the laboratory PDV system&apos;s 1550 nm vacuum wavelength; edit it directly when experimental conditions change.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="696"/>
+        <location filename="../main_window.py" line="694"/>
         <source>矩形窗（Boxcar）</source>
         <translation>Rectangular Window (Boxcar)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="703"/>
+        <location filename="../main_window.py" line="701"/>
         <source>窗口函数只改变 STFT 的数学 window；不会联动窗长、重叠、FFT 长度、搜索频带或质量门槛。矩形窗可作为无加权基线比较；其频谱泄漏特性与其他加窗方式不同，不作为默认选择。</source>
         <translation>The window function changes only the mathematical STFT window; it does not change the window length, overlap, FFT length, search band, or quality thresholds. The rectangular window is available as an unweighted baseline; its spectral leakage differs from other windows and it is not the default.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="714"/>
+        <location filename="../main_window.py" line="712"/>
         <source>连续性辅助</source>
         <translation>Continuity-assisted</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="716"/>
+        <location filename="../main_window.py" line="714"/>
         <source>传统最强峰</source>
         <translation>Legacy Strongest Peak</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="724"/>
+        <location filename="../main_window.py" line="722"/>
         <source>连续性辅助：在最强峰出现孤立跳变时，可在可信局部候选峰中选择与前后时间帧更连续的谱峰。
 传统最强峰：每个时间帧始终使用搜索频带内的最强谱峰。</source>
         <translation>Continuity assisted: when the strongest peak makes an isolated jump, select a trusted local candidate peak that is more continuous with adjacent time frames.
 Legacy strongest peak: always use the strongest spectral peak in the search band for each time frame.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="736"/>
+        <location filename="../main_window.py" line="734"/>
         <source>窗口函数</source>
         <translation>Window Function</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="868"/>
+        <location filename="../main_window.py" line="867"/>
         <source>脊线搜索区域</source>
         <translation>Ridge Search Region</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="882"/>
+        <location filename="../main_window.py" line="881"/>
         <source>自动脊线提取</source>
         <translation>Automatic Ridge Extraction</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="885"/>
+        <location filename="../main_window.py" line="884"/>
         <source>时间起点</source>
         <translation>Time Start</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="886"/>
+        <location filename="../main_window.py" line="885"/>
         <source>时间终点</source>
         <translation>Time End</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="888"/>
+        <location filename="../main_window.py" line="887"/>
         <source>搜索频率下限</source>
         <translation>Minimum search frequency</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="891"/>
+        <location filename="../main_window.py" line="890"/>
         <source>搜索频率上限</source>
         <translation>Maximum search frequency</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="748"/>
+        <location filename="../main_window.py" line="746"/>
         <source>恢复预设值</source>
         <translation>Restore Preset Values</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="752"/>
+        <location filename="../main_window.py" line="750"/>
         <source>高级参数…</source>
         <translation>Advanced Parameters…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="768"/>
-        <location filename="../main_window.py" line="3932"/>
+        <location filename="../main_window.py" line="766"/>
+        <location filename="../main_window.py" line="3937"/>
         <source>请先导入实验数据。</source>
         <translation>Import experimental data first.</translation>
     </message>
@@ -1640,17 +1655,17 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Complete Automatic Analysis first to obtain the current STFT.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="803"/>
+        <location filename="../main_window.py" line="801"/>
         <source>STFT 状态</source>
         <translation>STFT Status</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="807"/>
+        <location filename="../main_window.py" line="805"/>
         <source>内置默认质量配置</source>
         <translation>Built-in default quality configuration</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="809"/>
+        <location filename="../main_window.py" line="807"/>
         <source>完整配置来源可在“高级参数…”中查看。</source>
         <translation>The full configuration source is available under “Advanced Parameters…”.</translation>
     </message>
@@ -1667,7 +1682,7 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">After the first STFT, the development default is set to five frequency bins; this is neither an experimental calibration nor an optimum.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="945"/>
+        <location filename="../main_window.py" line="944"/>
         <source>当前通道</source>
         <translation>Current Channel</translation>
     </message>
@@ -1716,28 +1731,28 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Pre-event Display Velocity</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1711"/>
+        <location filename="../main_window.py" line="1715"/>
         <source>无法加载内置默认科学参数：{message}</source>
         <translation>Could not load built-in default scientific parameters: {message}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1715"/>
+        <location filename="../main_window.py" line="1719"/>
         <source>默认参数加载失败：{error_type}: {message}</source>
         <translation>Default parameter loading failed: {error_type}: {message}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1723"/>
+        <location filename="../main_window.py" line="1727"/>
         <source>默认参数加载失败</source>
         <translation>Default Parameter Loading Failed</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1728"/>
+        <location filename="../main_window.py" line="1732"/>
         <source>已恢复内置默认分析参数。</source>
         <translation>Restored built-in default analysis parameters.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1846"/>
-        <location filename="../main_window.py" line="2281"/>
+        <location filename="../main_window.py" line="1851"/>
+        <location filename="../main_window.py" line="2286"/>
         <source>参数无效：{message}</source>
         <translation>Invalid parameters: {message}</translation>
     </message>
@@ -1746,13 +1761,13 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Custom parameters changed; rerun automatic analysis.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2271"/>
+        <location filename="../main_window.py" line="2276"/>
         <source>科学参数尚未加载。</source>
         <translation>Scientific parameters have not been loaded.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2412"/>
-        <location filename="../main_window.py" line="2531"/>
+        <location filename="../main_window.py" line="2417"/>
+        <location filename="../main_window.py" line="2536"/>
         <source>用户确认</source>
         <translation>User Confirmed</translation>
     </message>
@@ -1761,18 +1776,18 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Event Reference Time cleared; the display platform is disabled.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2449"/>
-        <location filename="../main_window.py" line="2529"/>
+        <location filename="../main_window.py" line="2454"/>
+        <location filename="../main_window.py" line="2534"/>
         <source>检测候选（用户显式采用）</source>
         <translation>Detected Candidate (Explicitly Adopted by User)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2482"/>
+        <location filename="../main_window.py" line="2487"/>
         <source>事件参考时刻已确认：{value:.9f} μs；仅更新显示/复核语义。</source>
         <translation>Event Reference Time confirmed: {value:.9f} μs; only display/review semantics were updated.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2490"/>
+        <location filename="../main_window.py" line="2495"/>
         <source>事件参考已刷新；正式表观速度与 STFT 保持不变。</source>
         <translation>Event reference refreshed; formal apparent velocity and STFT remain unchanged.</translation>
     </message>
@@ -1781,17 +1796,17 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Event Reference Time is unset; no pre-event display platform will be generated.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2509"/>
+        <location filename="../main_window.py" line="2514"/>
         <source>原事件参考 {value:.9f} μs 不在当前数据或分析范围内，已设为未设置；不会生成显示平台。</source>
         <translation>The previous event reference {value:.9f} μs is outside the current data or analysis range and has been unset; no display platform will be generated.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2525"/>
+        <location filename="../main_window.py" line="2530"/>
         <source>当前配置</source>
         <translation>Current Configuration</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2561"/>
+        <location filename="../main_window.py" line="2566"/>
         <source>分析参数预设已变化；请重新运行自动分析。</source>
         <translation>Analysis parameter preset changed; rerun automatic analysis.</translation>
     </message>
@@ -1800,12 +1815,12 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Vacuum wavelength changed; rerun automatic analysis.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2599"/>
+        <location filename="../main_window.py" line="2604"/>
         <source>显示速度已刷新；正式表观速度与 STFT 保持不变。</source>
         <translation>Display velocity refreshed; formal apparent velocity and STFT are unchanged.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2603"/>
+        <location filename="../main_window.py" line="2608"/>
         <source>事件前显示速度已设为 {value:g} m/s；仅刷新 display velocity。</source>
         <translation>Pre-event Display Velocity set to {value:g} m/s; only display velocity was refreshed.</translation>
     </message>
@@ -1826,23 +1841,23 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Finish Ridge Corridor</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="814"/>
-        <location filename="../main_window.py" line="3784"/>
+        <location filename="../main_window.py" line="812"/>
+        <location filename="../main_window.py" line="3789"/>
         <source>尚未计算时频图。</source>
         <translation>Spectrogram has not been computed.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="847"/>
+        <location filename="../main_window.py" line="846"/>
         <source>脊线提取</source>
         <translation>Ridge Extraction</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="848"/>
+        <location filename="../main_window.py" line="847"/>
         <source>提取方式</source>
         <translation>Ridge Extraction Mode</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="850"/>
+        <location filename="../main_window.py" line="849"/>
         <source>自动</source>
         <translation>Automatic</translation>
     </message>
@@ -1851,13 +1866,13 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Guided</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="465"/>
-        <location filename="../main_window.py" line="854"/>
-        <location filename="../main_window.py" line="2611"/>
-        <location filename="../main_window.py" line="2893"/>
-        <location filename="../main_window.py" line="3018"/>
-        <location filename="../main_window.py" line="3139"/>
-        <location filename="../main_window.py" line="3960"/>
+        <location filename="../main_window.py" line="463"/>
+        <location filename="../main_window.py" line="853"/>
+        <location filename="../main_window.py" line="2616"/>
+        <location filename="../main_window.py" line="2898"/>
+        <location filename="../main_window.py" line="3023"/>
+        <location filename="../main_window.py" line="3144"/>
+        <location filename="../main_window.py" line="3965"/>
         <source>请先计算当前 STFT。</source>
         <translation>Compute the current STFT first.</translation>
     </message>
@@ -1866,8 +1881,8 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Automatic Ridge</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="895"/>
-        <location filename="../main_window.py" line="3785"/>
+        <location filename="../main_window.py" line="894"/>
+        <location filename="../main_window.py" line="3790"/>
         <source>当前 STFT 尚未就绪。</source>
         <translation>The current STFT is not ready.</translation>
     </message>
@@ -1904,8 +1919,8 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Only formal apparent velocity is calculated; display velocity never replaces the formal result.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3783"/>
-        <location filename="../main_window.py" line="3796"/>
+        <location filename="../main_window.py" line="3788"/>
+        <location filename="../main_window.py" line="3801"/>
         <source>尚无正式结果</source>
         <translation>No formal result</translation>
     </message>
@@ -1914,58 +1929,57 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Formal Apparent Velocity</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1019"/>
         <source>显示速度</source>
-        <translation>Display Velocity</translation>
+        <translation type="vanished">Display Velocity</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1033"/>
+        <location filename="../main_window.py" line="1037"/>
         <source>仅用于事件前显示/可选导出平台，不代表正式测得速度。</source>
         <translation>Used only for the pre-event display/optional export platform; it is not a formally measured velocity.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1037"/>
+        <location filename="../main_window.py" line="1041"/>
         <source>事件前平台速度</source>
         <translation>Pre-event platform velocity</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1043"/>
-        <location filename="../main_window.py" line="2147"/>
+        <location filename="../main_window.py" line="1047"/>
+        <location filename="../main_window.py" line="2152"/>
         <source>LiF</source>
         <translation>LiF</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1046"/>
+        <location filename="../main_window.py" line="1050"/>
         <source>无窗口修正</source>
         <translation>No Window Correction</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1051"/>
+        <location filename="../main_window.py" line="1055"/>
         <source>LiF 使用 Rigg 等（2014）针对 [100] LiF、1550 nm PDV 标定的 Eq. (16)。超出标定加载条件的适用性需由实验评估；不会额外乘除常温折射率。</source>
         <translation>LiF uses Eq. (16) calibrated by Rigg et al. (2014) for [100] LiF and 1550 nm PDV. Applicability beyond the calibration loading conditions must be assessed for the experiment; no additional ambient refractive-index factor is applied.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1056"/>
+        <location filename="../main_window.py" line="1060"/>
         <source>窗口材料</source>
         <translation>Window Material</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1066"/>
+        <location filename="../main_window.py" line="1070"/>
         <source>PDV 测量视线与被测界面运动法线之间的夹角；0° 表示法向观测。经过透明窗口时，窗口外部安装角不一定等于界面处实际光线角；当前软件不会按 Snell 定律静默推断动态窗口内部角度。</source>
         <translation>Angle between the PDV line of sight and the normal to the moving interface; 0° is normal observation. Through a transparent window, the external mounting angle need not equal the actual ray angle at the interface; the software does not silently infer a dynamic internal window angle using Snell&apos;s law.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1071"/>
+        <location filename="../main_window.py" line="1075"/>
         <source>观测角度</source>
         <translation>Observation Angle</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1072"/>
+        <location filename="../main_window.py" line="1076"/>
         <source>材料参数…</source>
         <translation>Material Parameters…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1164"/>
+        <location filename="../main_window.py" line="1168"/>
         <source>导出速度设置</source>
         <translation>Export Velocity Settings</translation>
     </message>
@@ -1978,54 +1992,54 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Shares the observation angle with the Velocity Parameters page; the UI uses degrees and internal calculations store radians.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1176"/>
+        <location filename="../main_window.py" line="1180"/>
         <source>起跳点设为 0</source>
         <translation>Event Time = 0</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1183"/>
-        <location filename="../main_window.py" line="2183"/>
+        <location filename="../main_window.py" line="1187"/>
+        <location filename="../main_window.py" line="2188"/>
         <source>简表使用 time_from_event_s；详细表仍同时保留绝对 time_s。</source>
         <translation>The concise CSV uses time_from_event_s; the detail CSV still retains absolute time_s.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1187"/>
+        <location filename="../main_window.py" line="1191"/>
         <source>保留实验绝对时间</source>
         <translation>Absolute Experiment Time</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1194"/>
+        <location filename="../main_window.py" line="1198"/>
         <source>简表使用实验绝对 time_s；详细表仍包含 time_from_event_s。</source>
         <translation>The concise CSV uses absolute experiment time_s; the detail CSV still includes time_from_event_s.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1207"/>
+        <location filename="../main_window.py" line="1211"/>
         <source>时间零点</source>
         <translation>Time Origin</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1215"/>
+        <location filename="../main_window.py" line="1219"/>
         <source>最终导出速度</source>
         <translation>Final Export Velocity</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1241"/>
+        <location filename="../main_window.py" line="1245"/>
         <source>将导出时间—速度数据、详细诊断数据和分析参数记录。</source>
         <translation>Exports time–velocity data, diagnostic data, and analysis parameters.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1788"/>
-        <location filename="../main_window.py" line="1824"/>
+        <location filename="../main_window.py" line="1792"/>
+        <location filename="../main_window.py" line="1829"/>
         <source>{value} 点</source>
         <translation>{value} samples</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1865"/>
+        <location filename="../main_window.py" line="1870"/>
         <source>脊线参数已变化；STFT 保持有效，请重新提取脊线。</source>
         <translation>Ridge parameters changed; the STFT remains valid. Extract the ridge again.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1869"/>
+        <location filename="../main_window.py" line="1874"/>
         <source>STFT 参数已变化；请重新计算时频图。</source>
         <translation>STFT parameters changed; compute the spectrogram again.</translation>
     </message>
@@ -2034,7 +2048,7 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Velocity-correction parameters changed; extract the ridge again.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2214"/>
+        <location filename="../main_window.py" line="2219"/>
         <source>窗口修正已关闭；角度投影修正仍按当前角度执行。</source>
         <translation>Window correction is disabled; angle projection correction is still applied at the current angle.</translation>
     </message>
@@ -2043,7 +2057,7 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Warning: the Rigg 2014 LiF parameters are calibrated only at 1550 nm; the current wavelength is {wavelength:.12g} nm.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2238"/>
+        <location filename="../main_window.py" line="2243"/>
         <source>非零角度与 LiF 修正按可分离工程近似组合，不代表完整斜入射动态折射模型。</source>
         <translation>The nonzero-angle and LiF corrections are combined as a separable engineering approximation, not as a complete oblique-incidence dynamic refraction model.</translation>
     </message>
@@ -2052,7 +2066,7 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">LiF [100] / 1550 nm; observation angle 0°.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2263"/>
+        <location filename="../main_window.py" line="2268"/>
         <source>自动脊线提取方式已变化；请重新提取脊线。</source>
         <translation>The automatic ridge-extraction method changed; extract the ridge again.</translation>
     </message>
@@ -2061,7 +2075,7 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Created</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2884"/>
+        <location filename="../main_window.py" line="2889"/>
         <source>{start:.6f} – {end:.6f} μs</source>
         <translation>{start:.6f} – {end:.6f} μs</translation>
     </message>
@@ -2082,7 +2096,7 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">No Ridge Corridor has been created for the current channel.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2943"/>
+        <location filename="../main_window.py" line="2948"/>
         <source>分析配置或分析范围尚未就绪。</source>
         <translation>The analysis configuration or range is not ready.</translation>
     </message>
@@ -2091,12 +2105,12 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Create a Ridge Corridor for at least one channel.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2950"/>
+        <location filename="../main_window.py" line="2955"/>
         <source>通道 {channel} 没有当前有效 STFT。</source>
         <translation>Channel {channel} has no current valid STFT.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2986"/>
+        <location filename="../main_window.py" line="2991"/>
         <source>通道 {channel} 的约束无效：{reason}</source>
         <translation>The constraint for channel {channel} is invalid: {reason}</translation>
     </message>
@@ -2105,18 +2119,18 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">The corridor needs at least two control points with distinct times.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3047"/>
-        <location filename="../main_window.py" line="3086"/>
+        <location filename="../main_window.py" line="3052"/>
+        <location filename="../main_window.py" line="3091"/>
         <source>分析任务已在运行。</source>
         <translation>An analysis task is already running.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3215"/>
+        <location filename="../main_window.py" line="3220"/>
         <source>正在计算时频图…</source>
         <translation>Computing spectrogram…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3216"/>
+        <location filename="../main_window.py" line="3221"/>
         <source>后台 STFT 计算已开始（请求 {generation}）。</source>
         <translation>Background STFT computation started (request {generation}).</translation>
     </message>
@@ -2129,48 +2143,48 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Background Guided Analysis started (request {generation}).</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3246"/>
+        <location filename="../main_window.py" line="3251"/>
         <source>候选检测期间参数已变化；已忽略迟到候选。</source>
         <translation>Parameters changed during candidate detection; late candidates were ignored.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3266"/>
+        <location filename="../main_window.py" line="3271"/>
         <source>事件候选检测完成：{channels} 个独立通道；临时分析结果未写入 session，未自动确认参考时刻。</source>
         <translation>Event candidate detection completed for {channels} independent channels; temporary analysis results were not written to the session, and no reference time was confirmed automatically.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3343"/>
-        <location filename="../main_window.py" line="3421"/>
+        <location filename="../main_window.py" line="3348"/>
+        <location filename="../main_window.py" line="3426"/>
         <source>当前正式结果有效</source>
         <translation>The current formal result is valid</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3344"/>
+        <location filename="../main_window.py" line="3349"/>
         <source>当前 STFT 有效。</source>
         <translation>The current STFT is valid.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3345"/>
+        <location filename="../main_window.py" line="3350"/>
         <source>自动脊线结果有效。</source>
         <translation>The automatic ridge result is valid.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3369"/>
+        <location filename="../main_window.py" line="3374"/>
         <source>当前 STFT 有效，可进入脊线提取。</source>
         <translation>The current STFT is valid and ready for ridge extraction.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3370"/>
+        <location filename="../main_window.py" line="3375"/>
         <source>时频图计算完成。</source>
         <translation>Spectrogram computation completed.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3371"/>
+        <location filename="../main_window.py" line="3376"/>
         <source>当前 STFT 已就绪。</source>
         <translation>The current STFT is ready.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3375"/>
+        <location filename="../main_window.py" line="3380"/>
         <source>STFT 计算完成：{channels} 个独立通道。</source>
         <translation>STFT computation completed for {channels} independent channels.</translation>
     </message>
@@ -2183,12 +2197,12 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Guided Analysis finished for {channels} independent channels; automatic results were not overwritten.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2089"/>
+        <location filename="../main_window.py" line="2094"/>
         <source>当前正式结果有效（仅后处理已刷新）</source>
         <translation>Current formal results remain valid (post-processing refreshed only)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2092"/>
+        <location filename="../main_window.py" line="2097"/>
         <source>速度修正参数已更新；STFT、脊线、事件检测与质量判定保持不变。</source>
         <translation>Velocity-correction settings updated; STFT, ridge, event detection, and quality assessment are unchanged.</translation>
     </message>
@@ -2201,12 +2215,12 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">The Search Band lower bound must be below the upper bound.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2125"/>
+        <location filename="../main_window.py" line="2130"/>
         <source>Custom LiF · 用户参数</source>
         <translation>Custom LiF · User Parameters</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2128"/>
+        <location filename="../main_window.py" line="2133"/>
         <source>Rigg et al. (2014), Eq. (16) · DOI 10.1063/1.4890714</source>
         <translation>Rigg et al. (2014), Eq. (16) · DOI 10.1063/1.4890714</translation>
     </message>
@@ -2215,7 +2229,7 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">{material} · {angle:.6g}°; final export uses display_velocity_m_s.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2145"/>
+        <location filename="../main_window.py" line="2150"/>
         <source>Custom LiF</source>
         <translation>Custom LiF</translation>
     </message>
@@ -2228,12 +2242,12 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">display_velocity_m_s; formal measurement rows use apparent velocity (no window or angle correction).</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2227"/>
+        <location filename="../main_window.py" line="2232"/>
         <source>警告：当前 LiF 参数参考 {reference:.12g} nm；当前 PDV 波长为 {wavelength:.12g} nm。</source>
         <translation>Warning: the current LiF parameters reference {reference:.12g} nm; the current PDV wavelength is {wavelength:.12g} nm.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2244"/>
+        <location filename="../main_window.py" line="2249"/>
         <source>LiF [100] / {reference:.12g} nm；观测角 0°。</source>
         <translation>LiF [100] / {reference:.12g} nm; observation angle 0°.</translation>
     </message>
@@ -2246,67 +2260,67 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Automatic event time is not available yet; the automatic candidate will be used after analysis.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2519"/>
+        <location filename="../main_window.py" line="2524"/>
         <source>自动检测（低可信候选回退）</source>
         <translation>Automatic detection (low-confidence candidate fallback)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2522"/>
+        <location filename="../main_window.py" line="2527"/>
         <source>自动检测（CH1 共享）</source>
         <translation>Automatic detection (shared from CH1)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2749"/>
+        <location filename="../main_window.py" line="2754"/>
         <source>人工频率范围返回了无效的 core 数据模型。</source>
         <translation>The manual frequency region returned an invalid core data model.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2775"/>
+        <location filename="../main_window.py" line="2780"/>
         <source>上边界 {upper} 点，下边界 {lower} 点</source>
         <translation>upper boundary: {upper} points; lower boundary: {lower} points</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2780"/>
+        <location filename="../main_window.py" line="2785"/>
         <source>旧版走廊 {count} 点</source>
         <translation>legacy corridor: {count} points</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2784"/>
+        <location filename="../main_window.py" line="2789"/>
         <source>{channel} 的人工频率范围已更新：{detail}。</source>
         <translation>Manual frequency region updated for {channel}: {detail}.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2804"/>
+        <location filename="../main_window.py" line="2809"/>
         <source>{channel} 的人工频率范围已清除。</source>
         <translation>Manual frequency region cleared for {channel}.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2813"/>
+        <location filename="../main_window.py" line="2818"/>
         <source>完成上边界编辑</source>
         <translation>Finish Upper Boundary</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2818"/>
+        <location filename="../main_window.py" line="2823"/>
         <source>完成下边界编辑</source>
         <translation>Finish Lower Boundary</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2851"/>
+        <location filename="../main_window.py" line="2856"/>
         <source>已设置（上下边界）</source>
         <translation>Set (Upper and Lower)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2853"/>
+        <location filename="../main_window.py" line="2858"/>
         <source>已设置（仅上边界）</source>
         <translation>Set (Upper Only)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2855"/>
+        <location filename="../main_window.py" line="2860"/>
         <source>已设置（仅下边界）</source>
         <translation>Set (Lower Only)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2862"/>
+        <location filename="../main_window.py" line="2867"/>
         <source>旧版走廊（已兼容显示）</source>
         <translation>Legacy Corridor (Compatibility View)</translation>
     </message>
@@ -2315,29 +2329,29 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">The manual boundaries cross. Adjust them before running.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2897"/>
+        <location filename="../main_window.py" line="2902"/>
         <source>正在编辑人工边界；控制点需从左到右添加。</source>
         <translation>Editing a manual boundary; add control points from left to right.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2901"/>
+        <location filename="../main_window.py" line="2906"/>
         <source>当前人工范围已修改，请重新运行人工范围分析。</source>
         <translation>The manual region changed; rerun manual region analysis.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2905"/>
-        <location filename="../main_window.py" line="3420"/>
+        <location filename="../main_window.py" line="2910"/>
+        <location filename="../main_window.py" line="3425"/>
         <source>当前人工范围结果有效。</source>
         <translation>The current manual region result is valid.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2907"/>
+        <location filename="../main_window.py" line="2912"/>
         <source>人工范围已设置；请运行人工范围分析。</source>
         <translation>The manual region is set; run manual region analysis.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2946"/>
-        <location filename="../main_window.py" line="3007"/>
+        <location filename="../main_window.py" line="2951"/>
+        <location filename="../main_window.py" line="3012"/>
         <source>请先选择当前 STFT 通道。</source>
         <translation>Select the current STFT channel first.</translation>
     </message>
@@ -2346,22 +2360,22 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Create a ridge corridor for the current channel first.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3207"/>
+        <location filename="../main_window.py" line="3212"/>
         <source>候选检测任务已在运行。</source>
         <translation>A candidate detection task is already running.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3212"/>
+        <location filename="../main_window.py" line="3217"/>
         <source>正在检测事件候选…</source>
         <translation>Detecting event candidates…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3213"/>
+        <location filename="../main_window.py" line="3218"/>
         <source>后台事件候选检测已开始（请求 {generation}）。</source>
         <translation>Background event candidate detection started (request {generation}).</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3262"/>
+        <location filename="../main_window.py" line="3267"/>
         <source>候选检测完成；正式事件参考仍未设置，请显式采用候选。</source>
         <translation>Candidate detection is complete; the formal Event Reference remains unset until you explicitly adopt a candidate.</translation>
     </message>
@@ -2382,82 +2396,82 @@ Legacy strongest peak: always use the strongest spectral peak in the search band
         <translation type="vanished">Guided Analysis failed: {summary}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2142"/>
+        <location filename="../main_window.py" line="2147"/>
         <source>{material} · {angle:.6g}°；最终导出连续绘图速度。</source>
         <translation>{material} · {angle:.6g}°; exports the final continuous plotting velocity.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2153"/>
+        <location filename="../main_window.py" line="2158"/>
         <source>最终绘图速度；连续 working 结果已应用角度修正（无窗口修正，观测角 {angle:.6g}°）。</source>
         <translation>Final plotting velocity; the continuous working result includes angle correction (no window correction, observation angle {angle:.6g}°).</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2158"/>
+        <location filename="../main_window.py" line="2163"/>
         <source>最终绘图速度；连续 working 结果未应用窗口或角度修正。</source>
         <translation>Final plotting velocity; the continuous working result has no window or angle correction.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2180"/>
+        <location filename="../main_window.py" line="2185"/>
         <source>需要先设置事件参考。</source>
         <translation>Set an Event Reference first.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2418"/>
+        <location filename="../main_window.py" line="2423"/>
         <source>事件参考已清除；使用实验绝对时间。</source>
         <translation>Event Reference cleared; using absolute experiment time.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2440"/>
+        <location filename="../main_window.py" line="2445"/>
         <source>尚无可采用的自动候选；可保持不使用或改为手动。</source>
         <translation>No automatic candidate is available; leave it unset or use a manual reference.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2505"/>
+        <location filename="../main_window.py" line="2510"/>
         <source>事件参考未设置；速度使用实验绝对时间，自动候选仅供选择。</source>
         <translation>Event Reference is unset; velocity uses absolute experiment time and automatic candidates are suggestions only.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3466"/>
+        <location filename="../main_window.py" line="3471"/>
         <source>时频图计算失败：{summary}</source>
         <translation>Spectrogram computation failed: {summary}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3472"/>
+        <location filename="../main_window.py" line="3477"/>
         <source>事件候选检测失败：{summary}</source>
         <translation>Event candidate detection failed: {summary}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3570"/>
+        <location filename="../main_window.py" line="3575"/>
         <source>打开复核与导出页面，检查当前结果和导出参数。</source>
         <translation>Open Review &amp; Export to check current results and export parameters.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3573"/>
+        <location filename="../main_window.py" line="3578"/>
         <source> 当前选择起跳点为 0；请先正式采用事件参考，或改用实验绝对时间。</source>
         <translation> Event Time = 0 is selected; formally adopt an event reference first, or use Absolute Experiment Time.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3577"/>
+        <location filename="../main_window.py" line="3582"/>
         <source> 当前通道尚无所选分析模式的结果，预览已清空且不可导出。</source>
         <translation> The current channel has no result for the selected analysis mode; the preview has been cleared and export is disabled.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3663"/>
+        <location filename="../main_window.py" line="3668"/>
         <source>当前没有可复核与导出的有效正式结果。</source>
         <translation>There are no current valid formal results to review and export.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3749"/>
+        <location filename="../main_window.py" line="3754"/>
         <source>{mode} / {channel} 已导出至 {directory}：{csv}；{detail}；{metadata}</source>
         <translation>{mode} / {channel} exported to {directory}: {csv}; {detail}; {metadata}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3761"/>
+        <location filename="../main_window.py" line="3766"/>
         <source>导出完成</source>
         <translation>Export Complete</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3763"/>
+        <location filename="../main_window.py" line="3768"/>
         <source>已生成：
 {csv}
 {detail}
@@ -2474,109 +2488,109 @@ Output location:
 {directory}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3797"/>
+        <location filename="../main_window.py" line="3802"/>
         <source>请重新提取脊线。</source>
         <translation>Extract the ridge again.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3848"/>
+        <location filename="../main_window.py" line="3853"/>
         <source>无</source>
         <translation>None</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3851"/>
+        <location filename="../main_window.py" line="3856"/>
         <source>源文件</source>
         <translation>Source file</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3852"/>
+        <location filename="../main_window.py" line="3857"/>
         <source>数据行数</source>
         <translation>Data rows</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3853"/>
+        <location filename="../main_window.py" line="3858"/>
         <source>源列数</source>
         <translation>Source columns</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3854"/>
+        <location filename="../main_window.py" line="3859"/>
         <source>独立通道</source>
         <translation>Independent channels</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3855"/>
+        <location filename="../main_window.py" line="3860"/>
         <source>未选择列索引</source>
         <translation>Unselected column indices</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3856"/>
+        <location filename="../main_window.py" line="3861"/>
         <source>样本数/通道</source>
         <translation>Samples per channel</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3858"/>
+        <location filename="../main_window.py" line="3863"/>
         <source>时间范围 (s)</source>
         <translation>Time range (s)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3862"/>
+        <location filename="../main_window.py" line="3867"/>
         <source>代表采样间隔 (s)</source>
         <translation>Representative sample interval (s)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3866"/>
+        <location filename="../main_window.py" line="3871"/>
         <source>代表采样率 (Hz)</source>
         <translation>Representative sample rate (Hz)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3870"/>
+        <location filename="../main_window.py" line="3875"/>
         <source>均匀采样</source>
         <translation>Uniform sampling</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3871"/>
-        <location filename="../main_window.py" line="4022"/>
+        <location filename="../main_window.py" line="3876"/>
+        <location filename="../main_window.py" line="4027"/>
         <source>是</source>
         <translation>yes</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3871"/>
-        <location filename="../main_window.py" line="4022"/>
+        <location filename="../main_window.py" line="3876"/>
+        <location filename="../main_window.py" line="4027"/>
         <source>否</source>
         <translation>no</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3873"/>
+        <location filename="../main_window.py" line="3878"/>
         <source>内部单位</source>
         <translation>Internal units</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3874"/>
+        <location filename="../main_window.py" line="3879"/>
         <source>源数据写入</source>
         <translation>Source-data writes</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3874"/>
+        <location filename="../main_window.py" line="3879"/>
         <source>无（只读）</source>
         <translation>None (read-only)</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3901"/>
+        <location filename="../main_window.py" line="3906"/>
         <source>当前状态不可用，或该功能尚未接入本版 GUI。</source>
         <translation>Unavailable in the current state, or not connected in this GUI version.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3928"/>
+        <location filename="../main_window.py" line="3933"/>
         <source>运行 public core 完整自动分析。</source>
         <translation>Run the complete public-core automatic analysis.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3930"/>
+        <location filename="../main_window.py" line="3935"/>
         <source>自动分析正在运行。</source>
         <translation>Automatic analysis is running.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3934"/>
+        <location filename="../main_window.py" line="3939"/>
         <source>请先建立合法分析范围。</source>
         <translation>Establish a valid analysis range first.</translation>
     </message>
@@ -2585,42 +2599,42 @@ Output location:
         <translation type="vanished">Create or edit a Ridge Corridor on the current STFT.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="4018"/>
+        <location filename="../main_window.py" line="4023"/>
         <source>状态：{state}</source>
         <translation>State: {state}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="4021"/>
+        <location filename="../main_window.py" line="4026"/>
         <source>未保存修改：{value}</source>
         <translation>Unsaved: {value}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="4029"/>
+        <location filename="../main_window.py" line="4034"/>
         <source>文件：{name}</source>
         <translation>File: {name}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="4078"/>
+        <location filename="../main_window.py" line="4083"/>
         <source>通道：{channel}</source>
         <translation>Channel: {channel}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="4088"/>
+        <location filename="../main_window.py" line="4093"/>
         <source>时间：{time_us:.6f} μs</source>
         <translation>Time: {time_us:.6f} μs</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="4091"/>
+        <location filename="../main_window.py" line="4096"/>
         <source>电压：{voltage_mv:.6f} mV ({channel})</source>
         <translation>Voltage: {voltage_mv:.6f} mV ({channel})</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="4104"/>
+        <location filename="../main_window.py" line="4109"/>
         <source>语言设置已保存，重启 PDV Studio 后生效。</source>
         <translation>Language preference saved. Restart PDV Studio to apply it.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="4113"/>
+        <location filename="../main_window.py" line="4118"/>
         <source>PDV Studio
 
 用于 PDV 时间—电压数据的可追溯桌面工作台。
@@ -2631,7 +2645,7 @@ A traceable workstation for PDV time–voltage data.
 TASK-015A connects read-only ranges and public-core background automatic analysis.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="4147"/>
+        <location filename="../main_window.py" line="4152"/>
         <source> 点</source>
         <translation> samples</translation>
     </message>
@@ -2654,9 +2668,9 @@ The TASK-014 version connects only read-only data import and raw-signal display.
         <translation type="vanished">This feature is planned but is not connected in the current version.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1149"/>
-        <location filename="../main_window.py" line="3563"/>
-        <location filename="../main_window.py" line="3679"/>
+        <location filename="../main_window.py" line="1153"/>
+        <location filename="../main_window.py" line="3568"/>
+        <location filename="../main_window.py" line="3684"/>
         <source>当前没有可导出的有效正式结果。</source>
         <translation>There are no current valid formal results to export.</translation>
     </message>
@@ -2665,66 +2679,66 @@ The TASK-014 version connects only read-only data import and raw-signal display.
         <translation type="vanished">Apparent velocity, angle-corrected apparent velocity, window-corrected velocity, and display velocity are stored separately.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="458"/>
+        <location filename="../main_window.py" line="456"/>
         <source>全自动分析</source>
         <translation>Full Automatic Analysis</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="462"/>
-        <location filename="../main_window.py" line="3535"/>
+        <location filename="../main_window.py" line="460"/>
+        <location filename="../main_window.py" line="3540"/>
         <source>人工范围分析</source>
         <translation>Manual Region Analysis</translation>
     </message>
     <message>
+        <location filename="../main_window.py" line="464"/>
         <location filename="../main_window.py" line="466"/>
-        <location filename="../main_window.py" line="468"/>
-        <location filename="../main_window.py" line="971"/>
+        <location filename="../main_window.py" line="970"/>
         <source>撤销上一点</source>
         <translation>Undo Last Point</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="471"/>
+        <location filename="../main_window.py" line="469"/>
         <source>退出人工边界编辑</source>
         <translation>Exit Manual Boundary Editing</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="475"/>
+        <location filename="../main_window.py" line="473"/>
         <source>完成人工边界编辑</source>
         <translation>Finish Manual Boundary Editing</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="610"/>
+        <location filename="../main_window.py" line="608"/>
         <source>1  数据与时频</source>
         <translation>1  Data &amp; Time-Frequency</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="611"/>
+        <location filename="../main_window.py" line="609"/>
         <source>2  脊线提取</source>
         <translation>2  Ridge Extraction</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="612"/>
+        <location filename="../main_window.py" line="610"/>
         <source>3  速度结果</source>
         <translation>3  Velocity Result</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="613"/>
+        <location filename="../main_window.py" line="611"/>
         <source>4  复核与导出</source>
         <translation>4  Review &amp; Export</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="852"/>
-        <location filename="../main_window.py" line="946"/>
+        <location filename="../main_window.py" line="851"/>
+        <location filename="../main_window.py" line="945"/>
         <source>人工范围</source>
         <translation>Manual Region</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="899"/>
+        <location filename="../main_window.py" line="898"/>
         <source>确认区域并继续分析</source>
         <translation>Confirm Region and Continue Analysis</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="907"/>
+        <location filename="../main_window.py" line="906"/>
         <source>人工频率范围</source>
         <translation>Manual Frequency Region</translation>
     </message>
@@ -2733,19 +2747,19 @@ The TASK-014 version connects only read-only data import and raw-signal display.
         <translation type="vanished">The full search band is used by default. Draw an upper or lower boundary to constrain candidate peak search. Times without a manual boundary still use the full search band.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="924"/>
-        <location filename="../main_window.py" line="2857"/>
-        <location filename="../main_window.py" line="2870"/>
+        <location filename="../main_window.py" line="923"/>
+        <location filename="../main_window.py" line="2862"/>
+        <location filename="../main_window.py" line="2875"/>
         <source>未设置</source>
         <translation>Not Set</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="948"/>
+        <location filename="../main_window.py" line="947"/>
         <source>上边界点</source>
         <translation>Upper Points</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="951"/>
+        <location filename="../main_window.py" line="950"/>
         <source>下边界点</source>
         <translation>Lower Points</translation>
     </message>
@@ -2754,35 +2768,35 @@ The TASK-014 version connects only read-only data import and raw-signal display.
         <translation type="vanished">Constraint Time Range</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="955"/>
-        <location filename="../main_window.py" line="2815"/>
+        <location filename="../main_window.py" line="954"/>
+        <location filename="../main_window.py" line="2820"/>
         <source>编辑上边界</source>
         <translation>Edit Upper Boundary</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="959"/>
+        <location filename="../main_window.py" line="958"/>
         <source>从左到右点击控制点；再次点击本按钮、Enter 或运行时完成编辑。</source>
         <translation>Click control points from left to right; click this button again, press Enter, or run to finish.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="963"/>
-        <location filename="../main_window.py" line="2820"/>
+        <location filename="../main_window.py" line="962"/>
+        <location filename="../main_window.py" line="2825"/>
         <source>编辑下边界</source>
         <translation>Edit Lower Boundary</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="974"/>
+        <location filename="../main_window.py" line="973"/>
         <source>清除人工范围</source>
         <translation>Clear Manual Region</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="978"/>
+        <location filename="../main_window.py" line="977"/>
         <source>运行人工范围分析</source>
         <translation>Run Manual Region Analysis</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="982"/>
-        <location filename="../main_window.py" line="2909"/>
+        <location filename="../main_window.py" line="981"/>
+        <location filename="../main_window.py" line="2914"/>
         <source>人工范围未设置；当前使用完整搜索频带。</source>
         <translation>Manual region not set; using the full search band.</translation>
     </message>
@@ -2799,77 +2813,77 @@ The TASK-014 version connects only read-only data import and raw-signal display.
         <translation type="vanished">LiF Material Parameters…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1086"/>
+        <location filename="../main_window.py" line="1090"/>
         <source>Rigg 2014 Eq. (16) 中的无量纲幂律系数 b1。</source>
         <translation>Dimensionless power-law coefficient b1 in Rigg 2014 Eq. (16).</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1094"/>
+        <location filename="../main_window.py" line="1098"/>
         <source>Rigg 2014 Eq. (16) 中的无量纲幂律指数 b2。</source>
         <translation>Dimensionless power-law exponent b2 in Rigg 2014 Eq. (16).</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1105"/>
+        <location filename="../main_window.py" line="1109"/>
         <source>该经验模型参数的标定参考真空波长；不替代当前 PDV 真空波长。</source>
         <translation>Vacuum wavelength used to calibrate these empirical model parameters; this does not replace the current PDV vacuum wavelength.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1110"/>
+        <location filename="../main_window.py" line="1114"/>
         <source>恢复 LiF 默认值</source>
         <translation>Restore LiF Defaults</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1112"/>
+        <location filename="../main_window.py" line="1116"/>
         <source>系数 b1</source>
         <translation>Coefficient b1</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1113"/>
+        <location filename="../main_window.py" line="1117"/>
         <source>指数 b2</source>
         <translation>Exponent b2</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1115"/>
+        <location filename="../main_window.py" line="1119"/>
         <source>标定参考波长</source>
         <translation>Calibration Reference Wavelength</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1117"/>
+        <location filename="../main_window.py" line="1121"/>
         <source>来源</source>
         <translation>Source</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1160"/>
+        <location filename="../main_window.py" line="1164"/>
         <source>分析结果</source>
         <translation>Analysis result</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1161"/>
+        <location filename="../main_window.py" line="1165"/>
         <source>导出通道</source>
         <translation>Export channel</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1220"/>
+        <location filename="../main_window.py" line="1224"/>
         <source>选择导出目录…</source>
         <translation>Choose Export Directory…</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1224"/>
+        <location filename="../main_window.py" line="1228"/>
         <source>尚未选择导出目录。</source>
         <translation>No export directory selected.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1228"/>
+        <location filename="../main_window.py" line="1232"/>
         <source>包含事件前 display-only 平台</source>
         <translation>Include pre-event display-only platform</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1234"/>
+        <location filename="../main_window.py" line="1238"/>
         <source>仅控制 CSV 行范围；不会把显示平台写入正式表观速度，也不会修改内存中的分析结果。</source>
         <translation>Controls only the CSV row range. It never writes the display platform into formal apparent velocity and does not modify in-memory results.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2000"/>
+        <location filename="../main_window.py" line="2005"/>
         <source>脊线搜索区域已变化；STFT 保持有效，请确认区域后继续。</source>
         <translation>The Ridge Search Region changed; the STFT remains valid. Confirm the region to continue.</translation>
     </message>
@@ -2882,30 +2896,30 @@ The TASK-014 version connects only read-only data import and raw-signal display.
         <translation type="vanished">The automatic event candidate is not available yet; analysis will use the candidate as the reference.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="2895"/>
-        <location filename="../main_window.py" line="2955"/>
-        <location filename="../main_window.py" line="2998"/>
+        <location filename="../main_window.py" line="2900"/>
+        <location filename="../main_window.py" line="2960"/>
+        <location filename="../main_window.py" line="3003"/>
         <source>人工上下边界发生交叉，请调整后重新分析。</source>
         <translation>The manual upper and lower boundaries cross. Adjust them and rerun the analysis.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3107"/>
-        <location filename="../main_window.py" line="3387"/>
+        <location filename="../main_window.py" line="3112"/>
+        <location filename="../main_window.py" line="3392"/>
         <source>请调整脊线搜索区域，然后确认并继续分析。</source>
         <translation>Adjust the Ridge Search Region, then confirm it to continue.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3119"/>
+        <location filename="../main_window.py" line="3124"/>
         <source>请先计算时频图并建立脊线搜索区域。</source>
         <translation>Compute the spectrogram and establish a Ridge Search Region first.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3943"/>
+        <location filename="../main_window.py" line="3948"/>
         <source>打开数据后计算 STFT，并停在脊线搜索区域确认。</source>
         <translation>Open data, compute the STFT, and stop for Ridge Search Region confirmation.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3958"/>
+        <location filename="../main_window.py" line="3963"/>
         <source>在当前 STFT 上创建或编辑人工频率范围。</source>
         <translation>Create or edit a manual frequency region on the current STFT.</translation>
     </message>
@@ -2914,17 +2928,17 @@ The TASK-014 version connects only read-only data import and raw-signal display.
         <translation type="vanished">Export CSV + JSON</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3567"/>
+        <location filename="../main_window.py" line="3572"/>
         <source>可导出的当前有效结果：{modes}。</source>
         <translation>Current valid results available for export: {modes}.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3569"/>
+        <location filename="../main_window.py" line="3574"/>
         <source>Automatic 与 Guided 将保持独立导出。</source>
         <translation>Automatic and Guided results are exported independently.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3564"/>
+        <location filename="../main_window.py" line="3569"/>
         <source>请先获得当前有效的 Automatic 或 Guided 结果。</source>
         <translation>Obtain a current valid Automatic or Guided result first.</translation>
     </message>
@@ -2933,32 +2947,32 @@ The TASK-014 version connects only read-only data import and raw-signal display.
         <translation type="vanished">Choose a directory, then export the currently selected formal result.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3639"/>
+        <location filename="../main_window.py" line="3644"/>
         <source>选择正式结果导出目录</source>
         <translation>Select Formal Result Export Directory</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3651"/>
+        <location filename="../main_window.py" line="3656"/>
         <source>导出目录：{path}</source>
         <translation>Export directory: {path}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3685"/>
+        <location filename="../main_window.py" line="3690"/>
         <source>用户已取消选择导出目录。</source>
         <translation>The user cancelled export-directory selection.</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3736"/>
+        <location filename="../main_window.py" line="3741"/>
         <source>结果导出失败：{message}</source>
         <translation>Result export failed: {message}</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3739"/>
+        <location filename="../main_window.py" line="3744"/>
         <source>结果导出失败</source>
         <translation>Result Export Failed</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="3742"/>
+        <location filename="../main_window.py" line="3747"/>
         <source>结果导出完成：{path}</source>
         <translation>Result export completed: {path}</translation>
     </message>

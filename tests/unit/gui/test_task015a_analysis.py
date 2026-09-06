@@ -242,15 +242,14 @@ def test_full_gui_analysis_uses_real_core_arrays_and_reaches_result_ready(
             current.signal_detection_result.refined_frequency_hz * 1e-9,
         )
         assert window.ridge_view.formal_curve.opts["connect"] == "finite"
-        assert window.velocity_view.formal_curve is not None
-        _velocity_x, velocity_y = window.velocity_view.formal_curve.getData()
+        assert window.velocity_view.formal_curve is None
+        assert window.velocity_view.display_curve is not None
+        _velocity_x, velocity_y = window.velocity_view.display_curve.getData()
         np.testing.assert_array_equal(
             velocity_y,
-            current.corrected_velocity_m_s,
+            current.plot_velocity_m_s,
         )
-        assert window.velocity_view.apparent_curve is not None
-        _apparent_x, apparent_y = window.velocity_view.apparent_curve.getData()
-        np.testing.assert_array_equal(apparent_y, current.apparent_velocity_m_s)
+        assert window.velocity_view.apparent_curve is None
         assert set(window.comparison_view.curves) == set(analyses)
         assert window.window_material_combo.currentData() == "LiF"
         assert window.measurement_angle_spin.value() == 0.0

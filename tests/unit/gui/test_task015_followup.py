@@ -385,7 +385,7 @@ def test_workflow_navigation_changes_tabs_once_at_semantic_boundaries(
         _wait_for_analysis(window, window.run_stft_analysis)
         assert window.analysis_session.stft_valid
         assert window.select_workflow_step(0)
-        assert window.science_tabs.currentWidget() is window.raw_signal_view
+        assert window.science_tabs.currentWidget() is window.spectrogram_view
 
         assert window.select_workflow_step(1)
         assert window.science_tabs.currentWidget() is window.spectrogram_view
