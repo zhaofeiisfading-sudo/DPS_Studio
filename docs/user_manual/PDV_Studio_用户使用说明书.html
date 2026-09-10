@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDV Studio 用户使用说明书</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm 17mm; }
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body { margin: 0 auto; max-width: 980px; color: #1f2937; background: #fff; font-family: "Noto Sans SC", "Microsoft YaHei", "SimSun", sans-serif; font-size: 15px; line-height: 1.68; }
+    main { padding: 18px 8px 36px; }
+    h1 { margin: 0 0 12px; padding-bottom: 12px; border-bottom: 3px solid #0b78a8; color: #0b5878; font-size: 30px; line-height: 1.25; }
+    h2 { margin: 30px 0 10px; padding-bottom: 4px; border-bottom: 1px solid #b9d6e2; color: #075985; font-size: 22px; page-break-before: auto; }
+    h3 { margin: 20px 0 6px; color: #164e63; font-size: 18px; }
+    p { margin: 7px 0 11px; }
+    ul, ol { margin-top: 6px; padding-left: 28px; }
+    li { margin: 3px 0; }
+    code { padding: 1px 4px; border-radius: 3px; background: #eef4f7; font-family: Consolas, "Courier New", monospace; font-size: .92em; }
+    pre { padding: 10px 13px; border-left: 4px solid #0b78a8; background: #f1f5f9; overflow-x: auto; }
+    blockquote { margin: 14px 0; padding: 9px 14px; border-left: 4px solid #e0a11a; background: #fff8e6; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; page-break-inside: avoid; }
+    th, td { padding: 6px 8px; border: 1px solid #cbd5e1; text-align: left; vertical-align: top; }
+    th { background: #e6f2f7; color: #164e63; }
+    .meta { color: #475569; }
+    .figure { margin: 16px 0 21px; text-align: center; page-break-inside: avoid; }
+    .figure img { display: block; width: 100%; max-height: 168mm; object-fit: contain; margin: 0 auto 6px; border: 1px solid #cbd5e1; }
+    .caption { margin: 0; color: #475569; font-size: 13px; text-align: left; }
+    .page-break { page-break-before: always; }
+    a { color: #0369a1; }
+    strong { color: #0f4c5c; }
+    @media print { body { max-width: none; font-size: 10.5pt; } main { padding: 0; } h2 { page-break-before: auto; } .page-break { page-break-before: always; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>PDV Studio 用户使用说明书</h1>
+  <p class="meta"><strong>版本：</strong>0.1.0（当前源码版本）<br>
+  <strong>对应分支：</strong><code>main</code><br>
+  <strong>对应提交：</strong><code>b4c25e33871df95ba75c4a91b33edceb7ad4d901</code><br>
+  <strong>日期：</strong>2026-09-09</p>
+  <p>本说明书面向第一次使用 PDV Studio 的实验人员，重点说明数据导入、时频图查看、脊线提取、速度结果复核和 Origin 绘图。内容以当前 <code>main</code> 分支的真实 GUI 和源码行为为准。</p>
+  <blockquote>截图使用仓库中的 <code>docs/原始数据.csv</code> 只读生成。示例文件不代表任何特定实验结论；实际实验应使用自己的采样率、波长、窗口材料和观测角度。</blockquote>
+
+  <h2>1 软件简介</h2>
+  <p>PDV Studio 用于处理 PDV/DPS 时间—电压数据：将电压信号转换为时间—频率图，提取频谱脊线，计算速度结果，按当前 GUI 设置进行观测角度与窗口修正，并导出可供 Origin 作图的文件。</p>
+  <p>软件把“显示用的连续速度曲线”和“用于复核的频率、速度、质量状态”等信息分开保存。普通用户可以先完成主流程，再根据频谱图和质量诊断复核异常区段。</p>
+
+  <h2>2 快速开始</h2>
+  <h3>2.1 八步完成一次分析</h3>
+  <ol>
+    <li>点击工具栏 <strong>打开数据</strong>，选择 CSV、TXT 或 DAT 文本文件。</li>
+    <li>在导入对话框确认时间列、信号列、分隔符，以及原始时间和电压单位。软件不会安全地替用户猜测实验单位。</li>
+    <li>在右侧选择分析 profile、窗函数、窗长、重叠和 FFT 长度，点击 <strong>计算时频图</strong>。也可以点击工具栏 <strong>快速分析</strong>。</li>
+    <li>先查看 <strong>时频图</strong>，确认信号出现的时间段和频率带。</li>
+    <li>在 <strong>脊线提取</strong> 页面检查搜索区域。必要时修改时间、最低频率和最高频率，然后点击 <strong>确认区域并继续分析</strong>。</li>
+    <li>在 <strong>频谱脊线</strong> 页面查看自动结果；如果自动选择不理想，切换到 <strong>人工范围</strong>，编辑上下边界后运行人工范围分析。</li>
+    <li>在 <strong>速度曲线</strong> 页面选择结果来源，检查真空波长、观测角度、窗口材料和窗口参数。</li>
+    <li>在 <strong>复核与导出</strong> 页面选择时间零点和输出目录，点击 <strong>导出结果</strong>。日常 Origin 作图优先使用两列简洁 CSV。</li>
+  </ol>
+  <p><strong>快速分析的实际行为：</strong>点击快速分析后，软件计算 STFT，并在搜索区域检查点停下；确认搜索区域后才继续脊线和速度分析。需要一次完成时，可使用菜单中的 <strong>全自动分析</strong>。</p>
+  <div class="figure"><img src="screenshots/01_main_window.png" alt="PDV Studio 主界面"><p class="caption">图 1　主界面：工具栏、四步工作流、中央绘图区、右侧参数和底部诊断区。左侧固定为四步：数据与时频、脊线提取、速度结果、复核与导出。</p></div>
+  <div class="figure"><img src="screenshots/02_import_dialog.png" alt="数据导入对话框"><p class="caption">图 2　数据导入对话框：列、分隔符、时间单位、电压单位和多通道选择。导入前应以原始文件实际格式为准逐项确认。</p></div>
+
+  <h2>3 界面说明</h2>
+  <h3>工具栏和菜单</h3>
+  <ul><li><strong>打开数据</strong>：打开并解析文本数据。</li><li><strong>快速分析</strong>：计算 STFT，并在搜索区域确认点暂停。</li><li><strong>复核与导出</strong>：进入导出页面。</li><li>菜单中还可以找到全自动分析、视图切换、设置和语言切换。</li></ul>
+  <h3>四步工作流</h3>
+  <ol><li><strong>数据与时频</strong>：导入原始数据，查看原始信号和 STFT。</li><li><strong>脊线提取</strong>：选择自动或人工范围，限定并提取频谱脊线。</li><li><strong>速度结果</strong>：查看速度曲线和修正参数，可选设置起跳时间。</li><li><strong>复核与导出</strong>：选择结果来源、时间零点和输出目录，导出文件。</li></ol>
+  <h3>中央绘图区和底部诊断</h3>
+  <p>中央标签页包括 <strong>原始信号、时频图、频谱脊线、速度曲线、结果比较</strong>。底部 <strong>质量、数据、日志</strong> 三个标签用于查看质量概况、数据来源和处理日志。底部诊断是复核依据，不是对实验物理真值的自动证明。</p>
+
+  <h2>4 数据导入</h2>
+  <h3>4.1 支持的文本形式</h3>
+  <p>当前导入界面支持 CSV、TXT、DAT 文件，并可选择逗号、Tab、空白字符（连续空格或 Tab）、分号或自定义分隔符。文件扩展名不决定文件内部格式。一个 <code>.dat</code> 文件可能是逗号、Tab 或空白分隔文本；请根据文件内容选择分隔符。导入器最多可选择三个信号列。</p>
+  <h3>4.2 导入时必须确认的项目</h3>
+  <ul><li><strong>时间列索引</strong>：按文件的实际列号填写；</li><li><strong>是否有表头</strong>：有表头时勾选；</li><li><strong>编码</strong>：可选 UTF-8、UTF-8-SIG 或 GB18030；</li><li><strong>原始时间单位</strong>：秒、毫秒、微秒或纳秒；</li><li><strong>每个信号的电压单位</strong>：V 或 mV；</li><li><strong>信号名称和列索引</strong>：只启用确实存在的通道。</li></ul>
+  <p>程序内部按 SI 单位处理时间和电压。导入时的单位选择只是把原始文件正确转换为内部单位，并不等于软件能够自动判断实验单位。错误的单位会直接影响采样率、频率和速度结果。</p>
+  <p>输入源文件在界面中以只读方式使用；导出结果写入另一个目录，不覆盖原始数据。</p>
+  <div class="figure"><img src="screenshots/03_raw_signal.png" alt="原始信号"><p class="caption">图 3　原始信号：横轴是时间，纵轴是电压。通道下拉框只改变显示通道；在图上缩放或平移只改变显示视野，不改变科学分析的搜索区域。</p></div>
+
+  <h2>5 时频分析</h2>
+  <p>短时傅里叶变换（STFT）把一段时间信号分成相邻时间窗，在每个时间窗内计算频谱，形成时间—频率图。用户主要需要关注窗函数、profile、时间范围和搜索区域。</p>
+  <p>当前 GUI 提供平衡（Balanced）、高时间分辨率（High Time Resolution）、极高时间分辨率实验性 profile、高频率分辨率（High Frequency Resolution）和极高频率分辨率实验性 profile。profile 会联动窗长、重叠、跳步和 FFT 长度等参数。若需要复现实验，建议在导出后的 metadata JSON 中保存并核对这些参数，而不要只记录一个 profile 名称。</p>
+  <div class="figure"><img src="screenshots/04_spectrogram.png" alt="时频图"><p class="caption">图 4　时频图：横轴是时间，纵轴是频率，颜色表示相对 STFT 强度。当前界面提示的显示量为 <code>20 log10(|STFT| / 通道全局最大值)</code>，它不是正式 SNR。</p></div>
+  <h3>5.1 三个分辨率提醒</h3>
+  <ol><li>相邻 STFT 帧的时间间隔（frame spacing）不等于真实时间分辨率；真实时间分辨率还受窗长影响。</li><li>FFT 频率格点间隔（FFT grid spacing）不等于真实频率分辨能力；频率分辨能力还受有效窗长、窗函数和信号条件影响。</li><li>增大 FFT 长度（nfft）可以改变频率采样格点，但不等于提高真实频率分辨率。</li></ol>
+  <p>不要仅靠把 nfft 调大来判断两个邻近频率是否真的可分辨。参数变化后，应重新查看谱峰形状和质量诊断。</p>
+
+  <h2>6 脊线提取</h2>
+  <h3>6.1 搜索区域不是显示视野</h3>
+  <p>脊线搜索区域由分析用的时间起止边界、最低频率和最高频率限定。这个区域决定算法在哪个时频矩形内寻找候选峰。</p>
+  <p><strong>View Range ≠ Ridge Search Region。</strong>频谱图上的缩放、平移和“适合搜索区域”按钮主要用于显示；只有修改右侧搜索区域数值、拖动对应边界，或确认新的区域，才会改变科学搜索范围。</p>
+  <div class="figure"><img src="screenshots/05_search_region.png" alt="脊线搜索区域"><p class="caption">图 5　脊线搜索区域：右侧显示当前通道和搜索区域的时间、频率上下限。改变边界后应重新提取脊线，再查看结果。</p></div>
+  <h3>6.2 自动分析和人工引导</h3>
+  <p><strong>自动</strong>是默认的脊线选择方式，适合先快速查看结果。<strong>人工范围</strong>通过上边界和下边界控制点给出一个随时间变化的频率范围，再在该范围内运行人工范围分析，适合自动选择不理想的记录。</p>
+  <p>自动结果和人工范围结果相互独立保存，可以在速度页面的“结果来源”下拉框中切换。人工范围只是在当前搜索区域内提供约束，不会把选中的曲线自动变成实验物理真值。</p>
+  <div class="figure"><img src="screenshots/06_automatic_ridge.png" alt="自动脊线"><p class="caption">图 6　自动脊线：当前 GUI 的图例为“离散候选峰、工作脊线、正式可信脊线”。候选峰和工作脊线用于算法选择与连续性处理；“正式可信”仍需结合频谱图、实验背景和质量诊断判断。</p></div>
+  <div class="figure"><img src="screenshots/07_guided.png" alt="人工范围"><p class="caption">图 7　人工范围：切换方式、上下边界控制点和运行人工范围分析。</p></div>
+
+  <h2>7 速度结果</h2>
+  <p>PDV 的表观速度由拍频和真空波长给出：</p>
+  <p style="text-align:center;font-size:1.15em"><code>v_app = λ₀ f_b / 2</code></p>
+  <p>其中 <code>λ₀</code> 是真空波长，<code>f_b</code> 是频谱脊线对应的拍频。速度页面还可以按当前设置应用几何观测角度修正和窗口材料修正。</p>
+  <p>速度页面的主图显示当前选定结果来源的<strong>最终速度</strong>。当前导出器的简洁 CSV 使用显示速度列 <code>display_velocity_m_s</code>；它对应连续工作速度结果，并可按用户勾选项包含起跳前的 display-only 平台。这个平台只用于显示和导出，不修改正式测量数组。</p>
+  <p>详细 CSV 仍保留表观速度、角度修正后的表观速度、正式修正速度、连续工作速度、质量状态等列，供高级复核使用。不要把这些中间列全部当作普通用户必须手工选择的主结果。</p>
+  <div class="figure"><img src="screenshots/08_velocity.png" alt="速度结果"><p class="caption">图 8　速度结果：结果来源、起跳参考、波长、观测角度和窗口材料。图中的速度数值只适用于当前数据和当前参数组合。</p></div>
+  <h3>7.1 窗口修正</h3>
+  <p>当前 GUI 的窗口材料下拉框包含 <strong>LiF</strong> 和 <strong>无窗口修正</strong>。选择 LiF 后可以展开材料参数，查看或编辑 <code>b1</code>、<code>b2</code>、校准参考波长和当前 GUI 显示的晶体取向等信息。</p>
+  <p>当前界面显示的默认 provenance 为 Rigg et al. (2014), Eq. (16)，DOI：<a href="https://doi.org/10.1063/1.4890714">10.1063/1.4890714</a>。这只是当前软件参数来源信息，不是对所有实验条件都适用的保证。请根据实际窗口材料、晶向、波长和实验装配确认是否应使用 LiF 修正；不适用时选择“无窗口修正”。</p>
+  <p>观测角度的定义是 PDV 测量视线与界面运动法向之间的角度。窗口中的外部装配角可能与此定义不同，不能只凭机械安装角度填写。</p>
+
+  <h2>8 Event Reference / 起跳时间</h2>
+  <p>起跳时间是可选参考，不是得到速度曲线的必要条件。速度页面提供“不使用”“自动候选”和“手动”三种方式。自动检测出的时间只是候选，不代表物理真值。用户可以点击某个通道的“选择候选”，也可以手动输入；若无法确认，应保留绝对时间并在实验记录中说明。</p>
+  <p>设置并采用起跳参考后，导出页面可以选择<strong>起跳点设为 0</strong>；否则选择<strong>保留实验绝对时间</strong>。二者只改变导出的时间坐标，不应误解为改变速度本身。</p>
+  <div class="figure"><img src="screenshots/09_event_reference.png" alt="事件参考"><p class="caption">图 9　事件参考：不使用、自动候选和手动方式。自动候选带有“选择候选”操作，采用后界面会显示其来源。</p></div>
+
+  <h2>9 导出到 Origin</h2>
+  <h3>9.1 导出页面</h3>
+  <ol><li><strong>分析结果</strong>：自动分析或人工范围分析；</li><li><strong>导出通道</strong>：选择需要的通道；</li><li><strong>时间零点</strong>：起跳点设为 0，或保留实验绝对时间；</li><li><strong>输出目录</strong>：选择一个新目录或专门的结果目录；</li><li><strong>包含事件前 display-only 平台</strong>：只控制显示/导出曲线的事件前部分，不修改正式测量结果。</li></ol>
+  <div class="figure"><img src="screenshots/10_export.png" alt="复核与导出"><p class="caption">图 10　复核与导出：结果来源、通道、时间零点和输出目录。自动分析和人工范围分析会分别导出。</p></div>
+  <h3>9.2 当前 writer 产生的三个文件</h3>
+  <table><thead><tr><th>文件</th><th>用途</th></tr></thead><tbody><tr><td><code>&lt;源文件&gt;_ch1_auto.csv</code></td><td>日常 Origin 作图的简洁两列 CSV</td></tr><tr><td><code>&lt;源文件&gt;_ch1_auto_detail.csv</code></td><td>详细时间、频率、速度、质量状态和选择来源</td></tr><tr><td><code>&lt;源文件&gt;_ch1_auto.metadata.json</code></td><td>STFT、脊线、质量配置、修正参数和 provenance</td></tr></tbody></table>
+  <p>实际示例目录为 <a href="export_example_manual/">export_example_manual/</a>。简洁 CSV 的当前表头为：</p>
+  <pre>time_from_event_s,display_velocity_m_s</pre>
+  <p>如果选择保留实验绝对时间，第一列会改为 <code>time_s</code>。日常 Origin 绘图只需要导入简洁 CSV：X 列为 <code>time_from_event_s</code>（或 <code>time_s</code>），Y 列为 <code>display_velocity_m_s</code>。</p>
+  <div class="figure"><img src="screenshots/11_export_files.png" alt="Excel 中的真实导出数据曲线"><p class="caption">图 11　真实导出 CSV 在 Excel 中生成的显示速度曲线，曲线对应 <code>time_from_event_s</code> 与 <code>display_velocity_m_s</code> 两列。</p></div>
+  <div class="figure"><img src="screenshots/11_export_complete.png" alt="导出完成"><p class="caption">图 12　导出完成：软件状态栏显示结果目录。detail CSV 和 metadata JSON 用于诊断与复现。</p></div>
+
+  <h2 class="page-break">10 Quality / 诊断</h2>
+  <p>底部 <strong>质量</strong> 标签用于查看质量概况，<strong>数据</strong> 标签用于确认源文件、行数、列数和通道，<strong>日志</strong> 标签用于查看处理过程。常见质量状态包括：</p>
+  <table><thead><tr><th>状态</th><th>用户层面的含义</th></tr></thead><tbody><tr><td><code>MEASURED</code></td><td>当前帧通过了相应测量条件</td></tr><tr><td><code>AMBIGUOUS_PEAK</code></td><td>峰选择存在竞争或不确定性</td></tr><tr><td><code>NO_DETECTABLE_BEAT</code></td><td>当前帧没有检测到可用拍频</td></tr><tr><td><code>OUTSIDE_ANALYSIS_WINDOW</code></td><td>当前帧位于设定分析窗口之外</td></tr><tr><td><code>PEAK_AT_BAND_BOUNDARY</code></td><td>峰靠近搜索频带边界，需要检查搜索区域</td></tr><tr><td><code>UNSTABLE_DETECTION</code></td><td>检测稳定性不足，需要结合上下文复核</td></tr></tbody></table>
+  <p>这些状态帮助判断曲线在哪些位置需要回看频谱图。它们是诊断标签，不是实验真值证明。当前导出会保留正式测量值与质量字段；主图/简洁导出的显示速度还可能包含连续工作结果和明确标记的事件前显示平台，因此应同时查看 detail CSV 和 metadata JSON。</p>
+
+  <h2>11 常见问题</h2>
+  <p><strong><code>.dat</code> 为什么有时能打开、有时不能？</strong><br>扩展名不决定内部格式。请确认文件是逗号、Tab、空白、分号还是其他分隔方式，并在导入对话框选择相同设置；同时检查表头和编码。</p>
+  <p><strong>为什么导入时一定要选择单位？</strong><br>软件不能安全猜测实验单位。时间单位影响采样率和 STFT 频率，电压单位影响信号尺度；请按采集系统记录填写。</p>
+  <p><strong>为什么频率上限不能超过某个值？</strong><br>频率搜索范围受采样率和 Nyquist 频率限制。改变时间单位或采样数据后，应重新核对采样率和可搜索频带。</p>
+  <p><strong>为什么有黄色工作 Ridge 和绿色正式可信 Ridge？</strong><br>黄色工作脊线是当前连续性选择使用的工作结果，绿色正式可信脊线是通过当前正式质量语义保留下来的结果。二者都需要结合时频图和实验背景判断。</p>
+  <p><strong>Automatic 不理想怎么办？</strong><br>先修正搜索区域，仍不理想时切换到人工范围，编辑上下边界并运行人工范围分析。</p>
+  <p><strong>为什么 Event Reference 可能不准？</strong><br>自动起跳时间只是候选，可能受信号前沿、噪声和当前分析窗口影响；可以手动覆盖，也可以不使用并保留绝对时间。</p>
+  <p><strong>为什么速度结果和旧软件不同？</strong><br>频率搜索区域、profile、脊线选择、真空波长、观测角度、窗口修正和时间参考都会影响结果。请对照同一实验条件、同一参数和同一导出字段。</p>
+
+  <h2>12 数据安全与实验注意事项</h2>
+  <ul><li>原始数据用于只读分析；导出结果写到单独的输出目录，不覆盖 <code>data/raw</code>。</li><li>导入时人工确认时间、电压单位，不要依赖文件扩展名。</li><li>自动候选、工作脊线和事件候选都不是实验物理真值的自动证明。</li><li>修改搜索区域会改变脊线搜索结果；修改 profile、窗函数或频率边界后，应重新分析。</li><li>结果应结合原始信号、时频图、质量诊断和实验背景共同判断。</li><li>正式实验请保留导出的 detail CSV 和 metadata JSON，便于追溯参数和 provenance。</li></ul>
+
+  <h2>13 English UI</h2>
+  <p>当前 GUI 支持中英文界面。使用菜单 <strong>设置 → Language → English</strong> 切换到 English；界面会提示重启后使语言偏好完整生效。重新启动后，菜单、工具栏、四步工作流和标签页会显示英文。</p>
+  <div class="figure"><img src="screenshots/12_english.png" alt="English UI"><p class="caption">图 13　English UI：英文菜单、工具栏、工作流和标签页。正文仍以中文说明为主。</p></div>
+
+  <h2>附录：本说明书的复现实验环境</h2>
+  <ul><li>启动入口：<code>python -m dps_studio.gui</code>；</li><li>分支：<code>main</code>；</li><li>源码版本：<code>0.1.0</code>；</li><li>截图数据：<code>docs/原始数据.csv</code>，80,000 行、3 列，按导入界面选择时间列 0、逗号分隔、无表头、时间单位秒，信号列以 V 导入；</li><li>截图流程：Balanced profile、Hann 窗、当前默认 STFT 参数，先确认搜索区域，再分别展示自动分析和人工范围分析；</li><li>导出示例：<code>docs/user_manual/export_example_manual/</code>。</li></ul>
+  <p>本说明书没有把历史文档中与当前源码不一致的旧流程、旧质量输出规则或旧版窗口修正说明写入正文；如旧版软件界面不同，应以当前软件实际显示和导出的 metadata 为准。</p>
+</main>
+</body>
+</html>

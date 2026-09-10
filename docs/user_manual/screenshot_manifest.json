@@ -1,0 +1,76 @@
+{
+  "source": "docs\\原始数据.csv",
+  "config": "configs\\pdv_studio_defaults.toml",
+  "screenshots": [
+    {
+      "file": "screenshots/01_main_window.png",
+      "width_px": 1440,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/02_import_dialog.png",
+      "width_px": 1000,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/03_raw_signal.png",
+      "width_px": 1440,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/04_spectrogram.png",
+      "width_px": 1440,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/05_search_region.png",
+      "width_px": 1440,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/06_automatic_ridge.png",
+      "width_px": 1440,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/07_guided.png",
+      "width_px": 1440,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/08_velocity.png",
+      "width_px": 1440,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/09_event_reference.png",
+      "width_px": 1440,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/10_export.png",
+      "width_px": 1440,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/11_export_files.png",
+      "width_px": 2934,
+      "height_px": 1601
+    },
+    {
+      "file": "screenshots/11_export_complete.png",
+      "width_px": 1440,
+      "height_px": 900
+    },
+    {
+      "file": "screenshots/12_english.png",
+      "width_px": 1440,
+      "height_px": 900
+    }
+  ],
+  "export_files": [
+    "原始数据_ch1_auto.csv",
+    "原始数据_ch1_auto.metadata.json",
+    "原始数据_ch1_auto_detail.csv"
+  ]
+}

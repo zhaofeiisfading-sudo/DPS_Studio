@@ -1,0 +1,59 @@
+diff --git a/packaging/pdv_studio.spec b/packaging/pdv_studio.spec
+index e5448a5..03cb325 100644
+--- a/packaging/pdv_studio.spec
++++ b/packaging/pdv_studio.spec
+@@ -5,8 +5,13 @@ from pathlib import Path
+ 
+ PROJECT_ROOT = Path(SPECPATH).resolve().parent
+ SOURCE_ROOT = PROJECT_ROOT / "src"
++APP_ICON = SOURCE_ROOT / "dps_studio" / "gui" / "icons" / "app.ico"
++RELEASE_VERSION = (
++    Path(SPECPATH) / "release_version.txt"
++).read_text(encoding="utf-8-sig").strip()
+ 
+ datas = [
++    (str(APP_ICON), "dps_studio/gui/icons"),
+     (
+         str(PROJECT_ROOT / "configs" / "pdv_studio_defaults.toml"),
+         "configs",
+@@ -44,6 +49,7 @@ executable = EXE(
+     [],
+     exclude_binaries=True,
+     name="PDV Studio",
++    icon=str(APP_ICON),
+     debug=False,
+     bootloader_ignore_signals=False,
+     strip=False,
+@@ -62,5 +68,5 @@ collection = COLLECT(
+     strip=False,
+     upx=False,
+     upx_exclude=[],
+-    name="PDV_Studio_v0.1.0",
++    name=f"PDV_Studio_v{RELEASE_VERSION}",
+ )
+diff --git a/src/dps_studio/gui/app.py b/src/dps_studio/gui/app.py
+index 772985a..e8e506a 100644
+--- a/src/dps_studio/gui/app.py
++++ b/src/dps_studio/gui/app.py
+@@ -6,11 +6,13 @@ import sys
+ from collections.abc import Sequence
+ from typing import cast
+ 
++from PySide6.QtGui import QIcon
+ from PySide6.QtWidgets import QApplication
+ 
+ from dps_studio.gui.i18n import TranslationManager
+ from dps_studio.gui.main_window import MainWindow
+ from dps_studio.gui.styles import apply_application_style
++from dps_studio.runtime_paths import package_resource_path
+ 
+ 
+ _translation_manager: TranslationManager | None = None
+@@ -33,6 +35,7 @@ def create_application(
+     application.setOrganizationName("DPS Studio")
+     application.setApplicationName("PDV Studio")
+     application.setApplicationDisplayName("PDV Studio")
++    application.setWindowIcon(QIcon(str(package_resource_path("gui", "icons", "app.ico"))))
+     apply_application_style(application)
+     _translation_manager = TranslationManager(application)
+     _translation_manager.install(language_code)

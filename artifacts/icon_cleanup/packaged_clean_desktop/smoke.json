@@ -1,0 +1,24 @@
+{
+  "command": [
+    "D:\\Code\\Python_Projects\\DPS_Studio\\dist\\icon_test_clean\\PDV_Studio_v0.1.3\\PDV Studio.exe"
+  ],
+  "cwd": "D:/",
+  "label": "packaged_clean_desktop",
+  "pid": 23924,
+  "title": "PDV Studio",
+  "visible": true,
+  "responds_to_wm_null": true,
+  "owner": null,
+  "tool_window": false,
+  "window_small_icon_present": true,
+  "window_large_icon_present": true,
+  "window_rect": [
+    -11,
+    -24,
+    2891,
+    1715
+  ],
+  "exe_sha256": "8da705b946c77724a3ab548f8fc29f8d138af4c17c32ceebf696ad6b589df45d",
+  "startup_pass": true,
+  "exit_code": 0
+}

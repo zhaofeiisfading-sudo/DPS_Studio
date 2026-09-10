@@ -1,0 +1,25 @@
+{
+  "command": [
+    "D:\\miniconda3\\envs\\dps-studio\\python.exe",
+    "-m",
+    "dps_studio.gui"
+  ],
+  "cwd": "D:/",
+  "label": "source_desktop",
+  "pid": 22328,
+  "title": "PDV Studio",
+  "visible": true,
+  "responds_to_wm_null": true,
+  "owner": null,
+  "tool_window": false,
+  "window_small_icon_present": true,
+  "window_large_icon_present": true,
+  "window_rect": [
+    -11,
+    -24,
+    2891,
+    1715
+  ],
+  "startup_pass": true,
+  "exit_code": 0
+}

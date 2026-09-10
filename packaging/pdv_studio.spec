@@ -5,8 +5,13 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(SPECPATH).resolve().parent
 SOURCE_ROOT = PROJECT_ROOT / "src"
+APP_ICON = SOURCE_ROOT / "dps_studio" / "gui" / "icons" / "pdv_studio.ico"
+RELEASE_VERSION = (
+    Path(SPECPATH) / "release_version.txt"
+).read_text(encoding="utf-8-sig").strip()
 
 datas = [
+    (str(APP_ICON), "dps_studio/gui/icons"),
     (
         str(PROJECT_ROOT / "configs" / "pdv_studio_defaults.toml"),
         "configs",
@@ -44,6 +49,7 @@ executable = EXE(
     [],
     exclude_binaries=True,
     name="PDV Studio",
+    icon=str(APP_ICON),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -62,5 +68,5 @@ collection = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name="PDV_Studio_v0.1.0",
+    name=f"PDV_Studio_v{RELEASE_VERSION}",
 )

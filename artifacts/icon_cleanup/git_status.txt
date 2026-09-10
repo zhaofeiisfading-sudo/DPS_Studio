@@ -1,0 +1,9 @@
+ M packaging/pdv_studio.spec
+ M src/dps_studio/gui/app.py
+?? artifacts/icon_cleanup/
+?? docs/user_manual/
+?? packaging/release_version.txt
+?? src/dps_studio/gui/icons/
+?? tests/unit/gui/test_app_icon.py
+?? tests/unit/test_app_icon_assets.py
+?? tools/build_app_icon.py

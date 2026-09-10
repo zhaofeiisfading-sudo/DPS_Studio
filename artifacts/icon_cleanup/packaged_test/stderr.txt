@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "__main__.py", line 3, in <module>
+  File "pyimod02_importers.py", line 457, in exec_module
+  File "dps_studio\gui\app.py", line 9, in <module>
+ImportError: DLL load failed while importing QtGui: 找不到指定的程序。

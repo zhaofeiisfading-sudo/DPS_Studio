@@ -1,0 +1,86 @@
+{
+  "subsystem": 2,
+  "no_console": true,
+  "rt_icon_count": 9,
+  "rt_group_icon_count": 1,
+  "frames": [
+    {
+      "size": 16,
+      "bits": 32,
+      "resource_ids": [
+        1
+      ],
+      "exact_match": true
+    },
+    {
+      "size": 20,
+      "bits": 32,
+      "resource_ids": [
+        2
+      ],
+      "exact_match": true
+    },
+    {
+      "size": 24,
+      "bits": 32,
+      "resource_ids": [
+        3
+      ],
+      "exact_match": true
+    },
+    {
+      "size": 32,
+      "bits": 32,
+      "resource_ids": [
+        4
+      ],
+      "exact_match": true
+    },
+    {
+      "size": 40,
+      "bits": 32,
+      "resource_ids": [
+        5
+      ],
+      "exact_match": true
+    },
+    {
+      "size": 48,
+      "bits": 32,
+      "resource_ids": [
+        6
+      ],
+      "exact_match": true
+    },
+    {
+      "size": 64,
+      "bits": 32,
+      "resource_ids": [
+        7
+      ],
+      "exact_match": true
+    },
+    {
+      "size": 128,
+      "bits": 32,
+      "resource_ids": [
+        8
+      ],
+      "exact_match": true
+    },
+    {
+      "size": 256,
+      "bits": 32,
+      "resource_ids": [
+        9
+      ],
+      "exact_match": true
+    }
+  ],
+  "exe_sha256": "4748041a2ff0ad8ef9b56b4b445c0e87b046e2d1f42e24edca4d8eb70647ac28",
+  "old_exe_sha256": "d8e054687c487d9b4eeeac4568d272128054a8f041130143179614358b10beab",
+  "exe_mtime": 1789016495.4133346,
+  "old_exe_mtime": 1788794323.29123,
+  "bundled_ico_exact_match": true,
+  "external_png_exists": false
+}

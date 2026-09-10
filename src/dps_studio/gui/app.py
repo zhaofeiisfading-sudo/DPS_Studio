@@ -6,11 +6,13 @@ import sys
 from collections.abc import Sequence
 from typing import cast
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from dps_studio.gui.i18n import TranslationManager
 from dps_studio.gui.main_window import MainWindow
 from dps_studio.gui.styles import apply_application_style
+from dps_studio.runtime_paths import package_resource_path
 
 
 _translation_manager: TranslationManager | None = None
@@ -33,6 +35,9 @@ def create_application(
     application.setOrganizationName("DPS Studio")
     application.setApplicationName("PDV Studio")
     application.setApplicationDisplayName("PDV Studio")
+    application.setWindowIcon(
+        QIcon(str(package_resource_path("gui", "icons", "pdv_studio.ico")))
+    )
     apply_application_style(application)
     _translation_manager = TranslationManager(application)
     _translation_manager.install(language_code)
