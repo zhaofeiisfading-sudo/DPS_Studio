@@ -106,3 +106,28 @@ pip-wheel-metadata/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# ============================================================
+# DPS Studio Git hygiene - 2026-09-28
+# Research artifacts stay local and are never tracked by Git
+# ============================================================
+
+/artifacts/
+
+# pytest / research scratch directories
+/.pytest_tmp*/
+/.task*_pytest*/
+/.task_gui_baseline_tmp_*/
+/.f_*/
+/.g_*/
+/.t*_full/
+/.t*_unit/
+/.t*_verify/
+
+# Python/tool caches
+/.mypy_cache/
+/.ruff_cache/
+/.pytest_cache/
+__pycache__/
+*.py[cod]
+

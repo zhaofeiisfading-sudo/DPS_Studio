@@ -1,3 +1,0 @@
-channel_name,pre_event_robust_sigma_v,plateau_robust_sigma_v,inferred_plateau_peak_amplitude_v,synthetic_noise_sigma_per_unit_peak_amplitude,limitation
-pdv_channel_1,0.0007968497665735504,0.06796652133953557,0.09611917626569158,0.008290226753201744,pre-event variability is only a development noise proxy and may contain coherent instrument or optical content
-pdv_channel_2,0.0015233871229344727,0.18620483700973758,0.2633334058786425,0.005785012797185813,pre-event variability is only a development noise proxy and may contain coherent instrument or optical content
