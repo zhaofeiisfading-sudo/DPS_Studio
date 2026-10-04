@@ -9,6 +9,7 @@ from enum import Enum
 from pathlib import Path
 from types import MappingProxyType
 
+from dps_studio import __version__
 from dps_studio.core.ridge import (
     ManualFrequencyRegion,
     RidgeCorridorConstraint,
@@ -65,6 +66,7 @@ class ResultExportOptions:
     channel_analyses: Mapping[str, ChannelAnalysis]
     time_origin: ExportTimeOrigin = ExportTimeOrigin.ABSOLUTE
     include_pre_event_display_rows: bool = True
+    quality_passed_only: bool = False
     source_path: Path | None = None
     analysis_profile_name: str | None = None
     pre_event_display_enabled: bool | None = None
@@ -77,7 +79,7 @@ class ResultExportOptions:
     protected_output_directories: tuple[Path, ...] = field(
         default_factory=_empty_paths
     )
-    dps_studio_version: str = "0.1.0"
+    dps_studio_version: str = __version__
 
     def __post_init__(self) -> None:
         output_directory = Path(self.output_directory)
@@ -93,6 +95,8 @@ class ResultExportOptions:
             raise ResultExportValidationError(
                 "include_pre_event_display_rows must be a boolean."
             )
+        if not isinstance(self.quality_passed_only, bool):
+            raise ResultExportValidationError("quality_passed_only must be a boolean.")
         try:
             analyses = dict(self.channel_analyses)
         except (TypeError, ValueError) as exc:

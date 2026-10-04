@@ -9,6 +9,7 @@ from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from dps_studio.core.export import ResultAnalysisMode
+from dps_studio import __version__
 from dps_studio.core.ridge import RidgeCorridorConstraint
 from dps_studio.core.workflow import load_workflow_config
 from dps_studio.gui.app import translation_manager
@@ -18,6 +19,7 @@ from dps_studio.gui.data_controller import (
     SignalLoadRequest,
 )
 from dps_studio.gui.main_window import MainWindow
+from dps_studio.gui.import_dialog import ImportSettingsDialog
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -93,9 +95,59 @@ def test_export_controls_start_disabled_without_formal_results(
         assert not window.export_button.isEnabled()
         assert not window.export_mode_combo.isEnabled()
         assert window.export_include_pre_event_check.isChecked()
+        assert not window.export_quality_passed_check.isChecked()
         assert "没有可导出" in window.export_availability_label.text()
     finally:
         window.close()
+        qapp.processEvents()
+
+
+def test_quality_filtered_export_is_explicit_and_about_uses_package_version(
+    qapp: QApplication, tmp_path: Path, monkeypatch: Any,
+) -> None:
+    window, source_path, source_before = _window(qapp, tmp_path)
+    try:
+        _wait(window, window.run_automatic_analysis)
+        window.export_absolute_time_origin_radio.click()
+        window.export_quality_passed_check.setChecked(True)
+        window._set_export_output_directory(tmp_path)
+        monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *_args: None))
+        assert window._export_current_result()
+        documents = list(tmp_path.glob("*.metadata.json"))
+        assert len(documents) == 1
+        assert "quality_passed" in documents[0].name
+        metadata = json.loads(documents[0].read_text(encoding="utf-8"))
+        assert metadata["simple_export"]["quality_filtering_applied"]
+        assert metadata["input_provenance"]["time_column_index"] == 0
+        assert metadata["dps_studio_version"] == qapp.applicationVersion() == __version__
+        messages = []
+        monkeypatch.setattr(QMessageBox, "about", staticmethod(lambda _w, _t, body: messages.append(body)))
+        window._show_about()
+        assert __version__ in messages[0]
+        assert source_path.read_bytes() == source_before
+    finally:
+        window.close()
+        qapp.processEvents()
+
+
+def test_import_dialog_keeps_selected_original_units(qapp: QApplication, tmp_path: Path) -> None:
+    source = tmp_path / "units.csv"
+    source.write_text("0,1000\n1,2000\n", encoding="utf-8")
+    dialog = ImportSettingsDialog(source)
+    try:
+        dialog.time_unit_combo.setCurrentIndex(2)
+        dialog.channel_1_unit.setCurrentIndex(1)
+        request = dialog.load_request()
+        assert request.original_time_unit == "us"
+        assert request.channels[0].original_voltage_unit == "mV"
+        loaded = DataImportController().load(request)
+        record = loaded.records[request.channels[0].name]
+        assert record.metadata["original_time_unit"] == "us"
+        assert record.metadata["original_voltage_unit"] == "mV"
+        np.testing.assert_allclose(record.time_s, [0, 1e-6])
+        np.testing.assert_allclose(record.voltage_v, [1, 2])
+    finally:
+        dialog.close()
         qapp.processEvents()
 
 

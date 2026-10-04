@@ -44,6 +44,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from dps_studio import __version__
 from dps_studio.core.analysis_profiles import (
     AnalysisParameterOverrides,
     AnalysisProfile,
@@ -1241,6 +1242,15 @@ class MainWindow(QMainWindow):
         )
         self.export_include_pre_event_check.setEnabled(False)
         layout.addWidget(self.export_include_pre_event_check)
+        self.export_quality_passed_check = QCheckBox(
+            self.tr("仅导出通过质量筛选的数据（两列，时间序列可能有缺口）")
+        )
+        self.export_quality_passed_check.setObjectName("exportQualityPassedOnly")
+        self.export_quality_passed_check.setToolTip(self.tr(
+            "默认导出连续显示曲线。勾选后简表仅含 measured 且有限的正式修正速度，"
+            "排除显示平台；文件名包含 quality_passed。详细表保留全部诊断行。"
+        ))
+        layout.addWidget(self.export_quality_passed_check)
         self.export_description_label = self._notice(
             self.tr("将导出时间—速度数据、详细诊断数据和分析参数记录。")
         )
@@ -3712,6 +3722,7 @@ class MainWindow(QMainWindow):
                     include_pre_event_display_rows=(
                         self.export_include_pre_event_check.isChecked()
                     ),
+                    quality_passed_only=self.export_quality_passed_check.isChecked(),
                     source_path=self._session.source_path,
                     analysis_profile_name=configuration.parameters.provenance_name,
                     pre_event_display_enabled=(
@@ -4115,10 +4126,10 @@ class MainWindow(QMainWindow):
             self,
             self.tr("关于 PDV Studio"),
             self.tr(
-                "PDV Studio\n\n"
+                "PDV Studio {version}\n\n"
                 "用于 PDV 时间—电压数据的可追溯桌面工作台。\n"
                 "TASK-015A 接入只读范围与 public core 后台自动分析。"
-            ),
+            ).format(version=__version__),
         )
 
     def _append_log(self, message: str) -> None:

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dps-studio"
-version = "0.1.0"
+dynamic = ["version"]
 description = "PDV/DPS signal analysis software"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
@@ -31,6 +31,9 @@ dps-studio = "dps_studio.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dps_studio"]
+
+[tool.hatch.version]
+path = "src/dps_studio/__init__.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

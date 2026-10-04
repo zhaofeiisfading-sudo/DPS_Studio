@@ -2980,6 +2980,24 @@ The TASK-014 version connects only read-only data import and raw-signal display.
         <source>{mode} / {channel} 已导出：{csv}；{metadata}</source>
         <translation type="vanished">{mode} / {channel} exported: {csv}; {metadata}</translation>
     </message>
+    <message>
+        <source>仅导出通过质量筛选的数据（两列，时间序列可能有缺口）</source>
+        <translation>Export only quality-passed data (two columns; time series may have gaps)</translation>
+    </message>
+    <message>
+        <source>默认导出连续显示曲线。勾选后简表仅含 measured 且有限的正式修正速度，排除显示平台；文件名包含 quality_passed。详细表保留全部诊断行。</source>
+        <translation>By default, exports the continuous display curve. When checked, the concise CSV contains only measured, finite formal corrected velocities and excludes display-only platforms. Filenames contain quality_passed; detailed CSVs retain all diagnostic rows.</translation>
+    </message>
+    <message>
+        <source>PDV Studio {version}
+
+用于 PDV 时间—电压数据的可追溯桌面工作台。
+TASK-015A 接入只读范围与 public core 后台自动分析。</source>
+        <translation>PDV Studio {version}
+
+A traceable desktop workspace for PDV time–voltage data.
+Read-only ranges and public core background analysis.</translation>
+    </message>
 </context>
 <context>
     <name>QualitySummaryWidget</name>

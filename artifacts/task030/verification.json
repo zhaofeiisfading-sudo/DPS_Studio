@@ -1,0 +1,406 @@
+{
+  "task": "TASK-030",
+  "date": "2026-10-04",
+  "verdict": "RELEASE PASS",
+  "branch": "main",
+  "head": "3f3110c29f4c0e6f5890b6b2a4d112657ad7583d",
+  "version": "0.1.4",
+  "installed_version": "0.1.4",
+  "wheel_version": "0.1.4",
+  "pe_file_version": "0.1.4",
+  "pe_product_version": "0.1.4",
+  "pytest": "649 passed in 53.69s",
+  "ruff": "All checks passed!",
+  "mypy_strict": "Success: no issues found in 81 source files",
+  "checks": {
+    "main_branch": "PASS",
+    "no_new_branch_or_worktree": "PASS",
+    "versions_consistent": "PASS",
+    "pytest": "PASS",
+    "ruff": "PASS",
+    "mypy_strict": "PASS",
+    "real_analysis_regression": "PASS",
+    "continuous_two_column_export": "PASS",
+    "quality_passed_two_column_export": "PASS",
+    "json_provenance": "PASS",
+    "clean_pyinstaller_build": "PASS",
+    "runtime_completeness": "PASS",
+    "isolated_build_zip_startup": "PASS",
+    "isolated_final_release_zip_startup": "PASS",
+    "windows_platform": "PASS",
+    "scipy_ccallback_import": "PASS",
+    "shiboken6_loaded": "PASS",
+    "native_modules_loaded_from_extracted_release": "PASS",
+    "zip_file_sets_and_hashes": "PASS",
+    "raw_sha256_unchanged": "PASS",
+    "git_diff_check": "PASS",
+    "historical_releases_unchanged": "PASS"
+  },
+  "release_directory": "D:\\Code\\Python_Projects\\DPS_Studio\\release\\PDV_Studio_v0.1.4",
+  "final_release_zip": "D:\\Code\\Python_Projects\\DPS_Studio\\release\\PDV_Studio_v0.1.4.zip",
+  "zip_sha256": "0e6db59fbb16e226642fec240acc61b68537d892e025b6fb1835402b557b12dd",
+  "release_file_count": 452,
+  "build_command": [
+    "D:\\miniconda3\\envs\\dps-studio\\python.exe",
+    "-m",
+    "PyInstaller",
+    "--clean",
+    "--noconfirm",
+    "--workpath",
+    "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task030_release_v014\\work",
+    "--distpath",
+    "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task030_release_v014\\dist",
+    "D:\\Code\\Python_Projects\\DPS_Studio\\packaging\\pdv_studio.spec"
+  ],
+  "build_path": "D:\\miniconda3\\envs\\dps-studio;D:\\miniconda3\\envs\\dps-studio\\Library\\bin;D:\\miniconda3\\envs\\dps-studio\\Scripts;C:\\Windows\\System32;C:\\Windows",
+  "python_version": "3.12.13",
+  "dependency_versions": {
+    "pyinstaller": "6.21.0",
+    "pyinstaller-hooks-contrib": "2026.6",
+    "PySide6": "6.11.1",
+    "shiboken6": "6.11.1",
+    "scipy": "1.18.0",
+    "numpy": "2.5.1"
+  },
+  "runtime_files": {
+    "pyside6_extension": [
+      "_internal\\PySide6\\QtCore.pyd"
+    ],
+    "pyside6_runtime": [
+      "_internal\\PySide6\\Qt6Core.dll"
+    ],
+    "shiboken_extension": [
+      "_internal\\shiboken6\\Shiboken.pyd"
+    ],
+    "shiboken_runtime": [
+      "_internal\\shiboken6\\shiboken6.abi3.dll"
+    ],
+    "qt_windows_platform": [
+      "_internal\\PySide6\\plugins\\platforms\\qwindows.dll"
+    ],
+    "scipy_ccallback": [
+      "_internal\\scipy\\_lib\\_ccallback_c.cp312-win_amd64.pyd"
+    ]
+  },
+  "build_verification": {
+    "zip_path": "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task030_release_v014\\PDV_Studio_v0.1.4.zip",
+    "zip_sha256": "0e6db59fbb16e226642fec240acc61b68537d892e025b6fb1835402b557b12dd",
+    "extraction_root": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_",
+    "startup": {
+      "version": "0.1.4",
+      "gui_version": "0.1.4",
+      "event_loop_entered": true,
+      "window_visible": true,
+      "window_exposed": true,
+      "qt_platform": "windows",
+      "runtime_paths": {
+        "PySide6": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\PySide6\\__init__.py",
+        "shiboken6": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\shiboken6\\__init__.py",
+        "scipy._lib._ccallback_c": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\scipy\\_lib\\_ccallback_c.cp312-win_amd64.pyd",
+        "QtCore.pyd": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\PySide6\\QtCore.pyd",
+        "Qt6Core.dll": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\PySide6\\Qt6Core.dll",
+        "Qt6Gui.dll": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\PySide6\\Qt6Gui.dll",
+        "Qt6Widgets.dll": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\PySide6\\Qt6Widgets.dll",
+        "Shiboken.pyd": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\shiboken6\\Shiboken.pyd",
+        "shiboken6.abi3.dll": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\shiboken6\\shiboken6.abi3.dll",
+        "qwindows.dll": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\PySide6\\plugins\\platforms\\qwindows.dll",
+        "_ccallback_c.cp312-win_amd64.pyd": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\scipy\\_lib\\_ccallback_c.cp312-win_amd64.pyd"
+      },
+      "analysis_smoke": {
+        "status": "PASS",
+        "execution": "public core analysis inside the release EXE GUI event loop",
+        "input_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+        "input_unchanged": true,
+        "sample_count": 80000,
+        "profile": "balanced",
+        "core_module": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\PDV_Studio_v0.1.4\\_internal\\dps_studio\\core\\workflow\\analysis.py",
+        "channels": {
+          "pdv_channel_1": {
+            "continuous_rows": 620,
+            "quality_rows": 390,
+            "detail_rows": 620,
+            "csv_columns": [
+              "time_s",
+              "display_velocity_m_s"
+            ],
+            "quality_csv_columns": [
+              "time_s",
+              "corrected_velocity_m_s"
+            ],
+            "version": "0.1.4",
+            "input_provenance": {
+              "delimiter": ",",
+              "encoding": "utf-8",
+              "has_header": false,
+              "header": null,
+              "original_time_unit": "s",
+              "original_voltage_unit": "V",
+              "time_column_index": 0,
+              "time_scale": 1.0,
+              "voltage_column_index": 1,
+              "voltage_scale": 1.0
+            },
+            "continuous_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\analysis_export\\example_ch1_auto.csv",
+            "quality_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\analysis_export\\example_ch1_auto_quality_passed.csv",
+            "detail_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\analysis_export\\example_ch1_auto_detail.csv",
+            "metadata_json": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\analysis_export\\example_ch1_auto.metadata.json"
+          },
+          "pdv_channel_2": {
+            "continuous_rows": 620,
+            "quality_rows": 379,
+            "detail_rows": 620,
+            "csv_columns": [
+              "time_s",
+              "display_velocity_m_s"
+            ],
+            "quality_csv_columns": [
+              "time_s",
+              "corrected_velocity_m_s"
+            ],
+            "version": "0.1.4",
+            "input_provenance": {
+              "delimiter": ",",
+              "encoding": "utf-8",
+              "has_header": false,
+              "header": null,
+              "original_time_unit": "s",
+              "original_voltage_unit": "V",
+              "time_column_index": 0,
+              "time_scale": 1.0,
+              "voltage_column_index": 2,
+              "voltage_scale": 1.0
+            },
+            "continuous_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\analysis_export\\example_ch2_auto.csv",
+            "quality_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\analysis_export\\example_ch2_auto_quality_passed.csv",
+            "detail_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\analysis_export\\example_ch2_auto_detail.csv",
+            "metadata_json": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_soxvelw_\\analysis_export\\example_ch2_auto.metadata.json"
+          }
+        }
+      }
+    },
+    "exit_code": 0,
+    "runtime_environment_path": "C:\\Windows\\System32;C:\\Windows",
+    "zip_extraction_hashes_match": true,
+    "zip_extraction_file_set_match": true,
+    "packaged_files_unchanged_after_execution": true
+  },
+  "final_release_verification": {
+    "zip_path": "D:\\Code\\Python_Projects\\DPS_Studio\\release\\PDV_Studio_v0.1.4.zip",
+    "zip_sha256": "0e6db59fbb16e226642fec240acc61b68537d892e025b6fb1835402b557b12dd",
+    "extraction_root": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm",
+    "startup": {
+      "version": "0.1.4",
+      "gui_version": "0.1.4",
+      "event_loop_entered": true,
+      "window_visible": true,
+      "window_exposed": true,
+      "qt_platform": "windows",
+      "runtime_paths": {
+        "PySide6": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\PySide6\\__init__.py",
+        "shiboken6": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\shiboken6\\__init__.py",
+        "scipy._lib._ccallback_c": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\scipy\\_lib\\_ccallback_c.cp312-win_amd64.pyd",
+        "QtCore.pyd": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\PySide6\\QtCore.pyd",
+        "Qt6Core.dll": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\PySide6\\Qt6Core.dll",
+        "Qt6Gui.dll": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\PySide6\\Qt6Gui.dll",
+        "Qt6Widgets.dll": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\PySide6\\Qt6Widgets.dll",
+        "Shiboken.pyd": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\shiboken6\\Shiboken.pyd",
+        "shiboken6.abi3.dll": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\shiboken6\\shiboken6.abi3.dll",
+        "qwindows.dll": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\PySide6\\plugins\\platforms\\qwindows.dll",
+        "_ccallback_c.cp312-win_amd64.pyd": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\scipy\\_lib\\_ccallback_c.cp312-win_amd64.pyd"
+      },
+      "analysis_smoke": {
+        "status": "PASS",
+        "execution": "public core analysis inside the release EXE GUI event loop",
+        "input_sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+        "input_unchanged": true,
+        "sample_count": 80000,
+        "profile": "balanced",
+        "core_module": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\PDV_Studio_v0.1.4\\_internal\\dps_studio\\core\\workflow\\analysis.py",
+        "channels": {
+          "pdv_channel_1": {
+            "continuous_rows": 620,
+            "quality_rows": 390,
+            "detail_rows": 620,
+            "csv_columns": [
+              "time_s",
+              "display_velocity_m_s"
+            ],
+            "quality_csv_columns": [
+              "time_s",
+              "corrected_velocity_m_s"
+            ],
+            "version": "0.1.4",
+            "input_provenance": {
+              "delimiter": ",",
+              "encoding": "utf-8",
+              "has_header": false,
+              "header": null,
+              "original_time_unit": "s",
+              "original_voltage_unit": "V",
+              "time_column_index": 0,
+              "time_scale": 1.0,
+              "voltage_column_index": 1,
+              "voltage_scale": 1.0
+            },
+            "continuous_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\analysis_export\\example_ch1_auto.csv",
+            "quality_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\analysis_export\\example_ch1_auto_quality_passed.csv",
+            "detail_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\analysis_export\\example_ch1_auto_detail.csv",
+            "metadata_json": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\analysis_export\\example_ch1_auto.metadata.json"
+          },
+          "pdv_channel_2": {
+            "continuous_rows": 620,
+            "quality_rows": 379,
+            "detail_rows": 620,
+            "csv_columns": [
+              "time_s",
+              "display_velocity_m_s"
+            ],
+            "quality_csv_columns": [
+              "time_s",
+              "corrected_velocity_m_s"
+            ],
+            "version": "0.1.4",
+            "input_provenance": {
+              "delimiter": ",",
+              "encoding": "utf-8",
+              "has_header": false,
+              "header": null,
+              "original_time_unit": "s",
+              "original_voltage_unit": "V",
+              "time_column_index": 0,
+              "time_scale": 1.0,
+              "voltage_column_index": 2,
+              "voltage_scale": 1.0
+            },
+            "continuous_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\analysis_export\\example_ch2_auto.csv",
+            "quality_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\analysis_export\\example_ch2_auto_quality_passed.csv",
+            "detail_csv": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\analysis_export\\example_ch2_auto_detail.csv",
+            "metadata_json": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ybclhgrm\\analysis_export\\example_ch2_auto.metadata.json"
+          }
+        }
+      }
+    },
+    "exit_code": 0,
+    "runtime_environment_path": "C:\\Windows\\System32;C:\\Windows",
+    "zip_extraction_hashes_match": true,
+    "zip_extraction_file_set_match": true,
+    "packaged_files_unchanged_after_execution": true
+  },
+  "binary_provenance": {
+    "native_entry_count": 233,
+    "foreign_native_origins": [],
+    "icu_entries": []
+  },
+  "raw_sha256_unchanged": true,
+  "raw_files_count": 24,
+  "raw_files": [
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\.gitkeep",
+      "SHA256": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+      "SHA256": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260630-1.csv",
+      "SHA256": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260630-2.csv",
+      "SHA256": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260701.csv",
+      "SHA256": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch1.csv",
+      "SHA256": "3BDCEFD19B0CABD45FF713BC104E00829876F0BE4303ABCFFF31DC5ADA727A6A"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch2.csv",
+      "SHA256": "975D5EDC124754A170CAC083247D2F2BA1232F6BF6D26F2C878B498025B27A5F"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch3.csv",
+      "SHA256": "401673B77829D4B2568A4B2A9B88DC649AFA926B668C6C493012D8FC30115D49"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch4.csv",
+      "SHA256": "84E2859D4285C3D3D4144BA7E5EC0B51FBC0C578857F4DFAF6209E4B87842F5B"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\1\\20201210m-result64.dat",
+      "SHA256": "5872E1131A11B6665D393C862773BD6D1BC31520BD1E5F768D672B2CE5F03FCA"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\1\\20201210m.dat",
+      "SHA256": "08A8B8AF06DD241F6F1B2CEB08E60F8B6B110D755B867F36935E48A28495E956"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\1\\guistft(#6-2-1).jpg",
+      "SHA256": "ACABDCA007973BBEBFB444A161A0E0B4D49A5448C98B42590206BCD023E4EAEF"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\2\\20201211m.dat",
+      "SHA256": "B7994A2B31970DAF4813583394A92556287F0EAA4AEEB1D1EC00A1F256452B84"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\2\\guistft(#6-4-1).jpg",
+      "SHA256": "C6FDD32F878922C3C98634C5B034FD5D5B99EBF2979F2CDA1604DB1235ADFD56"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\2\\result.dat",
+      "SHA256": "83AA7842A9CAE01B25A96E9DA4363203C8B1705ACF76838FB5335CE3FA6899C4"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\3\\20201214m.dat",
+      "SHA256": "06DA315B9E148C8589564771E172A5D9974D6A04F59AE126CE9B724007EF0798"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\3\\guistft(#6-6-1).jpg",
+      "SHA256": "3C1F1F25F7D2F1A3D2269CCCFB849F2E29ADF1A50D758582E61256FE353B3B9E"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\3\\result.dat",
+      "SHA256": "30248BFF2BD923956BDCC72DB00BD0E8E9879F29767888B9239AC1D1768D01C6"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\4\\#8-8-1-CH1.png",
+      "SHA256": "331FBA675FFA86D2DEB871603FFD73525C389CABD4499847EA6FCBA6171B5D13"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\4\\20231019-ch1.dat",
+      "SHA256": "4CCBE54B8DEF8FC3B05D8B1D25EEC9A8700BAA91EEC679C5A2B8A04D0BF3D6DC"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\4\\result-ch1.dat",
+      "SHA256": "98FC121706D69D849430842E8A95F68438A53724C5FBA259A609B89DEAFF6070"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\5\\#7-6-1.png",
+      "SHA256": "E7EED0F42629103C1F0C4782CC866EF0C6B15556A561244B1686D0ACC7568B5C"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\5\\20221017a-result-64.dat",
+      "SHA256": "1815A33B73586CEF03A36ED0B462F814F53CE527ACC4B3DA181BAD4A9A5BD5CD"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\5\\20221017a.dat",
+      "SHA256": "3228766DBAC4C14E960D10FC7C663CFC99F8AB7BFD8329E7BA0C7E7AA3C2C954"
+    }
+  ],
+  "historical_release_files_unchanged": true,
+  "historical_release_files_count": 2256,
+  "changed_existing_source_files_since_task_start": [
+    "D:\\Code\\Python_Projects\\DPS_Studio\\src\\dps_studio\\__init__.py",
+    "D:\\Code\\Python_Projects\\DPS_Studio\\src\\dps_studio\\core\\export\\writer.py",
+    "D:\\Code\\Python_Projects\\DPS_Studio\\src\\dps_studio\\gui\\app.py"
+  ],
+  "scientific_implementation_unchanged": true,
+  "not_verified": [
+    "Different physical machine / older Windows compatibility",
+    "External 0.348 us onset deviation due to missing identified input"
+  ]
+}

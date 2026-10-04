@@ -240,6 +240,7 @@ class ImportSettingsDialog(QDialog):
                 name=slot.name.text().strip(),
                 column_index=slot.column.value(),
                 voltage_scale=float(slot.unit.currentData()),
+                original_voltage_unit=("V", "mV")[slot.unit.currentIndex()],
             )
             for slot in self._slots
             if slot.enabled.isChecked()
@@ -252,6 +253,7 @@ class ImportSettingsDialog(QDialog):
             has_header=self.header_check.isChecked(),
             encoding=self.encoding_combo.currentText(),
             time_scale=float(self.time_unit_combo.currentData()),
+            original_time_unit=("s", "ms", "us", "ns")[self.time_unit_combo.currentIndex()],
         )
 
     def validation_error(self) -> str | None:

@@ -1,0 +1,188 @@
+{
+  "task": "TASK-029",
+  "date": "2026-10-04",
+  "branch": "main",
+  "pytest": "637 passed in 53.22s",
+  "ruff": "All checks passed!",
+  "mypy_strict": "Success: no issues found in 80 source files",
+  "historical_frozen_version": "0.1.0",
+  "new_frozen_version": "0.1.3",
+  "installed_package_version": "0.1.3",
+  "wheel_version": "0.1.3",
+  "exe_file_version": "0.1.3",
+  "exe_product_version": "0.1.3",
+  "historical_startup": {
+    "archive": "D:\\Code\\Python_Projects\\DPS_Studio\\release\\PDV_Studio_v0.1.3_iconfix.zip",
+    "extraction": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_task029_historical_yhs0184h",
+    "path": "C:\\Windows\\System32;C:\\Windows",
+    "window_shown": true,
+    "window_titles": [
+      "PDV Studio"
+    ],
+    "exit_code": 0,
+    "normal_close_requested": true
+  },
+  "clean_release": {
+    "release_version": "0.1.3",
+    "build_command": [
+      "D:\\miniconda3\\envs\\dps-studio\\python.exe",
+      "-m",
+      "PyInstaller",
+      "--clean",
+      "--noconfirm",
+      "--workpath",
+      "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task029_release_verified\\work",
+      "--distpath",
+      "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task029_release_verified\\dist",
+      "D:\\Code\\Python_Projects\\DPS_Studio\\packaging\\pdv_studio.spec"
+    ],
+    "python_version": "3.12.13",
+    "build_path": "D:\\miniconda3\\envs\\dps-studio;D:\\miniconda3\\envs\\dps-studio\\Library\\bin;D:\\miniconda3\\envs\\dps-studio\\Scripts;C:\\Windows\\System32;C:\\Windows",
+    "dependency_versions": {
+      "pyinstaller": "6.21.0",
+      "pyinstaller-hooks-contrib": "2026.6",
+      "PySide6": "6.11.1",
+      "shiboken6": "6.11.1",
+      "scipy": "1.18.0",
+      "numpy": "2.5.1"
+    },
+    "runtime_files": {
+      "shiboken_extension": [
+        "_internal\\shiboken6\\Shiboken.pyd"
+      ],
+      "shiboken_runtime": [
+        "_internal\\shiboken6\\shiboken6.abi3.dll"
+      ],
+      "qt_windows_platform": [
+        "_internal\\PySide6\\plugins\\platforms\\qwindows.dll"
+      ],
+      "scipy_ccallback": [
+        "_internal\\scipy\\_lib\\_ccallback_c.cp312-win_amd64.pyd"
+      ]
+    },
+    "zip_path": "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task029_release_verified\\PDV_Studio_v0.1.3.zip",
+    "zip_sha256": "c695f5cd4387e5ec483c9b52493e2c604a2f61b08a1a0b8173766e50f214df4d",
+    "extraction_root": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ssrtl2pt",
+    "startup": {
+      "version": "0.1.3",
+      "gui_version": "0.1.3",
+      "event_loop_entered": true,
+      "window_visible": true,
+      "qt_platform": "windows",
+      "runtime_paths": {
+        "PySide6": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ssrtl2pt\\PDV_Studio_v0.1.3\\_internal\\PySide6\\__init__.py",
+        "shiboken6": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ssrtl2pt\\PDV_Studio_v0.1.3\\_internal\\shiboken6\\__init__.py",
+        "scipy._lib._ccallback_c": "C:\\Users\\89484\\AppData\\Local\\Temp\\dps_production_release_ssrtl2pt\\PDV_Studio_v0.1.3\\_internal\\scipy\\_lib\\_ccallback_c.cp312-win_amd64.pyd"
+      }
+    },
+    "zip_extraction_hashes_match": true
+  },
+  "raw_sha256_unchanged": true,
+  "raw_files_count": 24,
+  "raw_files": [
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\.gitkeep",
+      "SHA256": "F1945CD6C19E56B3C1C78943EF5EC18116907A4CA1EFC40A57D48AB1DB7ADFC5"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260607.csv",
+      "SHA256": "AB9F656E3563AB96D0E842DB88510076F6368E246853FD3427D8FD7DB68F7353"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260630-1.csv",
+      "SHA256": "203B182E477E1E08214551977A00313EAF6F17A71391D83875F6F879DC3A0A74"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260630-2.csv",
+      "SHA256": "C0C31B2990EAE228B21594276D030B83600A7DDB98C1953842E4CB80C17FA261"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\20260701.csv",
+      "SHA256": "5CCB6530E0CC715E4A7A81327C625FCE267A8B3473C0487479366EAD9D9A952A"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch1.csv",
+      "SHA256": "3BDCEFD19B0CABD45FF713BC104E00829876F0BE4303ABCFFF31DC5ADA727A6A"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch2.csv",
+      "SHA256": "975D5EDC124754A170CAC083247D2F2BA1232F6BF6D26F2C878B498025B27A5F"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch3.csv",
+      "SHA256": "401673B77829D4B2568A4B2A9B88DC649AFA926B668C6C493012D8FC30115D49"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\ch4.csv",
+      "SHA256": "84E2859D4285C3D3D4144BA7E5EC0B51FBC0C578857F4DFAF6209E4B87842F5B"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\1\\20201210m-result64.dat",
+      "SHA256": "5872E1131A11B6665D393C862773BD6D1BC31520BD1E5F768D672B2CE5F03FCA"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\1\\20201210m.dat",
+      "SHA256": "08A8B8AF06DD241F6F1B2CEB08E60F8B6B110D755B867F36935E48A28495E956"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\1\\guistft(#6-2-1).jpg",
+      "SHA256": "ACABDCA007973BBEBFB444A161A0E0B4D49A5448C98B42590206BCD023E4EAEF"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\2\\20201211m.dat",
+      "SHA256": "B7994A2B31970DAF4813583394A92556287F0EAA4AEEB1D1EC00A1F256452B84"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\2\\guistft(#6-4-1).jpg",
+      "SHA256": "C6FDD32F878922C3C98634C5B034FD5D5B99EBF2979F2CDA1604DB1235ADFD56"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\2\\result.dat",
+      "SHA256": "83AA7842A9CAE01B25A96E9DA4363203C8B1705ACF76838FB5335CE3FA6899C4"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\3\\20201214m.dat",
+      "SHA256": "06DA315B9E148C8589564771E172A5D9974D6A04F59AE126CE9B724007EF0798"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\3\\guistft(#6-6-1).jpg",
+      "SHA256": "3C1F1F25F7D2F1A3D2269CCCFB849F2E29ADF1A50D758582E61256FE353B3B9E"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\3\\result.dat",
+      "SHA256": "30248BFF2BD923956BDCC72DB00BD0E8E9879F29767888B9239AC1D1768D01C6"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\4\\#8-8-1-CH1.png",
+      "SHA256": "331FBA675FFA86D2DEB871603FFD73525C389CABD4499847EA6FCBA6171B5D13"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\4\\20231019-ch1.dat",
+      "SHA256": "4CCBE54B8DEF8FC3B05D8B1D25EEC9A8700BAA91EEC679C5A2B8A04D0BF3D6DC"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\4\\result-ch1.dat",
+      "SHA256": "98FC121706D69D849430842E8A95F68438A53724C5FBA259A609B89DEAFF6070"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\5\\#7-6-1.png",
+      "SHA256": "E7EED0F42629103C1F0C4782CC866EF0C6B15556A561244B1686D0ACC7568B5C"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\5\\20221017a-result-64.dat",
+      "SHA256": "1815A33B73586CEF03A36ED0B462F814F53CE527ACC4B3DA181BAD4A9A5BD5CD"
+    },
+    {
+      "Path": "D:\\Code\\Python_Projects\\DPS_Studio\\data\\raw\\PDV数据-质量中等\\5\\20221017a.dat",
+      "SHA256": "3228766DBAC4C14E960D10FC7C663CFC99F8AB7BFD8329E7BA0C7E7AA3C2C954"
+    }
+  ],
+  "first_build_failure": {
+    "stage": "build output dependency collection",
+    "symptom": "ImportError: DLL load failed while importing QtCore (missing procedure)",
+    "collected_icu_source": "C:\\Users\\89484\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\poppler\\Library\\bin\\icuuc.dll",
+    "source_qt_actual_icu": "C:\\Windows\\SYSTEM32\\icuuc.dll",
+    "evidence": "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task029_release\\work\\pdv_studio\\Analysis-00.toc",
+    "fix": "build PATH limited to selected Python environment and Windows directories"
+  }
+}

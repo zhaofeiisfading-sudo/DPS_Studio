@@ -106,6 +106,7 @@ def compute_stft(
         nfft=resolved_nfft,
         sample_rate_hz=record.sample_rate_hz,
         source_path=record.source_path,
+        source_metadata=record.metadata,
         scaling="spectrum",
         is_one_sided=True,
         detrend_applied=False,

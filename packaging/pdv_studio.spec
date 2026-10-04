@@ -1,14 +1,32 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
+import runpy
+
+from PyInstaller.utils.win32.versioninfo import (
+    FixedFileInfo, StringFileInfo, StringStruct, StringTable,
+    VarFileInfo, VarStruct, VSVersionInfo,
+)
 
 
 PROJECT_ROOT = Path(SPECPATH).resolve().parent
 SOURCE_ROOT = PROJECT_ROOT / "src"
 APP_ICON = SOURCE_ROOT / "dps_studio" / "gui" / "icons" / "pdv_studio.ico"
-RELEASE_VERSION = (
-    Path(SPECPATH) / "release_version.txt"
-).read_text(encoding="utf-8-sig").strip()
+RELEASE_VERSION = runpy.run_path(str(SOURCE_ROOT / "dps_studio" / "__init__.py"))["__version__"]
+VERSION_TUPLE = tuple(int(value) for value in RELEASE_VERSION.split(".")) + (0,)
+VERSION_INFO = VSVersionInfo(
+    ffi=FixedFileInfo(filevers=VERSION_TUPLE, prodvers=VERSION_TUPLE,
+                      mask=0x3f, flags=0, OS=0x40004, fileType=1, subtype=0, date=(0, 0)),
+    kids=[
+        StringFileInfo([StringTable("040904B0", [
+            StringStruct("FileDescription", "PDV Studio"),
+            StringStruct("FileVersion", RELEASE_VERSION),
+            StringStruct("ProductName", "PDV Studio"),
+            StringStruct("ProductVersion", RELEASE_VERSION),
+        ])]),
+        VarFileInfo([VarStruct("Translation", [1033, 1200])]),
+    ],
+)
 
 datas = [
     (str(APP_ICON), "dps_studio/gui/icons"),
@@ -49,6 +67,7 @@ executable = EXE(
     [],
     exclude_binaries=True,
     name="PDV Studio",
+    version=VERSION_INFO,
     icon=str(APP_ICON),
     debug=False,
     bootloader_ignore_signals=False,

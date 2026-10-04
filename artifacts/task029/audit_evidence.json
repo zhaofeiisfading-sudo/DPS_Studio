@@ -1,0 +1,90 @@
+{
+  "source": "D:\\Code\\Python_Projects\\DPS_Studio\\docs\\原始数据.csv",
+  "source_sha256_before": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+  "source_sha256_after": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+  "sample_count": 80000,
+  "profile": "balanced",
+  "external_two_shots": "NOT REPRODUCED DUE TO MISSING INPUT DATA",
+  "historical_zip": {
+    "archive": "D:\\Code\\Python_Projects\\DPS_Studio\\release\\PDV_Studio_v0.1.3_iconfix.zip",
+    "archive_sha256": "c00bfb481f6b04aad0c9ea916cdd75d55db8f6a99fa853f24904b760ac6ce030",
+    "file_count": 453,
+    "runtime_members": {
+      "shiboken": [
+        "PDV_Studio_v0.1.3_iconfix/_internal/shiboken6/shiboken6.abi3.dll"
+      ],
+      "qt_platform": [
+        "PDV_Studio_v0.1.3_iconfix/_internal/PySide6/plugins/platforms/qwindows.dll"
+      ],
+      "scipy_ccallback": [
+        "PDV_Studio_v0.1.3_iconfix/_internal/scipy/_lib/_ccallback_c.cp312-win_amd64.pyd"
+      ],
+      "icu": []
+    },
+    "differences_from_current_release_directory": [
+      "PDV_Studio_v0.1.3_iconfix/PDV_Studio_用户使用说明书.pdf"
+    ]
+  },
+  "channels": {
+    "pdv_channel_1": {
+      "continuous_csv": "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task029_real_export\\原始数据_ch1_auto.csv",
+      "quality_csv": "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task029_real_export\\原始数据_ch1_auto_quality_passed.csv",
+      "csv_columns": [
+        "time_s",
+        "display_velocity_m_s"
+      ],
+      "quality_csv_columns": [
+        "time_s",
+        "corrected_velocity_m_s"
+      ],
+      "continuous_rows": 620,
+      "quality_rows": 390,
+      "finite_display_but_not_measured": 230,
+      "candidate_time_s": 0.0005546642542602401,
+      "event_reference_time_s": null,
+      "version": "0.1.3",
+      "input_provenance": {
+        "delimiter": ",",
+        "encoding": "utf-8",
+        "has_header": false,
+        "header": null,
+        "original_time_unit": "s",
+        "original_voltage_unit": "V",
+        "time_column_index": 0,
+        "time_scale": 1.0,
+        "voltage_column_index": 1,
+        "voltage_scale": 1.0
+      }
+    },
+    "pdv_channel_2": {
+      "continuous_csv": "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task029_real_export\\原始数据_ch2_auto.csv",
+      "quality_csv": "D:\\Code\\Python_Projects\\DPS_Studio\\build\\task029_real_export\\原始数据_ch2_auto_quality_passed.csv",
+      "csv_columns": [
+        "time_s",
+        "display_velocity_m_s"
+      ],
+      "quality_csv_columns": [
+        "time_s",
+        "corrected_velocity_m_s"
+      ],
+      "continuous_rows": 620,
+      "quality_rows": 379,
+      "finite_display_but_not_measured": 241,
+      "candidate_time_s": 0.0005546674542602412,
+      "event_reference_time_s": null,
+      "version": "0.1.3",
+      "input_provenance": {
+        "delimiter": ",",
+        "encoding": "utf-8",
+        "has_header": false,
+        "header": null,
+        "original_time_unit": "s",
+        "original_voltage_unit": "V",
+        "time_column_index": 0,
+        "time_scale": 1.0,
+        "voltage_column_index": 2,
+        "voltage_scale": 1.0
+      }
+    }
+  }
+}

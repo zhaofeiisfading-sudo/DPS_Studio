@@ -15,6 +15,7 @@ class ChannelImportSpec:
     name: str
     column_index: int
     voltage_scale: float
+    original_voltage_unit: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +29,7 @@ class SignalLoadRequest:
     has_header: bool
     encoding: str
     time_scale: float
+    original_time_unit: str | None = None
 
 
 class DataImportController:
@@ -70,6 +72,12 @@ class DataImportController:
             encoding=request.encoding,
             time_scale=request.time_scale,
             voltage_scales=voltage_scales,
+            original_time_unit=request.original_time_unit,
+            original_voltage_units={
+                name: channel.original_voltage_unit
+                for name, channel in zip(names, request.channels, strict=True)
+                if channel.original_voltage_unit is not None
+            },
         )
 
 

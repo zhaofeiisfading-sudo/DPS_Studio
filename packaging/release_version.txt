@@ -1,1 +1,2 @@
-0.1.3
+Version source: src/dps_studio/__init__.py (__version__).
+The build reads that source directly; this legacy file is no longer a version input.

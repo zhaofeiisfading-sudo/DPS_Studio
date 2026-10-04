@@ -9,7 +9,6 @@ import platform
 import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from time import perf_counter
 from typing import Any, cast
@@ -3794,10 +3793,9 @@ def _write_json(path: Path, value: Mapping[str, Any]) -> None:
 
 
 def _package_version() -> str:
-    try:
-        return version("dps-studio")
-    except PackageNotFoundError:
-        return "0.1.0+source"
+    from dps_studio import __version__
+
+    return __version__
 
 
 def _git_output(*arguments: str) -> str:

@@ -58,6 +58,12 @@ def test_reads_headerless_single_channel_and_metadata(tmp_path: Path) -> None:
         "voltage_column_index": 1,
         "time_scale": 1.0,
         "voltage_scale": 1.0,
+        "original_time_unit": None,
+        "original_voltage_unit": None,
+        "delimiter": ",",
+        "encoding": "utf-8",
+        "has_header": False,
+        "header": None,
     }
 
 

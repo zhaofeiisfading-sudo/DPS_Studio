@@ -39,6 +39,8 @@ def read_delimited_signals(
     encoding: str = "utf-8",
     time_scale: float = 1.0,
     voltage_scales: Mapping[str, float] | None = None,
+    original_time_unit: str | None = None,
+    original_voltage_units: Mapping[str, str] | None = None,
 ) -> DelimitedSignalLoadResult:
     """Load explicitly selected time and voltage columns into signal records.
 
@@ -65,6 +67,16 @@ def read_delimited_signals(
         voltage_scales,
         channel_names=tuple(validated_voltage_columns),
     )
+    if original_time_unit is not None and (
+        not isinstance(original_time_unit, str) or not original_time_unit.strip()
+    ):
+        raise SignalConfigurationError("original_time_unit must be non-empty text or None.")
+    voltage_units = dict(original_voltage_units or {})
+    if any(
+        name not in validated_voltage_columns or not isinstance(unit, str) or not unit.strip()
+        for name, unit in voltage_units.items()
+    ):
+        raise SignalConfigurationError("original_voltage_units must label selected channels.")
 
     _validate_source_file(source_path)
     try:
@@ -83,6 +95,8 @@ def read_delimited_signals(
                 encoding=validated_encoding,
                 time_scale=validated_time_scale,
                 voltage_scales=validated_voltage_scales,
+                original_time_unit=original_time_unit,
+                original_voltage_units=voltage_units,
             )
     except UnicodeError as exc:
         raise SignalEncodingError(
@@ -258,6 +272,8 @@ def _read_open_file(
     encoding: str,
     time_scale: float,
     voltage_scales: Mapping[str, float],
+    original_time_unit: str | None,
+    original_voltage_units: Mapping[str, str],
 ) -> DelimitedSignalLoadResult:
     reader = create_delimited_row_reader(
         handle,
@@ -274,6 +290,8 @@ def _read_open_file(
             encoding=encoding,
             time_scale=time_scale,
             voltage_scales=voltage_scales,
+            original_time_unit=original_time_unit,
+            original_voltage_units=original_voltage_units,
         )
     except csv.Error as exc:
         raise SignalParseError(
@@ -293,6 +311,8 @@ def _parse_records(
     encoding: str,
     time_scale: float,
     voltage_scales: Mapping[str, float],
+    original_time_unit: str | None,
+    original_voltage_units: Mapping[str, str],
 ) -> DelimitedSignalLoadResult:
     header: tuple[str, ...] | None = None
     if has_header:
@@ -369,6 +389,14 @@ def _parse_records(
         voltage_scales=voltage_scales,
         time_values=time_values,
         voltage_values=voltage_values,
+        input_metadata={
+            "original_time_unit": original_time_unit,
+            "delimiter": delimiter,
+            "encoding": encoding,
+            "has_header": has_header,
+            "header": header,
+        },
+        original_voltage_units=original_voltage_units,
     )
     selected_columns = {time_column, *voltage_columns.values()}
     unselected_columns = tuple(
@@ -496,6 +524,8 @@ def _build_signal_records(
     voltage_scales: Mapping[str, float],
     time_values: list[float],
     voltage_values: Mapping[str, list[float]],
+    input_metadata: Mapping[str, object],
+    original_voltage_units: Mapping[str, str],
 ) -> dict[str, SignalRecord]:
     records: dict[str, SignalRecord] = {}
     for channel_name, voltage_column in voltage_columns.items():
@@ -510,6 +540,12 @@ def _build_signal_records(
                     "voltage_column_index": voltage_column,
                     "time_scale": time_scale,
                     "voltage_scale": voltage_scales[channel_name],
+                    "original_time_unit": input_metadata["original_time_unit"],
+                    "original_voltage_unit": original_voltage_units.get(channel_name),
+                    "delimiter": input_metadata["delimiter"],
+                    "encoding": input_metadata["encoding"],
+                    "has_header": input_metadata["has_header"],
+                    "header": input_metadata["header"],
                 },
             )
         except SignalValidationError as exc:

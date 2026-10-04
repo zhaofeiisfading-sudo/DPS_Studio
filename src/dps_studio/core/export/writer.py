@@ -27,6 +27,7 @@ from dps_studio.core.export.models import (
 )
 from dps_studio.core.export.time_coordinates import event_relative_time_s
 from dps_studio.core.physics import velocity_correction_metadata
+from dps_studio.core.quality import SignalState
 from dps_studio.core.ridge import (
     ManualFrequencyBoundary,
     ManualFrequencyRegion,
@@ -212,6 +213,8 @@ def _plan_export_files(
         channel_token = _channel_filename_token(channel_name)
         mode_token = _MODE_FILENAME_TOKENS[options.analysis_mode]
         base_stem = f"{source_stem}_{channel_token}_{mode_token}"
+        if options.quality_passed_only:
+            base_stem += "_quality_passed"
         plan = _allocate_file_group(output_directory, base_stem, allocated_names)
         plans.append(
             _ChannelExportPlan(
@@ -319,11 +322,12 @@ def _write_staged_results(
     for plan in plans:
         analysis = options.channel_analyses[plan.channel_name]
         row_indices = _export_row_indices(analysis, options)
+        simple_row_indices = _simple_row_indices(analysis, options, row_indices)
         row_count = _write_simple_csv(
             staging_directory / plan.simple_csv_name,
             analysis,
             options,
-            row_indices,
+            simple_row_indices,
         )
         _write_detail_csv(
             staging_directory / plan.detail_csv_name,
@@ -374,19 +378,44 @@ def _export_row_indices(
     )
 
 
+def _simple_row_indices(
+    analysis: ChannelAnalysis,
+    options: ResultExportOptions,
+    row_indices: tuple[int, ...],
+) -> tuple[int, ...]:
+    if not options.quality_passed_only:
+        return row_indices
+    return tuple(
+        index for index in row_indices
+        if analysis.signal_detection_result.signal_states[index] is SignalState.MEASURED
+        and analysis.velocity_origins[index] != PRE_EVENT_DISPLAY_ORIGIN
+        and np.isfinite(analysis.corrected_velocity_m_s[index])
+    )
+
+
+def _simple_velocity_column(options: ResultExportOptions) -> str:
+    return "corrected_velocity_m_s" if options.quality_passed_only else "display_velocity_m_s"
+
+
 def _write_simple_csv(
     path: Path,
     analysis: ChannelAnalysis,
     options: ResultExportOptions,
     row_indices: tuple[int, ...],
 ) -> int:
-    """Write the two-column time--plot-velocity CSV without recalculation."""
+    """Write the selected two-column velocity source without recalculation."""
     detection = analysis.signal_detection_result
     relative_time_s = event_relative_time_s(
         detection.time_s,
         detection.manual_event_reference_time_s,
     )
     time_column = _simple_time_column(options.time_origin)
+    velocity_column = _simple_velocity_column(options)
+    velocity_values = (
+        analysis.corrected_velocity_m_s
+        if options.quality_passed_only
+        else analysis.plot_velocity_m_s
+    )
     time_values = (
         relative_time_s
         if options.time_origin is ExportTimeOrigin.EVENT
@@ -396,7 +425,7 @@ def _write_simple_csv(
         with path.open("x", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(
                 handle,
-                fieldnames=(time_column, "display_velocity_m_s"),
+                fieldnames=(time_column, velocity_column),
                 lineterminator="\n",
             )
             writer.writeheader()
@@ -404,9 +433,7 @@ def _write_simple_csv(
                 writer.writerow(
                     {
                         time_column: _csv_float(time_values[index]),
-                        "display_velocity_m_s": _csv_float(
-                            analysis.plot_velocity_m_s[index]
-                        ),
+                        velocity_column: _csv_float(velocity_values[index]),
                     }
                 )
     except OSError as exc:
@@ -518,11 +545,14 @@ def _metadata_document(
     stft = analysis.stft_result
     refined = analysis.refined_result
     source_path = _effective_source_path(options, analysis)
+    detail_row_indices = _export_row_indices(analysis, options)
+    simple_row_indices = _simple_row_indices(analysis, options, detail_row_indices)
     display_only_count = sum(
         origin == PRE_EVENT_DISPLAY_ORIGIN for origin in analysis.velocity_origins
     )
-    exported_display_only_count = (
-        display_only_count if options.include_pre_event_display_rows else 0
+    exported_display_only_count = sum(
+        analysis.velocity_origins[index] == PRE_EVENT_DISPLAY_ORIGIN
+        for index in simple_row_indices
     )
     measured_count = sum(
         state.value == "measured" for state in detection.signal_states
@@ -566,11 +596,38 @@ def _metadata_document(
     document = {
         "export_schema_version": EXPORT_SCHEMA_VERSION,
         "dps_studio_version": options.dps_studio_version,
+        "software_version": options.dps_studio_version,
         "exported_at_utc": timestamp.isoformat().replace("+00:00", "Z"),
         "data_file": simple_csv_name,
         "detail_data_file": detail_csv_name,
         "source_file": str(source_path) if source_path is not None else None,
         "source_channel": channel_name,
+        "input_provenance": {
+            key: stft.source_metadata[key]
+            for key in (
+                "time_column_index", "voltage_column_index", "time_scale",
+                "voltage_scale", "original_time_unit", "original_voltage_unit",
+                "delimiter", "encoding", "has_header", "header",
+            )
+            if key in stft.source_metadata
+        },
+        "simple_export": {
+            "mode": "quality_passed" if options.quality_passed_only else "continuous_display",
+            "quality_filtering_applied": options.quality_passed_only,
+            "selection_rule": (
+                "signal_state == measured; finite formal corrected velocity; exclude display-only platform"
+                if options.quality_passed_only else "analysis range and explicit pre-event row option"
+            ),
+            "velocity_source": (
+                "ChannelAnalysis.corrected_velocity_m_s"
+                if options.quality_passed_only else "ChannelAnalysis.plot_velocity_m_s"
+            ),
+            "velocity_column": _simple_velocity_column(options),
+            "time_series_may_have_gaps": options.quality_passed_only,
+            "excluded_by_quality_filter_count": len(detail_row_indices) - exported_row_count,
+            "detailed_csv_quality_filtering_applied": False,
+            "physical_branch_identity_confirmed": False,
+        },
         "analysis_mode": options.analysis_mode.value,
         "analysis_profile_name": options.analysis_profile_name,
         "analysis_time_range_s": {
@@ -676,13 +733,15 @@ def _metadata_document(
         "pre_event_display": {
             "enabled": options.pre_event_display_enabled,
             "configured_velocity_m_s": options.pre_event_display_velocity_m_s,
-            "included_in_csv": options.include_pre_event_display_rows,
+            "included_in_csv": options.include_pre_event_display_rows and not options.quality_passed_only,
+            "included_in_detail_csv": options.include_pre_event_display_rows,
             "formal_measurement_modified": False,
             "display_only_origin": PRE_EVENT_DISPLAY_ORIGIN,
         },
         "result_counts": {
             "stft_frame_count": int(stft.time_s.size),
             "exported_row_count": exported_row_count,
+            "detail_exported_row_count": len(detail_row_indices),
             "measured_frame_count": measured_count,
             "working_finite_frame_count": int(
                 np.count_nonzero(np.isfinite(analysis.working_frequency_hz))
@@ -718,8 +777,11 @@ def _metadata_document(
         },
         "result_status": {
             "simple_csv_time_column": _simple_time_column(options.time_origin),
-            "simple_csv_velocity_column": "display_velocity_m_s",
-            "simple_csv_velocity_source": "ChannelAnalysis.plot_velocity_m_s",
+            "simple_csv_velocity_column": _simple_velocity_column(options),
+            "simple_csv_velocity_source": (
+                "ChannelAnalysis.corrected_velocity_m_s"
+                if options.quality_passed_only else "ChannelAnalysis.plot_velocity_m_s"
+            ),
             "formal_measurement_column": "apparent_velocity_m_s",
             "angle_corrected_measurement_column": (
                 "angle_corrected_apparent_velocity_m_s"
