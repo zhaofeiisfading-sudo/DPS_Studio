@@ -71,6 +71,13 @@ def main(arguments: Sequence[str] | None = None) -> int:
                     run_analysis_smoke(analysis_input, report_path.parent / "analysis_export")
                     if analysis_input is not None else None
                 )
+                if sys.platform == "darwin" and analysis_input is not None:
+                    from dps_studio.release.portable_reference import capture_snapshot
+
+                    assert analysis_report is not None
+                    analysis_report["numerical_snapshot"] = capture_snapshot(
+                        analysis_input, report_path.parent / "numerical_exports",
+                    )
                 handle = window.windowHandle()
                 report = {
                     "version": __version__, "gui_version": application.applicationVersion(),
@@ -79,8 +86,20 @@ def main(arguments: Sequence[str] | None = None) -> int:
                     "qt_platform": application.platformName(),
                     "runtime_paths": loaded_runtime_paths(), "analysis_smoke": analysis_report,
                 }
+                if sys.platform == "darwin":
+                    report["application_created"] = True
+                    report["main_window_created"] = True
             except Exception as exc:
                 report = {"error": f"{type(exc).__name__}: {exc}"}
+                if sys.platform == "darwin":
+                    handle = window.windowHandle()
+                    report.update({
+                        "application_created": True, "main_window_created": True,
+                        "event_loop_entered": True, "window_visible": window.isVisible(),
+                        "window_exposed": handle is not None and handle.isExposed(),
+                        "qt_platform": application.platformName(), "version": __version__,
+                        "gui_version": application.applicationVersion(),
+                    })
                 exit_code = 1
             with report_path.open("x", encoding="utf-8") as report_handle:
                 json.dump(report, report_handle, indent=2)
@@ -88,7 +107,12 @@ def main(arguments: Sequence[str] | None = None) -> int:
             application.exit(exit_code)
 
         QTimer.singleShot(500, report_startup)
-    return application.exec()
+    exit_code = application.exec()
+    if sys.platform == "darwin" and report_path is not None and report_path.exists():
+        from dps_studio.gui.release_smoke_macos import finish_report
+
+        finish_report(report_path, exit_code)
+    return exit_code
 
 
 __all__ = ["create_application", "main", "translation_manager"]

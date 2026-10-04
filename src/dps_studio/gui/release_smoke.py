@@ -6,6 +6,7 @@ import csv
 import ctypes
 import hashlib
 import json
+import sys
 from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
@@ -39,6 +40,10 @@ def smoke_options(arguments: Sequence[str]) -> tuple[Path | None, Path | None]:
 
 def loaded_runtime_paths() -> dict[str, str]:
     """Query Windows for the actual DLLs loaded by this GUI process."""
+    if sys.platform == "darwin":
+        from dps_studio.gui.release_smoke_macos import loaded_runtime_paths as darwin_paths
+
+        return darwin_paths()
     import PySide6
     import shiboken6
     from scipy._lib import _ccallback_c  # type: ignore[import-untyped]

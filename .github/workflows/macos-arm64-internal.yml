@@ -1,0 +1,79 @@
+name: macOS arm64 internal release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  internal-release:
+    runs-on: macos-15
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Provision native Miniforge Python 3.12.13
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          miniforge-version: latest
+          activate-environment: pdv-macos-release
+          python-version: '3.12.13'
+          channels: conda-forge
+          conda-remove-defaults: true
+          channel-priority: strict
+
+      - name: Confirm native arm64 (no Rosetta)
+        run: |
+          test "$(uname -m)" = arm64
+          python -c "import platform; assert platform.machine() == 'arm64'; assert platform.python_version() == '3.12.13'; print(platform.platform())"
+          conda info
+
+      - name: Install audited dependencies
+        run: |
+          python -m pip install --only-binary=:all: -r packaging/macos-arm64-constraints.txt
+          python -m pip install --no-deps -e '.[dev]'
+          python -m pip check
+          mkdir -p build/task031_ci_checks
+
+      - name: Portable CI suite (private raw suite NOT VERIFIED)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          set -o pipefail
+          python -m pytest --portable-ci -q --tb=short --junitxml=build/task031_ci_checks/portable.xml 2>&1 | tee build/task031_ci_checks/portable.txt
+
+      - name: Ruff
+        run: |
+          set -o pipefail
+          python -m ruff check . 2>&1 | tee build/task031_ci_checks/ruff.txt
+
+      - name: Strict mypy
+        run: |
+          set -o pipefail
+          python -m mypy --strict src/dps_studio tools/build_macos_release.py tools/build_macos_icon.py tools/generate_macos_portable_reference.py 2>&1 | tee build/task031_ci_checks/mypy.txt
+
+      - name: Build app and verify Mach-O, signing, science, ZIP and native Cocoa
+        run: |
+          python tools/build_macos_release.py --output-root build/task031_macos_release
+
+      - name: Upload verified ZIP (never a bare app)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDV-Studio-macos-arm64-internal-zip
+          path: build/task031_macos_release/PDV_Studio_v*_macos_arm64.zip
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDV-Studio-macos-arm64-internal-evidence
+          path: |
+            build/task031_macos_release/evidence/
+            build/task031_ci_checks/
+          if-no-files-found: warn
