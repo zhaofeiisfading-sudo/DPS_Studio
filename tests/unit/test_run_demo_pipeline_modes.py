@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from dps_studio.core.workflow import load_workflow_config
+from dps_studio.core.workflow import WorkflowConfiguration, load_workflow_config
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -62,18 +62,64 @@ def test_run_pipeline_rejects_implicit_configuration(tmp_path: Path) -> None:
         raise AssertionError("String configuration was silently accepted.")
 
 
-def _temporary_output_configuration(tmp_path: Path) -> object:
+def _temporary_output_configuration(tmp_path: Path) -> WorkflowConfiguration:
+    """Select the tracked public input explicitly for mocked output tests.
+
+    These tests verify run-pointer/export reporting, not private raw numerical
+    regression. The production default configuration remains unchanged.
+    """
     configuration = load_workflow_config(
         pipeline.DEFAULT_CONFIG_PATH,
         repository_root=PROJECT_ROOT,
     )
     return replace(
         configuration,
+        input=replace(
+            configuration.input,
+            path=PROJECT_ROOT / "docs" / "原始数据.csv",
+        ),
         output=replace(
             configuration.output,
             root=tmp_path / "outputs" / "production_runs",
         ),
     )
+
+
+def test_temporary_output_configuration_has_an_explicit_public_input(
+    tmp_path: Path,
+) -> None:
+    configuration = _temporary_output_configuration(tmp_path)
+    assert configuration.input.path == PROJECT_ROOT / "docs" / "原始数据.csv"
+    assert configuration.input.path.is_file()
+    assert configuration.input.time_column == 0
+    assert dict(configuration.input.voltage_columns) == {
+        "pdv_channel_1": 1,
+        "pdv_channel_2": 2,
+    }
+
+
+def test_missing_explicit_input_is_an_error_without_fixture_fallback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configuration = _temporary_output_configuration(tmp_path)
+    missing_input = tmp_path / "missing_explicit_input.csv"
+    configuration = replace(
+        configuration,
+        input=replace(configuration.input, path=missing_input),
+    )
+
+    def unexpected_read(*args: object, **kwargs: object) -> None:
+        raise AssertionError("A missing input must fail before signal import")
+
+    monkeypatch.setattr(pipeline, "read_delimited_signals", unexpected_read)
+    with pytest.raises(FileNotFoundError, match="Input file does not exist"):
+        pipeline.run_pipeline(
+            configuration.output.root / "run_20261009_180000",
+            configuration=configuration,
+        )
+    assert not missing_input.exists()
+    assert not (tmp_path / "outputs" / "LATEST_RUN.txt").exists()
 
 
 def test_formal_pipeline_rejects_output_outside_production_runs(

@@ -1,8 +1,102 @@
 # TASK-031 — macOS arm64 内部发布实现与原生验收
 
-日期：2026-10-04（Asia/Shanghai）。软件版本：`dps_studio.__version__ = 0.1.4`。
+阶段日期：第一阶段 2026-10-04；第二阶段 2026-10-09（Asia/Shanghai）。软件版本：`dps_studio.__version__ = 0.1.4`。
 
-**第一阶段状态：READY_TO_PUSH_FOR_MACOS_CI。** 实现和本地 Windows 验证已完成，等待用户检查后手工 commit/push。没有运行 GitHub Actions，也没有生成或验收 macOS ZIP。**当前不能宣布 MACOS INTERNAL RELEASE PASS；原生 Cocoa 状态为 NATIVE_GUI_NOT_VERIFIED。**
+**首次远端验收：MACOS INTERNAL RELEASE BLOCKED。** 第二阶段已通过 GitHub MCP 实际 dispatch，真实 Mac runner 在 portable pytest 阶段失败。已保存完整日志/evidence，完成最小测试修复和 Windows 回归。2026-10-09 用户已授权将本次测试修复及必要报告更新提交并 push 到 origin/main，再对新 SHA dispatch；后续任何再次 commit/push 仍需新授权。正式 Mac ZIP 尚未生成，不能宣布 PASS。
+
+## 第二阶段真实执行记录（2026-10-09）
+
+开始时本地 `main`、`HEAD=origin/main=dda50631240208c0d694bdf575b458d33277a6dc`、工作区 clean。GitHub MCP 独立读取在线 main，同一 SHA，commit message 为第一阶段的 macOS pipeline 提交。workflow ID `374642166` 已启用，在线 YAML 包含 workflow_dispatch，并与本地文件一致。
+
+使用实际暴露的 `actions_run_trigger(method=run_workflow, ref=main)` 直接执行，返回 **204 No Content / queued**。没有要求用户点击页面，也没有使用 CLI/REST 凭据回退。dispatch 前此 workflow 无旧运行；只 dispatch **一次**，未 rerun。
+
+| 运行证据 | 实际值 |
+| --- | --- |
+| run URL / ID | [37912988005](https://github.com/zhaofeiisfading-sudo/DPS_Studio/actions/runs/37912988005) |
+| job URL / ID | [internal-release / 113762349593](https://github.com/zhaofeiisfading-sudo/DPS_Studio/actions/runs/37912988005/job/113762349593) |
+| workflow / event / branch | macOS arm64 internal release / workflow_dispatch / main |
+| head_sha | `dda50631240208c0d694bdf575b458d33277a6dc` |
+| run number / attempt | 1 / 1 |
+| UTC 开始 / 完成 | 2026-10-09 09:42:22 / 09:45:20 |
+| 上海时间开始 / 完成 | 2026-10-09 17:42:22 / 17:45:20 |
+| runner label / 实际 image | macos-15 / macos-15-arm64 |
+| macOS / build | 15.7.9 / 24G830 |
+| runner image version | 20260907.0337.1 |
+| host / Python architecture | arm64，uname 与 platform.machine 的断言步骤成功 |
+| build Python | conda-forge Python 3.12.13，osx-arm64；版本断言成功，安装日志为 cp312 wheels |
+| final run status / conclusion | completed / failure |
+
+Miniforge provisioning、架构/版本断言、固定依赖安装和 pip check 全部成功。安装日志确认当前约束文件中的 NumPy 2.5.1、SciPy 1.18.0、pandas 3.0.3、matplotlib 3.11.0、PySide6/Essentials/Addons/shiboken6 6.11.1、PyQtGraph 0.14.0、Pydantic 2.13.4、pydantic-core 2.46.4、PyInstaller 6.21.0、hooks-contrib 2026.6、Pillow 12.3.0、pytest 9.1.1、Ruff 0.15.21、mypy 2.2.0 安装成功。日志中 conda info 的 base interpreter 版本不代替目标 build Python 的实际版本断言。
+
+### 真实失败与验收范围
+
+Mac portable pytest：**2 failed, 695 passed, 18 deselected in 70.00s**；JUnit 为 697 tests、2 failures、0 errors、0 skipped。18 项显式排除项与原合同一致。失败节点：
+
+- `tests/unit/test_run_demo_pipeline_modes.py::test_failed_production_does_not_update_latest_run`
+- `tests/unit/test_run_demo_pipeline_modes.py::test_successful_production_updates_latest_run_and_prints_simple_exports`
+
+两项均进入 `scripts/run_demo_pipeline.py:73` 后抛出：
+
+```text
+FileNotFoundError: Input file does not exist: /Users/runner/work/DPS_Studio/DPS_Studio/data/raw/20260607.csv
+```
+
+根因已由日志和源码共同确认：两项输出/运行指针单元测试 mock 了信号读取与生产导出，却继承 `demo_dual_profile.toml` 的私有 raw input。真实入口在 mock 前先检查文件是否存在并计算 SHA，因此 hosted checkout 缺少 raw 时失败。本地第一阶段有 raw，未暴露这一间接依赖。此失败不是 STFT/ridge/quality/velocity/LiF 数值错误，也没有暂时性基础设施失败证据，故不盲目 rerun。
+
+| 正式验收项 | 本次远端结果 |
+| --- | --- |
+| native macos-15 / arm64 / Python 3.12.13 | PASS |
+| portable pytest | FAIL：695 passed、2 failed、18 deselected |
+| Ruff / strict mypy | SKIPPED（上游 pytest 失败），不记为 Mac PASS |
+| PyInstaller / PDV Studio.app / ICNS | SKIPPED，未构建 |
+| native Cocoa / event loop | NATIVE_GUI_NOT_VERIFIED，build step 未执行；pytest 的 offscreen 不替代此项 |
+| app 内 PySide6 / shiboken6 / SciPy 来源 | NOT VERIFIED，尚无 app runtime |
+| file/lipo/otool / native dependency audit | NOT RUN |
+| ad-hoc codesign | NOT VERIFIED；notarization=NOT_PERFORMED |
+| frozen scientific smoke / Windows–Mac 数值回归 | NOT RUN |
+| ZIP roundtrip / 正式 ZIP / 正式 ZIP SHA-256 | NOT RUN / NOT GENERATED / N/A |
+
+JUnit 确认 `test_public_scientific_chain_matches_windows_reference` 在 Mac 源码环境通过；这不替代尚未执行的 frozen runtime 数值验收。
+
+### 下载并保留的失败证据
+
+本次仅有 **PDV-Studio-macos-arm64-internal-evidence** artifact，ID `11607113542`，16,702 bytes；没有正式发布 ZIP artifact。使用 GitHub connector 的实际 artifact download 工具取得并保存，未读取或泄露 GitHub access token。
+
+外层 evidence artifact ZIP SHA-256：`0801b54e97728d3111b7fd646dece9cfdd3bffa89982db4546e11f75b9db2854`，与 GitHub artifact digest/上传日志完全相同。**此哈希属于证据 ZIP，不是正式 Mac 发布 ZIP。**
+
+本地目录：`build/task031_phase2_20261009/`：
+
+- `dispatch.json`：预期 SHA、dispatch 回执与首次 run 关联。
+- `run_evidence.json`：真实 run、job、全部 steps 和 artifact metadata。
+- `job_113762349593.log`：完整 job log。
+- `evidence_artifact.zip`：下载的原始证据 ZIP。
+- `evidence/task031_ci_checks/portable.txt`、`portable.xml`：解出的完整 pytest 输出/JUnit。
+
+artifact 中只有上述两个 pytest 文件。环境/签名/启动/build manifest 尚未产生，因为 build step 未执行；没有将其缺失解释成通过。未创建或覆盖 `release/PDV_Studio_v0.1.4_macos_arm64.zip`。
+
+### 最小本地修复与 Windows 回归
+
+仅修改 `tests/unit/test_run_demo_pipeline_modes.py`：测试 helper 显式选用合法已提交的 `docs/原始数据.csv`，用于已有 mock 的运行指针/输出报告测试。不是 raw fallback，未改变生产默认 TOML、pipeline 入口或任何科学算法；也没有新 deselect/skip。新增 2 项测试分别检查明确的公开输入/列映射，以及显式输入缺失时仍报错、不得替换 fixture。
+
+| 本地修复验证 | 实际结果 |
+| --- | --- |
+| 该模块 targeted pytest | 10 passed in 9.04s |
+| 完整 Windows real-data pytest（含 Windows release/packaging tests） | **717 passed in 83.40s**，无 skip/xfail |
+| portable + 私有 raw 不可用的只读 I/O guard 演练 | **699 passed, 18 deselected in 55.59s** |
+| Ruff | All checks passed |
+| strict mypy（src + 3 个 Mac 工具） | 87 source files，无问题 |
+
+仅为本地演练加载 `build/task031_phase2_20261009/portable_no_raw_guard.py`，令 Python 对本仓库 raw 的存在检查返回不可用并阻止读取；文件留在原位置，没有 rename/delete/替代数据。这不是正式 CI 或 Mac 原生验收，guard 不进入 Git/workflow。日志/JUnit 均保留在同一目录。
+
+本阶段开始/结束 **24 raw 文件（含 .gitkeep）SHA-256 全部一致**。Research 未访问、未修改；core、configs、GUI、Windows/Mac build scripts、spec、workflow、约束依赖没有改动。Git 仍在 main，HEAD 与 origin/main 未变；本地未提交改动仅为该测试模块和本报告，另新增仓库外的当日 Obsidian 日志。未 commit/push/merge/rebase/cherry-pick，未建分支/worktree，未提交生成产物。
+
+**首次停止点（2026-10-09 用户授权后解除）：** 用户明确允许提交本次已确认测试修复及必要报告更新、push origin/main，然后对包含修复的新 SHA dispatch。授权不覆盖后续新修复的再次提交。此处记录的首次 run 失败结论保持不变，不用本地 PASS 覆盖远端结果。修复提交信息：`test: remove private raw dependency from pipeline output tests`。
+
+当日日志：`D:\Research\Notes\05项目\dps\2026-10-09_TASK-031_macOS-arm64内部发布.md`。仍需人工检查的 Mac 图标、首次打开、原生对话框、中文/空格路径、语言/QSettings、快捷键和 Retina 布局均待正式构建成功后验证。
+
+---
+
+以下为第一阶段历史记录（2026-10-04）：**READY_TO_PUSH_FOR_MACOS_CI**；当时未 dispatch、未生成 Mac ZIP。用户随后手工提交并推送了 `dda50631240208c0d694bdf575b458d33277a6dc`。下文未验收/未 push 等表述只记录当时状态，最新结论以上述第二阶段为准。
 
 ## 起始与 Git 边界
 
