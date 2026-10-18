@@ -1,0 +1,423 @@
+{
+  "task": "TASK-005",
+  "algorithm_name_zh": "可信种子引导的双窗谱带连接法",
+  "algorithm_short_name": "SG-DBand",
+  "frozen_utc": "2026-10-16T17:38:54.347018+00:00",
+  "algorithm_source_sha256": "69079957c2c7bb2af05eb5997880a7728fdb81b275cc1b0091b180d0e388b168",
+  "algorithm_config": {
+    "min_candidate_background_db": 6.0,
+    "temporal_radius_s": 1.28e-08,
+    "orientations_hz_per_s": [
+      -2e+16,
+      -1e+16,
+      0.0,
+      1e+16,
+      2e+16
+    ],
+    "foreground_threshold_db": 6.0,
+    "tube_half_width_resolution_factor": 0.5,
+    "min_tube_supported_fraction": 0.6,
+    "min_fragment_duration_s": 3.2e-08,
+    "max_gap_s": 9.6e-09,
+    "max_link_delta_hz": 100000000.0,
+    "max_slope_hz_per_s": 2e+16,
+    "link_tolerance_resolution_factor": 0.5,
+    "frequency_cost_weight": 0.3,
+    "gap_cost_weight": 0.75,
+    "background_reward_clip_db": 24.0,
+    "automatic_min_relative_margin": 0.2,
+    "companion_time_tolerance_s": 5e-11,
+    "companion_frequency_tolerance_resolution_factor": 0.5
+  },
+  "primary_mode": "guided_dual_window",
+  "profiles": [
+    "balanced",
+    "high_time_resolution"
+  ],
+  "units": {
+    "time": "s",
+    "frequency": "Hz",
+    "voltage": "V",
+    "slope": "Hz/s"
+  },
+  "guidance_source": "研究者按谱图指定；本轮由Agent登记一个粗略时频点，不使用逐帧真值或手绘轨迹。",
+  "transfer_definition": "所有记录已做谱图筛查；transfer/normal/ambiguity记录未用于参数开发，属于跨记录迁移检查，并非盲测或独立实验。",
+  "raw_files": [
+    {
+      "filename": "20201210m.dat",
+      "sha256": "08a8b8af06dd241f6f1b2ceb08e60f8b6b110d755b867f36935e48a28495e956",
+      "reader": {
+        "time_column": 0,
+        "voltage_columns": {
+          "pdv_channel_1": 1
+        },
+        "delimiter": ",",
+        "has_header": false,
+        "encoding": "utf-8",
+        "time_scale": 1.0,
+        "voltage_scales": {
+          "pdv_channel_1": 1.0
+        }
+      },
+      "minimum_frequency_hz": 500000000.0,
+      "maximum_frequency_hz": 6000000000.0
+    },
+    {
+      "filename": "20201211m.dat",
+      "sha256": "b7994a2b31970daf4813583394a92556287f0eaa4aeeb1d1ec00a1f256452b84",
+      "reader": {
+        "time_column": 0,
+        "voltage_columns": {
+          "pdv_channel_1": 1
+        },
+        "delimiter": ",",
+        "has_header": false,
+        "encoding": "utf-8",
+        "time_scale": 1.0,
+        "voltage_scales": {
+          "pdv_channel_1": 1.0
+        }
+      },
+      "minimum_frequency_hz": 500000000.0,
+      "maximum_frequency_hz": 6000000000.0
+    },
+    {
+      "filename": "20201214m.dat",
+      "sha256": "06da315b9e148c8589564771e172a5d9974d6a04f59ae126ce9b724007ef0798",
+      "reader": {
+        "time_column": 0,
+        "voltage_columns": {
+          "pdv_channel_1": 1
+        },
+        "delimiter": ",",
+        "has_header": false,
+        "encoding": "utf-8",
+        "time_scale": 1.0,
+        "voltage_scales": {
+          "pdv_channel_1": 1.0
+        }
+      },
+      "minimum_frequency_hz": 500000000.0,
+      "maximum_frequency_hz": 8000000000.0
+    },
+    {
+      "filename": "20221017a.dat",
+      "sha256": "3228766dbac4c14e960d10fc7c663cfc99f8ab7bfd8329e7ba0c7e7aa3c2c954",
+      "reader": {
+        "time_column": 0,
+        "voltage_columns": {
+          "pdv_channel_1": 1
+        },
+        "delimiter": ",",
+        "has_header": false,
+        "encoding": "utf-8",
+        "time_scale": 1.0,
+        "voltage_scales": {
+          "pdv_channel_1": 1.0
+        }
+      },
+      "minimum_frequency_hz": 500000000.0,
+      "maximum_frequency_hz": 6000000000.0
+    },
+    {
+      "filename": "20231019-ch1.dat",
+      "sha256": "4ccbe54b8def8fc3b05d8b1d25eec9a8700baa91eec679c5a2b8a04d0bf3d6dc",
+      "reader": {
+        "time_column": 0,
+        "voltage_columns": {
+          "pdv_channel_1": 1
+        },
+        "delimiter": ",",
+        "has_header": false,
+        "encoding": "utf-8",
+        "time_scale": 1.0,
+        "voltage_scales": {
+          "pdv_channel_1": 1.0
+        }
+      },
+      "minimum_frequency_hz": 500000000.0,
+      "maximum_frequency_hz": 6000000000.0
+    },
+    {
+      "filename": "20260607.csv",
+      "sha256": "ab9f656e3563ab96d0e842db88510076f6368e246853fd3427d8fd7db68f7353",
+      "reader": {
+        "time_column": 0,
+        "voltage_columns": {
+          "pdv_channel_1": 1,
+          "pdv_channel_2": 2
+        },
+        "delimiter": ",",
+        "has_header": false,
+        "encoding": "utf-8",
+        "time_scale": 1.0,
+        "voltage_scales": {
+          "pdv_channel_1": 1.0,
+          "pdv_channel_2": 1.0
+        }
+      },
+      "minimum_frequency_hz": 200000000.0,
+      "maximum_frequency_hz": 6000000000.0
+    },
+    {
+      "filename": "20260630-1.csv",
+      "sha256": "203b182e477e1e08214551977a00313eaf6f17a71391d83875f6f879dc3a0a74",
+      "reader": {
+        "time_column": 0,
+        "voltage_columns": {
+          "pdv_channel_1": 1,
+          "pdv_channel_2": 2
+        },
+        "delimiter": ",",
+        "has_header": false,
+        "encoding": "utf-8",
+        "time_scale": 1.0,
+        "voltage_scales": {
+          "pdv_channel_1": 1.0,
+          "pdv_channel_2": 1.0
+        }
+      },
+      "minimum_frequency_hz": 200000000.0,
+      "maximum_frequency_hz": 6000000000.0
+    },
+    {
+      "filename": "20260630-2.csv",
+      "sha256": "c0c31b2990eae228b21594276d030b83600a7ddb98c1953842e4cb80c17fa261",
+      "reader": {
+        "time_column": 0,
+        "voltage_columns": {
+          "pdv_channel_1": 1,
+          "pdv_channel_2": 2
+        },
+        "delimiter": ",",
+        "has_header": false,
+        "encoding": "utf-8",
+        "time_scale": 1.0,
+        "voltage_scales": {
+          "pdv_channel_1": 1.0,
+          "pdv_channel_2": 1.0
+        }
+      },
+      "minimum_frequency_hz": 200000000.0,
+      "maximum_frequency_hz": 6000000000.0
+    },
+    {
+      "filename": "20260701.csv",
+      "sha256": "5ccb6530e0cc715e4a7a81327c625fce267a8b3473c0487479366ead9d9a952a",
+      "reader": {
+        "time_column": 0,
+        "voltage_columns": {
+          "pdv_channel_1": 1,
+          "pdv_channel_2": 2
+        },
+        "delimiter": ",",
+        "has_header": false,
+        "encoding": "utf-8",
+        "time_scale": 1.0,
+        "voltage_scales": {
+          "pdv_channel_1": 1.0,
+          "pdv_channel_2": 1.0
+        }
+      },
+      "minimum_frequency_hz": 200000000.0,
+      "maximum_frequency_hz": 6000000000.0
+    },
+    {
+      "filename": "ch3.csv",
+      "sha256": "401673b77829d4b2568a4b2a9b88dc649afa926b668c6c493012d8fc30115d49",
+      "reader": {
+        "time_column": 0,
+        "voltage_columns": {
+          "pdv_channel_1": 1
+        },
+        "delimiter": ",",
+        "has_header": false,
+        "encoding": "utf-8",
+        "time_scale": 1.0,
+        "voltage_scales": {
+          "pdv_channel_1": 1.0
+        }
+      },
+      "minimum_frequency_hz": 200000000.0,
+      "maximum_frequency_hz": 6000000000.0
+    }
+  ],
+  "real_cases": [
+    {
+      "case_id": "D1",
+      "role": "development",
+      "filename": "20260607.csv",
+      "channel": "pdv_channel_2",
+      "analysis_relative_ns": [
+        1616,
+        1950
+      ],
+      "query_frequency_ghz": [
+        0.75,
+        1.0
+      ],
+      "display_frequency_ghz": [
+        0.2,
+        1.2
+      ],
+      "seed_relative_ns": 1800,
+      "seed_frequency_ghz": 0.86,
+      "seed_frequency_tolerance_hz": 100000000.0,
+      "note": "persistent competing component; conditional selected branch"
+    },
+    {
+      "case_id": "D2",
+      "role": "development",
+      "filename": "20260630-1.csv",
+      "channel": "pdv_channel_2",
+      "analysis_relative_ns": [
+        3300,
+        4980
+      ],
+      "query_frequency_ghz": [
+        0.45,
+        0.65
+      ],
+      "display_frequency_ghz": [
+        0.2,
+        0.85
+      ],
+      "seed_relative_ns": 4000,
+      "seed_frequency_ghz": 0.52,
+      "seed_frequency_tolerance_hz": 100000000.0,
+      "note": "weak late plateau; strong ROI-only improvement must be separated"
+    },
+    {
+      "case_id": "T1",
+      "role": "transfer",
+      "filename": "20260701.csv",
+      "channel": "pdv_channel_1",
+      "analysis_relative_ns": [
+        1600,
+        1990
+      ],
+      "query_frequency_ghz": [
+        0.6,
+        0.85
+      ],
+      "display_frequency_ghz": [
+        0.2,
+        1.65
+      ],
+      "seed_relative_ns": 1800,
+      "seed_frequency_ghz": 0.72,
+      "seed_frequency_tolerance_hz": 100000000.0,
+      "note": "cross-record late band and competing branch"
+    },
+    {
+      "case_id": "T2",
+      "role": "transfer",
+      "filename": "20260630-2.csv",
+      "channel": "pdv_channel_2",
+      "analysis_relative_ns": [
+        1550,
+        1990
+      ],
+      "query_frequency_ghz": [
+        0.8,
+        1.05
+      ],
+      "display_frequency_ghz": [
+        0.2,
+        1.5
+      ],
+      "seed_relative_ns": 1800,
+      "seed_frequency_ghz": 0.92,
+      "seed_frequency_tolerance_hz": 100000000.0,
+      "note": "cross-record late plateau"
+    },
+    {
+      "case_id": "N1",
+      "role": "normal",
+      "filename": "20221017a.dat",
+      "channel": "pdv_channel_1",
+      "analysis_relative_ns": [
+        280,
+        680
+      ],
+      "query_frequency_ghz": [
+        4.2,
+        4.6
+      ],
+      "display_frequency_ghz": [
+        3.8,
+        5.0
+      ],
+      "seed_relative_ns": 400,
+      "seed_frequency_ghz": 4.44,
+      "seed_frequency_tolerance_hz": 100000000.0,
+      "note": "clear normal plateau"
+    },
+    {
+      "case_id": "N2",
+      "role": "normal",
+      "filename": "20231019-ch1.dat",
+      "channel": "pdv_channel_1",
+      "analysis_relative_ns": [
+        140,
+        760
+      ],
+      "query_frequency_ghz": [
+        1.5,
+        4.7
+      ],
+      "display_frequency_ghz": [
+        1.5,
+        4.8
+      ],
+      "seed_relative_ns": 400,
+      "seed_frequency_ghz": 4.3,
+      "seed_frequency_tolerance_hz": 100000000.0,
+      "note": "curved decline; fixed seed-frequency window control"
+    },
+    {
+      "case_id": "A1",
+      "role": "ambiguity",
+      "filename": "ch3.csv",
+      "channel": "pdv_channel_1",
+      "analysis_relative_ns": [
+        1000,
+        1400
+      ],
+      "query_frequency_ghz": [
+        3.5,
+        4.7
+      ],
+      "display_frequency_ghz": [
+        0.8,
+        5.2
+      ],
+      "seed_relative_ns": 1150,
+      "seed_frequency_ghz": 3.8,
+      "seed_frequency_tolerance_hz": 100000000.0,
+      "note": "complex weak event; query band excludes actual low dip and is not truth"
+    }
+  ],
+  "synthetic": {
+    "registration": "TASK005_AUX_POST_FREEZE",
+    "families": [
+      "persistent_competitor",
+      "curved_competitor",
+      "normal_chirp",
+      "target_absence",
+      "resolved_approach",
+      "rapid_return"
+    ],
+    "instances_per_family": 2,
+    "seed_base": 53051000,
+    "seed_family_stride": 100,
+    "sample_rate_hz": 40000000000.0,
+    "sample_count": 32000,
+    "tolerance_hz": 100000000.0,
+    "guidance": "Generator supplies exactly one coarse time-frequency cue at100ns; full truth is scoring-only.",
+    "development_test_seed_range": [
+      50580001,
+      50580003
+    ]
+  }
+}
