@@ -1,2 +1,0 @@
-﻿source,channel,frame,time_s,legacy_frequency_hz,continuity_frequency_hz,legacy_state,continuity_state,legacy_velocity_m_s,continuity_velocity_m_s,candidate_rank,reselection_reason
-20260630-1.csv,pdv_channel_2,1015,0.0007472116149911109,508751027.84382087,211379347.7240943,ambiguous_peak,measured,,163.81899448617307,2,reselected
