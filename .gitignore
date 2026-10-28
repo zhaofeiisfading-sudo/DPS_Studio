@@ -108,3 +108,15 @@ pip-wheel-metadata/
 Thumbs.db
 desktop.ini
 .DS_Store
+# Bandwidth Research — local disposable caches
+/.local_cache/
+
+# Bandwidth Research — generated datasets and heavy results
+/results/bandwidth/
+
+# Defensive rules for Python and tool caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
