@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import numpy as np
 
-from dps_studio.core.physics.acceleration import VelocityDerivative, differentiate_velocity
+from dps_studio.core.physics.acceleration import (
+    VelocityDerivative, differentiate_velocity, local_linear_acceleration,
+)
 from dps_studio.core.physics import velocity_correction_metadata
 from dps_studio.core.quality import SignalState
 from dps_studio.core.workflow.display import PRE_EVENT_DISPLAY_ORIGIN
 from dps_studio.core.workflow.models import ChannelAnalysis, WorkingRidgeSource
 
 
-def channel_acceleration(analysis: ChannelAnalysis) -> VelocityDerivative:
+def channel_acceleration(
+    analysis: ChannelAnalysis, *, window_s: float | None = None,
+) -> VelocityDerivative:
     """Derivative of the final displayed speed; exclude known nonphysical gaps.
 
     Low quality finite working values remain eligible with their original
@@ -35,6 +39,9 @@ def channel_acceleration(analysis: ChannelAnalysis) -> VelocityDerivative:
             strict=True,
         )
     ], dtype=np.bool_)
+    if window_s is not None:
+        return local_linear_acceleration(analysis.stft_result.time_s, analysis.plot_velocity_m_s,
+                                         valid_mask=mask, window_s=window_s)
     return differentiate_velocity(analysis.stft_result.time_s, analysis.plot_velocity_m_s, valid_mask=mask)
 
 
@@ -53,5 +60,8 @@ def acceleration_metadata(analysis: ChannelAnalysis) -> dict[str, object]:
         "preprocessing": "none; no smoothing, interpolation, fitting or resampling",
         "limits": "noise and speed jumps amplified; temporal resolving power limited by velocity reconstruction window; peaks unvalidated",
         "velocity_reconstruction_window_samples": analysis.stft_result.window_length_samples,
+        "velocity_reconstruction_window_s": analysis.stft_result.window_length_samples / analysis.stft_result.sample_rate_hz,
+        "frame_interval_s": analysis.stft_result.hop_samples / analysis.stft_result.sample_rate_hz,
+        "overlap_samples": analysis.stft_result.overlap_samples,
         "velocity_correction": velocity_correction_metadata(analysis.working_velocity_correction_result),
     }

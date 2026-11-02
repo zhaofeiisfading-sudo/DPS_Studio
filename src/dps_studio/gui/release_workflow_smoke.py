@@ -166,11 +166,48 @@ def _exercise(window: MainWindow, source: Path, destination: Path) -> dict[str, 
     window.velocity_parameter_scroll.ensureWidgetVisible(editor)
     QApplication.processEvents()
     assert window.grab().save(str(destination / "presets.png"))
+    view.acceleration_method_combo.setCurrentIndex(1)
+    view.acceleration_window_spin.setValue(50)
+    fit_dir = destination / "fit_exports"
+    fit_dir.mkdir()
+    window._set_export_output_directory(fit_dir)
+    window.export_acceleration_fit_check.setChecked(True)
+    for name, analysis in window.analysis_session.channel_analyses.items():
+        view.channel_combo.setCurrentIndex(view.channel_combo.findData(name))
+        expected = channel_acceleration(analysis, window_s=view.local_fit_window_s).acceleration_m_s2
+        assert view.acceleration_curve is not None
+        plotted = np.asarray(view.acceleration_curve.getData()[1], dtype=np.float64)
+        np.testing.assert_array_equal(plotted, expected * 1e-9)
+        window.export_channel_combo.setCurrentIndex(window.export_channel_combo.findData(name))
+        QTimer.singleShot(100, _dismiss_message)
+        assert window._export_current_result()
+    for metadata_path in fit_dir.glob("*.metadata.json"):
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        fit = metadata["acceleration_local_fit"]
+        assert np.isclose(fit["window_s"], 50e-9, rtol=1e-12, atol=0)
+        analysis = window.analysis_session.channel_analyses[metadata["source_channel"]]
+        with (fit_dir / fit["csv_file"]).open(encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        for column, fit_window in (("acceleration_m_s2", None),
+                                   ("local_linear_acceleration_m_s2", fit["window_s"])):
+            np.testing.assert_allclose([float(row[column]) for row in rows],
+                channel_acceleration(analysis, window_s=fit_window).acceleration_m_s2,
+                equal_nan=True)
+    window.select_workflow_step(2)
+    window.velocity_parameter_scroll.verticalScrollBar().setValue(0)
+    QApplication.processEvents()
+    assert window.grab().save(str(destination / "local_fit.png"))
+    for index in (0, 1, 2):
+        window.science_tabs.setCurrentIndex(index)
+        QApplication.processEvents()
+        assert window.grab().save(str(destination / f"page_{index}.png"))
+    window.science_tabs.setCurrentWidget(view)
     assert source_hash == hashlib.sha256(source.read_bytes()).hexdigest()
     return {"input_sha256": source_hash, "input_unchanged": True,
             "raw_samples": {key: record.time_s.size for key, record in loaded.records.items()},
             "builtin_derivative_audit": audits, "custom_derivative_audit": corrected_audits,
-            "workflow_complete": True, "export_directory": str(export_dir)}
+            "workflow_complete": True, "export_directory": str(export_dir),
+            "local_fit_plot_and_export_match": True, "fit_window_s": 50e-9}
 
 
 def run_workflow_smoke(arguments: list[str]) -> int:

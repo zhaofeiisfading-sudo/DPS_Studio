@@ -31,6 +31,15 @@ def test_event_labels_fit_translated_sidebar(qapp: QApplication, tmp_path: Path,
                    row["height"] >= row["required_height"] for row in geometry), geometry
         if language == "en":
             assert window.analysis_range_panel.manual_event_time_radio.text() == "Manual"
+        view = window.velocity_view
+        window.science_tabs.setCurrentWidget(view)
+        view.quantity_combo.setCurrentIndex(1)
+        view.acceleration_method_combo.setCurrentIndex(1)
+        qapp.processEvents()
+        spin = view.acceleration_window_spin
+        assert spin.width() >= spin.sizeHint().width()
+        assert spin.mapTo(view, spin.rect().topRight()).x() <= view.width()
+        assert view.acceleration_method_combo.width() >= view.acceleration_method_combo.sizeHint().width()
     finally:
         window.close()
         manager.install("zh_CN")

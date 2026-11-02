@@ -81,6 +81,7 @@ class ResultExportOptions:
     )
     dps_studio_version: str = __version__
     include_acceleration: bool = False
+    acceleration_fit_window_s: float | None = None
 
     def __post_init__(self) -> None:
         output_directory = Path(self.output_directory)
@@ -100,6 +101,12 @@ class ResultExportOptions:
             raise ResultExportValidationError("quality_passed_only must be a boolean.")
         if not isinstance(self.include_acceleration, bool):
             raise ResultExportValidationError("include_acceleration must be a boolean.")
+        if self.acceleration_fit_window_s is not None:
+            if (not self.include_acceleration or not math.isfinite(self.acceleration_fit_window_s)
+                    or self.acceleration_fit_window_s <= 0):
+                raise ResultExportValidationError(
+                    "A positive finite fit window requires include_acceleration."
+                )
         try:
             analyses = dict(self.channel_analyses)
         except (TypeError, ValueError) as exc:

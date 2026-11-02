@@ -435,6 +435,7 @@
         <source>事件参考草稿尚未确认；当前不会用于显示平台。</source>
         <translation type="vanished">The event-reference draft is not confirmed and is not currently used for the display platform.</translation>
     </message>
+<message><source>事件候选</source><translation>Event candidates</translation></message>
 </context>
 <context>
     <name>ComparisonView</name>
@@ -2998,6 +2999,21 @@ TASK-015A 接入只读范围与 public core 后台自动分析。</source>
 A traceable desktop workspace for PDV time–voltage data.
 Read-only ranges and public core background analysis.</translation>
     </message>
+    <message>
+        <source>当前曲线已应用所选修正。</source>
+        <translation>Selected corrections are applied.</translation>
+    </message>
+    <message>
+        <source>加速度 CSV · 原始差分</source>
+        <translation>Acceleration CSV · raw difference</translation>
+    </message>
+    <message>
+        <source>附加局部拟合列（窗口取自速度页）</source>
+        <translation>Add local fit columns (window from velocity view)</translation>
+    </message>
+    <message><source>附加局部拟合列 · {window:g} ns</source><translation>Add local fit columns · {window:g} ns</translation></message>
+    <message><source>拟合窗口在速度页设置；原始差分列始终保留。</source><translation>Set the fit window in the velocity view; raw difference columns are always retained.</translation></message>
+<message><source>当前使用绝对时间；可选择事件参考。</source><translation>Absolute time; select an event reference if needed.</translation></message>
 </context>
 <context>
     <name>QualitySummaryWidget</name>
@@ -3477,6 +3493,38 @@ Read-only ranges and public core background analysis.</translation>
         <source>事件参考时刻</source>
         <translation type="vanished">Event Reference Time</translation>
     </message>
+    <message>
+        <source>原始差分</source>
+        <translation>Raw difference</translation>
+    </message>
+    <message>
+        <source>局部线性拟合</source>
+        <translation>Local linear fit</translation>
+    </message>
+    <message>
+        <source>窗口 </source>
+        <translation>Window </translation>
+    </message>
+    <message>
+        <source>拟合窗口总宽度；至少 3 点，不跨无效区。端点使用截短窗口。帧间隔不代表时间分辨率，重叠 STFT 帧彼此相关。</source>
+        <translation>Full fit width; at least 3 points, no gap bridging. Windows truncate at edges. Frame spacing is not time resolution; overlapping STFT frames are correlated.</translation>
+    </message>
+    <message>
+        <source>滚轮缩放，拖动平移；“适合结果范围”恢复完整数据范围。</source>
+        <translation>Scroll to zoom, drag to pan; Fit result range restores the full data range.</translation>
+    </message>
+    <message>
+        <source>来源：最终速度（无符号） · {source} · 观测角 {angle:g}°</source>
+        <translation>Source: final speed (unsigned) · {source} · angle {angle:g}°</translation>
+    </message>
+    <message>
+        <source>原始差分使用实际时间坐标；局部线性拟合保留原速度，可能压低或展宽短时峰。无效区与显示平台留空。有限数值不代表质量通过；质量及修正参数见导出记录。</source>
+        <translation>Raw differences use actual times. Local fitting leaves speed unchanged and may attenuate or broaden short peaks. Invalid regions and display platforms remain blank. Finite values do not imply quality acceptance; exports retain quality and correction parameters.</translation>
+    </message>
+<message><source>{count}/{total} 点可计算</source><translation>{count}/{total} points computed</translation></message>
+<message><source>分析范围</source><translation>Analysis range</translation></message>
+<message><source>全部结果</source><translation>Full range</translation></message>
+<message><source>滚轮缩放，拖动平移；“全部结果”恢复完整数据范围。</source><translation>Scroll to zoom, drag to pan; Full range restores the complete data range.</translation></message>
 </context>
 <context>
     <name>_ChannelView</name>
@@ -3525,6 +3573,7 @@ Read-only ranges and public core background analysis.</translation>
         <source>拖动调整搜索时间终点</source>
         <translation>Drag to adjust the search end time</translation>
     </message>
+<message><source>通道</source><translation>Channel</translation></message>
 </context>
 <context>
     <name>VelocityView</name>

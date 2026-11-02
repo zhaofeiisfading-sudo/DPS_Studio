@@ -14,6 +14,8 @@ from PySide6.QtCore import QSignalBlocker, QRectF, Signal, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDoubleSpinBox,
+    QFormLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -300,7 +302,7 @@ class _ChannelView(QWidget):
         self._search_region_editable = False
         self.root_layout = QVBoxLayout(self)
         self.controls_layout = QHBoxLayout()
-        self.controls_layout.addWidget(QLabel(self.tr("显示通道")))
+        self.controls_layout.addWidget(QLabel(self.tr("通道")))
         self.channel_combo = QComboBox()
         self.channel_combo.setObjectName("analysisChannelSelector")
         self.channel_combo.currentIndexChanged.connect(self._channel_changed)
@@ -1133,7 +1135,8 @@ class VelocityView(_ChannelView):
         self.fit_analysis_range_button.setToolTip(
             self.tr("将视图恢复到当前设定的分析时间范围。")
         )
-        self.fit_result_range_button = QPushButton(self.tr("适合结果范围"))
+        self.fit_analysis_range_button.setText(self.tr("分析范围"))
+        self.fit_result_range_button = QPushButton(self.tr("全部结果"))
         self.fit_result_range_button.setObjectName("fitResultRangeButton")
         self.fit_result_range_button.setToolTip(
             self.tr("将视图适配到当前显示的有效速度结果。")
@@ -1159,7 +1162,32 @@ class VelocityView(_ChannelView):
         self.quantity_combo.addItem(self.tr("速度"), "velocity")
         self.quantity_combo.addItem(self.tr("加速度 dv/dt"), "acceleration")
         self.quantity_combo.currentIndexChanged.connect(self._quantity_changed)
-        option_row.addWidget(self.quantity_combo)
+        source_row.insertWidget(source_row.count() - 1, self.quantity_combo)
+        self.acceleration_method_combo = QComboBox()
+        self.acceleration_method_combo.addItem(self.tr("原始差分"), "raw")
+        self.acceleration_method_combo.addItem(self.tr("局部线性拟合"), "local_linear")
+        self.acceleration_window_spin = QDoubleSpinBox()
+        self.acceleration_window_spin.setRange(0.001, 1000000)
+        self.acceleration_window_spin.setDecimals(3)
+        self.acceleration_window_spin.setValue(50)
+        self.acceleration_window_spin.setSuffix(" ns")
+        self.acceleration_window_spin.setPrefix(self.tr("窗口 "))
+        self.acceleration_window_spin.setMinimumWidth(self.acceleration_window_spin.sizeHint().width())
+        self.acceleration_window_spin.setToolTip(self.tr(
+            "拟合窗口总宽度；至少 3 点，不跨无效区。端点使用截短窗口。"
+            "帧间隔不代表时间分辨率，重叠 STFT 帧彼此相关。"
+        ))
+        self.acceleration_controls = QWidget()
+        acceleration_form = QFormLayout(self.acceleration_controls)
+        acceleration_form.setContentsMargins(0, 0, 0, 0)
+        acceleration_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        acceleration_form.addRow(self.acceleration_method_combo, self.acceleration_window_spin)
+        option_row.addWidget(self.acceleration_controls)
+        self.acceleration_controls.hide()
+        self.acceleration_method_combo.hide()
+        self.acceleration_window_spin.hide()
+        self.acceleration_method_combo.currentIndexChanged.connect(self._quantity_changed)
+        self.acceleration_window_spin.valueChanged.connect(self._acceleration_window_changed)
         self.diagnostic_velocity_check = QCheckBox(self.tr("显示诊断曲线"))
         self.diagnostic_velocity_check.setObjectName("diagnosticVelocityCheck")
         self.diagnostic_velocity_check.setChecked(False)
@@ -1180,6 +1208,7 @@ class VelocityView(_ChannelView):
         self.plot_widget.setLabel("left", self.tr("速度"), units="m/s")
         self.plot_widget.showGrid(x=True, y=True, alpha=0.22)
         self.plot_widget.plotItem.hideButtons()
+        self.plot_widget.setToolTip(self.tr("滚轮缩放，拖动平移；“全部结果”恢复完整数据范围。"))
         self.root_layout.addWidget(self.plot_widget, 1)
         self.formal_curve: Any | None = None
         self.apparent_curve: Any | None = None
@@ -1208,10 +1237,23 @@ class VelocityView(_ChannelView):
         return source if isinstance(source, str) else "automatic"
 
     def _quantity_changed(self, _index: int) -> None:
-        self.diagnostic_velocity_check.setVisible(self.quantity_combo.currentData() == "velocity")
+        acceleration = self.quantity_combo.currentData() == "acceleration"
+        self.diagnostic_velocity_check.setVisible(not acceleration)
+        self.acceleration_method_combo.setVisible(acceleration)
+        self.acceleration_controls.setVisible(acceleration)
+        self.acceleration_window_spin.setVisible(acceleration and self.local_fit_window_s is not None)
         channel = self.channel_combo.currentData()
         if isinstance(channel, str) and channel in self._analyses:
             self._render_channel(channel, fit_view=True)
+
+    @property
+    def local_fit_window_s(self) -> float | None:
+        if self.acceleration_method_combo.currentData() == "local_linear":
+            return float(self.acceleration_window_spin.value()) * 1e-9
+        return None
+
+    def _acceleration_window_changed(self, _value: float) -> None:
+        self._quantity_changed(0)
 
     def select_result_target(self, result_source: str, channel_name: str) -> bool:
         """Select an existing mode/channel for export preview without recomputing."""
@@ -1457,6 +1499,12 @@ class VelocityView(_ChannelView):
         self.plot_widget.getAxis("left").enableAutoSIPrefix(True)
         if self.quantity_combo.currentData() == "acceleration":
             self._render_acceleration(analysis, time_us)
+            if fit_view:
+                self.plot_widget.autoRange()
+                self._fit_current_view(analysis)
+            else:
+                self.plot_widget.setXRange(*previous_range[0], padding=0.0)
+                self.plot_widget.setYRange(*previous_range[1], padding=0.0)
             return
         self.display_curve = self.plot_widget.plot(
             time_us,
@@ -1523,9 +1571,9 @@ class VelocityView(_ChannelView):
     def _render_acceleration(self, analysis: ChannelAnalysis, time_us: FloatArray) -> None:
         self.display_curve = self.apparent_curve = self.corrected_curve = self.formal_curve = None
         self.display_connector = self.event_reference_line = None
-        derivative = channel_acceleration(analysis)
+        derivative = channel_acceleration(analysis, window_s=self.local_fit_window_s)
         # Explicit scale keeps values readable; arrays and CSV remain SI.
-        self.plot_widget.setLabel("left", self.tr("速度幅值时间导数"), units="10⁹ m/s²")
+        self.plot_widget.setLabel("left", "dv/dt", units="10⁹ m/s²")
         # Also clear the cached SI scale: disabling alone can retain a prefix
         # from the previous velocity range in PyQtGraph 0.14.
         self.plot_widget.getAxis("left").setSIPrefixEnableRanges(())
@@ -1538,16 +1586,19 @@ class VelocityView(_ChannelView):
         self.acceleration_curve = self.plot_widget.plot(
             time_us, derivative.acceleration_m_s2 * 1e-9,
             pen=pg.mkPen("#009E73", width=1.8), connect="finite",
-            name=self.tr("最终显示速度的 dv/dt"),
+            name=self.acceleration_method_combo.currentText(),
         )
         self.acceleration_notice.setText(self.tr(
-            "来源：最终显示速度（{source}，观测角 {angle:g}°）。无符号速度的数值时间导数；"
-            "显示平台与已知无效区留空。求导放大噪声和跳变，时间分辨能力受速度重建窗口限制；"
-            "尖峰未作物理验证。"
-        ).format(source=source, angle=math.degrees(config.measurement_angle_rad)))
+            "来源：最终速度（无符号） · {source} · 观测角 {angle:g}°"
+        ).format(source=source, angle=math.degrees(config.measurement_angle_rad))
+            + " · " + self.tr("{count}/{total} 点可计算").format(
+                count=int(np.isfinite(derivative.acceleration_m_s2).sum()), total=time_us.size,
+            ))
+        self.acceleration_notice.setToolTip(self.tr(
+            "原始差分使用实际时间坐标；局部线性拟合保留原速度，可能压低或展宽短时峰。"
+            "无效区与显示平台留空。有限数值不代表质量通过；质量及修正参数见导出记录。"
+        ))
         self.acceleration_notice.show()
-        self.plot_widget.autoRange()
-        self._fit_current_view(analysis)
 
     def fit_result_range(self) -> None:
         """Fit both axes to finite data from only the currently visible curves."""

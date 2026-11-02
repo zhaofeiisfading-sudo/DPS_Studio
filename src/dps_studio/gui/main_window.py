@@ -1015,13 +1015,15 @@ class MainWindow(QMainWindow):
         velocity_layout.addWidget(
             self._notice(
                 self.tr(
-                    "当前速度曲线已应用所选修正；详细诊断和中间速度保存在分析记录中。"
+                    "当前曲线已应用所选修正。"
                 )
             )
         )
         velocity_layout.addWidget(self.analysis_range_panel)
         velocity_form = QFormLayout()
+        velocity_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self.formal_velocity_status_label = QLabel(self.tr("尚无速度结果"))
+        self.formal_velocity_status_label.setWordWrap(True)
         self.display_velocity_status_label = QLabel(self.tr("关闭"))
         velocity_form.addRow(
             self.tr("最终速度"), self.formal_velocity_status_label
@@ -1265,12 +1267,21 @@ class MainWindow(QMainWindow):
             "排除显示平台；文件名包含 quality_passed。详细表保留全部诊断行。"
         ))
         layout.addWidget(self.export_quality_passed_check)
-        self.export_acceleration_check = QCheckBox(self.tr("额外导出加速度 CSV（最终显示速度的 dv/dt）"))
+        self.export_acceleration_check = QCheckBox(self.tr("加速度 CSV · 原始差分"))
         self.export_acceleration_check.setObjectName("exportAcceleration")
         self.export_acceleration_check.setToolTip(self.tr(
             "独立文件保留 SI 时间、速度、加速度和质量来源；不改变速度简表。"
         ))
         layout.addWidget(self.export_acceleration_check)
+        self.export_acceleration_fit_check = QCheckBox(self.tr("附加局部拟合列（窗口取自速度页）"))
+        self.export_acceleration_fit_check.setEnabled(False)
+        self.export_acceleration_check.toggled.connect(self.export_acceleration_fit_check.setEnabled)
+        layout.addWidget(self.export_acceleration_fit_check)
+        self.velocity_view.acceleration_window_spin.valueChanged.connect(
+            self._update_acceleration_export_window
+        )
+        self._update_acceleration_export_window(self.velocity_view.acceleration_window_spin.value())
+        self.export_acceleration_fit_check.setToolTip(self.tr("拟合窗口在速度页设置；原始差分列始终保留。"))
         self.export_description_label = self._notice(
             self.tr("将导出时间—速度数据、详细诊断数据和分析参数记录。")
         )
@@ -2584,7 +2595,7 @@ class MainWindow(QMainWindow):
             rejected = self._session.rejected_event_reference_time_s
             if rejected is None:
                 reason = self.tr(
-                    "事件参考未设置；速度使用实验绝对时间，自动候选仅供选择。"
+                    "当前使用绝对时间；可选择事件参考。"
                 )
             else:
                 reason = self.tr(
@@ -3664,6 +3675,9 @@ class MainWindow(QMainWindow):
         self.export_directory_button.setEnabled(result_available and not busy)
         self.export_include_pre_event_check.setEnabled(result_available and not busy)
         self.export_acceleration_check.setEnabled(result_available and not busy)
+        self.export_acceleration_fit_check.setEnabled(
+            result_available and not busy and self.export_acceleration_check.isChecked()
+        )
         self.export_button.setEnabled(
             selection_valid
             and directory_selected
@@ -3792,6 +3806,11 @@ class MainWindow(QMainWindow):
                     ),
                     quality_passed_only=self.export_quality_passed_check.isChecked(),
                     include_acceleration=self.export_acceleration_check.isChecked(),
+                    acceleration_fit_window_s=(
+                        self.velocity_view.acceleration_window_spin.value() * 1e-9
+                        if self.export_acceleration_check.isChecked()
+                        and self.export_acceleration_fit_check.isChecked() else None
+                    ),
                     source_path=self._session.source_path,
                     analysis_profile_name=configuration.parameters.provenance_name,
                     pre_event_display_enabled=(
@@ -4204,6 +4223,11 @@ class MainWindow(QMainWindow):
                 "用于 PDV 时间—电压数据的可追溯桌面工作台。\n"
                 "TASK-015A 接入只读范围与 public core 后台自动分析。"
             ).format(version=__version__),
+        )
+
+    def _update_acceleration_export_window(self, value: float) -> None:
+        self.export_acceleration_fit_check.setText(
+            self.tr("附加局部拟合列 · {window:g} ns").format(window=value)
         )
 
     def _append_log(self, message: str) -> None:

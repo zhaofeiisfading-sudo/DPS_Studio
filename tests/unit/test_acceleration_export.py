@@ -28,6 +28,29 @@ def _analyses(path: Path) -> dict[str, Any]:
     return formal_analyses(path)["automatic"]
 
 
+def test_local_fit_export_preserves_raw_columns_and_records_window(tmp_path: Path) -> None:
+    analyses = _analyses(tmp_path)
+    report = export_formal_results(replace(_options(tmp_path, analyses),
+        include_acceleration=True, acceleration_fit_window_s=50e-9))
+    for exported in report.exported_channels:
+        assert exported.acceleration_csv_path is not None
+        with exported.acceleration_csv_path.open(encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        analysis = analyses[exported.channel_name]
+        detection = analysis.signal_detection_result
+        time = analysis.stft_result.time_s
+        mask = (time >= detection.analysis_start_time_s) & (time <= detection.analysis_end_time_s)
+        for column, window in (("acceleration_m_s2", None),
+                               ("local_linear_acceleration_m_s2", 50e-9)):
+            np.testing.assert_allclose([float(row[column]) for row in rows],
+                channel_acceleration(analysis, window_s=window).acceleration_m_s2[mask],
+                equal_nan=True)
+        metadata = json.loads(exported.metadata_path.read_text(encoding="utf-8"))
+        assert metadata["acceleration_export"]["method"] == "finite_difference_nonuniform_central_3point"
+        assert metadata["acceleration_local_fit"]["window_s"] == 50e-9
+        assert metadata["acceleration_local_fit"]["method"] == "local_linear_least_squares"
+
+
 @pytest.mark.parametrize("relative", [False, True])
 @pytest.mark.parametrize("quality", [False, True])
 def test_optional_csv_preserves_original_files_and_records_si_source(

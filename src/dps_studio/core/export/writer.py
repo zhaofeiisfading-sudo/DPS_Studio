@@ -367,6 +367,20 @@ def _write_staged_results(
                 "quality_passed_only_applies_to_velocity_simple_csv": options.quality_passed_only,
                 "row_policy": "detail row range; retained invalid rows as NaN; derivative computed before export selection",
             }
+            if options.acceleration_fit_window_s is not None:
+                metadata["acceleration_local_fit"] = {
+                    **acceleration_metadata(analysis),
+                    "method": "local_linear_least_squares",
+                    "window_s": options.acceleration_fit_window_s,
+                    "window_definition": "centered full width; actual time; unweighted; minimum 3 points",
+                    "endpoints": "truncated at eligible segment edges; flagged; insufficient points NaN",
+                    "preprocessing": "velocity unchanged; optional slope fit; no gap bridging",
+                    "csv_file": plan.acceleration_csv_name,
+                    "column": "local_linear_acceleration_m_s2",
+                    "time_origin": options.time_origin.value,
+                    "row_count": len(row_indices),
+                    "limits": "overlapping STFT frames correlated; frame spacing is not resolution; fit can attenuate and broaden short features",
+                }
         _write_json(staging_directory / plan.metadata_name, metadata)
         exported_channels.append(
             ExportedChannelResult(
@@ -391,21 +405,25 @@ def _write_acceleration_csv(
     indices: tuple[int, ...],
 ) -> None:
     derivative = channel_acceleration(analysis)
+    fitted = (channel_acceleration(analysis, window_s=options.acceleration_fit_window_s)
+              if options.acceleration_fit_window_s is not None else None)
     relative = event_relative_time_s(
         analysis.stft_result.time_s,
         analysis.signal_detection_result.manual_event_reference_time_s,
     )
     time_column = _simple_time_column(options.time_origin)
-    fields = (
+    fields: tuple[str, ...] = (
         time_column, "acceleration_m_s2", "velocity_m_s", "velocity_source",
         "derivative_numerical_flag", "signal_state", "ridge_quality_flag",
         "working_source", "velocity_origin", "ridge_selection_origin",
     )
+    if fitted is not None:
+        fields += ("local_linear_acceleration_m_s2", "local_linear_numerical_flag")
     with path.open("x", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle, lineterminator="\n")
         writer.writerow(fields)
         for index in indices:
-            writer.writerow((
+            row: tuple[str, ...] = (
                 _csv_float(relative[index] if options.time_origin is ExportTimeOrigin.EVENT
                            else analysis.stft_result.time_s[index]),
                 _csv_float(derivative.acceleration_m_s2[index]),
@@ -417,7 +435,10 @@ def _write_acceleration_csv(
                 analysis.working_source[index].value,
                 analysis.velocity_origins[index],
                 analysis.automatic_ridge_selection_result.origins[index].value,
-            ))
+            )
+            if fitted is not None:
+                row += (_csv_float(fitted.acceleration_m_s2[index]), fitted.numerical_flags[index])
+            writer.writerow(row)
 
 
 def _export_row_indices(

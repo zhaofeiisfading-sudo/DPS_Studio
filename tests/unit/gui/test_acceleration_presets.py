@@ -31,6 +31,42 @@ def _assert_curve(view: VelocityView, analysis: Any) -> None:
                               equal_nan=True)
 
 
+def test_local_fit_refresh_preserves_zoom_and_velocity(qapp: QApplication, tmp_path: Path,
+                                                       monkeypatch: Any) -> None:
+    window = _isolated_window(qapp, tmp_path, monkeypatch)
+    try:
+        _wait(window, window.run_automatic_analysis)
+        view = window.velocity_view
+        view.select_result_target("automatic", "pdv_channel_1")
+        analysis = window.analysis_session.channel_analyses["pdv_channel_1"]
+        before = analysis.plot_velocity_m_s.copy()
+        view.quantity_combo.setCurrentIndex(1)
+        view.acceleration_method_combo.setCurrentIndex(1)
+        view.acceleration_window_spin.setValue(80)
+        np.testing.assert_allclose(view.acceleration_curve.getData()[1],
+            channel_acceleration(analysis, window_s=80e-9).acceleration_m_s2*1e-9, equal_nan=True)
+        np.testing.assert_array_equal(analysis.plot_velocity_m_s, before)
+        view.plot_widget.setXRange(.6, .8, padding=0)
+        view.plot_widget.setYRange(-3, 4, padding=0)
+        ranges = view.plot_widget.viewRange()
+        window.lif_b1_spin.setValue(.8)
+        np.testing.assert_allclose(view.plot_widget.viewRange(), ranges)
+        after = window.analysis_session.channel_analyses["pdv_channel_1"]
+        np.testing.assert_allclose(view.acceleration_curve.getData()[1],
+            channel_acceleration(after, window_s=80e-9).acceleration_m_s2*1e-9, equal_nan=True)
+        view.fit_result_range()
+        assert view.plot_widget.viewRange() != ranges
+        view.acceleration_method_combo.setCurrentIndex(0)
+        _assert_curve(view, after)
+        view.acceleration_method_combo.setCurrentIndex(1)
+        view.acceleration_window_spin.setValue(.001)
+        assert np.isnan(view.acceleration_curve.getData()[1]).all()
+        assert "0/" in view.acceleration_notice.text()
+    finally:
+        window.close()
+        qapp.processEvents()
+
+
 def test_acceleration_tracks_channel_corrections_rename_export_and_clear(
     qapp: QApplication, tmp_path: Path, monkeypatch: Any,
 ) -> None:

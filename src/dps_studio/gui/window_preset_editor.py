@@ -35,6 +35,7 @@ class WindowPresetEditor(QWidget):
         self._read_error: str | None = None
         layout = QFormLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
         self.preset_combo = QComboBox()
         self.preset_combo.setObjectName("windowPresetSelector")
         self.name_edit = QLineEdit()

@@ -43,6 +43,7 @@ class AnalysisRangePanel(QWidget):
 
         layout = QVBoxLayout(self)
         form = QFormLayout()
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self.form = form
         self.full_range_label = QLabel(self.tr("未加载数据"))
         self.full_range_label.setObjectName("fullRangeLabel")
@@ -132,7 +133,7 @@ class AnalysisRangePanel(QWidget):
         self.event_reference_status_label.setWordWrap(True)
         layout.addWidget(self.event_reference_status_label)
 
-        self.candidate_heading = QLabel(self.tr("推荐候选（仅供参考）"))
+        self.candidate_heading = QLabel(self.tr("事件候选"))
         self.candidate_heading.setObjectName("eventCandidateHeading")
         layout.addWidget(self.candidate_heading)
         self.candidate_layout = QVBoxLayout()
@@ -317,15 +318,11 @@ class AnalysisRangePanel(QWidget):
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(0, 0, 0, 0)
             if candidate_s is None:
-                if compatibility_s is None:
-                    text = self.tr("{channel}：未检测到可采用的推荐候选").format(
-                        channel=channel_name
-                    )
-                else:
-                    text = self.tr(
-                        "{channel}：未检测到可采用的推荐候选"
-                    ).format(channel=channel_name)
+                text = self.tr("{channel}：未检测到可采用的推荐候选").format(
+                    channel=channel_name
+                )
                 label = QLabel(text)
+                label.setWordWrap(True)
                 if compatibility_s is not None:
                     label.setToolTip(
                         self.tr(
@@ -336,7 +333,7 @@ class AnalysisRangePanel(QWidget):
                 row_layout.addWidget(label)
             else:
                 label = QLabel(
-                    f"{channel_name}   {candidate_s * 1e6:.9f} μs"
+                    f"{channel_name}\n{candidate_s * 1e6:.9f} μs"
                 )
                 label.setToolTip(tooltip)
                 button = QPushButton(self.tr("选择候选"))

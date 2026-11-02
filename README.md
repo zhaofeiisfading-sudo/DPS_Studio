@@ -64,13 +64,22 @@ only and does not average or fuse voltage, frequency, or velocity.
 
 In the desktop velocity view, select **加速度 dv/dt** to see the numerical time
 derivative of the final displayed speed. Known invalid regions and display-only
-platforms remain blank. In Review/Export, select **额外导出加速度 CSV** for a separate
+platforms remain blank. In Review/Export, select **加速度 CSV · 原始差分** for a separate
 SI derivative table and provenance in the existing metadata JSON; the original
 velocity tables keep their columns. Under **材料参数…**, edit the fixed window
 formula coefficients, name the custom set, and use **保存修改** or **另存为新配置…**.
 Saved sets appear in **窗口配置** on the next launch. The built-in LiF remains intact.
 See [TASK-032](docs/TASK-032_ACCELERATION_WINDOW_PRESETS.md) for numerical rules,
 local configuration paths, compatibility and validation limits.
+
+Acceleration defaults to **原始差分**. Select **局部线性拟合** for an optional
+least-squares slope over a full-width time window (shown in ns; initial value
+50 ns). The velocity and original derivative remain unchanged. Known gaps are
+not bridged; fewer than three points produces NaN. **全部结果** restores the
+full displayed range after zooming. In Review/Export, the separate **附加局部拟合列**
+checkbox adds named fit columns alongside the raw derivative, using the window
+shown on that checkbox. Metadata records both methods and their corrections.
+See [TASK-034](docs/TASK-034_UI_ACCELERATION.md) for validation and limitations.
 
 Development rules:
 

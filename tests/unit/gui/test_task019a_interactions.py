@@ -164,10 +164,10 @@ def test_velocity_hides_only_its_builtin_auto_button_and_has_top_controls(
         assert not window.ridge_view.plot_widget.plotItem.buttonsHidden
         assert not window.spectrogram_view.plot_widget.plotItem.buttonsHidden
         assert window.velocity_view.fit_analysis_range_button.text() == (
-            "适合分析范围"
+            "分析范围"
         )
         assert window.velocity_view.fit_result_range_button.text() == (
-            "适合结果范围"
+            "全部结果"
         )
         assert window.velocity_view.fit_analysis_range_button.toolTip()
         assert window.velocity_view.fit_result_range_button.toolTip()
@@ -346,10 +346,10 @@ def test_task019a_controls_have_complete_english_translations(
             "Absolute Experiment Time"
         )
         assert window.velocity_view.fit_analysis_range_button.text() == (
-            "Fit Analysis Range"
+            "Analysis range"
         )
         assert window.velocity_view.fit_result_range_button.text() == (
-            "Fit Result Range"
+            "Full range"
         )
         assert window.velocity_view.fit_analysis_range_button.toolTip() == (
             "Fit the view to the configured analysis time range."

@@ -308,9 +308,11 @@ def test_new_usability_controls_have_finished_english_translations(
             window.analysis_range_panel.detect_candidates_button.text()
             == "Detect Candidates"
         )
-        assert "Recommended Candidates" in (
-            window.analysis_range_panel.candidate_heading.text()
-        )
+        assert window.analysis_range_panel.candidate_heading.text() == "Event candidates"
+        assert window.velocity_view.acceleration_method_combo.itemText(0) == "Raw difference"
+        assert window.velocity_view.acceleration_method_combo.itemText(1) == "Local linear fit"
+        assert window.export_acceleration_check.text() == "Acceleration CSV · raw difference"
+        assert window.export_acceleration_fit_check.text() == "Add local fit columns · 50 ns"
         assert window.window_length_spin.suffix() == " samples"
         assert window.hop_label.text().endswith("samples")
         assert window.automatic_ridge_extraction_combo.currentText() == (
