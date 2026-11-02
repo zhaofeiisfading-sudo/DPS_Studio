@@ -7,7 +7,7 @@ import json
 from collections.abc import Sequence
 from typing import cast
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QSettings, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
@@ -17,6 +17,7 @@ from dps_studio.gui.main_window import MainWindow
 from dps_studio.gui.release_smoke import loaded_runtime_paths, run_analysis_smoke, smoke_options
 from dps_studio.gui.styles import apply_application_style
 from dps_studio.runtime_paths import package_resource_path
+from dps_studio.core.physics.window_presets import WindowPresetRepository
 
 
 _translation_manager: TranslationManager | None = None
@@ -59,9 +60,19 @@ def translation_manager() -> TranslationManager:
 def main(arguments: Sequence[str] | None = None) -> int:
     """Launch the resizable PDV Studio desktop shell."""
     args = list(arguments) if arguments is not None else sys.argv
+    if "--workflow-smoke-test" in args:
+        from dps_studio.gui.release_workflow_smoke import run_workflow_smoke
+
+        return run_workflow_smoke(args)
     report_path, analysis_input = smoke_options(args)
     application = create_application(arguments)
-    window = MainWindow(translation_manager=translation_manager())
+    window = MainWindow(
+        translation_manager=translation_manager(),
+        settings=(QSettings(str(report_path.parent / "layout.ini"), QSettings.Format.IniFormat)
+                  if report_path is not None else None),
+        window_preset_repository=(WindowPresetRepository(report_path.parent / "window_presets.json")
+                                  if report_path is not None else None),
+    )
     window.show()
     if report_path is not None:
         def report_startup() -> None:

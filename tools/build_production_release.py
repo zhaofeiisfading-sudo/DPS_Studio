@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -77,6 +78,55 @@ def tree_hashes(directory: Path) -> dict[str, str]:
     }
 
 
+def committed_source() -> str:
+    """Require a reviewable, clean commit rather than an ambiguous work tree."""
+    status = subprocess.check_output(["git", "status", "--porcelain"], cwd=PROJECT_ROOT, text=True)
+    if status.strip():
+        raise RuntimeError("Commit release changes before building; work tree is not clean")
+    return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT, text=True).strip()
+
+
+def verify_gui_workflow(extracted: Path, root: Path, source: Path) -> list[dict]:
+    """Exercise the actual frozen executable, then restart its isolated settings."""
+    reports = []
+    for language, scale, width, height in (
+        ("zh_CN", "1", 1366, 768), ("en", "1.25", 1366, 768),
+        ("zh_CN", "1.5", 1440, 900), ("en", "2", 1024, 640),
+    ):
+        case = root / f"workflow_{language}_{scale}"
+        case.mkdir()
+        report_path = case / "workflow.json"
+        command = [str(extracted / "PDV Studio.exe"), "--workflow-smoke-test", str(report_path),
+                   "--workflow-input", str(source), "--workflow-language", language,
+                   "--workflow-width", str(width), "--workflow-height", str(height)]
+        if scale != "1":
+            command.append("--workflow-layout-only")
+        environment = isolated_environment()
+        # Use reproducible effective DPRs independent of this monitor's native 200%.
+        environment["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+        environment["QT_FONT_DPI"] = "96"
+        environment["QT_SCALE_FACTOR"] = scale
+        subprocess.run(command, cwd=root, env=environment, check=True, timeout=90)
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        validate_startup_report(report, extracted, require_analysis=False)
+        if report.get("status") != "PASS" or not report.get("frozen"):
+            raise RuntimeError(f"Frozen GUI verification failed: {report}")
+        if abs(report["device_pixel_ratio"] - float(scale)) > .01:
+            raise RuntimeError(f"Requested GUI scale was not applied: {report}")
+        reports.append(report)
+        if scale == "1":
+            restart_path = case / "restart.json"
+            subprocess.run([str(extracted / "PDV Studio.exe"), "--workflow-smoke-test",
+                            str(restart_path), "--workflow-restart"],
+                           cwd=root, env=environment, check=True, timeout=30)
+            restart = json.loads(restart_path.read_text(encoding="utf-8"))
+            validate_startup_report(restart, extracted, require_analysis=False)
+            if not restart.get("restart_parameters_recovered"):
+                raise RuntimeError(f"Saved window preset did not survive restart: {restart}")
+            reports.append(restart)
+    return reports
+
+
 def create_release_zip(directory: Path, archive_path: Path) -> None:
     if archive_path.resolve().is_relative_to(directory.resolve()):
         raise ValueError("Release ZIP must be outside its source directory")
@@ -111,6 +161,7 @@ def validate_startup_report(startup: dict, extracted: Path, *, require_analysis:
 
 def verify_release_zip(
     directory: Path, archive_path: Path, *, analysis_input: Path | None = None,
+    workflow_smoke: bool = False,
 ) -> dict:
     extraction_root = Path(tempfile.mkdtemp(prefix="dps_production_release_"))
     if extraction_root.resolve().is_relative_to(PROJECT_ROOT.resolve()) or extraction_root.resolve().is_relative_to(Path(sys.prefix).resolve()):
@@ -138,6 +189,11 @@ def verify_release_zip(
     if completed.returncode != 0:
         raise RuntimeError(f"Isolated startup failed: {completed.returncode}; {startup}")
     validate_startup_report(startup, extracted, require_analysis=analysis_input is not None)
+    workflows = []
+    if workflow_smoke:
+        if analysis_input is None:
+            raise ValueError("Workflow smoke requires an analysis input")
+        workflows = verify_gui_workflow(extracted, extraction_root, copied_input)
     if hashes != tree_hashes(extracted):
         raise RuntimeError("Running the release changed its packaged files")
     return {
@@ -146,6 +202,7 @@ def verify_release_zip(
         "runtime_environment_path": environment["PATH"],
         "zip_extraction_hashes_match": True, "zip_extraction_file_set_match": True,
         "packaged_files_unchanged_after_execution": True,
+        "gui_workflows": workflows,
     }
 
 
@@ -154,7 +211,12 @@ def main() -> int:
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--release-root", type=Path)
     parser.add_argument("--analysis-smoke-input", type=Path)
+    parser.add_argument("--workflow-smoke", action="store_true")
     args = parser.parse_args()
+    commit_sha = committed_source()
+    built_at = datetime.now(UTC).isoformat()
+    if args.workflow_smoke and args.analysis_smoke_input is None:
+        raise ValueError("--workflow-smoke requires --analysis-smoke-input")
     output_root = args.output_root.resolve()
     release_root = args.release_root.resolve() if args.release_root is not None else None
     if release_root is not None:
@@ -169,6 +231,7 @@ def main() -> int:
         str(PROJECT_ROOT / "packaging" / "pdv_studio.spec"),
     ]
     build_env = build_environment()
+    build_env["PYINSTALLER_CONFIG_DIR"] = str(output_root / "pyinstaller_cache")
     with (output_root / "build.log").open("x", encoding="utf-8") as log:
         subprocess.run(command, cwd=PROJECT_ROOT, env=build_env,
                        stdout=log, stderr=subprocess.STDOUT, check=True)
@@ -184,14 +247,24 @@ def main() -> int:
             "双击 PDV Studio.exe 启动。请保持 _internal 与 EXE 一起移动。\n"
             "本发布包无需安装 Python 或 Conda。\n"
             "默认两列 CSV 导出连续显示曲线；质量筛选需显式勾选，文件名含 quality_passed，时间序列可能有缺口。\n"
+            "速度页可切换加速度 dv/dt；复核页勾选额外导出加速度 CSV。\n"
+            "材料参数区可命名、保存并重新选择自定义窗口配置。\n"
+            f"构建来源：{commit_sha}；远端版本未核验；本包未进行代码签名。\n"
         )
+    shutil.copyfile(PROJECT_ROOT / "docs" / f"RELEASE_NOTES_{__version__}.md",
+                    directory / "RELEASE_NOTES.md")
     with (directory / "BUILD_INFO.json").open("x", encoding="utf-8") as handle:
         json.dump({"release_version": __version__, "python_version": platform.python_version(),
-                   "dependency_versions": versions, "build_path": build_env["PATH"]}, handle, indent=2)
+                   "dependency_versions": versions, "commit_sha": commit_sha,
+                   "built_at_utc": built_at, "signing": "NOT_SIGNED",
+                   "remote_version_verified": False}, handle, indent=2)
     hashes = tree_hashes(directory)
     archive_path = output_root / f"PDV_Studio_v{__version__}.zip"
     create_release_zip(directory, archive_path)
-    build_verification = verify_release_zip(directory, archive_path, analysis_input=args.analysis_smoke_input)
+    build_verification = verify_release_zip(directory, archive_path, analysis_input=args.analysis_smoke_input,
+                                            workflow_smoke=args.workflow_smoke)
+    if committed_source() != commit_sha:
+        raise RuntimeError("Source changed during release build")
     final_verification = None
     final_directory = None
     if release_root is not None:
@@ -202,9 +275,11 @@ def main() -> int:
             raise RuntimeError("Release staging differs from the verified build")
         final_archive = release_root / archive_path.name
         create_release_zip(final_directory, final_archive)
-        final_verification = verify_release_zip(final_directory, final_archive, analysis_input=args.analysis_smoke_input)
+        final_verification = verify_release_zip(final_directory, final_archive, analysis_input=args.analysis_smoke_input,
+                                                workflow_smoke=args.workflow_smoke)
     manifest = {
         "release_version": __version__, "build_command": command,
+        "commit_sha": commit_sha, "built_at_utc": built_at,
         "python_version": platform.python_version(),
         "build_path": build_env["PATH"],
         "dependency_versions": versions,

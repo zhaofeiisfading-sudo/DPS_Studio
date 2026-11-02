@@ -72,7 +72,9 @@ class AnalysisRangePanel(QWidget):
         end_layout.addWidget(self.full_range_button)
         form.addRow(self.tr("分析终点"), end_editor)
         source_widget = QWidget()
-        source_layout = QHBoxLayout(source_widget)
+        # Stack complete labels in the narrow parameter sidebar, including
+        # English and high-DPI layouts; do not squeeze three radios into a field.
+        source_layout = QVBoxLayout(source_widget)
         source_layout.setContentsMargins(0, 0, 0, 0)
         self.unset_event_time_radio = QRadioButton(self.tr("不使用"))
         self.unset_event_time_radio.setObjectName("unsetEventTimeRadio")
@@ -86,10 +88,15 @@ class AnalysisRangePanel(QWidget):
         self.event_time_button_group.addButton(self.automatic_event_time_radio)
         self.event_time_button_group.addButton(self.manual_event_time_radio)
         self.unset_event_time_radio.setChecked(True)
+        for radio in (self.unset_event_time_radio, self.automatic_event_time_radio,
+                      self.manual_event_time_radio):
+            radio.ensurePolished()
+            radio.setMinimumHeight(radio.sizeHint().height())
         source_layout.addWidget(self.unset_event_time_radio)
         source_layout.addWidget(self.automatic_event_time_radio)
         source_layout.addWidget(self.manual_event_time_radio)
-        form.addRow(self.tr("事件参考（可选）"), source_widget)
+        form.addRow(QLabel(self.tr("事件参考（可选）")))
+        form.addRow(source_widget)
         form.addRow(self.tr("手动起跳时间"), self.event_reference_spin)
         layout.addLayout(form)
 

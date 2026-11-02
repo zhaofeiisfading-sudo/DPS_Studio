@@ -41,3 +41,19 @@ def test_runtime_validation_reports_missing_components_and_accepts_real_layout(t
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"test component")
     assert all(BUILD["runtime_files"](tmp_path).values())
+
+
+def test_release_requires_clean_committed_source(monkeypatch):
+    calls = []
+
+    def dirty(command, **kwargs):
+        calls.append(command)
+        return " M src/dps_studio/__init__.py\n"
+
+    monkeypatch.setattr(BUILD["subprocess"], "check_output", dirty)
+    with pytest.raises(RuntimeError, match="work tree is not clean"):
+        BUILD["committed_source"]()
+    assert len(calls) == 1
+    responses = iter(["", "a" * 40 + "\n"])
+    monkeypatch.setattr(BUILD["subprocess"], "check_output", lambda *_args, **_kw: next(responses))
+    assert BUILD["committed_source"]() == "a" * 40

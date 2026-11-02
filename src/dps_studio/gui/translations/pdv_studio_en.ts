@@ -280,7 +280,7 @@
     <message>
         <location filename="../analysis_range.py" line="79"/>
         <source>自动候选</source>
-        <translation>Automatic Candidate</translation>
+        <translation>Automatic</translation>
     </message>
     <message>
         <location filename="../analysis_range.py" line="92"/>

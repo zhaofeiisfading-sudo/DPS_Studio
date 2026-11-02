@@ -320,6 +320,14 @@ def test_portable_selection_is_explicit_and_full_suite_retains_raw_tests():
 def test_public_scientific_chain_matches_windows_reference(tmp_path):
     reference = json.loads((ROOT / "tests/reference/macos_portable_reference_v014.json").read_text())
     actual = capture_snapshot(ROOT / "docs/原始数据.csv", tmp_path / "exports")
+    # This is a cross-version scientific regression against the immutable 0.1.4
+    # fixture. Check current version independently; keep the release comparator
+    # strict for real same-version cross-platform acceptance.
+    assert actual["software_version"] == __version__
+    reference["snapshot"]["software_version"] = __version__
+    for channel, schema in actual["export_schema"].items():
+        assert schema["version"] == __version__
+        reference["snapshot"]["export_schema"][channel]["version"] = __version__
     report = compare_snapshots(reference, actual)
     assert report["status"] == "PASS", report["failures"]
     assert report["nan_mask_equality"] and report["quality_flag_equality"]
