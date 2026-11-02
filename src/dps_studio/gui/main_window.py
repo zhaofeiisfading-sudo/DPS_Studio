@@ -65,6 +65,10 @@ from dps_studio.core.physics import (
     VelocityCorrectionConfig,
     WindowMaterial,
 )
+from dps_studio.core.physics.exceptions import VelocityError
+from dps_studio.core.physics.window_presets import (
+    WindowPresetRepository, window_configuration_name,
+)
 from dps_studio.core.ridge import (
     AutomaticRidgeExtractionMode,
     ManualFrequencyRegion,
@@ -117,6 +121,7 @@ from dps_studio.gui.result_views import (
     VelocityView,
 )
 from dps_studio.gui.state import WorkflowState, state_reaches
+from dps_studio.gui.window_preset_editor import WindowPresetEditor, window_preset_path
 from dps_studio.gui.styles import configure_action_button_cursors
 from dps_studio.runtime_paths import application_resource_root
 
@@ -175,11 +180,15 @@ class MainWindow(QMainWindow):
         *,
         translation_manager: TranslationManager | None = None,
         settings: QSettings | None = None,
+        window_preset_repository: WindowPresetRepository | None = None,
     ) -> None:
         super().__init__(parent)
         self._translation_manager = translation_manager
         self._settings = settings if settings is not None else QSettings()
         self._display_preferences = DisplayPreferences(self._settings)
+        self._window_preset_repository = (
+            window_preset_repository or WindowPresetRepository(window_preset_path())
+        )
         self._data_controller = DataImportController()
         self._load_result: DelimitedSignalLoadResult | None = None
         self._repository_root = application_resource_root()
@@ -198,6 +207,7 @@ class MainWindow(QMainWindow):
         self._parameters_valid = False
         self._parameter_error = self.tr("默认科学参数尚未加载。")
         self._updating_parameter_controls = False
+        self._correction_display_snapshot: tuple[float, float, float, float] | None = None
 
         self.setObjectName("mainWindow")
         self.setWindowTitle(self.tr("PDV Studio"))
@@ -291,6 +301,7 @@ class MainWindow(QMainWindow):
         """Install a traceable preset repository without changing loaded records."""
         if not isinstance(configuration, WorkflowConfiguration):
             raise TypeError("configuration must be a WorkflowConfiguration.")
+        self.window_preset_editor.reset_save_target()
         repository = PresetRepository(configuration)
         self._preset_repository = repository
         combo_blocker = QSignalBlocker(self.profile_combo)
@@ -1082,6 +1093,9 @@ class MainWindow(QMainWindow):
         self.lif_parameter_panel.setObjectName("lifMaterialParametersPanel")
         lif_form = QFormLayout(self.lif_parameter_panel)
         lif_form.setContentsMargins(0, 0, 0, 0)
+        self.window_preset_editor = WindowPresetEditor(self._window_preset_repository)
+        self.window_preset_editor.model_selected.connect(self._select_window_model)
+        lif_form.addRow(self.window_preset_editor)
         self.lif_b1_spin = _CompactDoubleSpinBox(minimum_decimals=4)
         self.lif_b1_spin.setObjectName("lifCorrectionB1")
         self.lif_b1_spin.setRange(1.0e-9, 1.0e6)
@@ -1251,6 +1265,12 @@ class MainWindow(QMainWindow):
             "排除显示平台；文件名包含 quality_passed。详细表保留全部诊断行。"
         ))
         layout.addWidget(self.export_quality_passed_check)
+        self.export_acceleration_check = QCheckBox(self.tr("额外导出加速度 CSV（最终显示速度的 dv/dt）"))
+        self.export_acceleration_check.setObjectName("exportAcceleration")
+        self.export_acceleration_check.setToolTip(self.tr(
+            "独立文件保留 SI 时间、速度、加速度和质量来源；不改变速度简表。"
+        ))
+        layout.addWidget(self.export_acceleration_check)
         self.export_description_label = self._notice(
             self.tr("将导出时间—速度数据、详细诊断数据和分析参数记录。")
         )
@@ -1827,6 +1847,7 @@ class MainWindow(QMainWindow):
         self.lif_b2_spin.setReadOnly(not editable)
         self.lif_reference_wavelength_spin.setReadOnly(not editable)
         self.restore_lif_defaults_button.setEnabled(editable)
+        self.window_preset_editor.setEnabled(editable)
         self.export_event_time_origin_radio.setEnabled(editable)
         self.export_absolute_time_origin_radio.setEnabled(editable)
 
@@ -2041,18 +2062,26 @@ class MainWindow(QMainWindow):
         )
 
     def _restore_lif_defaults(self) -> None:
-        blockers = [
-            QSignalBlocker(self.lif_b1_spin),
-            QSignalBlocker(self.lif_b2_spin),
-            QSignalBlocker(self.lif_reference_wavelength_spin),
-        ]
-        self.lif_b1_spin.setValue(LIF_RIGG_2014_1550NM.b1)
-        self.lif_b2_spin.setValue(LIF_RIGG_2014_1550NM.b2)
-        self.lif_reference_wavelength_spin.setValue(
-            LIF_RIGG_2014_1550NM.reference_wavelength_m * 1e9
-        )
-        del blockers
-        self._velocity_correction_changed(0)
+        self._select_window_model(LIF_RIGG_2014_1550NM)
+
+    def _select_window_model(self, model: LiFWindowCorrectionModel) -> None:
+        configuration = self._session.run_configuration
+        if configuration is None:
+            return
+        try:
+            self._session.set_velocity_correction_config(replace(
+                configuration.velocity_correction_config,
+                lif_model=model,
+            ))
+        except (VelocityError, ValueError) as exc:
+            self._sync_velocity_correction_controls()
+            self.window_preset_editor.status.setText(str(exc))
+            return
+        self._sync_velocity_correction_controls()
+        self._sync_velocity_correction_warning()
+        if self._session.any_formal_results_available:
+            self._refresh_result_source_views(preserve_view=True)
+        self._refresh_export_controls()
 
     def _apply_velocity_correction_controls(
         self,
@@ -2067,14 +2096,27 @@ class MainWindow(QMainWindow):
             return
         try:
             material = WindowMaterial(material_value)
-            lif_model = LiFWindowCorrectionModel(
-                b1=self.lif_b1_spin.value(),
-                b2=self.lif_b2_spin.value(),
+            configuration = self._session.run_configuration
+            if configuration is None:
+                return
+            previous = configuration.velocity_correction_config.lif_model
+            displayed = self._correction_display_snapshot or (
+                self.lif_b1_spin.value(), self.lif_b2_spin.value(),
+                self.lif_reference_wavelength_spin.value(), angle_spin.value(),
+            )
+            lif_model = replace(
+                previous,
+                b1=(previous.b1 if self.lif_b1_spin.value() == displayed[0]
+                    else self.lif_b1_spin.value()),
+                b2=(previous.b2 if self.lif_b2_spin.value() == displayed[1]
+                    else self.lif_b2_spin.value()),
                 reference_wavelength_m=(
-                    self.lif_reference_wavelength_spin.value() * 1e-9
+                    previous.reference_wavelength_m
+                    if self.lif_reference_wavelength_spin.value() == displayed[2]
+                    else self.lif_reference_wavelength_spin.value() * 1e-9
                 ),
             )
-            if (
+            if previous.configuration_name is None and (
                 lif_model.b1 == LIF_RIGG_2014_1550NM.b1
                 and lif_model.b2 == LIF_RIGG_2014_1550NM.b2
                 and math.isclose(
@@ -2085,14 +2127,20 @@ class MainWindow(QMainWindow):
                 )
             ):
                 lif_model = LIF_RIGG_2014_1550NM
+            elif previous == LIF_RIGG_2014_1550NM:
+                lif_model = replace(lif_model, configuration_name=self.window_preset_editor.next_name())
             correction = VelocityCorrectionConfig(
                 window_material=material,
-                measurement_angle_rad=math.radians(angle_spin.value()),
+                measurement_angle_rad=(
+                    configuration.velocity_correction_config.measurement_angle_rad
+                    if angle_spin.value() == displayed[3] else math.radians(angle_spin.value())
+                ),
                 lif_model=lif_model,
             )
             changed = self._session.set_velocity_correction_config(correction)
-        except (TypeError, ValueError) as exc:
+        except (TypeError, ValueError, VelocityError) as exc:
             self.analysis_status_label.setText(str(exc))
+            self._sync_velocity_correction_controls()
             return
         self._sync_velocity_correction_controls()
         self._sync_velocity_correction_warning()
@@ -2135,13 +2183,25 @@ class MainWindow(QMainWindow):
         self.lif_reference_wavelength_spin.setValue(
             correction.lif_model.reference_wavelength_m * 1e9
         )
+        self._correction_display_snapshot = (
+            self.lif_b1_spin.value(), self.lif_b2_spin.value(),
+            self.lif_reference_wavelength_spin.value(), self.measurement_angle_spin.value(),
+        )
         del blockers
         self.lif_provenance_label.setText(
-            self.tr("Custom LiF · 用户参数")
+            self.tr("Custom LiF · 自定义用户参数 · {name}").format(
+                name=window_configuration_name(correction.lif_model)
+            )
             if correction.lif_model != LIF_RIGG_2014_1550NM
             else self.tr(
                 "Rigg et al. (2014), Eq. (16) · DOI 10.1063/1.4890714"
             )
+        )
+        self.window_preset_editor.set_model(correction.lif_model)
+        self.window_material_combo.setItemText(
+            self.window_material_combo.findData(WindowMaterial.LIF.value),
+            self.tr("LiF") if correction.lif_model == LIF_RIGG_2014_1550NM else
+            self.tr("自定义 · {name}").format(name=window_configuration_name(correction.lif_model)),
         )
         self._sync_export_velocity_summary()
 
@@ -2157,7 +2217,7 @@ class MainWindow(QMainWindow):
                 "{material} · {angle:.6g}°；最终导出连续绘图速度。"
             ).format(
                 material=(
-                    self.tr("Custom LiF")
+                    self.tr("自定义 · {name}").format(name=window_configuration_name(correction.lif_model))
                     if correction.lif_model != LIF_RIGG_2014_1550NM
                     else self.tr("LiF")
                 ),
@@ -2228,6 +2288,13 @@ class MainWindow(QMainWindow):
             self.velocity_correction_warning_label.setText(
                 self.tr("窗口修正已关闭；角度投影修正仍按当前角度执行。")
             )
+            return
+        if correction.lif_model != LIF_RIGG_2014_1550NM:
+            self.velocity_correction_warning_label.setText(self.tr(
+                "自定义 · {name}：固定幂律形式的用户参数；参考波长 {reference:g} nm。"
+                "名称及参数修改不代表材料标定已验证。"
+            ).format(name=window_configuration_name(correction.lif_model),
+                     reference=correction.lif_model.reference_wavelength_m * 1e9))
             return
         wavelength_nm = configuration.vacuum_wavelength_m * 1e9
         reference_wavelength_nm = correction.lif_model.reference_wavelength_m * 1e9
@@ -3596,6 +3663,7 @@ class MainWindow(QMainWindow):
         self.export_channel_combo.setEnabled(result_available and not busy)
         self.export_directory_button.setEnabled(result_available and not busy)
         self.export_include_pre_event_check.setEnabled(result_available and not busy)
+        self.export_acceleration_check.setEnabled(result_available and not busy)
         self.export_button.setEnabled(
             selection_valid
             and directory_selected
@@ -3723,6 +3791,7 @@ class MainWindow(QMainWindow):
                         self.export_include_pre_event_check.isChecked()
                     ),
                     quality_passed_only=self.export_quality_passed_check.isChecked(),
+                    include_acceleration=self.export_acceleration_check.isChecked(),
                     source_path=self._session.source_path,
                     analysis_profile_name=configuration.parameters.provenance_name,
                     pre_event_display_enabled=(
@@ -3755,6 +3824,10 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, self.tr("结果导出失败"), message)
             return False
         exported = report.exported_channels[0]
+        acceleration_file = (
+            "\n" + exported.acceleration_csv_path.name
+            if exported.acceleration_csv_path is not None else ""
+        )
         message = self.tr("结果导出完成：{path}").format(
             path=report.output_directory
         )
@@ -3776,12 +3849,13 @@ class MainWindow(QMainWindow):
             self,
             self.tr("导出完成"),
             self.tr(
-                "已生成：\n{csv}\n{detail}\n{metadata}\n\n输出位置：\n{directory}"
+                "已生成：\n{csv}\n{detail}\n{metadata}{acceleration}\n\n输出位置：\n{directory}"
             ).format(
                 csv=exported.csv_path.name,
                 detail=exported.detail_csv_path.name,
                 metadata=exported.metadata_path.name,
                 directory=report.output_directory,
+                acceleration=acceleration_file,
             ),
         )
         return True

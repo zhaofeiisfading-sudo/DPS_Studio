@@ -29,6 +29,8 @@ from dps_studio.core.quality import SignalState
 from dps_studio.core.ridge import ManualFrequencyRegion, RidgeSearchConstraint
 from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import ChannelAnalysis
+from dps_studio.core.workflow.acceleration import channel_acceleration
+from dps_studio.core.physics.window_presets import window_configuration_name
 from dps_studio.gui.display_preferences import (
     DEFAULT_SPECTROGRAM_COLORMAP,
     normalize_spectrogram_colormap,
@@ -1152,6 +1154,12 @@ class VelocityView(_ChannelView):
         source_row.addStretch(1)
         self.root_layout.addLayout(source_row)
         option_row = QHBoxLayout()
+        self.quantity_combo = QComboBox()
+        self.quantity_combo.setObjectName("velocityQuantitySelector")
+        self.quantity_combo.addItem(self.tr("速度"), "velocity")
+        self.quantity_combo.addItem(self.tr("加速度 dv/dt"), "acceleration")
+        self.quantity_combo.currentIndexChanged.connect(self._quantity_changed)
+        option_row.addWidget(self.quantity_combo)
         self.diagnostic_velocity_check = QCheckBox(self.tr("显示诊断曲线"))
         self.diagnostic_velocity_check.setObjectName("diagnosticVelocityCheck")
         self.diagnostic_velocity_check.setChecked(False)
@@ -1188,11 +1196,22 @@ class VelocityView(_ChannelView):
         self.source_notice.setWordWrap(True)
         self.source_notice.hide()
         self.root_layout.addWidget(self.source_notice)
+        self.acceleration_notice = QLabel()
+        self.acceleration_notice.setWordWrap(True)
+        self.acceleration_notice.hide()
+        self.root_layout.addWidget(self.acceleration_notice)
+        self.acceleration_curve: Any | None = None
 
     @property
     def result_source(self) -> str:
         source = self.result_source_combo.currentData()
         return source if isinstance(source, str) else "automatic"
+
+    def _quantity_changed(self, _index: int) -> None:
+        self.diagnostic_velocity_check.setVisible(self.quantity_combo.currentData() == "velocity")
+        channel = self.channel_combo.currentData()
+        if isinstance(channel, str) and channel in self._analyses:
+            self._render_channel(channel, fit_view=True)
 
     def select_result_target(self, result_source: str, channel_name: str) -> bool:
         """Select an existing mode/channel for export preview without recomputing."""
@@ -1431,6 +1450,14 @@ class VelocityView(_ChannelView):
             self.tr("相对起跳时间") if event_relative else self.tr("时间"),
             units="μs",
         )
+        self.acceleration_curve = None
+        self.acceleration_notice.hide()
+        self.plot_widget.setLabel("left", self.tr("速度"), units="m/s")
+        self.plot_widget.getAxis("left").setSIPrefixEnableRanges(None)
+        self.plot_widget.getAxis("left").enableAutoSIPrefix(True)
+        if self.quantity_combo.currentData() == "acceleration":
+            self._render_acceleration(analysis, time_us)
+            return
         self.display_curve = self.plot_widget.plot(
             time_us,
             analysis.plot_velocity_m_s,
@@ -1493,6 +1520,35 @@ class VelocityView(_ChannelView):
         if bounds is not None:
             self.plot_widget.setYRange(*bounds[1], padding=0.0)
 
+    def _render_acceleration(self, analysis: ChannelAnalysis, time_us: FloatArray) -> None:
+        self.display_curve = self.apparent_curve = self.corrected_curve = self.formal_curve = None
+        self.display_connector = self.event_reference_line = None
+        derivative = channel_acceleration(analysis)
+        # Explicit scale keeps values readable; arrays and CSV remain SI.
+        self.plot_widget.setLabel("left", self.tr("速度幅值时间导数"), units="10⁹ m/s²")
+        # Also clear the cached SI scale: disabling alone can retain a prefix
+        # from the previous velocity range in PyQtGraph 0.14.
+        self.plot_widget.getAxis("left").setSIPrefixEnableRanges(())
+        self.plot_widget.getAxis("left").enableAutoSIPrefix(False)
+        config = analysis.working_velocity_correction_result.config
+        source = (
+            window_configuration_name(config.lif_model)
+            if config.window_correction_enabled else self.tr("无窗口修正")
+        )
+        self.acceleration_curve = self.plot_widget.plot(
+            time_us, derivative.acceleration_m_s2 * 1e-9,
+            pen=pg.mkPen("#009E73", width=1.8), connect="finite",
+            name=self.tr("最终显示速度的 dv/dt"),
+        )
+        self.acceleration_notice.setText(self.tr(
+            "来源：最终显示速度（{source}，观测角 {angle:g}°）。无符号速度的数值时间导数；"
+            "显示平台与已知无效区留空。求导放大噪声和跳变，时间分辨能力受速度重建窗口限制；"
+            "尖峰未作物理验证。"
+        ).format(source=source, angle=math.degrees(config.measurement_angle_rad)))
+        self.acceleration_notice.show()
+        self.plot_widget.autoRange()
+        self._fit_current_view(analysis)
+
     def fit_result_range(self) -> None:
         """Fit both axes to finite data from only the currently visible curves."""
         bounds = finite_velocity_xy_view_range(self._visible_velocity_series())
@@ -1519,7 +1575,7 @@ class VelocityView(_ChannelView):
     def _visible_velocity_series(
         self,
     ) -> tuple[tuple[FloatArray, FloatArray], ...]:
-        curves = (self.apparent_curve, self.corrected_curve, self.display_curve)
+        curves = (self.apparent_curve, self.corrected_curve, self.display_curve, self.acceleration_curve)
         series: list[tuple[FloatArray, FloatArray]] = []
         for curve in curves:
             if curve is None or not curve.isVisible():
@@ -1537,6 +1593,9 @@ class VelocityView(_ChannelView):
 
     def _clear_plot(self) -> None:
         self.plot_widget.clear()
+        self.acceleration_curve = None
+        self.acceleration_notice.clear()
+        self.acceleration_notice.hide()
         self.formal_curve = None
         self.apparent_curve = None
         self.corrected_curve = None

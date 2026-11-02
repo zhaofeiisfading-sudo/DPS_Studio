@@ -406,11 +406,20 @@ class AnalysisSession:
             raise TypeError("config must be a VelocityCorrectionConfig.")
         if config == self.run_configuration.velocity_correction_config:
             return False
+        old_configuration = self.run_configuration
+        old_automatic = self.channel_analyses
+        old_guided = self.guided_channel_analyses
         self.run_configuration = replace(
             self.run_configuration,
             velocity_correction_config=config,
         )
-        self._refresh_velocity_correction_results()
+        try:
+            self._refresh_velocity_correction_results()
+        except Exception:
+            self.run_configuration = old_configuration
+            self.channel_analyses = old_automatic
+            self.guided_channel_analyses = old_guided
+            raise
         return True
 
     def set_export_time_origin(self, time_origin: ExportTimeOrigin) -> bool:

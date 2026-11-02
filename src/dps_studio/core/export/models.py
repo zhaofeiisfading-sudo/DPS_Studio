@@ -80,6 +80,7 @@ class ResultExportOptions:
         default_factory=_empty_paths
     )
     dps_studio_version: str = __version__
+    include_acceleration: bool = False
 
     def __post_init__(self) -> None:
         output_directory = Path(self.output_directory)
@@ -97,6 +98,8 @@ class ResultExportOptions:
             )
         if not isinstance(self.quality_passed_only, bool):
             raise ResultExportValidationError("quality_passed_only must be a boolean.")
+        if not isinstance(self.include_acceleration, bool):
+            raise ResultExportValidationError("include_acceleration must be a boolean.")
         try:
             analyses = dict(self.channel_analyses)
         except (TypeError, ValueError) as exc:
@@ -198,6 +201,7 @@ class ExportedChannelResult:
     detail_csv_path: Path
     metadata_path: Path
     exported_row_count: int
+    acceleration_csv_path: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)

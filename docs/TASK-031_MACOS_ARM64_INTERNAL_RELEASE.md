@@ -2,9 +2,107 @@
 
 阶段日期：第一阶段 2026-10-04；第二阶段 2026-10-09（Asia/Shanghai）。软件版本：`dps_studio.__version__ = 0.1.4`。
 
-**首次远端验收：MACOS INTERNAL RELEASE BLOCKED。** 第二阶段已通过 GitHub MCP 实际 dispatch，真实 Mac runner 在 portable pytest 阶段失败。已保存完整日志/evidence，完成最小测试修复和 Windows 回归。2026-10-09 用户已授权将本次测试修复及必要报告更新提交并 push 到 origin/main，再对新 SHA dispatch；后续任何再次 commit/push 仍需新授权。正式 Mac ZIP 尚未生成，不能宣布 PASS。
+**最新正式验收：MACOS INTERNAL RELEASE PASS。** 2026-10-09 对修复提交 `b8524bd3d2da3ff17fe8eece84931b84d9edaaab` 实际 dispatch；macos-15 arm64 runner 通过完整内部发布门槛，正式 ZIP 已下载到本地 release，SHA-256 与 CI 一致。以下先列最终成功证据，再保留首次失败及第一阶段历史。内部包为 ad-hoc signed；notarization=NOT_PERFORMED。
 
-## 第二阶段真实执行记录（2026-10-09）
+## 第二阶段最终原生验收（run 2，2026-10-09）
+
+用户明确授权本次已确认的测试修复与必要报告提交/push。提交前逐项检查 git diff、git diff --check、实际改动列表和 staged diff；只有 `tests/unit/test_run_demo_pipeline_modes.py` 与本报告进入提交。新提交 `b8524bd3d2da3ff17fe8eece84931b84d9edaaab` 已正常 push origin/main，无 force、无其他 Git 历史操作。GitHub MCP 独立确认在线 main 为该 SHA，然后对 main 执行新的 workflow_dispatch，未 rerun 旧 SHA。
+
+| 运行证据 | 实际值 |
+| --- | --- |
+| run URL / ID | [37916207534](https://github.com/zhaofeiisfading-sudo/DPS_Studio/actions/runs/37916207534) |
+| job URL / ID | [internal-release / 113772896512](https://github.com/zhaofeiisfading-sudo/DPS_Studio/actions/runs/37916207534/job/113772896512) |
+| workflow / ID | macOS arm64 internal release / 374642166 |
+| event / branch / run number / attempt | workflow_dispatch / main / 2 / 1 |
+| head_sha | `b8524bd3d2da3ff17fe8eece84931b84d9edaaab` |
+| commit message | `test: remove private raw dependency from pipeline output tests` |
+| UTC 开始 / 完成 | 2026-10-09 10:12:51 / 10:17:06 |
+| 上海时间开始 / 完成 | 2026-10-09 18:12:51 / 18:17:06 |
+| runner label / image | macos-15 / macos-15-arm64，image 20260907.0337.1 |
+| macOS / build | 15.7.9 / 24G830 |
+| host / Python architecture | uname=arm64；platform.machine=arm64；runner_arch=ARM64 |
+| Python | conda-forge osx-arm64，3.12.13 |
+| run / job / 全部 steps | completed / success / success |
+
+environment.json 与 dependency_versions.json 确认所有约束版本：NumPy 2.5.1、SciPy 1.18.0、pandas 3.0.3、matplotlib 3.11.0、PySide6/Essentials/Addons/shiboken6 6.11.1、PyQtGraph 0.14.0、Pydantic 2.13.4、pydantic-core 2.46.4、PyInstaller 6.21.0、hooks-contrib 2026.6、Pillow 12.3.0、pytest 9.1.1、Ruff 0.15.21、mypy 2.2.0。未更改依赖约束或科学参数。
+
+### 实际 gate 结果
+
+| 验收项 | Mac runner 的真实结果 |
+| --- | --- |
+| portable pytest | **699 passed, 18 deselected in 56.61s** |
+| Ruff | **All checks passed** |
+| strict mypy | **87 source files，无问题** |
+| PyInstaller | 生成 **PDV Studio.app**，版本 0.1.4、bundle ID com.dpsstudio.pdvstudio |
+| ICNS | 原生 iconutil 生成，打入 bundle；SHA `acb73e024d2fc2857c2b874d3542eb495ff77ddb208c64159e432734c2357e00` |
+| 原生 Cocoa | qt_platform=cocoa；QApplication/MainWindow/visible/exposed/event loop 全部 true；normal_exit=true，退出 0 |
+| PySide6 / shiboken6 / SciPy | 全部来自最终重新解压的 `.app/Contents/Frameworks` |
+| file / lipo / otool | **218 个 native binaries**，均含 arm64；原 app 与最终解压 app 两次审计 PASS；无外部开发环境 dependency/rpath |
+| codesign | 原 app、解压后、smoke 后均 `--verify --deep --strict` 退出 0；`Signature=adhoc`，TeamIdentifier=not set |
+| signing / notarization | **AD_HOC / NOT_PERFORMED**；无 Developer ID/notarized 声明 |
+| scientific smoke | release runtime 内完整公共科学链 PASS；80,000 samples，balanced profile；两种两列 CSV、detailed、JSON、version、SI/provenance 均 PASS；输入 SHA 前后相同 |
+| Windows–Mac numerical regression | **PASS**，完整 NaN/quality/bin/event/row/schema 相等 |
+| ditto ZIP roundtrip | 文件类型、mode、symlink target、SHA/集合一致；最终解压 app 运行后未改，验签仍 PASS |
+| raw | CI checkout raw 前后不变；Windows 本地完整 24 文件 SHA 前后相同 |
+
+正式 native smoke 从 `build/task031_macos_release/extracted/PDV Studio.app/Contents/MacOS/PDV Studio` 启动，cwd 为独立 isolated_runtime，PATH 仅 `/usr/bin:/bin:/usr/sbin:/sbin`，移除 Python/Conda/Qt/DYLD 等注入，强制 cocoa。它与 portable pytest 的 offscreen 步骤独立。Windows 本地只检查 ZIP 字节/结构，**没有解压或原生运行 macOS app**。
+
+dyld 实际 image 路径均位于最终解压 app 的 Contents/Frameworks 内；代表性路径：
+
+- `PySide6/QtCore.abi3.so` 和 `PySide6/Qt/lib/QtCore.framework/Versions/A/QtCore`
+- `PySide6/Qt/plugins/platforms/libqcocoa.dylib`
+- `shiboken6/Shiboken.abi3.so`
+- `scipy/_lib/_ccallback_c.cpython-312-darwin.so`
+
+### 跨平台数值误差
+
+比较对象包括完整公开示例、确定性 synthetic 与既有 Windows Production reference；没有修改 STFT、ridge、quality、velocity、angle 或 LiF 实现。
+
+| 量 | 所有通道/synthetic 的最大绝对差 |
+| --- | --- |
+| STFT frequency grid | 0 Hz |
+| discrete ridge frequency | 0 Hz |
+| refined ridge frequency | `3.5762786865234375e-7 Hz` |
+| apparent velocity | `2.2737367544323206e-13 m/s` |
+| corrected velocity | `2.2737367544323206e-13 m/s` |
+| time axis | 0 s |
+
+NaN mask、quality flags、ridge/selected bin、event selection、row count、schema 均为 equality=true；failures=[]。Mac 输入字节 SHA 为 `6e87e8e7a4d79a0d3ca3e4f0d9f237e1ddbdebe4a93fa48db0dcf281d74c29f8`，符合此前记录的 Git LF 内容合同。Windows reference SHA 为 `fb00178bef2a74e315ed65ef37b74ff965cee2715767e98ef2dff0908934e564`，reference Production commit 仍为 82a8b59；core 源码 SHA 检查保证本次包装/测试提交未更改科学实现。
+
+### 正式 ZIP 下载与本地复核
+
+正式文件：**`D:\Code\Python_Projects\DPS_Studio\release\PDV_Studio_v0.1.4_macos_arm64.zip`**，66,754,304 bytes。以独占创建模式保存，没有覆盖同名文件。
+
+**正式 ZIP SHA-256：`4601f4a68b02569c14f9f8a73a332909c3b55a4afd8d217d8e5d310238695ffa`**。
+
+该值由 Windows 本地重新计算，与 CI build_manifest.json 和 hash_manifest.json 两者完全相同。本地读取整个 ZIP，核对 `.app` 的 Info.plist、版本/标识、ICNS、可执行位及所有 **778 项 manifest entries（472 files、183 directories、123 symlinks）**；每项类型、mode、link target、文件 SHA/大小/集合均与 CI app/extracted_app manifest 一致。app manifest 与实际 Mac 解压 manifest 也完全相同。
+
+通过 GitHub artifact download 工具下载的外层 ZIP 与真正发布 ZIP 已明确区分：
+
+| Actions artifact | ID / 外层 ZIP SHA-256 |
+| --- | --- |
+| PDV-Studio-macos-arm64-internal-zip | 11608929732 / `46ffc0e8abe11ac77ea542f8775ea7c8e090239dc244be9d20b6efca8fe2157c` |
+| PDV-Studio-macos-arm64-internal-evidence | 11608914616 / `ff40228b76e758a5505e675eb355d4fdb477b2f18ba143b279354a182bf73322` |
+
+两个外层下载 SHA 均与 GitHub artifact digest 一致；发布外层 archive 内只包含一个正式 `PDV_Studio_v0.1.4_macos_arm64.zip`。没有把外层 artifact SHA 当作正式 ZIP SHA。
+
+完整本地证据根：`build/task031_phase2_retry_20261009/`，包括 dispatch.json、run_evidence.json、完整 job_113772896512.log、两个原始 artifact ZIP、local_release_verification.json，以及解出的 `evidence/task031_macos_release/evidence/`。
+
+所有必需证据齐备：environment.json、dependency_versions.json、build_manifest.json、mach_o_audit.txt、codesign_audit.txt、startup_smoke.json、analysis_regression.json、hash_manifest.json、icon 及其生成记录、PyInstaller build log、portable pytest/JUnit、Ruff/mypy 输出。
+
+### Windows / Git / raw 与剩余手工检查
+
+修复内容与本次已提交测试代码一致的 Windows 完整套件为 **717 passed in 83.40s**（含原 raw 和 Windows release/packaging gates），本地无 raw 演练为 699 passed/18 deselected，Ruff/strict mypy PASS。Windows 发布脚本/spec、科学 core、GUI、configs、Mac spec/build/workflow 和约束均未修改；没有需要追加代码修复的远端错误。
+
+本轮只使用用户授权提交并 push 了上述两个文件；main / HEAD / origin/main 均为 `b8524bd3d2da3ff17fe8eece84931b84d9edaaab`。最终验收结果更新留在本地报告及 Obsidian，**未再次 commit/push**。release/build 产物保持 Git ignored；未提交大型产物。raw 开始/结束 24 文件 SHA 完全相同（含 .gitkeep），raw diff 为空；Research 未访问/未修改；无分支/worktree、merge/rebase/cherry-pick/force push。
+
+已确认的限制是 Qt 为缺少的 Microsoft YaHei UI 字体做了回退，startup stderr 记录 alias population 73 ms；未影响本次原生启动、曝光或正常退出，不在本任务更改字体。仍需真 Mac 手工确认 Finder/Dock 图标、下载与首次打开/系统安全提示、中文/空格路径和原生文件对话框、语言/QSettings 恢复、Command 快捷键、Retina 字体布局及代表性用户数据导出。未验 macOS 13/14，不宣称这些版本支持；内部 ad-hoc 发布并非 Apple Developer ID 身份认证或 notarization。
+
+当日日志已更新：`D:\Research\Notes\05项目\dps\2026-10-09_TASK-031_macOS-arm64内部发布.md`。TASK-031 至此完成，不进入下一 TASK。
+
+---
+
+## 第二阶段首次失败与修复历史（run 1，2026-10-09）
 
 开始时本地 `main`、`HEAD=origin/main=dda50631240208c0d694bdf575b458d33277a6dc`、工作区 clean。GitHub MCP 独立读取在线 main，同一 SHA，commit message 为第一阶段的 macOS pipeline 提交。workflow ID `374642166` 已启用，在线 YAML 包含 workflow_dispatch，并与本地文件一致。
 

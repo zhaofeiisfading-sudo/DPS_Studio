@@ -318,6 +318,18 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
     assert correction["angle"]["angle_rad"] == 0.0
     assert correction["angle"]["source_doi"] == "10.1063/1.4940935"
     assert correction["window"] == {
+        "configuration_name": "LiF",
+        "configuration_type": "builtin",
+        "configuration_scope": "existing built-in calibration",
+        "formula": "v_out_m_s = 1000 * b1 * (v_in_m_s / 1000)**b2",
+        "parameter_units": {
+            "b1": "dimensionless coefficient with velocity normalized to 1 km/s",
+            "b2": "dimensionless",
+            "reference_wavelength_m": "m",
+            "input_velocity": "m/s",
+            "output_velocity": "m/s",
+            "formula_velocity_unit": "km/s",
+        },
         "b1": 0.7895,
         "b2": 0.9918,
         "crystal_orientation": "[100]",

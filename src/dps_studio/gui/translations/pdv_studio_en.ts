@@ -3526,4 +3526,120 @@ Read-only ranges and public core background analysis.</translation>
         <translation>Drag to adjust the search end time</translation>
     </message>
 </context>
+<context>
+    <name>VelocityView</name>
+    <message>
+        <source>加速度 dv/dt</source>
+        <translation>Acceleration dv/dt</translation>
+    </message>
+    <message>
+        <source>速度幅值时间导数</source>
+        <translation>Time derivative of speed</translation>
+    </message>
+    <message>
+        <source>最终显示速度的 dv/dt</source>
+        <translation>dv/dt of final displayed speed</translation>
+    </message>
+    <message>
+        <source>无窗口修正</source>
+        <translation>No window correction</translation>
+    </message>
+    <message>
+        <source>来源：最终显示速度（{source}，观测角 {angle:g}°）。无符号速度的数值时间导数；显示平台与已知无效区留空。求导放大噪声和跳变，时间分辨能力受速度重建窗口限制；尖峰未作物理验证。</source>
+        <translation>Source: final displayed speed ({source}, observation angle {angle:g}°). Numerical derivative of unsigned speed; display platforms and known invalid regions are blank. Differentiation amplifies noise and jumps; resolving power is limited by the velocity reconstruction window. Peaks are not physically validated.</translation>
+    </message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message>
+        <source>额外导出加速度 CSV（最终显示速度的 dv/dt）</source>
+        <translation>Also export acceleration CSV (dv/dt of final displayed speed)</translation>
+    </message>
+    <message>
+        <source>独立文件保留 SI 时间、速度、加速度和质量来源；不改变速度简表。</source>
+        <translation>Separate file with SI time, speed, derivative and quality provenance; the velocity table is unchanged.</translation>
+    </message>
+    <message>
+        <source>Custom LiF · 自定义用户参数 · {name}</source>
+        <translation>Custom LiF · User coefficients · {name}</translation>
+    </message>
+    <message>
+        <source>自定义 · {name}</source>
+        <translation>Custom · {name}</translation>
+    </message>
+    <message>
+        <source>自定义 · {name}：固定幂律形式的用户参数；参考波长 {reference:g} nm。名称及参数修改不代表材料标定已验证。</source>
+        <translation>Custom · {name}: user coefficients for a fixed power law; reference wavelength {reference:g} nm. A name or coefficient change does not establish a validated material calibration.</translation>
+    </message>
+    <message>
+        <source>已生成：
+{csv}
+{detail}
+{metadata}{acceleration}
+
+输出位置：
+{directory}</source>
+        <translation>Created:
+{csv}
+{detail}
+{metadata}{acceleration}
+
+Output directory:
+{directory}</translation>
+    </message>
+</context>
+<context>
+    <name>WindowPresetEditor</name>
+    <message>
+        <source>保存修改</source>
+        <translation>Save changes</translation>
+    </message>
+    <message>
+        <source>另存为新配置…</source>
+        <translation>Save as new preset…</translation>
+    </message>
+    <message>
+        <source>窗口配置</source>
+        <translation>Window preset</translation>
+    </message>
+    <message>
+        <source>自定义名称</source>
+        <translation>Custom name</translation>
+    </message>
+    <message>
+        <source>LiF · 内置只读预设</source>
+        <translation>LiF · Built-in read-only preset</translation>
+    </message>
+    <message>
+        <source>自定义 · {name}</source>
+        <translation>Custom · {name}</translation>
+    </message>
+    <message>
+        <source>自定义配置 · 未保存修改</source>
+        <translation>Custom preset · Unsaved changes</translation>
+    </message>
+    <message>
+        <source>仅保存固定幂律形式的用户参数；名称不代表材料标定。</source>
+        <translation>User coefficients for the fixed power law; a name does not establish a material calibration.</translation>
+    </message>
+    <message>
+        <source>已保存：{path}</source>
+        <translation>Saved: {path}</translation>
+    </message>
+    <message>
+        <source>另存为自定义窗口配置</source>
+        <translation>Save as custom window preset</translation>
+    </message>
+    <message>
+        <source>名称</source>
+        <translation>Name</translation>
+    </message>
+</context>
+<context>
+    <name>WindowPresetEditor</name>
+    <message>
+        <source>保存自定义配置</source>
+        <translation>Save custom preset</translation>
+    </message>
+</context>
 </TS>

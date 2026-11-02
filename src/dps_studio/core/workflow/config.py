@@ -366,6 +366,11 @@ def load_workflow_config(
             field_name="velocity_correction.measurement_angle_rad",
         ),
         lif_model=LiFWindowCorrectionModel(
+            configuration_name=(
+                _string(velocity_correction_table["configuration_name"],
+                        field_name="velocity_correction.configuration_name")
+                if "configuration_name" in velocity_correction_table else None
+            ),
             b1=_positive_float(
                 velocity_correction_table.get(
                     "lif_b1",

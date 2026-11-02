@@ -35,6 +35,7 @@ from dps_studio.core.ridge import (
 )
 from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN
 from dps_studio.core.workflow.models import ChannelAnalysis
+from dps_studio.core.workflow.acceleration import acceleration_metadata, channel_acceleration
 
 
 EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v6"
@@ -88,6 +89,7 @@ class _ChannelExportPlan:
     simple_csv_name: str
     detail_csv_name: str
     metadata_name: str
+    acceleration_csv_name: str | None = None
 
 
 def export_formal_results(options: ResultExportOptions) -> ResultExportReport:
@@ -215,13 +217,17 @@ def _plan_export_files(
         base_stem = f"{source_stem}_{channel_token}_{mode_token}"
         if options.quality_passed_only:
             base_stem += "_quality_passed"
-        plan = _allocate_file_group(output_directory, base_stem, allocated_names)
+        plan = _allocate_file_group(
+            output_directory, base_stem, allocated_names,
+            include_acceleration=options.include_acceleration,
+        )
         plans.append(
             _ChannelExportPlan(
                 channel_name=channel_name,
                 simple_csv_name=plan[0],
                 detail_csv_name=plan[1],
                 metadata_name=plan[2],
+                acceleration_csv_name=plan[3] if options.include_acceleration else None,
             )
         )
         allocated_names.update(plan)
@@ -271,15 +277,19 @@ def _allocate_file_group(
     output_directory: Path,
     base_stem: str,
     allocated_names: set[str],
-) -> tuple[str, str, str]:
+    *,
+    include_acceleration: bool = False,
+) -> tuple[str, ...]:
     for suffix in range(1, 10_000):
         suffix_text = "" if suffix == 1 else f"_{suffix}"
         stem = f"{base_stem}{suffix_text}"
-        names = (
+        names: tuple[str, ...] = (
             f"{stem}.csv",
             f"{stem}_detail.csv",
             f"{stem}.metadata.json",
         )
+        if include_acceleration:
+            names += (f"{stem}_acceleration.csv",)
         if any(name in allocated_names for name in names):
             continue
         if any(_path_exists_or_is_symlink(output_directory / name) for name in names):
@@ -345,6 +355,18 @@ def _write_staged_results(
             plan.detail_csv_name,
             row_count,
         )
+        if plan.acceleration_csv_name is not None:
+            _write_acceleration_csv(
+                staging_directory / plan.acceleration_csv_name, analysis, options, row_indices,
+            )
+            metadata["acceleration_export"] = {
+                **acceleration_metadata(analysis),
+                "csv_file": plan.acceleration_csv_name,
+                "row_count": len(row_indices),
+                "time_origin": options.time_origin.value,
+                "quality_passed_only_applies_to_velocity_simple_csv": options.quality_passed_only,
+                "row_policy": "detail row range; retained invalid rows as NaN; derivative computed before export selection",
+            }
         _write_json(staging_directory / plan.metadata_name, metadata)
         exported_channels.append(
             ExportedChannelResult(
@@ -353,9 +375,49 @@ def _write_staged_results(
                 detail_csv_path=output_directory / plan.detail_csv_name,
                 metadata_path=output_directory / plan.metadata_name,
                 exported_row_count=row_count,
+                acceleration_csv_path=(
+                    output_directory / plan.acceleration_csv_name
+                    if plan.acceleration_csv_name is not None else None
+                ),
             )
         )
     return exported_channels
+
+
+def _write_acceleration_csv(
+    path: Path,
+    analysis: ChannelAnalysis,
+    options: ResultExportOptions,
+    indices: tuple[int, ...],
+) -> None:
+    derivative = channel_acceleration(analysis)
+    relative = event_relative_time_s(
+        analysis.stft_result.time_s,
+        analysis.signal_detection_result.manual_event_reference_time_s,
+    )
+    time_column = _simple_time_column(options.time_origin)
+    fields = (
+        time_column, "acceleration_m_s2", "velocity_m_s", "velocity_source",
+        "derivative_numerical_flag", "signal_state", "ridge_quality_flag",
+        "working_source", "velocity_origin", "ridge_selection_origin",
+    )
+    with path.open("x", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow(fields)
+        for index in indices:
+            writer.writerow((
+                _csv_float(relative[index] if options.time_origin is ExportTimeOrigin.EVENT
+                           else analysis.stft_result.time_s[index]),
+                _csv_float(derivative.acceleration_m_s2[index]),
+                _csv_float(analysis.plot_velocity_m_s[index]),
+                "display_velocity_m_s",
+                derivative.numerical_flags[index],
+                analysis.signal_detection_result.signal_states[index].value,
+                analysis.ridge_result.quality_flags[index].value,
+                analysis.working_source[index].value,
+                analysis.velocity_origins[index],
+                analysis.automatic_ridge_selection_result.origins[index].value,
+            ))
 
 
 def _export_row_indices(
@@ -903,11 +965,14 @@ def _publish_staged_results(
 ) -> None:
     """Publish fully written files using hard links, which refuse overwrites."""
     for plan in plans:
-        for file_name in (
+        file_names: tuple[str, ...] = (
             plan.simple_csv_name,
             plan.detail_csv_name,
             plan.metadata_name,
-        ):
+        )
+        if plan.acceleration_csv_name is not None:
+            file_names += (plan.acceleration_csv_name,)
+        for file_name in file_names:
             staged_path = staging_directory / file_name
             final_path = output_directory / file_name
             try:

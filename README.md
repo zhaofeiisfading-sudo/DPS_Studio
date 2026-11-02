@@ -54,11 +54,23 @@ raw time-voltage data -> validation -> STFT -> peak ridge -> sub-bin refinement
 The formal ridge search is 0.05–2.0 GHz. The analysis-band plots display
 0–2.0 GHz, while full-band plots use the complete one-sided STFT range from
 0 Hz through the actual Nyquist frequency. The configured 1550 nm wavelength
-is an unconfirmed demonstration value. No LiF correction, smoothing,
-interpolation, channel fusion, or profile fusion is implemented.
+is an unconfirmed demonstration value. These demonstration exports describe
+apparent velocity. The desktop GUI additionally supports the existing separable
+observation-angle and LiF window corrections. Smoothing, interpolation,
+channel fusion, and profile fusion are not applied by this workflow.
 `MEASURED` means spectrally qualified under the configured detection rules;
 physical branch identity remains `unreviewed`. Event consensus changes metadata
 only and does not average or fuse voltage, frequency, or velocity.
+
+In the desktop velocity view, select **加速度 dv/dt** to see the numerical time
+derivative of the final displayed speed. Known invalid regions and display-only
+platforms remain blank. In Review/Export, select **额外导出加速度 CSV** for a separate
+SI derivative table and provenance in the existing metadata JSON; the original
+velocity tables keep their columns. Under **材料参数…**, edit the fixed window
+formula coefficients, name the custom set, and use **保存修改** or **另存为新配置…**.
+Saved sets appear in **窗口配置** on the next launch. The built-in LiF remains intact.
+See [TASK-032](docs/TASK-032_ACCELERATION_WINDOW_PRESETS.md) for numerical rules,
+local configuration paths, compatibility and validation limits.
 
 Development rules:
 
