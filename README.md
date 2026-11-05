@@ -67,3 +67,11 @@ Development rules:
 - Use SI units internally.
 - Store all parameters and manual edits.
 - Return NaN and quality flags when no reliable signal exists.
+
+
+## TASK-009 Research package (2026-11-05)
+
+TASK-008 algorithms and frozen results now have a physical local copy and an independent Research entry.
+See [research package](artifacts/research_clean_task9/README.md), [migration report](MIGRATION_REPORT.md), and [paper figure index](FIGURE_INDEX.md).
+Publication figures are in `artifacts/research_clean_task9/figures_final/` (10 Origin projects; 13 PDF/SVG figures with source data and Chinese captions).
+Real experiments have no Ground Truth; supported curves do not certify physical velocity. Production is outside this task.
