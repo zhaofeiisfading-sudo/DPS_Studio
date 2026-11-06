@@ -1,0 +1,1 @@
+"""Local frozen algorithm package."""

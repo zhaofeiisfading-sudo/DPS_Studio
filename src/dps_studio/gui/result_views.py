@@ -14,6 +14,8 @@ from PySide6.QtCore import QSignalBlocker, QRectF, Signal, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDoubleSpinBox,
+    QFormLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -26,9 +28,11 @@ from PySide6.QtWidgets import (
 
 from dps_studio.core.export import ExportTimeOrigin
 from dps_studio.core.quality import SignalState
-from dps_studio.core.ridge import RidgeCorridorConstraint
+from dps_studio.core.ridge import ManualFrequencyRegion, RidgeSearchConstraint
 from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import ChannelAnalysis
+from dps_studio.core.workflow.acceleration import channel_acceleration
+from dps_studio.core.physics.window_presets import window_configuration_name
 from dps_studio.gui.display_preferences import (
     DEFAULT_SPECTROGRAM_COLORMAP,
     normalize_spectrogram_colormap,
@@ -126,35 +130,38 @@ def finite_velocity_xy_view_range(
 def display_velocity_connector_points(
     analysis: ChannelAnalysis,
 ) -> tuple[FloatArray, FloatArray] | None:
-    """Return a display-only pre-event-to-first-formal two-point connector.
+    """Return a pre-event-to-first-continuous display-only connector.
 
-    The formal array is only read here.  In particular, no NaN is filled and
-    no intermediate sample is synthesized for scientific data.
+    No NaN is filled and no intermediate sample is synthesized for scientific
+    data; this only joins two already available display endpoints.
     """
     reference_s = analysis.signal_detection_result.manual_event_reference_time_s
     if reference_s is None:
         return None
     time_s = analysis.stft_result.time_s
     display_velocity = analysis.display_velocity_m_s
-    formal_velocity = analysis.signal_detection_result.apparent_velocity_m_s
+    continuous_velocity = analysis.continuous_corrected_velocity_m_s
     platform_indices = np.flatnonzero(
         (time_s < reference_s) & np.isfinite(display_velocity)
     )
-    formal_indices = np.flatnonzero(
-        (time_s >= reference_s) & np.isfinite(formal_velocity)
+    continuous_indices = np.flatnonzero(
+        (time_s >= reference_s) & np.isfinite(continuous_velocity)
     )
-    if platform_indices.size == 0 or formal_indices.size == 0:
+    if platform_indices.size == 0 or continuous_indices.size == 0:
         return None
     platform_index = int(platform_indices[-1])
-    formal_index = int(formal_indices[0])
+    continuous_index = int(continuous_indices[0])
     return (
         np.asarray(
-            [reference_s, time_s[formal_index]],
+            [reference_s, time_s[continuous_index]],
             dtype=np.float64,
         )
         * 1.0e6,
         np.asarray(
-            [display_velocity[platform_index], formal_velocity[formal_index]],
+            [
+                display_velocity[platform_index],
+                continuous_velocity[continuous_index],
+            ],
             dtype=np.float64,
         ),
     )
@@ -277,6 +284,7 @@ class _ChannelView(QWidget):
     plot_widget: Any
     channel_selection_changed = Signal(str)
     search_band_changed = Signal(float, float)
+    search_region_changed = Signal(float, float, float, float)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -285,10 +293,16 @@ class _ChannelView(QWidget):
         self._view_analysis_range_s: tuple[float, float] | None = None
         self._view_search_band_hz: tuple[float, float] | None = None
         self._search_lines: list[Any] = []
+        self._search_time_lines: list[Any] = []
+        self._search_region_roi: Any | None = None
         self._search_frequency_grid_hz: FloatArray | None = None
+        self._search_time_grid_s: FloatArray | None = None
+        self._search_band_handles_enabled = True
+        self._search_region_visible = False
+        self._search_region_editable = False
         self.root_layout = QVBoxLayout(self)
         self.controls_layout = QHBoxLayout()
-        self.controls_layout.addWidget(QLabel(self.tr("显示通道")))
+        self.controls_layout.addWidget(QLabel(self.tr("通道")))
         self.channel_combo = QComboBox()
         self.channel_combo.setObjectName("analysisChannelSelector")
         self.channel_combo.currentIndexChanged.connect(self._channel_changed)
@@ -339,14 +353,47 @@ class _ChannelView(QWidget):
         self._synchronize_search_lines()
 
     def _install_search_band_lines(self, stft_result: STFTResult) -> None:
-        """Install two native, movable frequency boundaries for one STFT grid."""
+        """Install a physical four-edge rectangle with generous native hit areas."""
         self._search_frequency_grid_hz = np.asarray(
             stft_result.frequency_hz,
             dtype=np.float64,
         )
-        if self._view_search_band_hz is None:
+        self._search_time_grid_s = np.asarray(stft_result.time_s, dtype=np.float64)
+        if self._view_search_band_hz is None or self._view_analysis_range_s is None:
             self._search_lines = []
+            self._search_time_lines = []
+            self._search_region_roi = None
             return
+        time_start_s, time_end_s = self._view_analysis_range_s
+        frequency_min_hz, frequency_max_hz = self._view_search_band_hz
+        full_rect = QRectF(
+            float(stft_result.time_s[0]) * 1.0e6,
+            float(stft_result.frequency_hz[0]) * 1.0e-9,
+            float(stft_result.time_s[-1] - stft_result.time_s[0]) * 1.0e6,
+            float(stft_result.frequency_hz[-1] - stft_result.frequency_hz[0])
+            * 1.0e-9,
+        )
+        self._search_region_roi = pg.ROI(
+            [time_start_s * 1.0e6, frequency_min_hz * 1.0e-9],
+            [
+                (time_end_s - time_start_s) * 1.0e6,
+                (frequency_max_hz - frequency_min_hz) * 1.0e-9,
+            ],
+            pen=pg.mkPen("#0072B2", width=2.0),
+            hoverPen=pg.mkPen("#D55E00", width=3.0),
+            maxBounds=full_rect,
+            movable=self._search_region_editable,
+            resizable=False,
+            rotatable=False,
+        )
+        self._search_region_roi.setZValue(20)
+        self._search_region_roi.setToolTip(
+            self.tr("拖动矩形内部可整体移动脊线搜索区域")
+        )
+        self._search_region_roi.sigRegionChangeFinished.connect(
+            self._search_roi_finished
+        )
+        self.plot_widget.addItem(self._search_region_roi)
         self._search_lines = _add_search_band_limits(
             self.plot_widget,
             *self._view_search_band_hz,
@@ -359,14 +406,110 @@ class _ChannelView(QWidget):
             lower_tooltip=self.tr("拖动调整搜索频率下限"),
             upper_tooltip=self.tr("拖动调整搜索频率上限"),
         )
+        time_bounds_us = (
+            float(stft_result.time_s[0]) * 1.0e6,
+            float(stft_result.time_s[-1]) * 1.0e6,
+        )
+        self._search_time_lines = []
+        for index, time_s in enumerate(self._view_analysis_range_s):
+            line = pg.InfiniteLine(
+                pos=time_s * 1.0e6,
+                angle=90,
+                pen=pg.mkPen("#555555", width=1.0, style=pg.QtCore.Qt.DashLine),
+                hoverPen=pg.mkPen("#D55E00", width=3.0),
+                movable=self._search_region_editable,
+                bounds=time_bounds_us,
+            )
+            line.setZValue(30)
+            line.setCursor(Qt.CursorShape.SizeHorCursor)
+            line.setToolTip(
+                self.tr("拖动调整搜索时间起点")
+                if index == 0
+                else self.tr("拖动调整搜索时间终点")
+            )
+            line.addMarker("<|>", position=0.94, size=7.0)
+            line.sigPositionChangeFinished.connect(
+                lambda _line, boundary=index: self._search_time_boundary_finished(
+                    boundary
+                )
+            )
+            self.plot_widget.addItem(line)
+            self._search_time_lines.append(line)
+        self.set_search_region_interaction(
+            visible=self._search_region_visible,
+            editable=self._search_region_editable,
+        )
+
+    def dispose_search_region_interactions(self) -> None:
+        """Disconnect transient graphics signals before redraw or window teardown."""
+        for line in (*self._search_time_lines, *self._search_lines):
+            try:
+                line.sigPositionChangeFinished.disconnect()
+            except (RuntimeError, TypeError):
+                pass
+        if self._search_region_roi is not None:
+            try:
+                self._search_region_roi.sigRegionChangeFinished.disconnect()
+            except (RuntimeError, TypeError):
+                pass
+        self._search_lines = []
+        self._search_time_lines = []
+        self._search_region_roi = None
+
+    def set_search_band_handles_enabled(self, enabled: bool) -> None:
+        """Compatibility switch used while editing a channel-local corridor."""
+        self._search_band_handles_enabled = bool(enabled)
+        active = self._search_region_editable and self._search_band_handles_enabled
+        for line in (*self._search_time_lines, *self._search_lines):
+            line.setVisible(self._search_region_visible and active)
+            line.setMovable(active)
+        if self._search_region_roi is not None:
+            self._search_region_roi.translatable = active
+
+    def set_search_region_interaction(self, *, visible: bool, editable: bool) -> None:
+        """Control overlay presentation without changing its SI coordinates."""
+        self._search_region_visible = bool(visible)
+        self._search_region_editable = bool(editable)
+        hit_targets = (*self._search_time_lines, *self._search_lines)
+        for line in hit_targets:
+            line.setVisible(self._search_region_visible and self._search_region_editable)
+            line.setMovable(self._search_region_editable)
+        if self._search_region_roi is not None:
+            self._search_region_roi.setVisible(self._search_region_visible)
+            self._search_region_roi.translatable = self._search_region_editable
 
     def _synchronize_search_lines(self) -> None:
-        if self._view_search_band_hz is None or len(self._search_lines) != 2:
+        if (
+            self._view_search_band_hz is None
+            or self._view_analysis_range_s is None
+            or len(self._search_lines) != 2
+            or len(self._search_time_lines) != 2
+        ):
             return
-        blockers = [QSignalBlocker(line) for line in self._search_lines]
+        blockers = [
+            QSignalBlocker(line)
+            for line in (*self._search_time_lines, *self._search_lines)
+        ]
+        self._search_time_lines[0].setPos(self._view_analysis_range_s[0] * 1.0e6)
+        self._search_time_lines[1].setPos(self._view_analysis_range_s[1] * 1.0e6)
         self._search_lines[0].setPos(self._view_search_band_hz[0] * 1.0e-9)
         self._search_lines[1].setPos(self._view_search_band_hz[1] * 1.0e-9)
         del blockers
+        if self._search_region_roi is not None:
+            blocker = QSignalBlocker(self._search_region_roi)
+            self._search_region_roi.setPos(
+                self._view_analysis_range_s[0] * 1.0e6,
+                self._view_search_band_hz[0] * 1.0e-9,
+            )
+            self._search_region_roi.setSize(
+                (
+                    (self._view_analysis_range_s[1] - self._view_analysis_range_s[0])
+                    * 1.0e6,
+                    (self._view_search_band_hz[1] - self._view_search_band_hz[0])
+                    * 1.0e-9,
+                )
+            )
+            del blocker
 
     def _search_boundary_finished(self, boundary: int) -> None:
         """Snap a drag to the current Hz grid and emit one ordered SI band."""
@@ -389,6 +532,76 @@ class _ChannelView(QWidget):
         self._view_search_band_hz = minimum_hz, maximum_hz
         self._synchronize_search_lines()
         self.search_band_changed.emit(minimum_hz, maximum_hz)
+        self._emit_search_region()
+
+    def _search_time_boundary_finished(self, boundary: int) -> None:
+        grid = self._search_time_grid_s
+        if grid is None or grid.size < 2 or len(self._search_time_lines) != 2:
+            return
+        positions_s = [float(line.value()) * 1.0e-6 for line in self._search_time_lines]
+        indices = [
+            int(np.argmin(np.abs(grid - position_s))) for position_s in positions_s
+        ]
+        if boundary == 0:
+            indices[0] = min(indices[0], indices[1] - 1)
+        else:
+            indices[1] = max(indices[1], indices[0] + 1)
+        indices[0] = max(0, min(indices[0], grid.size - 2))
+        indices[1] = min(grid.size - 1, max(indices[1], indices[0] + 1))
+        self._view_analysis_range_s = float(grid[indices[0]]), float(grid[indices[1]])
+        self._synchronize_search_lines()
+        self._emit_search_region()
+
+    def _search_roi_finished(self) -> None:
+        roi = self._search_region_roi
+        time_grid = self._search_time_grid_s
+        frequency_grid = self._search_frequency_grid_hz
+        if roi is None or time_grid is None or frequency_grid is None:
+            return
+        position = roi.pos()
+        size = roi.size()
+        start_s = float(position.x()) * 1.0e-6
+        end_s = float(position.x() + size.x()) * 1.0e-6
+        minimum_hz = float(position.y()) * 1.0e9
+        maximum_hz = float(position.y() + size.y()) * 1.0e9
+        time_indices = [
+            int(np.argmin(np.abs(time_grid - value))) for value in (start_s, end_s)
+        ]
+        frequency_indices = [
+            int(np.argmin(np.abs(frequency_grid - value)))
+            for value in (minimum_hz, maximum_hz)
+        ]
+        time_indices[0] = max(0, min(time_indices[0], time_grid.size - 2))
+        time_indices[1] = min(
+            time_grid.size - 1, max(time_indices[1], time_indices[0] + 1)
+        )
+        frequency_indices[0] = max(
+            0, min(frequency_indices[0], frequency_grid.size - 2)
+        )
+        frequency_indices[1] = min(
+            frequency_grid.size - 1,
+            max(frequency_indices[1], frequency_indices[0] + 1),
+        )
+        self._view_analysis_range_s = (
+            float(time_grid[time_indices[0]]),
+            float(time_grid[time_indices[1]]),
+        )
+        self._view_search_band_hz = (
+            float(frequency_grid[frequency_indices[0]]),
+            float(frequency_grid[frequency_indices[1]]),
+        )
+        self._synchronize_search_lines()
+        self._emit_search_region()
+
+    def _emit_search_region(self) -> None:
+        if self._view_analysis_range_s is None or self._view_search_band_hz is None:
+            return
+        self.search_region_changed.emit(
+            self._view_analysis_range_s[0],
+            self._view_analysis_range_s[1],
+            self._view_search_band_hz[0],
+            self._view_search_band_hz[1],
+        )
 
     def set_analyses(
         self,
@@ -541,7 +754,7 @@ class SpectrogramView(_ChannelView):
         self.definition_label.setObjectName("spectrogramDefinitionLabel")
         self.root_layout.addWidget(self.definition_label)
         self.current_image_db: FloatArray | None = None
-        self._corridors: Mapping[str, RidgeCorridorConstraint] = {}
+        self._corridors: Mapping[str, RidgeSearchConstraint] = {}
         self._stft_results: Mapping[str, STFTResult] = {}
         self.corridor_controller = RidgeCorridorController(
             self.plot_widget,
@@ -555,6 +768,7 @@ class SpectrogramView(_ChannelView):
         relative_db_floor: float,
     ) -> None:
         """Present independent STFT results before any ridge exists."""
+        self.plot_widget.setTitle("")
         self._analyses = {}
         self._stft_results = stft_results
         self._floor_db = float(relative_db_floor)
@@ -607,7 +821,7 @@ class SpectrogramView(_ChannelView):
 
     def set_corridors(
         self,
-        corridors: Mapping[str, RidgeCorridorConstraint],
+        corridors: Mapping[str, RidgeSearchConstraint],
         *,
         refresh: bool = True,
     ) -> None:
@@ -638,6 +852,7 @@ class SpectrogramView(_ChannelView):
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         stft_result = self._stft_results[channel_name]
+        self.dispose_search_region_interactions()
         self.plot_widget.clear()
         self.plot_widget.addItem(self.image_item)
         self.current_image_db = _set_stft_image(
@@ -664,6 +879,16 @@ class SpectrogramView(_ChannelView):
             self._corridors.get(channel_name),
             analysis_start_time_s=analysis_start,
             analysis_end_time_s=analysis_end,
+            minimum_frequency_hz=(
+                self._view_search_band_hz[0]
+                if self._view_search_band_hz is not None
+                else float(stft_result.frequency_hz[0])
+            ),
+            maximum_frequency_hz=(
+                self._view_search_band_hz[1]
+                if self._view_search_band_hz is not None
+                else float(stft_result.frequency_hz[-1])
+            ),
         )
         if fit_view:
             self.plot_widget.autoRange()
@@ -677,11 +902,16 @@ class SpectrogramView(_ChannelView):
                 )
 
     def _clear_plot(self) -> None:
+        self.dispose_search_region_interactions()
         self.plot_widget.clear()
         self.plot_widget.addItem(self.image_item)
+        self.plot_widget.setTitle(self.tr("尚未计算时频图"), color="#666666")
         self.current_image_db = None
         self._search_lines = []
+        self._search_time_lines = []
+        self._search_region_roi = None
         self._search_frequency_grid_hz = None
+        self._search_time_grid_s = None
         self.corridor_controller.detach_context()
 
 
@@ -718,7 +948,7 @@ class RidgeView(_ChannelView):
         self.formal_curve: Any | None = None
         self._automatic_analyses: Mapping[str, ChannelAnalysis] = {}
         self._guided_analyses: Mapping[str, ChannelAnalysis] = {}
-        self._corridors: Mapping[str, RidgeCorridorConstraint] = {}
+        self._corridors: Mapping[str, RidgeSearchConstraint] = {}
         self._corridor_items: tuple[Any, Any, Any] | None = None
 
     @property
@@ -745,7 +975,7 @@ class RidgeView(_ChannelView):
         automatic_analyses: Mapping[str, ChannelAnalysis],
         guided_analyses: Mapping[str, ChannelAnalysis],
         *,
-        corridors: Mapping[str, RidgeCorridorConstraint],
+        corridors: Mapping[str, RidgeSearchConstraint],
         relative_db_floor: float,
         fit_view: bool = True,
     ) -> None:
@@ -759,7 +989,7 @@ class RidgeView(_ChannelView):
         if automatic_analyses:
             self.result_source_combo.addItem(self.tr("自动结果"), "automatic")
         if guided_analyses:
-            self.result_source_combo.addItem(self.tr("引导结果"), "guided")
+            self.result_source_combo.addItem(self.tr("人工范围结果"), "guided")
         index = self.result_source_combo.findData(previous)
         self.result_source_combo.setCurrentIndex(max(index, 0))
         del blocker
@@ -808,6 +1038,7 @@ class RidgeView(_ChannelView):
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         analysis = self._analyses[channel_name]
+        self.dispose_search_region_interactions()
         self.plot_widget.clear()
         self.plot_widget.addLegend(offset=(12, 12))
         self.image_item = pg.ImageItem(axisOrder="row-major")
@@ -824,7 +1055,18 @@ class RidgeView(_ChannelView):
                 self._corridor_items = draw_static_corridor(
                     self.plot_widget,
                     constraint,
-                    center_name=self.tr("脊线走廊中心"),
+                    center_name=(
+                        self.tr("人工有效搜索区域")
+                        if isinstance(constraint, ManualFrequencyRegion)
+                        else self.tr("旧版脊线走廊")
+                    ),
+                    stft_result=analysis.stft_result,
+                    minimum_frequency_hz=(
+                        analysis.ridge_result.minimum_frequency_hz
+                    ),
+                    maximum_frequency_hz=(
+                        analysis.ridge_result.maximum_frequency_hz
+                    ),
                 )
         time_us = analysis.stft_result.time_s * 1e6
         self.candidate_curve = self.plot_widget.plot(
@@ -838,10 +1080,10 @@ class RidgeView(_ChannelView):
         )
         self.refined_curve = self.plot_widget.plot(
             time_us,
-            analysis.refined_result.refined_frequency_hz * 1e-9,
+            analysis.working_frequency_hz * 1e-9,
             pen=pg.mkPen("#F0E442", width=1.2),
             connect="finite",
-            name=self.tr("亚频点精修脊线"),
+            name=self.tr("工作脊线"),
         )
         formal_frequency = analysis.signal_detection_result.refined_frequency_hz
         self.formal_curve = self.plot_widget.plot(
@@ -855,14 +1097,22 @@ class RidgeView(_ChannelView):
             state.name for state in analysis.signal_detection_result.signal_states
         )
         summary = ", ".join(f"{name}={count}" for name, count in counts.items())
+        working_counts = Counter(source.name for source in analysis.working_source)
+        working_summary = ", ".join(
+            f"{name}={count}" for name, count in working_counts.items()
+        )
         self.quality_label.setText(
-            self.tr("逐帧质量状态：{summary}").format(summary=summary)
+            self.tr("逐帧质量状态：{summary}；工作点来源：{working}").format(
+                summary=summary,
+                working=working_summary,
+            )
         )
         if fit_view:
             self.plot_widget.autoRange()
             self._fit_current_view(analysis)
 
     def _clear_plot(self) -> None:
+        self.dispose_search_region_interactions()
         self.plot_widget.clear()
         self.quality_label.setText(self.tr("尚无质量状态。"))
         self.image_item = None
@@ -871,18 +1121,22 @@ class RidgeView(_ChannelView):
         self.formal_curve = None
         self._corridor_items = None
         self._search_lines = []
+        self._search_time_lines = []
+        self._search_region_roi = None
         self._search_frequency_grid_hz = None
+        self._search_time_grid_s = None
 
 
 class VelocityView(_ChannelView):
-    """Show formal apparent velocity and an optional display-only curve."""
+    """Show one continuous final curve with optional diagnostic overlays."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.fit_analysis_range_button.setToolTip(
             self.tr("将视图恢复到当前设定的分析时间范围。")
         )
-        self.fit_result_range_button = QPushButton(self.tr("适合结果范围"))
+        self.fit_analysis_range_button.setText(self.tr("分析范围"))
+        self.fit_result_range_button = QPushButton(self.tr("全部结果"))
         self.fit_result_range_button.setObjectName("fitResultRangeButton")
         self.fit_result_range_button.setToolTip(
             self.tr("将视图适配到当前显示的有效速度结果。")
@@ -903,13 +1157,49 @@ class VelocityView(_ChannelView):
         source_row.addStretch(1)
         self.root_layout.addLayout(source_row)
         option_row = QHBoxLayout()
-        self.display_velocity_check = QCheckBox(self.tr("显示速度（非正式结果）"))
-        self.display_velocity_check.setObjectName("displayVelocityCheck")
-        self.display_velocity_check.setChecked(False)
-        self.display_velocity_check.toggled.connect(self._rerender)
+        self.quantity_combo = QComboBox()
+        self.quantity_combo.setObjectName("velocityQuantitySelector")
+        self.quantity_combo.addItem(self.tr("速度"), "velocity")
+        self.quantity_combo.addItem(self.tr("加速度 dv/dt"), "acceleration")
+        self.quantity_combo.currentIndexChanged.connect(self._quantity_changed)
+        source_row.insertWidget(source_row.count() - 1, self.quantity_combo)
+        self.acceleration_method_combo = QComboBox()
+        self.acceleration_method_combo.addItem(self.tr("原始差分"), "raw")
+        self.acceleration_method_combo.addItem(self.tr("局部线性拟合"), "local_linear")
+        self.acceleration_window_spin = QDoubleSpinBox()
+        self.acceleration_window_spin.setRange(0.001, 1000000)
+        self.acceleration_window_spin.setDecimals(3)
+        self.acceleration_window_spin.setValue(50)
+        self.acceleration_window_spin.setSuffix(" ns")
+        self.acceleration_window_spin.setPrefix(self.tr("窗口 "))
+        self.acceleration_window_spin.setMinimumWidth(self.acceleration_window_spin.sizeHint().width())
+        self.acceleration_window_spin.setToolTip(self.tr(
+            "拟合窗口总宽度；至少 3 点，不跨无效区。端点使用截短窗口。"
+            "帧间隔不代表时间分辨率，重叠 STFT 帧彼此相关。"
+        ))
+        self.acceleration_controls = QWidget()
+        acceleration_form = QFormLayout(self.acceleration_controls)
+        acceleration_form.setContentsMargins(0, 0, 0, 0)
+        acceleration_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        acceleration_form.addRow(self.acceleration_method_combo, self.acceleration_window_spin)
+        option_row.addWidget(self.acceleration_controls)
+        self.acceleration_controls.hide()
+        self.acceleration_method_combo.hide()
+        self.acceleration_window_spin.hide()
+        self.acceleration_method_combo.currentIndexChanged.connect(self._quantity_changed)
+        self.acceleration_window_spin.valueChanged.connect(self._acceleration_window_changed)
+        self.diagnostic_velocity_check = QCheckBox(self.tr("显示诊断曲线"))
+        self.diagnostic_velocity_check.setObjectName("diagnosticVelocityCheck")
+        self.diagnostic_velocity_check.setChecked(False)
+        self.diagnostic_velocity_check.setToolTip(
+            self.tr("显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。")
+        )
+        self.diagnostic_velocity_check.toggled.connect(self._rerender)
+        # Compatibility alias for existing integrations.
+        self.display_velocity_check = self.diagnostic_velocity_check
         self._export_preview_mode = False
         self._display_velocity_before_export_preview = False
-        option_row.addWidget(self.display_velocity_check)
+        option_row.addWidget(self.diagnostic_velocity_check)
         option_row.addStretch(1)
         self.root_layout.addLayout(option_row)
         self.plot_widget = pg.PlotWidget(background="w")
@@ -918,6 +1208,7 @@ class VelocityView(_ChannelView):
         self.plot_widget.setLabel("left", self.tr("速度"), units="m/s")
         self.plot_widget.showGrid(x=True, y=True, alpha=0.22)
         self.plot_widget.plotItem.hideButtons()
+        self.plot_widget.setToolTip(self.tr("滚轮缩放，拖动平移；“全部结果”恢复完整数据范围。"))
         self.root_layout.addWidget(self.plot_widget, 1)
         self.formal_curve: Any | None = None
         self.apparent_curve: Any | None = None
@@ -934,11 +1225,35 @@ class VelocityView(_ChannelView):
         self.source_notice.setWordWrap(True)
         self.source_notice.hide()
         self.root_layout.addWidget(self.source_notice)
+        self.acceleration_notice = QLabel()
+        self.acceleration_notice.setWordWrap(True)
+        self.acceleration_notice.hide()
+        self.root_layout.addWidget(self.acceleration_notice)
+        self.acceleration_curve: Any | None = None
 
     @property
     def result_source(self) -> str:
         source = self.result_source_combo.currentData()
         return source if isinstance(source, str) else "automatic"
+
+    def _quantity_changed(self, _index: int) -> None:
+        acceleration = self.quantity_combo.currentData() == "acceleration"
+        self.diagnostic_velocity_check.setVisible(not acceleration)
+        self.acceleration_method_combo.setVisible(acceleration)
+        self.acceleration_controls.setVisible(acceleration)
+        self.acceleration_window_spin.setVisible(acceleration and self.local_fit_window_s is not None)
+        channel = self.channel_combo.currentData()
+        if isinstance(channel, str) and channel in self._analyses:
+            self._render_channel(channel, fit_view=True)
+
+    @property
+    def local_fit_window_s(self) -> float | None:
+        if self.acceleration_method_combo.currentData() == "local_linear":
+            return float(self.acceleration_window_spin.value()) * 1e-9
+        return None
+
+    def _acceleration_window_changed(self, _value: float) -> None:
+        self._quantity_changed(0)
 
     def select_result_target(self, result_source: str, channel_name: str) -> bool:
         """Select an existing mode/channel for export preview without recomputing."""
@@ -976,26 +1291,25 @@ class VelocityView(_ChannelView):
         return channel_name in self._analyses
 
     def set_export_preview_mode(self, enabled: bool) -> None:
-        """Show the simple export's display-velocity curve while reviewing."""
+        """Keep the final plot visible and de-emphasize diagnostics in review."""
         if enabled == self._export_preview_mode:
             return
         self._export_preview_mode = enabled
         if enabled:
             self._display_velocity_before_export_preview = (
-                self.display_velocity_check.isChecked()
+                self.diagnostic_velocity_check.isChecked()
             )
-            self.display_velocity_check.setChecked(True)
-            self.display_velocity_check.setEnabled(False)
-            self.display_velocity_check.setToolTip(
-                self.tr(
-                    "复核与导出使用 display_velocity_m_s 作为简表速度列；"
-                    "此处固定显示同一数组。"
-                )
+            self.diagnostic_velocity_check.setChecked(False)
+            self.diagnostic_velocity_check.setEnabled(False)
+            self.diagnostic_velocity_check.setToolTip(
+                self.tr("复核页显示与两列简表相同的最终速度数组。")
             )
             return
-        self.display_velocity_check.setEnabled(True)
-        self.display_velocity_check.setToolTip("")
-        self.display_velocity_check.setChecked(
+        self.diagnostic_velocity_check.setEnabled(True)
+        self.diagnostic_velocity_check.setToolTip(
+            self.tr("显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。")
+        )
+        self.diagnostic_velocity_check.setChecked(
             self._display_velocity_before_export_preview
         )
 
@@ -1034,7 +1348,7 @@ class VelocityView(_ChannelView):
         if automatic_analyses:
             self.result_source_combo.addItem(self.tr("自动结果"), "automatic")
         if guided_analyses:
-            self.result_source_combo.addItem(self.tr("引导结果"), "guided")
+            self.result_source_combo.addItem(self.tr("人工范围结果"), "guided")
         index = self.result_source_combo.findData(previous)
         self.result_source_combo.setCurrentIndex(max(index, 0))
         del blocker
@@ -1125,7 +1439,9 @@ class VelocityView(_ChannelView):
         """Show a source-specific absence message without disabling Velocity."""
         source = self.result_source
         source_name = (
-            self.tr("引导结果") if source == "guided" else self.tr("自动结果")
+            self.tr("人工范围结果")
+            if source == "guided"
+            else self.tr("自动结果")
         )
         self.source_notice.setText(
             self.tr("当前通道尚无{source}：{channel}").format(
@@ -1176,65 +1492,65 @@ class VelocityView(_ChannelView):
             self.tr("相对起跳时间") if event_relative else self.tr("时间"),
             units="μs",
         )
-        self.apparent_curve = self.plot_widget.plot(
+        self.acceleration_curve = None
+        self.acceleration_notice.hide()
+        self.plot_widget.setLabel("left", self.tr("速度"), units="m/s")
+        self.plot_widget.getAxis("left").setSIPrefixEnableRanges(None)
+        self.plot_widget.getAxis("left").enableAutoSIPrefix(True)
+        if self.quantity_combo.currentData() == "acceleration":
+            self._render_acceleration(analysis, time_us)
+            if fit_view:
+                self.plot_widget.autoRange()
+                self._fit_current_view(analysis)
+            else:
+                self.plot_widget.setXRange(*previous_range[0], padding=0.0)
+                self.plot_widget.setYRange(*previous_range[1], padding=0.0)
+            return
+        self.display_curve = self.plot_widget.plot(
             time_us,
-            analysis.apparent_velocity_m_s,
-            pen=pg.mkPen("#0072B2", width=1.4, style=pg.QtCore.Qt.DashLine),
+            analysis.plot_velocity_m_s,
+            pen=pg.mkPen("#6C5CE7", width=2.2),
             connect="finite",
-            name=self.tr("正式表观速度"),
+            name=self.tr("最终速度"),
         )
-        self.corrected_curve = self.plot_widget.plot(
-            time_us,
-            analysis.corrected_velocity_m_s,
-            pen=pg.mkPen("#D55E00", width=2.0),
-            connect="finite",
-            name=self.tr("正式修正速度"),
-        )
-        self.formal_curve = self.corrected_curve
-        self.display_curve = None
+        self.apparent_curve = None
+        self.corrected_curve = None
+        self.formal_curve = None
         self.display_connector = None
         self.event_reference_line = None
-        if self.display_velocity_check.isChecked():
-            self.display_curve = self.plot_widget.plot(
+        if self.diagnostic_velocity_check.isChecked():
+            self.apparent_curve = self.plot_widget.plot(
                 time_us,
-                analysis.display_velocity_m_s,
-                pen=pg.mkPen("#777777", width=1.2, style=pg.QtCore.Qt.DashLine),
+                analysis.apparent_velocity_m_s,
+                pen=pg.mkPen("#0072B2", width=1.2, style=pg.QtCore.Qt.DashLine),
                 connect="finite",
-                name=self.tr("显示速度（仅显示）"),
+                name=self.tr("诊断：formal 表观速度"),
             )
-            connector = display_velocity_connector_points(analysis)
-            if connector is not None:
-                connector_time_us, connector_velocity_m_s = connector
-                if event_relative:
-                    assert reference_s is not None
-                    connector_time_us = connector_time_us - reference_s * 1.0e6
-                self.display_connector = self.plot_widget.plot(
-                    connector_time_us,
-                    connector_velocity_m_s,
-                    pen=pg.mkPen(
-                        "#777777",
-                        width=1.0,
-                        style=pg.QtCore.Qt.DashLine,
-                    ),
-                    connect="all",
-                )
-                self.display_connector.setToolTip(
-                    self.tr("显示速度（仅显示）")
-                )
-        if reference_s is not None:
-            reference_x_us = 0.0 if event_relative else reference_s * 1.0e6
-            self.event_reference_line = pg.InfiniteLine(
-                pos=reference_x_us,
-                angle=90,
-                movable=False,
+            self.corrected_curve = self.plot_widget.plot(
+                time_us,
+                analysis.corrected_velocity_m_s,
+                pen=pg.mkPen("#D55E00", width=1.4, style=pg.QtCore.Qt.DashLine),
+                connect="finite",
+                name=self.tr("诊断：formal 修正速度"),
+            )
+            self.formal_curve = self.corrected_curve
+        connector = display_velocity_connector_points(analysis)
+        if connector is not None:
+            connector_time_us, connector_velocity_m_s = connector
+            if event_relative:
+                assert reference_s is not None
+                connector_time_us = connector_time_us - reference_s * 1.0e6
+            self.display_connector = self.plot_widget.plot(
+                connector_time_us,
+                connector_velocity_m_s,
                 pen=pg.mkPen(
-                    "#6A3D9A",
-                    width=1.2,
+                    "#6C5CE7",
+                    width=1.0,
                     style=pg.QtCore.Qt.DashLine,
                 ),
+                connect="all",
             )
-            self.event_reference_line.setToolTip(self.tr("事件参考时刻"))
-            self.plot_widget.addItem(self.event_reference_line)
+            self.display_connector.setToolTip(self.tr("最终速度"))
         if fit_view:
             self.plot_widget.autoRange()
             self._fit_current_view(analysis)
@@ -1251,6 +1567,38 @@ class VelocityView(_ChannelView):
         )
         if bounds is not None:
             self.plot_widget.setYRange(*bounds[1], padding=0.0)
+
+    def _render_acceleration(self, analysis: ChannelAnalysis, time_us: FloatArray) -> None:
+        self.display_curve = self.apparent_curve = self.corrected_curve = self.formal_curve = None
+        self.display_connector = self.event_reference_line = None
+        derivative = channel_acceleration(analysis, window_s=self.local_fit_window_s)
+        # Explicit scale keeps values readable; arrays and CSV remain SI.
+        self.plot_widget.setLabel("left", "dv/dt", units="10⁹ m/s²")
+        # Also clear the cached SI scale: disabling alone can retain a prefix
+        # from the previous velocity range in PyQtGraph 0.14.
+        self.plot_widget.getAxis("left").setSIPrefixEnableRanges(())
+        self.plot_widget.getAxis("left").enableAutoSIPrefix(False)
+        config = analysis.working_velocity_correction_result.config
+        source = (
+            window_configuration_name(config.lif_model)
+            if config.window_correction_enabled else self.tr("无窗口修正")
+        )
+        self.acceleration_curve = self.plot_widget.plot(
+            time_us, derivative.acceleration_m_s2 * 1e-9,
+            pen=pg.mkPen("#009E73", width=1.8), connect="finite",
+            name=self.acceleration_method_combo.currentText(),
+        )
+        self.acceleration_notice.setText(self.tr(
+            "来源：最终速度（无符号） · {source} · 观测角 {angle:g}°"
+        ).format(source=source, angle=math.degrees(config.measurement_angle_rad))
+            + " · " + self.tr("{count}/{total} 点可计算").format(
+                count=int(np.isfinite(derivative.acceleration_m_s2).sum()), total=time_us.size,
+            ))
+        self.acceleration_notice.setToolTip(self.tr(
+            "原始差分使用实际时间坐标；局部线性拟合保留原速度，可能压低或展宽短时峰。"
+            "无效区与显示平台留空。有限数值不代表质量通过；质量及修正参数见导出记录。"
+        ))
+        self.acceleration_notice.show()
 
     def fit_result_range(self) -> None:
         """Fit both axes to finite data from only the currently visible curves."""
@@ -1278,7 +1626,7 @@ class VelocityView(_ChannelView):
     def _visible_velocity_series(
         self,
     ) -> tuple[tuple[FloatArray, FloatArray], ...]:
-        curves = (self.apparent_curve, self.corrected_curve, self.display_curve)
+        curves = (self.apparent_curve, self.corrected_curve, self.display_curve, self.acceleration_curve)
         series: list[tuple[FloatArray, FloatArray]] = []
         for curve in curves:
             if curve is None or not curve.isVisible():
@@ -1296,6 +1644,9 @@ class VelocityView(_ChannelView):
 
     def _clear_plot(self) -> None:
         self.plot_widget.clear()
+        self.acceleration_curve = None
+        self.acceleration_notice.clear()
+        self.acceleration_notice.hide()
         self.formal_curve = None
         self.apparent_curve = None
         self.corrected_curve = None
@@ -1373,7 +1724,9 @@ class ComparisonView(QWidget):
             series.append(
                 (
                     f"guided:{channel_name}",
-                    self.tr("{channel} — 引导结果").format(channel=channel_name),
+                    self.tr("{channel} — 人工范围结果").format(
+                        channel=channel_name
+                    ),
                     analysis,
                 )
             )
@@ -1450,9 +1803,9 @@ class QualitySummaryWidget(QWidget):
             [
                 self.tr("通道"),
                 self.tr("信号状态计数"),
-                self.tr("MEASURED 帧"),
-                self.tr("NaN 帧"),
-                self.tr("频谱质量状态"),
+                self.tr("可信帧"),
+                self.tr("低可信/候选帧"),
+                self.tr("连续结果回退"),
                 self.tr("连续性诊断"),
                 self.tr("通道警告"),
             ]
@@ -1471,10 +1824,15 @@ class QualitySummaryWidget(QWidget):
             detection = analysis.signal_detection_result
             state_counts = Counter(state.name for state in detection.signal_states)
             measured_count = state_counts.get(SignalState.MEASURED.name, 0)
-            nan_count = int(np.count_nonzero(np.isnan(detection.apparent_velocity_m_s)))
-            spectral_counts = Counter(
-                status.name
-                for status in analysis.spectral_quality_result.assessment_statuses
+            outside_count = state_counts.get(
+                SignalState.OUTSIDE_ANALYSIS_WINDOW.name,
+                0,
+            )
+            low_confidence_count = len(detection.signal_states) - measured_count - outside_count
+            fallback_counts = Counter(
+                source.name
+                for source in analysis.working_source
+                if source.name != "REFINED"
             )
             continuity_counts = Counter(
                 status.name for status in analysis.continuity_result.continuity_statuses
@@ -1482,23 +1840,28 @@ class QualitySummaryWidget(QWidget):
             warnings = []
             if measured_count == 0:
                 warnings.append(self.tr("无 MEASURED 帧"))
-            if nan_count:
+            formal_nan_count = int(
+                np.count_nonzero(np.isnan(detection.apparent_velocity_m_s))
+            )
+            if formal_nan_count:
                 warnings.append(
-                    self.tr("{count} 帧正式速度为 NaN").format(count=nan_count)
+                    self.tr("{count} 帧仅缺少 formal/trusted 值").format(
+                        count=formal_nan_count
+                    )
                 )
             values = (
                 channel_name,
                 self._format_counts(state_counts),
                 str(measured_count),
-                str(nan_count),
-                self._format_counts(spectral_counts),
+                str(low_confidence_count),
+                self._format_counts(fallback_counts) or self.tr("无"),
                 self._format_counts(continuity_counts),
                 "; ".join(warnings) if warnings else self.tr("无额外警告"),
             )
             for column, value in enumerate(values):
                 self.table.setItem(row, column, QTableWidgetItem(value))
         self.notice.setText(
-            self.tr("下表直接统计 public core 返回的逐帧状态和诊断枚举。")
+            self.tr("质量仅描述连续速度的可信程度；展开此诊断可查看 formal/trusted 子集。")
         )
 
     def clear_results(self, message: str | None = None) -> None:

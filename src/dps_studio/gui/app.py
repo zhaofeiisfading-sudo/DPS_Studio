@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import sys
+import json
 from collections.abc import Sequence
 from typing import cast
 
+from PySide6.QtCore import QSettings, QTimer
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
+from dps_studio import __version__
 from dps_studio.gui.i18n import TranslationManager
-from dps_studio.gui.main_window import MainWindow
+from dps_studio.gui.release_smoke import loaded_runtime_paths, run_analysis_smoke, smoke_options
 from dps_studio.gui.styles import apply_application_style
+from dps_studio.runtime_paths import package_resource_path
+from dps_studio.core.physics.window_presets import WindowPresetRepository
+from dps_studio.gui.research_window import ResearchMainWindow
 
 
 _translation_manager: TranslationManager | None = None
@@ -30,9 +37,13 @@ def create_application(
         )
     else:
         application = cast("QApplication", existing)
-    application.setOrganizationName("DPS Studio")
-    application.setApplicationName("PDV Studio")
-    application.setApplicationDisplayName("PDV Studio")
+    application.setOrganizationName("DPS Studio Research")
+    application.setApplicationName("PDV Studio TASK011 Test")
+    application.setApplicationVersion(__version__)
+    application.setApplicationDisplayName("PDV Studio · Research / Test · TASK-011")
+    application.setWindowIcon(
+        QIcon(str(package_resource_path("gui", "icons", "pdv_studio.ico")))
+    )
     apply_application_style(application)
     _translation_manager = TranslationManager(application)
     _translation_manager.install(language_code)
@@ -48,10 +59,78 @@ def translation_manager() -> TranslationManager:
 
 def main(arguments: Sequence[str] | None = None) -> int:
     """Launch the resizable PDV Studio desktop shell."""
+    args = list(arguments) if arguments is not None else sys.argv
+    from dps_studio.gui.research_safety import install_write_guard
+
+    install_write_guard()
+    if "--task011-smoke" in args:
+        from dps_studio.gui.task011_smoke import run_smoke
+
+        return run_smoke(args)
+    if "--workflow-smoke-test" in args:
+        from dps_studio.gui.release_workflow_smoke import run_workflow_smoke
+
+        return run_workflow_smoke(args)
+    report_path, analysis_input = smoke_options(args)
     application = create_application(arguments)
-    window = MainWindow(translation_manager=translation_manager())
+    window = ResearchMainWindow(
+        translation_manager=translation_manager(),
+        settings=(QSettings(str(report_path.parent / "layout.ini"), QSettings.Format.IniFormat)
+                  if report_path is not None else None),
+        window_preset_repository=(WindowPresetRepository(report_path.parent / "window_presets.json")
+                                  if report_path is not None else None),
+    )
     window.show()
-    return application.exec()
+    if report_path is not None:
+        def report_startup() -> None:
+            exit_code = 0
+            try:
+                analysis_report = (
+                    run_analysis_smoke(analysis_input, report_path.parent / "analysis_export")
+                    if analysis_input is not None else None
+                )
+                if sys.platform == "darwin" and analysis_input is not None:
+                    from dps_studio.release.portable_reference import capture_snapshot
+
+                    assert analysis_report is not None
+                    analysis_report["numerical_snapshot"] = capture_snapshot(
+                        analysis_input, report_path.parent / "numerical_exports",
+                    )
+                handle = window.windowHandle()
+                report = {
+                    "version": __version__, "gui_version": application.applicationVersion(),
+                    "event_loop_entered": True, "window_visible": window.isVisible(),
+                    "window_exposed": handle is not None and handle.isExposed(),
+                    "qt_platform": application.platformName(),
+                    "runtime_paths": loaded_runtime_paths(), "analysis_smoke": analysis_report,
+                }
+                if sys.platform == "darwin":
+                    report["application_created"] = True
+                    report["main_window_created"] = True
+            except Exception as exc:
+                report = {"error": f"{type(exc).__name__}: {exc}"}
+                if sys.platform == "darwin":
+                    handle = window.windowHandle()
+                    report.update({
+                        "application_created": True, "main_window_created": True,
+                        "event_loop_entered": True, "window_visible": window.isVisible(),
+                        "window_exposed": handle is not None and handle.isExposed(),
+                        "qt_platform": application.platformName(), "version": __version__,
+                        "gui_version": application.applicationVersion(),
+                    })
+                exit_code = 1
+            with report_path.open("x", encoding="utf-8") as report_handle:
+                json.dump(report, report_handle, indent=2)
+            window.close()
+            application.exit(exit_code)
+
+        QTimer.singleShot(500, report_startup)
+    exit_code = application.exec()
+    if sys.platform == "darwin" and report_path is not None and report_path.exists():
+        from dps_studio.gui.release_smoke_macos import finish_report
+
+        finish_report(report_path, exit_code)
+    return exit_code
 
 
 __all__ = ["create_application", "main", "translation_manager"]

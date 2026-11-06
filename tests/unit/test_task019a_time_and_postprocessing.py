@@ -76,7 +76,45 @@ def test_event_relative_time_uses_the_formal_reference_and_handles_absence() -> 
     np.testing.assert_array_equal(absolute, [744.0e-6, 744.1e-6, 744.2e-6])
 
 
-def test_export_time_origin_is_explicit_and_default_is_event(tmp_path: Path) -> None:
+def test_event_reference_changes_only_display_and_time_convention(
+    tmp_path: Path,
+) -> None:
+    analysis = configure_channel_event_reference(
+        _analysis(tmp_path),
+        event_reference_time_s=None,
+        enable_pre_event_display=True,
+        pre_event_display_velocity_m_s=0.0,
+    )
+    working_before = analysis.working_frequency_hz.copy()
+    apparent_before = analysis.continuous_apparent_velocity_m_s.copy()
+    corrected_before = analysis.continuous_corrected_velocity_m_s.copy()
+    reference_s = float(analysis.stft_result.time_s[10])
+
+    updated = configure_channel_event_reference(
+        analysis,
+        event_reference_time_s=reference_s,
+        event_reference_source="user_adopted:test",
+        enable_pre_event_display=True,
+        pre_event_display_velocity_m_s=0.0,
+    )
+
+    np.testing.assert_array_equal(updated.working_frequency_hz, working_before)
+    np.testing.assert_array_equal(
+        updated.continuous_apparent_velocity_m_s,
+        apparent_before,
+    )
+    np.testing.assert_array_equal(
+        updated.continuous_corrected_velocity_m_s,
+        corrected_before,
+    )
+    assert updated.stft_result is analysis.stft_result
+    assert updated.ridge_result is analysis.ridge_result
+    assert updated.signal_detection_result.manual_event_reference_time_s == (
+        reference_s
+    )
+
+
+def test_export_time_origin_is_explicit_and_default_is_absolute(tmp_path: Path) -> None:
     analysis = _analysis(tmp_path)
     options = ResultExportOptions(
         output_directory=tmp_path,
@@ -84,24 +122,24 @@ def test_export_time_origin_is_explicit_and_default_is_event(tmp_path: Path) -> 
         channel_analyses={"pdv_channel_1": analysis},
         event_reference_source="test",
     )
-    assert options.time_origin is ExportTimeOrigin.EVENT
+    assert options.time_origin is ExportTimeOrigin.ABSOLUTE
     report = export_formal_results(options)
     exported = report.exported_channels[0]
     simple = _csv_rows(exported.csv_path)
     detail = _csv_rows(exported.detail_csv_path)
-    assert set(simple[0]) == {"time_from_event_s", "display_velocity_m_s"}
+    assert set(simple[0]) == {"time_s", "display_velocity_m_s"}
     assert {"time_s", "time_from_event_s"}.issubset(detail[0])
     assert any(float(row["time_from_event_s"]) == 0.0 for row in detail)
     for simple_row, detail_row in zip(simple, detail, strict=True):
-        assert simple_row["time_from_event_s"] == detail_row["time_from_event_s"]
+        assert simple_row["time_s"] == detail_row["time_s"]
         assert simple_row["display_velocity_m_s"] == detail_row[
             "display_velocity_m_s"
         ]
     metadata = json.loads(exported.metadata_path.read_text(encoding="utf-8"))
     assert metadata["time_coordinate"]["absolute_time_preserved"] is True
-    assert metadata["time_coordinate"]["export_time_origin"] == "event"
+    assert metadata["time_coordinate"]["export_time_origin"] == "absolute"
     assert metadata["time_coordinate"]["simple_csv_time_column"] == (
-        "time_from_event_s"
+        "time_s"
     )
 
 
@@ -127,7 +165,8 @@ def test_absolute_export_retains_relative_detail_and_missing_reference_rules(
     simple = _csv_rows(report.exported_channels[0].csv_path)
     detail = _csv_rows(report.exported_channels[0].detail_csv_path)
     assert set(simple[0]) == {"time_s", "display_velocity_m_s"}
-    assert float(simple[0]["time_s"]) == detection.time_s[0]
+    assert float(simple[0]["time_s"]) == float(detail[0]["time_s"])
+    assert float(simple[0]["time_s"]) >= detection.analysis_start_time_s
     assert all(row["time_from_event_s"] == "nan" for row in detail)
     with pytest.raises(ResultExportValidationError, match="formally adopted"):
         export_formal_results(
@@ -135,6 +174,7 @@ def test_absolute_export_retains_relative_detail_and_missing_reference_rules(
                 output_directory=tmp_path,
                 analysis_mode=ResultAnalysisMode.AUTOMATIC,
                 channel_analyses={"pdv_channel_1": without_reference},
+                time_origin=ExportTimeOrigin.EVENT,
                 event_reference_source=None,
             )
         )

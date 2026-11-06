@@ -19,6 +19,7 @@ from dps_studio.core.physics.models import (
     VelocityCorrectionResult,
     WindowMaterial,
 )
+from dps_studio.core.physics.window_presets import PARAMETER_UNITS, window_configuration_name
 
 
 _ANGLE_MODEL = "line_of_sight_projection"
@@ -162,6 +163,15 @@ def velocity_correction_metadata(
         window.update(
             {
                 "model": model.model,
+                "configuration_name": window_configuration_name(model),
+                "configuration_type": "builtin" if model == LIF_RIGG_2014_1550NM else "custom",
+                "configuration_scope": (
+                    "existing built-in calibration"
+                    if model == LIF_RIGG_2014_1550NM else
+                    "user coefficients for fixed formula; material applicability unverified"
+                ),
+                "parameter_units": dict(PARAMETER_UNITS),
+                "formula": "v_out_m_s = 1000 * b1 * (v_in_m_s / 1000)**b2",
                 "reference_wavelength_m": model.reference_wavelength_m,
                 "crystal_orientation": model.crystal_orientation,
                 "b1": model.b1,

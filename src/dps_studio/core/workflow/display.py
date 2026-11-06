@@ -23,7 +23,7 @@ PRE_EVENT_DISPLAY_ORIGIN = "configured_pre_event_display_velocity_only"
 def build_display_velocity(
     time_s: FloatArray,
     signal_states: tuple[SignalState, ...],
-    formal_corrected_velocity_m_s: FloatArray,
+    continuous_corrected_velocity_m_s: FloatArray,
     *,
     manual_event_reference_time_s: float | None,
     analysis_start_time_s: float | None = None,
@@ -31,13 +31,13 @@ def build_display_velocity(
     enable_pre_event_display: bool,
     pre_event_display_velocity_m_s: float = 0.0,
 ) -> tuple[FloatArray, tuple[str, ...]]:
-    """Build a separate display array from an explicit event reference.
+    """Build the final plotting array from an explicit optional event reference.
 
-    A formal ``MEASURED`` frame always retains its final corrected velocity.
-    Only non-measured frames inside the explicit analysis range and strictly
-    before ``manual_event_reference_time_s`` receive the configured
-    display-only platform. Every post-event invalid frame remains NaN. A
-    reference outside the active analysis/data domain produces no platform.
+    Every frame inside the explicit analysis range and strictly before the
+    resolved event reference receives the configured platform, regardless of
+    formal quality. All other in-range values come from the supplied continuous
+    corrected-velocity array. A reference outside the active
+    analysis/data domain produces no platform.
     """
     if not isinstance(enable_pre_event_display, bool):
         raise TypeError("enable_pre_event_display must be a boolean.")
@@ -55,11 +55,11 @@ def build_display_velocity(
         field_name="analysis_end_time_s",
     )
     time = np.asarray(time_s, dtype=np.float64)
-    formal = np.asarray(formal_corrected_velocity_m_s, dtype=np.float64)
+    continuous = np.asarray(continuous_corrected_velocity_m_s, dtype=np.float64)
     states = tuple(signal_states)
-    if time.ndim != 1 or formal.shape != time.shape or len(states) != time.size:
+    if time.ndim != 1 or continuous.shape != time.shape or len(states) != time.size:
         raise ValueError(
-            "time_s, signal_states, and formal velocity must share one axis."
+            "time_s, signal_states, and continuous velocity must share one axis."
         )
     if not np.all(np.isfinite(time)):
         raise ValueError("time_s must contain only finite values.")
@@ -86,12 +86,10 @@ def build_display_velocity(
         and float(time[0]) <= manual_reference <= float(time[-1])
     )
 
-    display = formal.copy()
+    display = continuous.copy()
     origins: list[str] = []
     for index, state in enumerate(states):
-        if state is SignalState.MEASURED:
-            origins.append("quality_gated_measurement")
-        elif (
+        if (
             enable_pre_event_display
             and reference_is_active
             and time[index] >= display_start
@@ -102,6 +100,8 @@ def build_display_velocity(
             origins.append(PRE_EVENT_DISPLAY_ORIGIN)
         elif state is SignalState.OUTSIDE_ANALYSIS_WINDOW:
             origins.append("outside_analysis_window")
+        elif np.isfinite(display[index]):
+            origins.append("continuous_corrected_velocity")
         else:
             origins.append(state.value)
     return display, tuple(origins)
@@ -120,7 +120,7 @@ def configure_channel_display_velocity(
     display, origins = build_display_velocity(
         detection.time_s,
         detection.signal_states,
-        analysis.corrected_velocity_m_s,
+        analysis.continuous_corrected_velocity_m_s,
         manual_event_reference_time_s=(
             detection.manual_event_reference_time_s
         ),
@@ -156,9 +156,15 @@ def configure_channel_velocity_correction(
         config=velocity_correction_config,
         vacuum_wavelength_m=vacuum_wavelength_m,
     )
+    working_correction = apply_velocity_corrections(
+        analysis.working_apparent_velocity_m_s,
+        config=velocity_correction_config,
+        vacuum_wavelength_m=vacuum_wavelength_m,
+    )
     updated = replace(
         analysis,
         velocity_correction_result=correction,
+        working_velocity_correction_result=working_correction,
     )
     return configure_channel_display_velocity(
         updated,
@@ -187,14 +193,8 @@ def configure_channel_event_reference(
         manual_event_reference_time_s=reference,
     )
     if reference is None:
-        continuity_reference = (
-            analysis.stream_event_candidates.primary_candidate_time_s
-        )
-        continuity_source = (
-            "event_level_primary_candidate"
-            if continuity_reference is not None
-            else None
-        )
+        continuity_reference = None
+        continuity_source = None
     else:
         continuity_reference = reference
         continuity_source = (

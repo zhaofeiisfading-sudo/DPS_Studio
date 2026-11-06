@@ -87,7 +87,7 @@ def test_action_cursor_tracks_enabled_state_without_changing_controls(
         qapp.processEvents()
 
 
-def test_range_reset_stays_draft_only_and_dynamic_candidate_cursor_remains_available(
+def test_range_reset_commits_and_dynamic_candidate_cursor_remains_available(
     qapp: QApplication,
 ) -> None:
     """Preserve right-panel action signals and configure dynamically added actions."""
@@ -97,8 +97,6 @@ def test_range_reset_stays_draft_only_and_dynamic_candidate_cursor_remains_avail
     try:
         panel.set_data_bounds(1e-6, 5e-6)
         panel.full_range_button.click()
-        assert received == []
-        panel.apply_button.click()
         assert received == [pytest.approx((1e-6, 5e-6))]
 
         panel.set_detected_candidates({"pdv_channel_1": 2e-6})

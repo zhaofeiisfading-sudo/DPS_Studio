@@ -27,8 +27,15 @@ from dps_studio.core.export.models import (
 )
 from dps_studio.core.export.time_coordinates import event_relative_time_s
 from dps_studio.core.physics import velocity_correction_metadata
+from dps_studio.core.quality import SignalState
+from dps_studio.core.ridge import (
+    ManualFrequencyBoundary,
+    ManualFrequencyRegion,
+    RidgeCorridorConstraint,
+)
 from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN
 from dps_studio.core.workflow.models import ChannelAnalysis
+from dps_studio.core.workflow.acceleration import acceleration_metadata, channel_acceleration
 
 
 EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v6"
@@ -37,15 +44,20 @@ _DETAIL_CSV_FIELDS = (
     "time_from_event_s",
     "coarse_peak_frequency_hz",
     "refined_frequency_hz",
+    "working_frequency_hz",
     "apparent_velocity_m_s",
     "angle_corrected_apparent_velocity_m_s",
     "corrected_velocity_m_s",
+    "continuous_apparent_velocity_m_s",
+    "continuous_angle_corrected_apparent_velocity_m_s",
+    "continuous_corrected_velocity_m_s",
     "display_velocity_m_s",
     "ridge_quality_flag",
     "ridge_refinement_status",
     "ridge_selection_origin",
     "selected_candidate_rank",
     "signal_state",
+    "working_source",
     "velocity_origin",
     "is_pre_event_display_only",
     "channel",
@@ -77,6 +89,7 @@ class _ChannelExportPlan:
     simple_csv_name: str
     detail_csv_name: str
     metadata_name: str
+    acceleration_csv_name: str | None = None
 
 
 def export_formal_results(options: ResultExportOptions) -> ResultExportReport:
@@ -202,13 +215,19 @@ def _plan_export_files(
         channel_token = _channel_filename_token(channel_name)
         mode_token = _MODE_FILENAME_TOKENS[options.analysis_mode]
         base_stem = f"{source_stem}_{channel_token}_{mode_token}"
-        plan = _allocate_file_group(output_directory, base_stem, allocated_names)
+        if options.quality_passed_only:
+            base_stem += "_quality_passed"
+        plan = _allocate_file_group(
+            output_directory, base_stem, allocated_names,
+            include_acceleration=options.include_acceleration,
+        )
         plans.append(
             _ChannelExportPlan(
                 channel_name=channel_name,
                 simple_csv_name=plan[0],
                 detail_csv_name=plan[1],
                 metadata_name=plan[2],
+                acceleration_csv_name=plan[3] if options.include_acceleration else None,
             )
         )
         allocated_names.update(plan)
@@ -258,15 +277,19 @@ def _allocate_file_group(
     output_directory: Path,
     base_stem: str,
     allocated_names: set[str],
-) -> tuple[str, str, str]:
+    *,
+    include_acceleration: bool = False,
+) -> tuple[str, ...]:
     for suffix in range(1, 10_000):
         suffix_text = "" if suffix == 1 else f"_{suffix}"
         stem = f"{base_stem}{suffix_text}"
-        names = (
+        names: tuple[str, ...] = (
             f"{stem}.csv",
             f"{stem}_detail.csv",
             f"{stem}.metadata.json",
         )
+        if include_acceleration:
+            names += (f"{stem}_acceleration.csv",)
         if any(name in allocated_names for name in names):
             continue
         if any(_path_exists_or_is_symlink(output_directory / name) for name in names):
@@ -309,11 +332,12 @@ def _write_staged_results(
     for plan in plans:
         analysis = options.channel_analyses[plan.channel_name]
         row_indices = _export_row_indices(analysis, options)
+        simple_row_indices = _simple_row_indices(analysis, options, row_indices)
         row_count = _write_simple_csv(
             staging_directory / plan.simple_csv_name,
             analysis,
             options,
-            row_indices,
+            simple_row_indices,
         )
         _write_detail_csv(
             staging_directory / plan.detail_csv_name,
@@ -331,6 +355,32 @@ def _write_staged_results(
             plan.detail_csv_name,
             row_count,
         )
+        if plan.acceleration_csv_name is not None:
+            _write_acceleration_csv(
+                staging_directory / plan.acceleration_csv_name, analysis, options, row_indices,
+            )
+            metadata["acceleration_export"] = {
+                **acceleration_metadata(analysis),
+                "csv_file": plan.acceleration_csv_name,
+                "row_count": len(row_indices),
+                "time_origin": options.time_origin.value,
+                "quality_passed_only_applies_to_velocity_simple_csv": options.quality_passed_only,
+                "row_policy": "detail row range; retained invalid rows as NaN; derivative computed before export selection",
+            }
+            if options.acceleration_fit_window_s is not None:
+                metadata["acceleration_local_fit"] = {
+                    **acceleration_metadata(analysis),
+                    "method": "local_linear_least_squares",
+                    "window_s": options.acceleration_fit_window_s,
+                    "window_definition": "centered full width; actual time; unweighted; minimum 3 points",
+                    "endpoints": "truncated at eligible segment edges; flagged; insufficient points NaN",
+                    "preprocessing": "velocity unchanged; optional slope fit; no gap bridging",
+                    "csv_file": plan.acceleration_csv_name,
+                    "column": "local_linear_acceleration_m_s2",
+                    "time_origin": options.time_origin.value,
+                    "row_count": len(row_indices),
+                    "limits": "overlapping STFT frames correlated; frame spacing is not resolution; fit can attenuate and broaden short features",
+                }
         _write_json(staging_directory / plan.metadata_name, metadata)
         exported_channels.append(
             ExportedChannelResult(
@@ -339,20 +389,95 @@ def _write_staged_results(
                 detail_csv_path=output_directory / plan.detail_csv_name,
                 metadata_path=output_directory / plan.metadata_name,
                 exported_row_count=row_count,
+                acceleration_csv_path=(
+                    output_directory / plan.acceleration_csv_name
+                    if plan.acceleration_csv_name is not None else None
+                ),
             )
         )
     return exported_channels
+
+
+def _write_acceleration_csv(
+    path: Path,
+    analysis: ChannelAnalysis,
+    options: ResultExportOptions,
+    indices: tuple[int, ...],
+) -> None:
+    derivative = channel_acceleration(analysis)
+    fitted = (channel_acceleration(analysis, window_s=options.acceleration_fit_window_s)
+              if options.acceleration_fit_window_s is not None else None)
+    relative = event_relative_time_s(
+        analysis.stft_result.time_s,
+        analysis.signal_detection_result.manual_event_reference_time_s,
+    )
+    time_column = _simple_time_column(options.time_origin)
+    fields: tuple[str, ...] = (
+        time_column, "acceleration_m_s2", "velocity_m_s", "velocity_source",
+        "derivative_numerical_flag", "signal_state", "ridge_quality_flag",
+        "working_source", "velocity_origin", "ridge_selection_origin",
+    )
+    if fitted is not None:
+        fields += ("local_linear_acceleration_m_s2", "local_linear_numerical_flag")
+    with path.open("x", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow(fields)
+        for index in indices:
+            row: tuple[str, ...] = (
+                _csv_float(relative[index] if options.time_origin is ExportTimeOrigin.EVENT
+                           else analysis.stft_result.time_s[index]),
+                _csv_float(derivative.acceleration_m_s2[index]),
+                _csv_float(analysis.plot_velocity_m_s[index]),
+                "display_velocity_m_s",
+                derivative.numerical_flags[index],
+                analysis.signal_detection_result.signal_states[index].value,
+                analysis.ridge_result.quality_flags[index].value,
+                analysis.working_source[index].value,
+                analysis.velocity_origins[index],
+                analysis.automatic_ridge_selection_result.origins[index].value,
+            )
+            if fitted is not None:
+                row += (_csv_float(fitted.acceleration_m_s2[index]), fitted.numerical_flags[index])
+            writer.writerow(row)
 
 
 def _export_row_indices(
     analysis: ChannelAnalysis,
     options: ResultExportOptions,
 ) -> tuple[int, ...]:
+    detection = analysis.signal_detection_result
+    time_s = detection.time_s
+    start_s = detection.analysis_start_time_s
+    end_s = detection.analysis_end_time_s
     return tuple(
         index
         for index, origin in enumerate(analysis.velocity_origins)
-        if options.include_pre_event_display_rows or origin != PRE_EVENT_DISPLAY_ORIGIN
+        if (start_s is None or time_s[index] >= start_s)
+        and (end_s is None or time_s[index] <= end_s)
+        and (
+            options.include_pre_event_display_rows
+            or origin != PRE_EVENT_DISPLAY_ORIGIN
+        )
     )
+
+
+def _simple_row_indices(
+    analysis: ChannelAnalysis,
+    options: ResultExportOptions,
+    row_indices: tuple[int, ...],
+) -> tuple[int, ...]:
+    if not options.quality_passed_only:
+        return row_indices
+    return tuple(
+        index for index in row_indices
+        if analysis.signal_detection_result.signal_states[index] is SignalState.MEASURED
+        and analysis.velocity_origins[index] != PRE_EVENT_DISPLAY_ORIGIN
+        and np.isfinite(analysis.corrected_velocity_m_s[index])
+    )
+
+
+def _simple_velocity_column(options: ResultExportOptions) -> str:
+    return "corrected_velocity_m_s" if options.quality_passed_only else "display_velocity_m_s"
 
 
 def _write_simple_csv(
@@ -361,13 +486,19 @@ def _write_simple_csv(
     options: ResultExportOptions,
     row_indices: tuple[int, ...],
 ) -> int:
-    """Write the user-facing time--display-velocity CSV without recalculation."""
+    """Write the selected two-column velocity source without recalculation."""
     detection = analysis.signal_detection_result
     relative_time_s = event_relative_time_s(
         detection.time_s,
         detection.manual_event_reference_time_s,
     )
     time_column = _simple_time_column(options.time_origin)
+    velocity_column = _simple_velocity_column(options)
+    velocity_values = (
+        analysis.corrected_velocity_m_s
+        if options.quality_passed_only
+        else analysis.plot_velocity_m_s
+    )
     time_values = (
         relative_time_s
         if options.time_origin is ExportTimeOrigin.EVENT
@@ -377,7 +508,7 @@ def _write_simple_csv(
         with path.open("x", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(
                 handle,
-                fieldnames=(time_column, "display_velocity_m_s"),
+                fieldnames=(time_column, velocity_column),
                 lineterminator="\n",
             )
             writer.writeheader()
@@ -385,9 +516,7 @@ def _write_simple_csv(
                 writer.writerow(
                     {
                         time_column: _csv_float(time_values[index]),
-                        "display_velocity_m_s": _csv_float(
-                            analysis.display_velocity_m_s[index]
-                        ),
+                        velocity_column: _csv_float(velocity_values[index]),
                     }
                 )
     except OSError as exc:
@@ -430,6 +559,9 @@ def _write_detail_csv(
                         "refined_frequency_hz": _csv_float(
                             detection.refined_frequency_hz[index]
                         ),
+                        "working_frequency_hz": _csv_float(
+                            analysis.continuous_frequency_hz[index]
+                        ),
                         "apparent_velocity_m_s": _csv_float(
                             detection.apparent_velocity_m_s[index]
                         ),
@@ -438,6 +570,17 @@ def _write_detail_csv(
                         ),
                         "corrected_velocity_m_s": _csv_float(
                             analysis.corrected_velocity_m_s[index]
+                        ),
+                        "continuous_apparent_velocity_m_s": _csv_float(
+                            analysis.continuous_apparent_velocity_m_s[index]
+                        ),
+                        "continuous_angle_corrected_apparent_velocity_m_s": _csv_float(
+                            analysis.continuous_angle_corrected_apparent_velocity_m_s[
+                                index
+                            ]
+                        ),
+                        "continuous_corrected_velocity_m_s": _csv_float(
+                            analysis.continuous_corrected_velocity_m_s[index]
                         ),
                         "display_velocity_m_s": _csv_float(
                             analysis.display_velocity_m_s[index]
@@ -459,6 +602,7 @@ def _write_detail_csv(
                             ]
                         ),
                         "signal_state": detection.signal_states[index].value,
+                        "working_source": analysis.working_source[index].value,
                         "velocity_origin": origin,
                         "is_pre_event_display_only": str(display_only).lower(),
                         "channel": channel_name,
@@ -484,11 +628,14 @@ def _metadata_document(
     stft = analysis.stft_result
     refined = analysis.refined_result
     source_path = _effective_source_path(options, analysis)
+    detail_row_indices = _export_row_indices(analysis, options)
+    simple_row_indices = _simple_row_indices(analysis, options, detail_row_indices)
     display_only_count = sum(
         origin == PRE_EVENT_DISPLAY_ORIGIN for origin in analysis.velocity_origins
     )
-    exported_display_only_count = (
-        display_only_count if options.include_pre_event_display_rows else 0
+    exported_display_only_count = sum(
+        analysis.velocity_origins[index] == PRE_EVENT_DISPLAY_ORIGIN
+        for index in simple_row_indices
     )
     measured_count = sum(
         state.value == "measured" for state in detection.signal_states
@@ -529,14 +676,41 @@ def _metadata_document(
                 selection.reselected_frame_indices
             ),
         }
-    return {
+    document = {
         "export_schema_version": EXPORT_SCHEMA_VERSION,
         "dps_studio_version": options.dps_studio_version,
+        "software_version": options.dps_studio_version,
         "exported_at_utc": timestamp.isoformat().replace("+00:00", "Z"),
         "data_file": simple_csv_name,
         "detail_data_file": detail_csv_name,
         "source_file": str(source_path) if source_path is not None else None,
         "source_channel": channel_name,
+        "input_provenance": {
+            key: stft.source_metadata[key]
+            for key in (
+                "time_column_index", "voltage_column_index", "time_scale",
+                "voltage_scale", "original_time_unit", "original_voltage_unit",
+                "delimiter", "encoding", "has_header", "header",
+            )
+            if key in stft.source_metadata
+        },
+        "simple_export": {
+            "mode": "quality_passed" if options.quality_passed_only else "continuous_display",
+            "quality_filtering_applied": options.quality_passed_only,
+            "selection_rule": (
+                "signal_state == measured; finite formal corrected velocity; exclude display-only platform"
+                if options.quality_passed_only else "analysis range and explicit pre-event row option"
+            ),
+            "velocity_source": (
+                "ChannelAnalysis.corrected_velocity_m_s"
+                if options.quality_passed_only else "ChannelAnalysis.plot_velocity_m_s"
+            ),
+            "velocity_column": _simple_velocity_column(options),
+            "time_series_may_have_gaps": options.quality_passed_only,
+            "excluded_by_quality_filter_count": len(detail_row_indices) - exported_row_count,
+            "detailed_csv_quality_filtering_applied": False,
+            "physical_branch_identity_confirmed": False,
+        },
         "analysis_mode": options.analysis_mode.value,
         "analysis_profile_name": options.analysis_profile_name,
         "analysis_time_range_s": {
@@ -575,10 +749,30 @@ def _metadata_document(
             ),
             "refinement_method": refined.refinement_method,
         },
+        "working_ridge": {
+            "frequency_field": "ChannelAnalysis.working_frequency_hz",
+            "working_source_field": "ChannelAnalysis.working_source",
+            "formal_frequency_field": (
+                "SignalDetectionResult.refined_frequency_hz"
+            ),
+            "formal_quality_gates_modified": False,
+            "same_frame_fallback_only": True,
+            "interpolation_or_smoothing_applied": False,
+            "continuous_apparent_velocity_field": (
+                "ChannelAnalysis.continuous_apparent_velocity_m_s"
+            ),
+            "continuous_corrected_velocity_field": (
+                "ChannelAnalysis.continuous_corrected_velocity_m_s"
+            ),
+            "plot_velocity_field": "ChannelAnalysis.plot_velocity_m_s",
+        },
         "quality_configuration": {
             "detection_method": detection.detection_method,
             "minimum_peak_to_background_db": (
                 detection.detection_config.minimum_peak_to_background_db
+            ),
+            "tracking_minimum_peak_to_background_db": (
+                detection.detection_config.tracking_minimum_peak_to_background_db
             ),
             "minimum_peak_to_competitor_db": (
                 detection.detection_config.minimum_peak_to_competitor_db
@@ -588,6 +782,9 @@ def _metadata_document(
             ),
             "minimum_consecutive_frames": (
                 detection.detection_config.minimum_consecutive_frames
+            ),
+            "maximum_tracking_frequency_step_hz": (
+                detection.detection_config.maximum_tracking_frequency_step_hz
             ),
             "minimum_cycles_in_window": (
                 detection.detection_config.minimum_cycles_in_window
@@ -606,22 +803,43 @@ def _metadata_document(
         "velocity_correction": velocity_correction_metadata(
             analysis.velocity_correction_result
         ),
+        "continuous_velocity_correction": velocity_correction_metadata(
+            analysis.working_velocity_correction_result
+        ),
         "automatic_ridge_selection": automatic_selection_metadata,
         "automatic_event_candidate_time_s": automatic_candidate_time_s,
         "compatibility_event_candidate_time_s": compatibility_candidate_time_s,
         "event_reference_time_s": detection.manual_event_reference_time_s,
         "event_reference_source": options.event_reference_source,
+        "event_time_source": options.event_time_source,
+        "event_time_s": detection.manual_event_reference_time_s,
         "pre_event_display": {
             "enabled": options.pre_event_display_enabled,
             "configured_velocity_m_s": options.pre_event_display_velocity_m_s,
-            "included_in_csv": options.include_pre_event_display_rows,
+            "included_in_csv": options.include_pre_event_display_rows and not options.quality_passed_only,
+            "included_in_detail_csv": options.include_pre_event_display_rows,
             "formal_measurement_modified": False,
             "display_only_origin": PRE_EVENT_DISPLAY_ORIGIN,
         },
         "result_counts": {
             "stft_frame_count": int(stft.time_s.size),
             "exported_row_count": exported_row_count,
+            "detail_exported_row_count": len(detail_row_indices),
             "measured_frame_count": measured_count,
+            "working_finite_frame_count": int(
+                np.count_nonzero(np.isfinite(analysis.working_frequency_hz))
+            ),
+            "continuous_velocity_finite_frame_count": int(
+                np.count_nonzero(
+                    np.isfinite(analysis.continuous_corrected_velocity_m_s)
+                )
+            ),
+            "plot_velocity_finite_frame_count": int(
+                np.count_nonzero(np.isfinite(analysis.plot_velocity_m_s))
+            ),
+            "formal_frequency_finite_frame_count": int(
+                np.count_nonzero(np.isfinite(detection.refined_frequency_hz))
+            ),
             "pre_event_display_only_frame_count": display_only_count,
             "exported_pre_event_display_only_row_count": exported_display_only_count,
             "signal_state_counts": dict(
@@ -636,23 +854,104 @@ def _metadata_document(
             "ridge_selection_origin_counts": dict(
                 Counter(origin.value for origin in selection.origins)
             ),
+            "working_source_counts": dict(
+                Counter(source.value for source in analysis.working_source)
+            ),
         },
         "result_status": {
             "simple_csv_time_column": _simple_time_column(options.time_origin),
-            "simple_csv_velocity_column": "display_velocity_m_s",
-            "simple_csv_velocity_source": "display_velocity_m_s",
+            "simple_csv_velocity_column": _simple_velocity_column(options),
+            "simple_csv_velocity_source": (
+                "ChannelAnalysis.corrected_velocity_m_s"
+                if options.quality_passed_only else "ChannelAnalysis.plot_velocity_m_s"
+            ),
             "formal_measurement_column": "apparent_velocity_m_s",
             "angle_corrected_measurement_column": (
                 "angle_corrected_apparent_velocity_m_s"
             ),
             "final_corrected_measurement_column": "corrected_velocity_m_s",
             "display_column": "display_velocity_m_s",
+            "display_semantics": (
+                "continuous corrected velocity plus optional pre-event platform"
+            ),
             "formal_measurement_preserved": True,
             "unreliable_formal_values_preserved_as_nan": True,
             "interpolation_or_smoothing_applied_by_export": False,
             "channel_fusion_applied_by_export": False,
         },
     }
+    if options.analysis_mode is ResultAnalysisMode.GUIDED:
+        document["manual_frequency_region"] = _manual_frequency_region_metadata(
+            options.ridge_constraints.get(channel_name)
+        )
+    return document
+
+
+def _manual_frequency_region_metadata(
+    constraint: ManualFrequencyRegion | RidgeCorridorConstraint | None,
+) -> dict[str, Any]:
+    """Serialize exact SI manual operations and identify historical models."""
+    if isinstance(constraint, ManualFrequencyRegion):
+        return {
+            "constraint_model": "manual_upper_lower_boundaries",
+            "upper_boundary": _manual_boundary_metadata(
+                constraint.upper_boundary
+            ),
+            "lower_boundary": _manual_boundary_metadata(
+                constraint.lower_boundary
+            ),
+            "outside_manual_time_range": "endpoint_constant_extension",
+            "boundary_interpolation": "piecewise_linear",
+            "boundary_extrapolation": "constant_first_and_last_frequency",
+            "legacy_corridor": None,
+        }
+    if isinstance(constraint, RidgeCorridorConstraint):
+        return {
+            "constraint_model": "legacy_centerline_half_width",
+            "upper_boundary": None,
+            "lower_boundary": None,
+            "outside_manual_time_range": "legacy_corridor_semantics",
+            "legacy_corridor": {
+                "control_points": [
+                    {
+                        "time_s": float(time_s),
+                        "frequency_hz": float(frequency_hz),
+                    }
+                    for time_s, frequency_hz in zip(
+                        constraint.control_times_s,
+                        constraint.control_frequencies_hz,
+                        strict=True,
+                    )
+                ],
+                "corridor_half_width_hz": constraint.half_width_hz,
+                "used_for_manual_boundary_mode": False,
+            },
+        }
+    return {
+        "constraint_model": "global_search_band_only",
+        "upper_boundary": [],
+        "lower_boundary": [],
+        "outside_manual_time_range": "global_search_band",
+        "legacy_corridor": None,
+    }
+
+
+def _manual_boundary_metadata(
+    boundary: ManualFrequencyBoundary | None,
+) -> list[dict[str, float]]:
+    if boundary is None:
+        return []
+    return [
+        {
+            "time_s": float(time_s),
+            "frequency_hz": float(frequency_hz),
+        }
+        for time_s, frequency_hz in zip(
+            boundary.control_times_s,
+            boundary.control_frequencies_hz,
+            strict=True,
+        )
+    ]
 
 
 def _simple_time_column(time_origin: ExportTimeOrigin) -> str:
@@ -687,11 +986,14 @@ def _publish_staged_results(
 ) -> None:
     """Publish fully written files using hard links, which refuse overwrites."""
     for plan in plans:
-        for file_name in (
+        file_names: tuple[str, ...] = (
             plan.simple_csv_name,
             plan.detail_csv_name,
             plan.metadata_name,
-        ):
+        )
+        if plan.acceleration_csv_name is not None:
+            file_names += (plan.acceleration_csv_name,)
+        for file_name in file_names:
             staged_path = staging_directory / file_name
             final_path = output_directory / file_name
             try:

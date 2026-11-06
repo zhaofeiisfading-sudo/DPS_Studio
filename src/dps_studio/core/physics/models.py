@@ -45,7 +45,7 @@ def _positive_model_parameter(value: object, *, field_name: str) -> float:
 
 @dataclass(frozen=True, slots=True)
 class LiFWindowCorrectionModel:
-    """Validated Rigg et al. calibration for shocked [100] LiF at 1550 nm."""
+    """Existing Rigg formula coefficients; custom applicability is unverified."""
 
     material: str = "LiF"
     model: str = "Rigg2014_Eq16"
@@ -57,8 +57,13 @@ class LiFWindowCorrectionModel:
     loading_context: str = "dynamic compression / calibrated window correction"
     source: str = "Rigg et al., Journal of Applied Physics 116, 033515 (2014)"
     source_doi: str = "10.1063/1.4890714"
+    configuration_name: str | None = None
 
     def __post_init__(self) -> None:
+        if self.configuration_name is not None and (
+            not isinstance(self.configuration_name, str) or not self.configuration_name.strip()
+        ):
+            raise VelocityConfigurationError("configuration_name must be non-empty text or None.")
         object.__setattr__(
             self,
             "b1",

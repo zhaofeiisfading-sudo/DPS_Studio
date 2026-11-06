@@ -17,9 +17,34 @@ from dps_studio.gui.app import translation_manager
 from dps_studio.gui.main_window import MainWindow
 from dps_studio.gui.preset_repository import CUSTOM_PRESET_ID, PresetRepository
 from dps_studio.gui.state import WorkflowState
+from dps_studio.runtime_paths import application_resource_root
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_main_window_requests_the_application_resource_root(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import dps_studio.gui.main_window as main_window_module
+
+    expected = application_resource_root()
+    calls: list[object] = []
+    monkeypatch.setattr(
+        main_window_module,
+        "application_resource_root",
+        lambda: calls.append(object()) or expected,
+    )
+
+    window = main_window_module.MainWindow()
+    try:
+        assert calls
+        assert window._repository_root == expected
+        assert window.analysis_session.run_configuration is not None
+    finally:
+        window.close()
+        qapp.processEvents()
 
 
 def _load_result(
@@ -78,8 +103,11 @@ def test_startup_loads_traceable_balanced_defaults_without_data(
         )
         assert not window.run_analysis_button.isEnabled()
         assert window.run_analysis_button.toolTip() == "请先导入实验数据。"
-        assert window.action_automatic in window.main_toolbar.actions()
-        assert window.action_automatic in window.analysis_menu.actions()
+        assert window.action_quick_analysis in window.main_toolbar.actions()
+        assert window.action_full_automatic not in window.main_toolbar.actions()
+        assert window.action_full_automatic in window.analysis_menu.actions()
+        assert window.action_automatic not in window.main_toolbar.actions()
+        assert window.action_automatic not in window.analysis_menu.actions()
         assert not hasattr(window, "load_config_button")
         assert not hasattr(window, "wavelength_confirm_check")
     finally:
@@ -159,7 +187,7 @@ def test_data_import_builds_common_range_and_enables_shared_action(
         qapp.processEvents()
 
 
-def test_configured_range_wins_only_when_fully_inside_data(
+def test_production_import_uses_full_record_despite_legacy_configured_range(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -178,8 +206,13 @@ def test_configured_range_wins_only_when_fully_inside_data(
         window.set_analysis_configuration(configuration)
         window.set_loaded_result(result)
         assert window.analysis_session.analysis_range is not None
-        assert window.analysis_session.analysis_range.start_time_s == pytest.approx(start)
-        assert window.analysis_session.analysis_range.end_time_s == pytest.approx(end)
+        record = result.records["pdv_channel_1"]
+        assert window.analysis_session.analysis_range.start_time_s == pytest.approx(
+            record.start_time_s
+        )
+        assert window.analysis_session.analysis_range.end_time_s == pytest.approx(
+            record.end_time_s
+        )
     finally:
         window.close()
         qapp.processEvents()

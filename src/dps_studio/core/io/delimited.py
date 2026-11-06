@@ -5,7 +5,7 @@ from __future__ import annotations
 import codecs
 import csv
 import math
-from collections.abc import Iterator, Mapping
+from collections.abc import Mapping
 from numbers import Integral, Real
 from os import PathLike
 from pathlib import Path
@@ -19,6 +19,11 @@ from dps_studio.core.io.exceptions import (
     SignalFileTypeError,
     SignalIOError,
     SignalParseError,
+)
+from dps_studio.core.io.delimiter import (
+    DelimitedRowReader,
+    WHITESPACE_DELIMITER,
+    create_delimited_row_reader,
 )
 from dps_studio.core.io.models import DelimitedSignalLoadResult
 from dps_studio.core.models import SignalRecord, SignalValidationError
@@ -34,12 +39,17 @@ def read_delimited_signals(
     encoding: str = "utf-8",
     time_scale: float = 1.0,
     voltage_scales: Mapping[str, float] | None = None,
+    original_time_unit: str | None = None,
+    original_voltage_units: Mapping[str, str] | None = None,
 ) -> DelimitedSignalLoadResult:
     """Load explicitly selected time and voltage columns into signal records.
 
     Column indices are zero based. Only selected columns are interpreted as
     numeric data, but every field must be non-empty and every data record must
-    have the same number of columns.
+    have the same number of columns. ``WHITESPACE_DELIMITER`` splits each
+    physical line on one or more Unicode whitespace characters and ignores
+    leading and trailing whitespace; a one-character delimiter retains strict
+    CSV semantics.
     """
     source_path = _normalize_path(path)
     validated_time_column = _validate_column_index(time_column, name="time_column")
@@ -57,6 +67,16 @@ def read_delimited_signals(
         voltage_scales,
         channel_names=tuple(validated_voltage_columns),
     )
+    if original_time_unit is not None and (
+        not isinstance(original_time_unit, str) or not original_time_unit.strip()
+    ):
+        raise SignalConfigurationError("original_time_unit must be non-empty text or None.")
+    voltage_units = dict(original_voltage_units or {})
+    if any(
+        name not in validated_voltage_columns or not isinstance(unit, str) or not unit.strip()
+        for name, unit in voltage_units.items()
+    ):
+        raise SignalConfigurationError("original_voltage_units must label selected channels.")
 
     _validate_source_file(source_path)
     try:
@@ -75,6 +95,8 @@ def read_delimited_signals(
                 encoding=validated_encoding,
                 time_scale=validated_time_scale,
                 voltage_scales=validated_voltage_scales,
+                original_time_unit=original_time_unit,
+                original_voltage_units=voltage_units,
             )
     except UnicodeError as exc:
         raise SignalEncodingError(
@@ -142,13 +164,16 @@ def _validate_distinct_columns(
 
 
 def _validate_delimiter(value: object) -> str:
+    if value == WHITESPACE_DELIMITER:
+        return WHITESPACE_DELIMITER
     if (
         not isinstance(value, str)
         or len(value) != 1
         or value in {"\r", "\n"}
     ):
         raise SignalConfigurationError(
-            "delimiter must be one character and cannot be a newline or carriage return; "
+            "delimiter must be one character or the whitespace mode and cannot be a "
+            "newline or carriage return; "
             f"got {value!r}."
         )
     return value
@@ -247,12 +272,12 @@ def _read_open_file(
     encoding: str,
     time_scale: float,
     voltage_scales: Mapping[str, float],
+    original_time_unit: str | None,
+    original_voltage_units: Mapping[str, str],
 ) -> DelimitedSignalLoadResult:
-    reader = csv.reader(
+    reader = create_delimited_row_reader(
         handle,
         delimiter=delimiter,
-        skipinitialspace=delimiter != " ",
-        strict=True,
     )
     try:
         return _parse_records(
@@ -265,6 +290,8 @@ def _read_open_file(
             encoding=encoding,
             time_scale=time_scale,
             voltage_scales=voltage_scales,
+            original_time_unit=original_time_unit,
+            original_voltage_units=original_voltage_units,
         )
     except csv.Error as exc:
         raise SignalParseError(
@@ -274,7 +301,7 @@ def _read_open_file(
 
 
 def _parse_records(
-    reader: Iterator[list[str]],
+    reader: DelimitedRowReader,
     *,
     source_path: Path,
     time_column: int,
@@ -284,6 +311,8 @@ def _parse_records(
     encoding: str,
     time_scale: float,
     voltage_scales: Mapping[str, float],
+    original_time_unit: str | None,
+    original_voltage_units: Mapping[str, str],
 ) -> DelimitedSignalLoadResult:
     header: tuple[str, ...] | None = None
     if has_header:
@@ -360,6 +389,14 @@ def _parse_records(
         voltage_scales=voltage_scales,
         time_values=time_values,
         voltage_values=voltage_values,
+        input_metadata={
+            "original_time_unit": original_time_unit,
+            "delimiter": delimiter,
+            "encoding": encoding,
+            "has_header": has_header,
+            "header": header,
+        },
+        original_voltage_units=original_voltage_units,
     )
     selected_columns = {time_column, *voltage_columns.values()}
     unselected_columns = tuple(
@@ -380,11 +417,8 @@ def _parse_records(
     )
 
 
-def _reader_line_number(reader: Iterator[list[str]]) -> int:
-    line_number = getattr(reader, "line_num", None)
-    if isinstance(line_number, int):
-        return line_number
-    raise RuntimeError("csv.reader did not expose a physical line number")
+def _reader_line_number(reader: DelimitedRowReader) -> int:
+    return reader.line_num
 
 
 def _validate_requested_columns_exist(
@@ -490,6 +524,8 @@ def _build_signal_records(
     voltage_scales: Mapping[str, float],
     time_values: list[float],
     voltage_values: Mapping[str, list[float]],
+    input_metadata: Mapping[str, object],
+    original_voltage_units: Mapping[str, str],
 ) -> dict[str, SignalRecord]:
     records: dict[str, SignalRecord] = {}
     for channel_name, voltage_column in voltage_columns.items():
@@ -504,6 +540,12 @@ def _build_signal_records(
                     "voltage_column_index": voltage_column,
                     "time_scale": time_scale,
                     "voltage_scale": voltage_scales[channel_name],
+                    "original_time_unit": input_metadata["original_time_unit"],
+                    "original_voltage_unit": original_voltage_units.get(channel_name),
+                    "delimiter": input_metadata["delimiter"],
+                    "encoding": input_metadata["encoding"],
+                    "has_header": input_metadata["has_header"],
+                    "header": input_metadata["header"],
                 },
             )
         except SignalValidationError as exc:

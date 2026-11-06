@@ -96,7 +96,7 @@ def test_import_dialog_initial_size_fits_common_work_areas(
     assert height >= 400
 
 
-def test_range_reset_is_draft_only_and_has_no_current_view_action(
+def test_range_reset_commits_directly_and_has_no_current_view_action(
     qapp: QApplication,
 ) -> None:
     window = MainWindow(translation_manager=translation_manager())
@@ -109,7 +109,7 @@ def test_range_reset_is_draft_only_and_has_no_current_view_action(
         panel.full_range_button.click()
         qapp.processEvents()
         assert panel.draft_range_s == pytest.approx((1.0e-6, 2.0e-6))
-        assert not confirmed
+        assert confirmed == [pytest.approx((1.0e-6, 2.0e-6))]
         assert not hasattr(panel, "current_view_button")
 
         visible_button_text = {
@@ -195,7 +195,8 @@ def test_search_band_defaults_nyquist_spin_and_graphical_sync(
         qapp.processEvents()
         configuration = session.run_configuration
         assert configuration is not None
-        assert configuration.parameters.minimum_frequency_hz == pytest.approx(lower_hz)
+        assert session.ridge_search_region is not None
+        assert session.ridge_search_region.frequency_min_hz == pytest.approx(lower_hz)
         assert window.minimum_frequency_spin.value() == pytest.approx(lower_hz * 1e-9)
         assert session.stft_valid
         assert next(iter(session.stft_results.values())) is original_stft
@@ -210,23 +211,24 @@ def test_search_band_defaults_nyquist_spin_and_graphical_sync(
         qapp.processEvents()
         configuration = session.run_configuration
         assert configuration is not None
-        assert configuration.parameters.maximum_frequency_hz == pytest.approx(upper_hz)
-        assert configuration.parameters.minimum_frequency_hz < upper_hz
+        assert session.ridge_search_region is not None
+        assert session.ridge_search_region.frequency_max_hz == pytest.approx(upper_hz)
+        assert session.ridge_search_region.frequency_min_hz < upper_hz
 
         window.minimum_frequency_spin.setValue(0.25)
         qapp.processEvents()
         assert window.spectrogram_view._search_lines[0].value() == pytest.approx(0.25)
-        before = configuration.parameters.minimum_frequency_hz
+        assert session.ridge_search_region is not None
+        before = session.ridge_search_region.frequency_min_hz
         window.spectrogram_view.plot_widget.setYRange(0.0, 1.0, padding=0.0)
         qapp.processEvents()
-        current = session.run_configuration
-        assert current is not None
-        assert current.parameters.minimum_frequency_hz != before
-        scientific_lower = current.parameters.minimum_frequency_hz
+        assert session.ridge_search_region is not None
+        assert session.ridge_search_region.frequency_min_hz == before
+        scientific_lower = session.ridge_search_region.frequency_min_hz
         window.spectrogram_view.plot_widget.setYRange(1.0, 2.0, padding=0.0)
         qapp.processEvents()
-        assert session.run_configuration is not None
-        assert session.run_configuration.parameters.minimum_frequency_hz == scientific_lower
+        assert session.ridge_search_region is not None
+        assert session.ridge_search_region.frequency_min_hz == scientific_lower
     finally:
         window.close()
 
@@ -299,21 +301,24 @@ def test_new_usability_controls_have_finished_english_translations(
     window = MainWindow(translation_manager=manager)
     dialog = ImportSettingsDialog(source)
     try:
-        assert window.action_automatic.text() == "Run Analysis"
+        assert window.action_quick_analysis.text() == "Quick Analysis"
+        assert window.action_full_automatic.text() == "Full Automatic Analysis"
         assert window.analysis_range_panel.full_range_button.text() == "Reset"
         assert (
             window.analysis_range_panel.detect_candidates_button.text()
             == "Detect Candidates"
         )
-        assert "Recommended Candidates" in (
-            window.analysis_range_panel.candidate_heading.text()
-        )
+        assert window.analysis_range_panel.candidate_heading.text() == "Event candidates"
+        assert window.velocity_view.acceleration_method_combo.itemText(0) == "Raw difference"
+        assert window.velocity_view.acceleration_method_combo.itemText(1) == "Local linear fit"
+        assert window.export_acceleration_check.text() == "Acceleration CSV · raw difference"
+        assert window.export_acceleration_fit_check.text() == "Add local fit columns · 50 ns"
         assert window.window_length_spin.suffix() == " samples"
         assert window.hop_label.text().endswith("samples")
         assert window.automatic_ridge_extraction_combo.currentText() == (
             "Continuity-assisted"
         )
-        assert window.lif_parameter_toggle.text() == "LiF Material Parameters…"
+        assert window.lif_parameter_toggle.text() == "Material Parameters…"
         assert window.restore_lif_defaults_button.text() == "Restore LiF Defaults"
         assert dialog.windowTitle() == "Data Import Settings"
         assert dialog.button_box.parentWidget() is dialog

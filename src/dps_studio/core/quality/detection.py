@@ -35,7 +35,7 @@ def detect_beat_signal(
     ridge_selection_origins: Sequence[RidgeSelectionOrigin] | None = None,
     minimum_continuity_candidate_relative_to_strongest_db: float | None = None,
 ) -> SignalDetectionResult:
-    """Apply ordered signal-existence and exact consecutive-frame gates."""
+    """Apply ordered evidence gates and local segment-state hysteresis."""
     _validate_inputs(
         stft_result,
         refined_ridge_result,
@@ -119,9 +119,15 @@ def detect_beat_signal(
     if analysis_end is not None:
         outside |= stft_result.time_s > analysis_end
 
-    provisional: list[SignalState] = []
+    tracking_background_threshold = (
+        detection_config.tracking_minimum_peak_to_background_db
+    )
+    if tracking_background_threshold is None:
+        raise RuntimeError("Validated tracking background threshold is missing.")
+    strict_states: list[SignalState] = []
+    tracking_states: list[SignalState] = []
     for index in range(frame_count):
-        provisional.append(
+        strict_states.append(
             _provisional_state(
                 index,
                 outside=bool(outside[index]),
@@ -130,6 +136,25 @@ def detect_beat_signal(
                 spectral_quality_result=spectral_quality_result,
                 cycles_in_window=float(cycles[index]),
                 detection_config=detection_config,
+                minimum_peak_to_background_db=(
+                    detection_config.minimum_peak_to_background_db
+                ),
+                ridge_selection_origin=selection_origins[index],
+                minimum_continuity_candidate_relative_to_strongest_db=(
+                    continuity_relative_threshold
+                ),
+            )
+        )
+        tracking_states.append(
+            _provisional_state(
+                index,
+                outside=bool(outside[index]),
+                boundary=bool(boundary[index]),
+                refined_ridge_result=refined_ridge_result,
+                spectral_quality_result=spectral_quality_result,
+                cycles_in_window=float(cycles[index]),
+                detection_config=detection_config,
+                minimum_peak_to_background_db=tracking_background_threshold,
                 ridge_selection_origin=selection_origins[index],
                 minimum_continuity_candidate_relative_to_strongest_db=(
                     continuity_relative_threshold
@@ -137,26 +162,82 @@ def detect_beat_signal(
             )
         )
 
-    final_states = list(provisional)
-    valid_runs = _measured_runs(provisional)
-    qualifying_runs: list[tuple[int, int]] = []
-    for start, stop in valid_runs:
-        run_length = stop - start
-        if run_length < detection_config.minimum_consecutive_frames:
-            for index in range(start, stop):
-                final_states[index] = SignalState.UNSTABLE_DETECTION
+    final_states = list(strict_states)
+    segment_established = False
+    previous_measured_index: int | None = None
+    index = 0
+    while index < frame_count:
+        if segment_established:
+            tracking_state = tracking_states[index]
+            step_is_stable = _frequency_step_is_stable(
+                refined_ridge_result,
+                previous_measured_index,
+                index,
+                maximum_step_hz=(
+                    detection_config.maximum_tracking_frequency_step_hz
+                ),
+            )
+            if tracking_state is SignalState.MEASURED and step_is_stable:
+                final_states[index] = SignalState.MEASURED
+                previous_measured_index = index
+                index += 1
+                continue
+            final_states[index] = (
+                tracking_state
+                if tracking_state is not SignalState.MEASURED
+                else SignalState.UNSTABLE_DETECTION
+            )
+            segment_established = False
+            previous_measured_index = None
+            index += 1
+            continue
+
+        if strict_states[index] is not SignalState.MEASURED:
+            final_states[index] = strict_states[index]
+            index += 1
+            continue
+
+        start = index
+        index += 1
+        while (
+            index < frame_count
+            and strict_states[index] is SignalState.MEASURED
+            and _frequency_step_is_stable(
+                refined_ridge_result,
+                index - 1,
+                index,
+                maximum_step_hz=(
+                    detection_config.maximum_tracking_frequency_step_hz
+                ),
+            )
+        ):
+            index += 1
+        stop = index
+        if stop - start < detection_config.minimum_consecutive_frames:
+            for unstable_index in range(start, stop):
+                final_states[unstable_index] = SignalState.UNSTABLE_DETECTION
         else:
-            qualifying_runs.append((start, stop))
+            for measured_index in range(start, stop):
+                final_states[measured_index] = SignalState.MEASURED
+            segment_established = True
+            previous_measured_index = stop - 1
+
     for index, origin in enumerate(selection_origins):
         if (
             origin is RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE
-            and provisional[index] is SignalState.MEASURED
+            and strict_states[index] is SignalState.MEASURED
         ):
             # A production rescue has already passed the isolated-jump,
             # event-protection, spectral, and two-neighbor gates. Preserve it
             # as an explicitly sourced measurement without manufacturing a
             # multi-frame run or changing compatibility onset detection.
             final_states[index] = SignalState.MEASURED
+
+    qualifying_runs = [
+        run
+        for run in _measured_runs(final_states)
+        if run[1] - run[0] >= detection_config.minimum_consecutive_frames
+    ]
 
     refined_frequency_hz = np.full(frame_count, np.nan, dtype=np.float64)
     apparent_velocity_m_s = np.full(frame_count, np.nan, dtype=np.float64)
@@ -244,6 +325,7 @@ def _provisional_state(
     spectral_quality_result: RidgeSpectralQualityResult,
     cycles_in_window: float,
     detection_config: SignalDetectionConfig,
+    minimum_peak_to_background_db: float,
     ridge_selection_origin: RidgeSelectionOrigin,
     minimum_continuity_candidate_relative_to_strongest_db: float | None,
 ) -> SignalState:
@@ -264,7 +346,7 @@ def _provisional_state(
         or not math.isfinite(peak_to_competitor)
     ):
         return SignalState.NO_DETECTABLE_BEAT
-    if peak_to_background < detection_config.minimum_peak_to_background_db:
+    if peak_to_background < minimum_peak_to_background_db:
         return SignalState.NO_DETECTABLE_BEAT
     competitor_threshold = detection_config.minimum_peak_to_competitor_db
     if (
@@ -291,6 +373,24 @@ def _provisional_state(
     ):
         return SignalState.REFINEMENT_FAILED
     return SignalState.MEASURED
+
+
+def _frequency_step_is_stable(
+    refined_ridge_result: RefinedRidgeResult,
+    previous_index: int | None,
+    current_index: int,
+    *,
+    maximum_step_hz: float | None,
+) -> bool:
+    if previous_index is None or maximum_step_hz is None:
+        return True
+    previous = float(refined_ridge_result.refined_frequency_hz[previous_index])
+    current = float(refined_ridge_result.refined_frequency_hz[current_index])
+    return (
+        math.isfinite(previous)
+        and math.isfinite(current)
+        and abs(current - previous) <= maximum_step_hz
+    )
 
 
 def _measured_runs(states: list[SignalState]) -> list[tuple[int, int]]:

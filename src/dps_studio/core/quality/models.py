@@ -46,7 +46,9 @@ class SignalDetectionConfig:
     """
 
     minimum_peak_to_background_db: float = 10.0
+    tracking_minimum_peak_to_background_db: float | None = None
     minimum_peak_to_competitor_db: float = 3.0
+    maximum_tracking_frequency_step_hz: float | None = None
     peak_exclusion_half_width_bins: int = 12
     minimum_consecutive_frames: int = 3
     minimum_cycles_in_window: float = 1.0
@@ -67,6 +69,35 @@ class SignalDetectionConfig:
                 field_name=field_name,
             )
             object.__setattr__(self, field_name, value)
+        tracking_background = self.tracking_minimum_peak_to_background_db
+        if tracking_background is None:
+            tracking_background = self.minimum_peak_to_background_db
+        else:
+            tracking_background = _finite_nonnegative_float(
+                tracking_background,
+                field_name="tracking_minimum_peak_to_background_db",
+            )
+        if tracking_background > self.minimum_peak_to_background_db:
+            raise ValueError(
+                "tracking_minimum_peak_to_background_db must not exceed "
+                "minimum_peak_to_background_db."
+            )
+        object.__setattr__(
+            self,
+            "tracking_minimum_peak_to_background_db",
+            tracking_background,
+        )
+        maximum_step = self.maximum_tracking_frequency_step_hz
+        if maximum_step is not None:
+            maximum_step = _finite_positive_float(
+                maximum_step,
+                field_name="maximum_tracking_frequency_step_hz",
+            )
+        object.__setattr__(
+            self,
+            "maximum_tracking_frequency_step_hz",
+            maximum_step,
+        )
         cycles = _finite_positive_float(
             self.minimum_cycles_in_window,
             field_name="minimum_cycles_in_window",
@@ -99,9 +130,11 @@ class SignalDetectionResult:
         "per-frame unmodified STFT selected ridge peak; median background and "
         "strongest competitor outside an inclusive bin guard; ordered quality "
         "gates with an explicit relative-to-strongest threshold for validated "
-        "continuity alternatives, which retain their explicit single-frame "
-        "production rescue status; exact legacy consecutive-frame runs without "
-        "interpolation or smoothing"
+        "continuity alternatives; strict consecutive-frame establishment and "
+        "reacquisition, lower peak-to-background tracking threshold, and an "
+        "optional adjacent-frequency tracking limit; validated continuity "
+        "alternatives retain their explicit single-frame production rescue "
+        "status; no interpolation or smoothing"
     )
 
     time_s: FloatArray

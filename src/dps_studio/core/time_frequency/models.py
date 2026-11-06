@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from collections.abc import Mapping
+from copy import deepcopy
+from dataclasses import dataclass, field
 from numbers import Integral
 from pathlib import Path
+from types import MappingProxyType
 
 import numpy as np
 from numpy.typing import NDArray
@@ -35,6 +38,7 @@ class STFTResult:
     is_one_sided: bool
     detrend_applied: bool
     boundary_padding_applied: bool
+    source_metadata: Mapping[str, object] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Validate result invariants and detach arrays into immutable buffers."""
@@ -86,6 +90,7 @@ class STFTResult:
             )
 
         _validate_reproducibility_metadata(self)
+        object.__setattr__(self, "source_metadata", MappingProxyType(deepcopy(dict(self.source_metadata))))
 
         object.__setattr__(self, "time_s", _store_float64_immutable(time_s))
         object.__setattr__(

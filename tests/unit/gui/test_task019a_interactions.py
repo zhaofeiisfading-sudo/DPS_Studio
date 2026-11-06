@@ -97,6 +97,8 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
     try:
         _prepare_result(window, tmp_path)
         view = window.velocity_view
+        view.display_velocity_check.setChecked(True)
+        window.export_event_time_origin_radio.click()
         window.science_tabs.setCurrentWidget(view)
         qapp.processEvents()
         analysis = next(iter(window.analysis_session.channel_analyses.values()))
@@ -120,6 +122,11 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
             np.asarray([-0.1, 0.0, 0.2]),
             np.asarray([15.0, np.nan, np.nan]),
         )
+        assert view.display_curve is not None
+        view.display_curve.setData(
+            np.asarray([-0.1, 0.0, 0.2]),
+            np.asarray([12.0, 18.0, np.nan]),
+        )
         view.fit_analysis_range()
         plot_range = view.plot_widget.plotItem.vb.viewRange()
         assert plot_range[0] == pytest.approx([-0.1, 0.1])
@@ -127,12 +134,14 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
             (
                 (np.asarray([-0.1, 0.0]), np.asarray([10.0, 20.0])),
                 (np.asarray([-0.1]), np.asarray([15.0])),
+                (np.asarray([-0.1, 0.0]), np.asarray([12.0, 18.0])),
             )
         )
         assert expected_analysis is not None
         assert plot_range[1] == pytest.approx(expected_analysis[1])
 
         view.apparent_curve.hide()
+        view.display_curve.hide()
         view.corrected_curve.setData(
             np.asarray([5.0, 6.0, 7.0]),
             np.asarray([50.0, 60.0, np.nan]),
@@ -155,10 +164,10 @@ def test_velocity_hides_only_its_builtin_auto_button_and_has_top_controls(
         assert not window.ridge_view.plot_widget.plotItem.buttonsHidden
         assert not window.spectrogram_view.plot_widget.plotItem.buttonsHidden
         assert window.velocity_view.fit_analysis_range_button.text() == (
-            "适合分析范围"
+            "分析范围"
         )
         assert window.velocity_view.fit_result_range_button.text() == (
-            "适合结果范围"
+            "全部结果"
         )
         assert window.velocity_view.fit_analysis_range_button.toolTip()
         assert window.velocity_view.fit_result_range_button.toolTip()
@@ -190,7 +199,7 @@ def test_step5_step6_share_correction_and_preserve_ready_state_and_upstream(
         corrected_before = first.corrected_velocity_m_s.copy()
         analysis_range_before = session.analysis_range
 
-        window.workflow_navigation.setCurrentRow(4)
+        window.workflow_navigation.setCurrentRow(3)
         none_index = window.window_material_combo.findData(
             WindowMaterial.NONE.value
         )
@@ -198,7 +207,7 @@ def test_step5_step6_share_correction_and_preserve_ready_state_and_upstream(
         window.measurement_angle_spin.setValue(20.0)
         qapp.processEvents()
         assert window.workflow_state is WorkflowState.RESULT_READY
-        assert window.workflow_navigation.currentRow() == 4
+        assert window.workflow_navigation.currentRow() == 3
         assert session.generation_id == generation
         assert session.guided_generation_id == guided_generation
         assert session.analysis_range is analysis_range_before
@@ -224,14 +233,14 @@ def test_step5_step6_share_correction_and_preserve_ready_state_and_upstream(
         )
         assert window.export_measurement_angle_spin.value() == pytest.approx(20.0)
 
-        window.workflow_navigation.setCurrentRow(5)
+        window.workflow_navigation.setCurrentRow(3)
         lif_index = window.export_window_material_combo.findData(
             WindowMaterial.LIF.value
         )
         window.export_window_material_combo.setCurrentIndex(lif_index)
         window.export_measurement_angle_spin.setValue(30.0)
         qapp.processEvents()
-        assert window.workflow_navigation.currentRow() == 5
+        assert window.workflow_navigation.currentRow() == 3
         assert window.workflow_state is WorkflowState.RESULT_READY
         assert window.window_material_combo.currentData() == WindowMaterial.LIF.value
         assert window.measurement_angle_spin.value() == pytest.approx(30.0)
@@ -295,7 +304,7 @@ def test_gui_export_uses_the_visible_shared_correction_and_time_origin(
         qapp.processEvents()
 
 
-def test_time_origin_defaults_to_event_and_controls_velocity_axis(
+def test_time_origin_defaults_to_absolute_and_controls_velocity_axis(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -306,18 +315,17 @@ def test_time_origin_defaults_to_event_and_controls_velocity_axis(
         analysis = next(iter(session.channel_analyses.values()))
         reference_s = analysis.signal_detection_result.manual_event_reference_time_s
         assert reference_s is not None
-        assert session.export_time_origin is ExportTimeOrigin.EVENT
-        assert window.export_event_time_origin_radio.isChecked()
-        assert window.velocity_view.event_reference_line is not None
-        assert window.velocity_view.event_reference_line.value() == pytest.approx(0.0)
+        assert session.export_time_origin is ExportTimeOrigin.ABSOLUTE
+        assert window.export_absolute_time_origin_radio.isChecked()
+        assert window.velocity_view.event_reference_line is None
 
+        window.export_event_time_origin_radio.click()
+        qapp.processEvents()
+        assert session.export_time_origin is ExportTimeOrigin.EVENT
         window.export_absolute_time_origin_radio.click()
         qapp.processEvents()
         assert session.export_time_origin is ExportTimeOrigin.ABSOLUTE
-        assert window.velocity_view.event_reference_line is not None
-        assert window.velocity_view.event_reference_line.value() == pytest.approx(
-            reference_s * 1e6
-        )
+        assert window.velocity_view.event_reference_line is None
     finally:
         window.close()
         qapp.processEvents()
@@ -338,10 +346,10 @@ def test_task019a_controls_have_complete_english_translations(
             "Absolute Experiment Time"
         )
         assert window.velocity_view.fit_analysis_range_button.text() == (
-            "Fit Analysis Range"
+            "Analysis range"
         )
         assert window.velocity_view.fit_result_range_button.text() == (
-            "Fit Result Range"
+            "Full range"
         )
         assert window.velocity_view.fit_analysis_range_button.toolTip() == (
             "Fit the view to the configured analysis time range."

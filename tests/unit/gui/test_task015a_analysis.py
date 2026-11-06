@@ -174,15 +174,19 @@ def test_background_adapter_calls_public_workflow_outside_gui_thread(
     )
     observed: dict[str, object] = {}
 
-    def fake_analyze_profile(
-        received: Mapping[str, SignalRecord],
+    def fake_analyze_stft_results(
+        received: Mapping[str, object],
         **_kwargs: object,
     ) -> Mapping[str, ChannelAnalysis]:
         observed["channels"] = tuple(received)
         observed["thread"] = QThread.currentThread()
         return MappingProxyType({})
 
-    monkeypatch.setattr(analysis_adapter, "analyze_profile", fake_analyze_profile)
+    monkeypatch.setattr(
+        analysis_adapter,
+        "analyze_stft_results",
+        fake_analyze_stft_results,
+    )
     assert session.run_configuration is not None
     adapter = AutomaticAnalysisAdapter()
     loop = QEventLoop()
@@ -238,15 +242,14 @@ def test_full_gui_analysis_uses_real_core_arrays_and_reaches_result_ready(
             current.signal_detection_result.refined_frequency_hz * 1e-9,
         )
         assert window.ridge_view.formal_curve.opts["connect"] == "finite"
-        assert window.velocity_view.formal_curve is not None
-        _velocity_x, velocity_y = window.velocity_view.formal_curve.getData()
+        assert window.velocity_view.formal_curve is None
+        assert window.velocity_view.display_curve is not None
+        _velocity_x, velocity_y = window.velocity_view.display_curve.getData()
         np.testing.assert_array_equal(
             velocity_y,
-            current.corrected_velocity_m_s,
+            current.plot_velocity_m_s,
         )
-        assert window.velocity_view.apparent_curve is not None
-        _apparent_x, apparent_y = window.velocity_view.apparent_curve.getData()
-        np.testing.assert_array_equal(apparent_y, current.apparent_velocity_m_s)
+        assert window.velocity_view.apparent_curve is None
         assert set(window.comparison_view.curves) == set(analyses)
         assert window.window_material_combo.currentData() == "LiF"
         assert window.measurement_angle_spin.value() == 0.0
@@ -340,7 +343,7 @@ def test_confirmed_range_change_invalidates_and_hides_old_results(
         assert window.workflow_state is WorkflowState.RANGE_DEFINED
         assert not window.analysis_session.results_valid
         assert window.spectrogram_view.current_image_db is None
-        assert not window.science_tabs.isTabEnabled(1)
+        assert window.science_tabs.isTabEnabled(1)
         assert "重新" in window.analysis_status_label.text()
     finally:
         window.close()
@@ -365,7 +368,7 @@ def test_profile_change_invalidates_and_hides_old_results(
         assert window.workflow_state is WorkflowState.RANGE_DEFINED
         assert not window.analysis_session.results_valid
         assert window.spectrogram_view.current_image_db is None
-        assert not window.science_tabs.isTabEnabled(1)
+        assert window.science_tabs.isTabEnabled(1)
     finally:
         window.close()
         qapp.processEvents()
@@ -381,7 +384,7 @@ def test_background_failure_restores_operable_window(
     def fail_analysis(*_args: object, **_kwargs: object) -> object:
         raise RuntimeError("simulated analysis failure")
 
-    monkeypatch.setattr(analysis_adapter, "analyze_profile", fail_analysis)
+    monkeypatch.setattr(analysis_adapter, "analyze_stft_results", fail_analysis)
     loop = QEventLoop()
     window._analysis_adapter.failed.connect(lambda *_args: loop.quit())
     try:
@@ -403,8 +406,8 @@ def test_gui_imports_no_scripts_and_adapter_uses_public_workflow() -> None:
     for source_path in gui_root.glob("*.py"):
         assert forbidden.search(source_path.read_text(encoding="utf-8")) is None
     adapter_source = (gui_root / "analysis_adapter.py").read_text(encoding="utf-8")
-    assert "analyze_configuration," in adapter_source
-    assert "analyze_profile," in adapter_source
+    assert "compute_configuration_stfts," in adapter_source
+    assert "analyze_stft_results," in adapter_source
 
 
 def test_repository_raw_data_hash_is_stable_during_gui_tests() -> None:

@@ -9,6 +9,12 @@ from enum import Enum
 from pathlib import Path
 from types import MappingProxyType
 
+from dps_studio import __version__
+from dps_studio.core.ridge import (
+    ManualFrequencyRegion,
+    RidgeCorridorConstraint,
+    RidgeSearchConstraint,
+)
 from dps_studio.core.workflow.models import ChannelAnalysis
 
 
@@ -42,6 +48,10 @@ def _empty_paths() -> tuple[Path, ...]:
     return ()
 
 
+def _empty_ridge_constraints() -> Mapping[str, RidgeSearchConstraint]:
+    return MappingProxyType({})
+
+
 @dataclass(frozen=True, slots=True)
 class ResultExportOptions:
     """Explicit, immutable request to export one result mode and its channels.
@@ -54,17 +64,24 @@ class ResultExportOptions:
     output_directory: Path
     analysis_mode: ResultAnalysisMode
     channel_analyses: Mapping[str, ChannelAnalysis]
-    time_origin: ExportTimeOrigin = ExportTimeOrigin.EVENT
+    time_origin: ExportTimeOrigin = ExportTimeOrigin.ABSOLUTE
     include_pre_event_display_rows: bool = True
+    quality_passed_only: bool = False
     source_path: Path | None = None
     analysis_profile_name: str | None = None
     pre_event_display_enabled: bool | None = None
     pre_event_display_velocity_m_s: float | None = None
     event_reference_source: str | None = None
+    event_time_source: str | None = None
+    ridge_constraints: Mapping[str, RidgeSearchConstraint] = field(
+        default_factory=_empty_ridge_constraints
+    )
     protected_output_directories: tuple[Path, ...] = field(
         default_factory=_empty_paths
     )
-    dps_studio_version: str = "0.1.0"
+    dps_studio_version: str = __version__
+    include_acceleration: bool = False
+    acceleration_fit_window_s: float | None = None
 
     def __post_init__(self) -> None:
         output_directory = Path(self.output_directory)
@@ -80,6 +97,16 @@ class ResultExportOptions:
             raise ResultExportValidationError(
                 "include_pre_event_display_rows must be a boolean."
             )
+        if not isinstance(self.quality_passed_only, bool):
+            raise ResultExportValidationError("quality_passed_only must be a boolean.")
+        if not isinstance(self.include_acceleration, bool):
+            raise ResultExportValidationError("include_acceleration must be a boolean.")
+        if self.acceleration_fit_window_s is not None:
+            if (not self.include_acceleration or not math.isfinite(self.acceleration_fit_window_s)
+                    or self.acceleration_fit_window_s <= 0):
+                raise ResultExportValidationError(
+                    "A positive finite fit window requires include_acceleration."
+                )
         try:
             analyses = dict(self.channel_analyses)
         except (TypeError, ValueError) as exc:
@@ -96,6 +123,24 @@ class ResultExportOptions:
             if not isinstance(analysis, ChannelAnalysis):
                 raise ResultExportValidationError(
                     "channel_analyses must contain ChannelAnalysis values."
+                )
+        try:
+            ridge_constraints = dict(self.ridge_constraints)
+        except (TypeError, ValueError) as exc:
+            raise ResultExportValidationError(
+                "ridge_constraints must be a mapping of channel names to constraints."
+            ) from exc
+        for channel_name, constraint in ridge_constraints.items():
+            if channel_name not in analyses:
+                raise ResultExportValidationError(
+                    "ridge_constraints must only contain exported channels."
+                )
+            if not isinstance(
+                constraint,
+                (ManualFrequencyRegion, RidgeCorridorConstraint),
+            ):
+                raise ResultExportValidationError(
+                    "ridge_constraints contains an unsupported constraint model."
                 )
 
         if self.source_path is not None and not isinstance(self.source_path, Path):
@@ -118,6 +163,14 @@ class ResultExportOptions:
             self.event_reference_source,
             field_name="event_reference_source",
         )
+        event_time_source = _optional_text(
+            self.event_time_source,
+            field_name="event_time_source",
+        )
+        if event_time_source not in {None, "unset", "automatic", "manual"}:
+            raise ResultExportValidationError(
+                "event_time_source must be 'unset', 'automatic', 'manual', or None."
+            )
         try:
             protected_directories = tuple(
                 Path(path) for path in self.protected_output_directories
@@ -133,10 +186,16 @@ class ResultExportOptions:
 
         object.__setattr__(self, "output_directory", output_directory)
         object.__setattr__(self, "channel_analyses", MappingProxyType(analyses))
+        object.__setattr__(
+            self,
+            "ridge_constraints",
+            MappingProxyType(ridge_constraints),
+        )
         object.__setattr__(self, "analysis_profile_name", profile_name)
         object.__setattr__(self, "pre_event_display_enabled", display_enabled)
         object.__setattr__(self, "pre_event_display_velocity_m_s", display_velocity)
         object.__setattr__(self, "event_reference_source", event_reference_source)
+        object.__setattr__(self, "event_time_source", event_time_source)
         object.__setattr__(self, "protected_output_directories", protected_directories)
 
 
@@ -149,6 +208,7 @@ class ExportedChannelResult:
     detail_csv_path: Path
     metadata_path: Path
     exported_row_count: int
+    acceleration_csv_path: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)

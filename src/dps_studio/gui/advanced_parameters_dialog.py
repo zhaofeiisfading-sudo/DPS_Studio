@@ -88,8 +88,12 @@ class AdvancedParametersDialog(QDialog):
             self._page(
                 (
                     (
-                        self.tr("峰值/背景阈值"),
+                        self.tr("建立/重建峰值/背景阈值"),
                         f"{detection.minimum_peak_to_background_db:g} dB",
+                    ),
+                    (
+                        self.tr("跟踪峰值/背景阈值"),
+                        f"{detection.tracking_minimum_peak_to_background_db:g} dB",
                     ),
                     (
                         self.tr("峰值/竞争峰阈值"),
@@ -102,6 +106,14 @@ class AdvancedParametersDialog(QDialog):
                     (
                         self.tr("最小连续帧"),
                         str(detection.minimum_consecutive_frames),
+                    ),
+                    (
+                        self.tr("最大跟踪频率步进"),
+                        (
+                            self.tr("不限制")
+                            if detection.maximum_tracking_frequency_step_hz is None
+                            else f"{detection.maximum_tracking_frequency_step_hz * 1e-6:g} MHz"
+                        ),
                     ),
                     (
                         self.tr("窗内最小周期数"),

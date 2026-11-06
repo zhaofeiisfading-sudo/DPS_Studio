@@ -103,6 +103,14 @@ def test_toml_loads_relative_paths_profiles_and_immutable_mappings(
     assert configuration.analysis.event_reference_time_s == 5.54668e-4
     assert configuration.analysis.event_start_time_s == 5.54668e-4
     assert configuration.quality.signal_detection.minimum_consecutive_frames == 3
+    assert (
+        configuration.quality.signal_detection.tracking_minimum_peak_to_background_db
+        == 10.0
+    )
+    assert (
+        configuration.quality.signal_detection.maximum_tracking_frequency_step_hz
+        is None
+    )
     assert configuration.automatic_ridge_selection.mode.value == "continuity_assisted"
     assert configuration.automatic_ridge_selection.top_k_candidates == 3
     assert configuration.automatic_ridge_selection.recovery_tolerance_hz is None

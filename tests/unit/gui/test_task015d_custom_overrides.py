@@ -182,7 +182,7 @@ def test_invalid_nfft_is_blocked_and_search_band_is_constrained_to_nyquist(
         qapp.processEvents()
 
 
-def test_ui_units_and_captured_analysis_request_are_exact(
+def test_stft_ui_units_are_exact_and_region_inputs_wait_for_stft(
     qapp: QApplication,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -213,15 +213,18 @@ def test_ui_units_and_captured_analysis_request_are_exact(
         assert final.overlap_samples == 768
         assert final.hop_samples == 256
         assert final.nfft == 4095
-        assert final.minimum_frequency_hz == pytest.approx(0.125e9)
-        assert final.maximum_frequency_hz == pytest.approx(1.75e9)
+        expected_grid_max_hz = math.floor(
+            10.0e9 * (4095 // 2) / 4095 * 1.0e3
+        ) / 1.0e3
+        assert request.ridge_search_region is None
+        assert final.minimum_frequency_hz == pytest.approx(0.05e9)
+        assert final.maximum_frequency_hz == pytest.approx(expected_grid_max_hz)
         assert dict(request.configuration.custom_overrides) == {
             "vacuum_wavelength_m": pytest.approx(1064.0e-9),
             "window_length_samples": 1024,
             "overlap_samples": 768,
             "nfft": 4095,
-            "minimum_frequency_hz": pytest.approx(0.125e9),
-            "maximum_frequency_hz": pytest.approx(1.75e9),
+            "maximum_frequency_hz": pytest.approx(expected_grid_max_hz),
         }
     finally:
         window.close()

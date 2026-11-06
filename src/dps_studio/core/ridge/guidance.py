@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import cast
+from typing import TypeAlias, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -14,6 +14,203 @@ from dps_studio.core.time_frequency import STFTResult
 
 
 FloatArray = NDArray[np.float64]
+
+
+@dataclass(frozen=True, slots=True, eq=False)
+class ManualFrequencyBoundary:
+    """One immutable piecewise-linear manual boundary in SI coordinates."""
+
+    control_times_s: FloatArray
+    control_frequencies_hz: FloatArray
+
+    def __post_init__(self) -> None:
+        times = _float_array(self.control_times_s, field_name="control_times_s")
+        frequencies = _float_array(
+            self.control_frequencies_hz,
+            field_name="control_frequencies_hz",
+        )
+        if times.ndim != 1 or frequencies.ndim != 1:
+            raise RidgeConfigurationError(
+                "Manual boundary control arrays must be one-dimensional."
+            )
+        if times.size < 2:
+            raise RidgeConfigurationError(
+                "A formal manual boundary requires at least two control points."
+            )
+        if frequencies.size != times.size:
+            raise RidgeConfigurationError(
+                "control_frequencies_hz must match control_times_s."
+            )
+        if not np.all(np.isfinite(times)) or not np.all(np.isfinite(frequencies)):
+            raise RidgeConfigurationError(
+                "Manual boundary control coordinates must all be finite."
+            )
+        if not np.all(np.diff(times) > 0.0):
+            raise RidgeConfigurationError(
+                "Manual boundary control times must be strictly increasing."
+            )
+        if np.any(frequencies < 0.0):
+            raise RidgeConfigurationError(
+                "Manual boundary control frequencies must be non-negative."
+            )
+        object.__setattr__(self, "control_times_s", _immutable_array(times))
+        object.__setattr__(
+            self,
+            "control_frequencies_hz",
+            _immutable_array(frequencies),
+        )
+
+    @property
+    def start_time_s(self) -> float:
+        return float(self.control_times_s[0])
+
+    @property
+    def end_time_s(self) -> float:
+        return float(self.control_times_s[-1])
+
+    @property
+    def control_point_count(self) -> int:
+        return int(self.control_times_s.size)
+
+    def is_active_at(self, time_s: float) -> bool:
+        value = _finite_float(time_s, field_name="time_s")
+        return self.start_time_s <= value <= self.end_time_s
+
+    def frequency_hz(self, time_s: float) -> float:
+        """Evaluate with linear interpolation and constant endpoint extension."""
+        value = _finite_float(time_s, field_name="time_s")
+        return float(
+            np.interp(value, self.control_times_s, self.control_frequencies_hz)
+        )
+
+    def frequencies_hz(self, time_s: object) -> FloatArray:
+        """Evaluate an ordered time grid without slope extrapolation."""
+        time = _float_array(time_s, field_name="time_s")
+        if time.ndim != 1 or not np.all(np.isfinite(time)):
+            raise RidgeConfigurationError(
+                "Manual boundary evaluation times must be a finite 1-D array."
+            )
+        values = np.interp(
+            time,
+            self.control_times_s,
+            self.control_frequencies_hz,
+        )
+        return _immutable_array(np.asarray(values, dtype=np.float64))
+
+
+@dataclass(frozen=True, slots=True, eq=False)
+class ManualFrequencyRegion:
+    """Optional full-analysis upper/lower limits intersected with the global band."""
+
+    upper_boundary: ManualFrequencyBoundary | None = None
+    lower_boundary: ManualFrequencyBoundary | None = None
+
+    def __post_init__(self) -> None:
+        for field_name, boundary in (
+            ("upper_boundary", self.upper_boundary),
+            ("lower_boundary", self.lower_boundary),
+        ):
+            if boundary is not None and not isinstance(
+                boundary, ManualFrequencyBoundary
+            ):
+                raise RidgeConfigurationError(
+                    f"{field_name} must be a ManualFrequencyBoundary or None."
+                )
+        crossing_time = self.first_crossing_time_s()
+        if crossing_time is not None:
+            raise RidgeConfigurationError(
+                "Manual lower boundary exceeds the upper boundary at "
+                f"time_s={crossing_time!r}."
+            )
+
+    @property
+    def is_empty(self) -> bool:
+        return self.upper_boundary is None and self.lower_boundary is None
+
+    @property
+    def control_point_count(self) -> int:
+        return sum(
+            boundary.control_point_count
+            for boundary in (self.upper_boundary, self.lower_boundary)
+            if boundary is not None
+        )
+
+    @property
+    def constrained_time_range_s(self) -> tuple[float, float] | None:
+        boundaries = tuple(
+            boundary
+            for boundary in (self.upper_boundary, self.lower_boundary)
+            if boundary is not None
+        )
+        if not boundaries:
+            return None
+        return (
+            min(boundary.start_time_s for boundary in boundaries),
+            max(boundary.end_time_s for boundary in boundaries),
+        )
+
+    def effective_bounds_hz(
+        self,
+        time_s: float,
+        *,
+        minimum_frequency_hz: float,
+        maximum_frequency_hz: float,
+    ) -> tuple[float, float]:
+        """Return global bounds contracted by endpoint-extended manual lines."""
+        value = _finite_float(time_s, field_name="time_s")
+        minimum = _finite_float(
+            minimum_frequency_hz,
+            field_name="minimum_frequency_hz",
+        )
+        maximum = _finite_float(
+            maximum_frequency_hz,
+            field_name="maximum_frequency_hz",
+        )
+        if maximum <= minimum:
+            raise RidgeConfigurationError(
+                "maximum_frequency_hz must be greater than minimum_frequency_hz."
+            )
+        lower = minimum
+        upper = maximum
+        if self.lower_boundary is not None:
+            manual_lower = self.lower_boundary.frequency_hz(value)
+            lower = max(lower, manual_lower)
+        if self.upper_boundary is not None:
+            manual_upper = self.upper_boundary.frequency_hz(value)
+            upper = min(upper, manual_upper)
+        if lower > upper:
+            raise RidgeConfigurationError(
+                "Manual lower boundary exceeds the upper boundary at "
+                f"time_s={value!r}."
+            )
+        return lower, upper
+
+    def first_crossing_time_s(self) -> float | None:
+        """Return the first full-domain polyline knot with lower above upper."""
+        upper = self.upper_boundary
+        lower = self.lower_boundary
+        if upper is None or lower is None:
+            return None
+        knots = np.unique(
+            np.concatenate(
+                (
+                    upper.control_times_s,
+                    lower.control_times_s,
+                )
+            )
+        )
+        upper_values = np.interp(
+            knots,
+            upper.control_times_s,
+            upper.control_frequencies_hz,
+        )
+        lower_values = np.interp(
+            knots,
+            lower.control_times_s,
+            lower.control_frequencies_hz,
+        )
+        invalid = np.flatnonzero(lower_values > upper_values)
+        return float(knots[int(invalid[0])]) if invalid.size else None
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -197,6 +394,155 @@ def validate_ridge_corridor_for_stft(
         )
 
 
+RidgeSearchConstraint: TypeAlias = RidgeCorridorConstraint | ManualFrequencyRegion
+
+
+def evaluate_manual_frequency_region_bounds(
+    region: ManualFrequencyRegion,
+    time_s: object,
+    *,
+    minimum_frequency_hz: float,
+    maximum_frequency_hz: float,
+) -> tuple[FloatArray, FloatArray]:
+    """Evaluate the one authoritative allowed-region boundary pair on a time grid."""
+    if not isinstance(region, ManualFrequencyRegion):
+        raise RidgeConfigurationError(
+            "region must be a ManualFrequencyRegion instance."
+        )
+    time = _float_array(time_s, field_name="time_s")
+    if time.ndim != 1 or not np.all(np.isfinite(time)):
+        raise RidgeConfigurationError(
+            "Manual region evaluation times must be a finite 1-D array."
+        )
+    minimum = _finite_float(
+        minimum_frequency_hz,
+        field_name="minimum_frequency_hz",
+    )
+    maximum = _finite_float(
+        maximum_frequency_hz,
+        field_name="maximum_frequency_hz",
+    )
+    if maximum <= minimum:
+        raise RidgeConfigurationError(
+            "maximum_frequency_hz must be greater than minimum_frequency_hz."
+        )
+    lower = np.full(time.shape, minimum, dtype=np.float64)
+    upper = np.full(time.shape, maximum, dtype=np.float64)
+    if region.lower_boundary is not None:
+        lower = np.maximum(lower, region.lower_boundary.frequencies_hz(time))
+    if region.upper_boundary is not None:
+        upper = np.minimum(upper, region.upper_boundary.frequencies_hz(time))
+    invalid = np.flatnonzero(lower > upper)
+    if invalid.size:
+        first = int(invalid[0])
+        raise RidgeConfigurationError(
+            "Manual lower boundary exceeds the upper boundary at "
+            f"time_s={float(time[first])!r}."
+        )
+    return _immutable_array(lower), _immutable_array(upper)
+
+
+def manual_frequency_region_mask(
+    region: ManualFrequencyRegion,
+    stft_result: STFTResult,
+    *,
+    minimum_frequency_hz: float,
+    maximum_frequency_hz: float,
+) -> NDArray[np.bool_]:
+    """Rasterize one region without mutating or slicing the supplied STFT."""
+    if not isinstance(region, ManualFrequencyRegion):
+        raise RidgeConfigurationError(
+            "region must be a ManualFrequencyRegion instance."
+        )
+    minimum = _finite_float(
+        minimum_frequency_hz,
+        field_name="minimum_frequency_hz",
+    )
+    maximum = _finite_float(
+        maximum_frequency_hz,
+        field_name="maximum_frequency_hz",
+    )
+    if maximum <= minimum:
+        raise RidgeConfigurationError(
+            "maximum_frequency_hz must be greater than minimum_frequency_hz."
+        )
+    frequency_axis = stft_result.frequency_hz
+    lower, upper = evaluate_manual_frequency_region_bounds(
+        region,
+        stft_result.time_s,
+        minimum_frequency_hz=minimum,
+        maximum_frequency_hz=maximum,
+    )
+    mask = (
+        (frequency_axis[:, np.newaxis] >= lower[np.newaxis, :])
+        & (frequency_axis[:, np.newaxis] <= upper[np.newaxis, :])
+        & (frequency_axis[:, np.newaxis] >= minimum)
+        & (frequency_axis[:, np.newaxis] <= maximum)
+    )
+    mask.setflags(write=False)
+    return mask
+
+
+def validate_manual_frequency_region_for_stft(
+    region: ManualFrequencyRegion,
+    stft_result: STFTResult,
+    *,
+    minimum_frequency_hz: float,
+    maximum_frequency_hz: float,
+    analysis_start_time_s: float | None = None,
+    analysis_end_time_s: float | None = None,
+) -> None:
+    """Validate physical bounds while allowing explicit per-frame empty masks.
+
+    An empty grid intersection is a hard unavailable frame in the production
+    Working Ridge, not a reason to reject an otherwise valid manual region.
+    """
+    if not isinstance(stft_result, STFTResult):
+        raise RidgeConfigurationError("stft_result must be an STFTResult instance.")
+    analysis_start = _optional_finite_float(
+        analysis_start_time_s,
+        field_name="analysis_start_time_s",
+    )
+    analysis_end = _optional_finite_float(
+        analysis_end_time_s,
+        field_name="analysis_end_time_s",
+    )
+    if (
+        analysis_start is not None
+        and analysis_end is not None
+        and analysis_start > analysis_end
+    ):
+        raise RidgeConfigurationError(
+            "analysis_start_time_s must not exceed analysis_end_time_s."
+        )
+    grid_maximum = float(stft_result.frequency_hz[-1])
+    for boundary in (region.upper_boundary, region.lower_boundary):
+        if boundary is not None and np.any(
+            boundary.control_frequencies_hz > grid_maximum
+        ):
+            raise RidgeConfigurationError(
+                "Manual boundary frequencies must not exceed the STFT maximum."
+            )
+    manual_frequency_region_mask(
+        region,
+        stft_result,
+        minimum_frequency_hz=minimum_frequency_hz,
+        maximum_frequency_hz=maximum_frequency_hz,
+    )
+    active_frames = np.ones(stft_result.time_s.shape, dtype=np.bool_)
+    if analysis_start is not None:
+        active_frames &= stft_result.time_s >= analysis_start
+    if analysis_end is not None:
+        active_frames &= stft_result.time_s <= analysis_end
+    active_times = stft_result.time_s[active_frames]
+    evaluate_manual_frequency_region_bounds(
+        region,
+        active_times,
+        minimum_frequency_hz=minimum_frequency_hz,
+        maximum_frequency_hz=maximum_frequency_hz,
+    )
+
+
 def _float_array(value: object, *, field_name: str) -> FloatArray:
     try:
         return np.array(value, dtype=np.float64, copy=True, order="C")
@@ -232,4 +578,13 @@ def _optional_finite_float(value: object, *, field_name: str) -> float | None:
     return _finite_float(value, field_name=field_name)
 
 
-__all__ = ["RidgeCorridorConstraint", "validate_ridge_corridor_for_stft"]
+__all__ = [
+    "ManualFrequencyBoundary",
+    "ManualFrequencyRegion",
+    "RidgeCorridorConstraint",
+    "RidgeSearchConstraint",
+    "evaluate_manual_frequency_region_bounds",
+    "manual_frequency_region_mask",
+    "validate_manual_frequency_region_for_stft",
+    "validate_ridge_corridor_for_stft",
+]

@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy.signal import find_peaks  # type: ignore[import-untyped]
 
 from dps_studio.core.ridge.candidate_models import (
@@ -26,6 +27,7 @@ def extract_local_peak_candidates(
     background_exclusion_half_width_hz: float,
     minimum_background_bin_count: int,
     config: LocalPeakCandidateConfig,
+    allowed_search_mask: NDArray[np.bool_] | None = None,
 ) -> LocalPeakCandidateResult:
     """Retain a bounded set of distinct unsmoothed local maxima per frame."""
     if not isinstance(stft_result, STFTResult):
@@ -65,6 +67,13 @@ def extract_local_peak_candidates(
         raise RidgeConfigurationError(
             "The candidate search band must lie within the STFT frequency axis."
         )
+    validated_search_mask: NDArray[np.bool_] | None = None
+    if allowed_search_mask is not None:
+        validated_search_mask = np.asarray(allowed_search_mask, dtype=np.bool_)
+        if validated_search_mask.shape != stft_result.spectrum.shape:
+            raise RidgeConfigurationError(
+                "allowed_search_mask must match the STFT spectrum shape."
+            )
     spacing_hz = _uniform_spacing_hz(frequency_axis)
     first_band_index = int(band_indices[0])
     last_band_index = int(band_indices[-1])
@@ -73,6 +82,10 @@ def extract_local_peak_candidates(
     for frame_index in range(stft_result.time_s.size):
         magnitudes = np.abs(stft_result.spectrum[band_indices, frame_index])
         local_offsets, _ = find_peaks(magnitudes, plateau_size=(1, None))
+        if validated_search_mask is not None:
+            local_offsets = local_offsets[
+                validated_search_mask[band_indices[local_offsets], frame_index]
+            ]
         ranked_offsets = sorted(
             (int(offset) for offset in local_offsets),
             key=lambda offset: (-float(magnitudes[offset]), int(band_indices[offset])),

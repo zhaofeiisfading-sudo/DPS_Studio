@@ -10,7 +10,7 @@ from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 
 from dps_studio.core.export import ResultAnalysisMode
-from dps_studio.core.io import SignalColumnError
+from dps_studio.core.io import WHITESPACE_DELIMITER, SignalColumnError
 from dps_studio.core.ridge import RidgeCorridorConstraint
 from dps_studio.core.workflow import load_workflow_config
 from dps_studio.gui.app import translation_manager
@@ -121,6 +121,67 @@ def test_preview_reports_tentative_header_and_short_column_samples(
         qapp.processEvents()
 
 
+def test_whitespace_preview_request_and_controller_share_one_mode(
+    qapp: QApplication,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "production.dat"
+    source.write_text(
+        "  -1.0e-6   4.2e2\n\t-0.5e-6\t  4.3e2\n",
+        encoding="utf-8",
+        newline="",
+    )
+
+    dialog = ImportSettingsDialog(source)
+    try:
+        assert dialog.detected_column_count == 2
+        assert dialog.delimiter_combo.currentData() == WHITESPACE_DELIMITER
+        assert "空白字符" in dialog.delimiter_combo.currentText()
+        assert dialog.validation_error() is None
+
+        request = dialog.load_request()
+        assert request.delimiter == WHITESPACE_DELIMITER
+        result = DataImportController().load(request)
+        assert result.column_count == 2
+        assert result.row_count == 2
+        assert result.delimiter == WHITESPACE_DELIMITER
+        np.testing.assert_array_equal(
+            result.records["pdv_channel_1"].time_s,
+            [-1.0e-6, -0.5e-6],
+        )
+        np.testing.assert_array_equal(
+            result.records["pdv_channel_1"].voltage_v,
+            [420.0, 430.0],
+        )
+    finally:
+        dialog.close()
+        qapp.processEvents()
+
+
+def test_import_dialog_offers_explicit_delimiter_modes(
+    qapp: QApplication,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "signal.csv"
+    source.write_text("0,1\n1,2\n", encoding="utf-8", newline="")
+    dialog = ImportSettingsDialog(source)
+    try:
+        available_modes = {
+            dialog.delimiter_combo.itemData(index)
+            for index in range(dialog.delimiter_combo.count())
+        }
+        assert {None, ",", "\t", WHITESPACE_DELIMITER, ";", "custom"} <= (
+            available_modes
+        )
+
+        whitespace_index = dialog.delimiter_combo.findData(WHITESPACE_DELIMITER)
+        dialog.delimiter_combo.setCurrentIndex(whitespace_index)
+        assert dialog.load_request().delimiter == WHITESPACE_DELIMITER
+    finally:
+        dialog.close()
+        qapp.processEvents()
+
+
 def test_dialog_rejects_missing_duplicate_and_time_signal_mappings(
     qapp: QApplication,
     tmp_path: Path,
@@ -166,6 +227,10 @@ def test_import_mapping_semantics_are_translated_in_english(
     dialog = ImportSettingsDialog(source)
     try:
         assert dialog.channel_1_enabled.text() == "Import Signal 1"
+        whitespace_index = dialog.delimiter_combo.findData(WHITESPACE_DELIMITER)
+        assert dialog.delimiter_combo.itemText(whitespace_index) == (
+            "Whitespace (spaces / tabs)"
+        )
         assert "Detected 2 columns" in dialog.structure_status_label.text()
         for enabled in (
             dialog.channel_1_enabled,
@@ -313,20 +378,22 @@ def test_workflow_navigation_changes_tabs_once_at_semantic_boundaries(
     window = _analysis_window(qapp, tmp_path)
     try:
         window.science_tabs.setCurrentIndex(0)
-        assert window.select_workflow_step(1)
-        assert window.science_tabs.currentWidget() is window.raw_signal_view
+        assert not window.select_workflow_step(1)
+        window.science_tabs.setCurrentWidget(window.spectrogram_view)
+        assert window.science_tabs.currentWidget() is window.spectrogram_view
+        assert not window.analysis_session.stft_valid
+        _wait_for_analysis(window, window.run_stft_analysis)
+        assert window.analysis_session.stft_valid
         assert window.select_workflow_step(0)
-        assert window.science_tabs.currentWidget() is window.raw_signal_view
-
-        _wait_for_analysis(window, lambda: window.select_workflow_step(2))
         assert window.science_tabs.currentWidget() is window.spectrogram_view
 
-        assert window.select_workflow_step(3)
+        assert window.select_workflow_step(1)
         assert window.science_tabs.currentWidget() is window.spectrogram_view
+
         _wait_for_analysis(window, window.run_staged_automatic_analysis)
         assert window.science_tabs.currentWidget() is window.ridge_view
 
-        assert window.select_workflow_step(4)
+        assert window.select_workflow_step(2)
         assert window.science_tabs.currentWidget() is window.velocity_view
 
         window.science_tabs.setCurrentWidget(window.raw_signal_view)
@@ -339,7 +406,7 @@ def test_workflow_navigation_changes_tabs_once_at_semantic_boundaries(
         qapp.processEvents()
 
 
-def test_step6_export_target_drives_velocity_preview_and_clears_missing_guided(
+def test_review_step_export_target_drives_velocity_preview_and_clears_missing_guided(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
@@ -356,7 +423,7 @@ def test_step6_export_target_drives_velocity_preview_and_clears_missing_guided(
             ),
         )
         _wait_for_analysis(window, window.run_guided_analysis)
-        assert window.select_workflow_step(5)
+        assert window.select_workflow_step(3)
         assert window.science_tabs.currentWidget() is window.velocity_view
 
         automatic_index = window.export_mode_combo.findData(
@@ -370,7 +437,7 @@ def test_step6_export_target_drives_velocity_preview_and_clears_missing_guided(
             qapp.processEvents()
             assert window.velocity_view.result_source == "automatic"
             assert window.velocity_view.channel_combo.currentData() == channel_name
-            assert window.velocity_view.formal_curve is window.velocity_view.corrected_curve
+            assert window.velocity_view.formal_curve is None
             assert window.velocity_view.display_curve is not None
             _, display_y = window.velocity_view.display_curve.getData()
             np.testing.assert_array_equal(
@@ -390,7 +457,7 @@ def test_step6_export_target_drives_velocity_preview_and_clears_missing_guided(
         qapp.processEvents()
         assert window.velocity_view.result_source == "guided"
         assert window.velocity_view.channel_combo.currentData() == "pdv_channel_1"
-        assert window.velocity_view.formal_curve is window.velocity_view.corrected_curve
+        assert window.velocity_view.formal_curve is None
         assert window.velocity_view.display_curve is not None
 
         window.export_channel_combo.setCurrentIndex(
@@ -420,7 +487,7 @@ def test_single_and_three_channel_analysis_and_preview_remain_independent(
             f"pdv_channel_{index + 1}" for index in range(channel_count)
         )
         assert tuple(window.analysis_session.channel_analyses) == expected_channels
-        assert window.select_workflow_step(5)
+        assert window.select_workflow_step(3)
         target_channel = expected_channels[-1]
         window.export_channel_combo.setCurrentIndex(
             window.export_channel_combo.findData(target_channel)
@@ -428,7 +495,7 @@ def test_single_and_three_channel_analysis_and_preview_remain_independent(
         qapp.processEvents()
         assert window.export_channel_combo.currentData() == target_channel
         assert window.velocity_view.channel_combo.currentData() == target_channel
-        assert window.velocity_view.formal_curve is window.velocity_view.corrected_curve
+        assert window.velocity_view.formal_curve is None
     finally:
         window.close()
         qapp.processEvents()
