@@ -62,6 +62,8 @@ def acceleration_metadata(analysis: ChannelAnalysis) -> dict[str, object]:
         "velocity_reconstruction_window_samples": analysis.stft_result.window_length_samples,
         "velocity_reconstruction_window_s": analysis.stft_result.window_length_samples / analysis.stft_result.sample_rate_hz,
         "frame_interval_s": analysis.stft_result.hop_samples / analysis.stft_result.sample_rate_hz,
+        "overlap_fraction": analysis.stft_result.overlap_samples / analysis.stft_result.window_length_samples,
+        "frame_independence": "overlapping estimates share input samples; no independent-frame uncertainty assumed",
         "overlap_samples": analysis.stft_result.overlap_samples,
         "velocity_correction": velocity_correction_metadata(analysis.working_velocity_correction_result),
     }

@@ -789,14 +789,6 @@ class MainWindow(QMainWindow):
         open_button.setDefault(True)
         open_button.clicked.connect(self.action_open_data.trigger)
         data_layout.addWidget(open_button)
-        data_layout.addWidget(
-            self._notice(
-                self.tr(
-                    "时间、电压和列映射必须在导入对话框中明确指定。"
-                    "内部数据保持 s 和 V。"
-                )
-            )
-        )
         self.analysis_range_panel = AnalysisRangePanel()
         self.analysis_range_panel.set_analysis_range_controls_visible(False)
         data_layout.addStretch(1)
@@ -809,51 +801,15 @@ class MainWindow(QMainWindow):
         self.analysis_range_scroll.setWidget(data_page)
         self.parameter_stack.addWidget(self.analysis_range_scroll)
 
-        stft_page = QWidget()
-        stft_layout = QVBoxLayout(stft_page)
-        stft_layout.addWidget(self.common_analysis_panel)
-        stft_layout.addWidget(self._section_title(self.tr("STFT 状态")))
+        # The import and STFT controls share the same scrollable page.
+        self.stft_parameter_scroll = self.analysis_range_scroll
         stft_status_widget = QWidget()
         stft_form = QFormLayout(stft_status_widget)
         self.analysis_range_label = QLabel("—")
-        self.quality_source_label = QLabel(self.tr("内置默认质量配置"))
-        self.quality_source_label.setToolTip(
-            self.tr("完整配置来源可在“高级参数…”中查看。")
-        )
         stft_form.addRow(self.tr("分析时间范围"), self.analysis_range_label)
-        stft_form.addRow(self.tr("质量配置来源"), self.quality_source_label)
-        stft_layout.addWidget(stft_status_widget)
-        self.stft_ready_label = self._notice(self.tr("尚未计算时频图。"))
-        self.stft_ready_label.setObjectName("stftReadyStatus")
-        stft_layout.addWidget(self.stft_ready_label)
-        self.cancel_analysis_button = QPushButton(
-            self.tr("取消分析（不可用）"),
-            stft_page,
-        )
-        self.cancel_analysis_button.setObjectName("cancelAnalysisButton")
-        self.cancel_analysis_button.setEnabled(False)
-        self.cancel_analysis_button.setToolTip(
-            self.tr(
-                "当前 core 没有协作取消 API；参数变化只会使迟到结果失效，"
-                "不会立即中断 NumPy/SciPy 计算。"
-            )
-        )
-        self.cancel_analysis_button.hide()
-        stft_layout.addStretch(1)
-        self.stft_parameter_scroll = QScrollArea()
-        self.stft_parameter_scroll.setObjectName("stftParameterScrollArea")
-        self.stft_parameter_scroll.setWidgetResizable(True)
-        self.stft_parameter_scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        stft_page.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        self.stft_parameter_scroll.setWidget(stft_page)
-        # Data import and STFT are one user-facing stage. Keep the legacy
-        # scroll object for source compatibility, but place its controls on the
-        # first page and do not add a fifth workflow page.
+        data_layout.setSpacing(8)
         data_layout.insertWidget(data_layout.count() - 1, self.common_analysis_panel)
         data_layout.insertWidget(data_layout.count() - 1, stft_status_widget)
-        data_layout.insertWidget(data_layout.count() - 1, self.cancel_analysis_button)
 
         guided_page = QWidget()
         guided_layout = QVBoxLayout(guided_page)
@@ -922,13 +878,11 @@ class MainWindow(QMainWindow):
         guided_layout.addWidget(
             self.guided_ridge_panel
         )
-        guided_panel_layout.addWidget(
-            self._notice(
-                self.tr(
-                    "默认使用完整搜索频带。可绘制上边界或下边界限制候选谱峰"
-                    "搜索区域。人工边界在控制点之间线性连接，并以首末点高度"
-                    "延伸至当前分析范围两端。"
-                )
+        self.guided_ridge_panel.setToolTip(
+            self.tr(
+                "默认使用完整搜索频带。可绘制上边界或下边界限制候选谱峰"
+                "搜索区域。人工边界在控制点之间线性连接，并以首末点高度"
+                "延伸至当前分析范围两端。"
             )
         )
         guided_form = QFormLayout()
@@ -1281,11 +1235,6 @@ class MainWindow(QMainWindow):
         )
         self._update_acceleration_export_window(self.velocity_view.acceleration_window_spin.value())
         self.export_acceleration_fit_check.setToolTip(self.tr("拟合窗口在速度页设置；原始差分列始终保留。"))
-        self.export_description_label = self._notice(
-            self.tr("将导出时间—速度数据、详细诊断数据和分析参数记录。")
-        )
-        self.export_description_label.setObjectName("exportDescription")
-        layout.addWidget(self.export_description_label)
         self.export_button = QPushButton(self.tr("导出结果"))
         self.export_button.setObjectName("exportFormalResultsButton")
         self.export_button.setDefault(True)
@@ -1858,8 +1807,6 @@ class MainWindow(QMainWindow):
         self.lif_reference_wavelength_spin.setReadOnly(not editable)
         self.restore_lif_defaults_button.setEnabled(editable)
         self.window_preset_editor.setEnabled(editable)
-        self.export_event_time_origin_radio.setEnabled(editable)
-        self.export_absolute_time_origin_radio.setEnabled(editable)
 
     def _scientific_parameter_changed(self, _value: float | int) -> None:
         """Resolve the visible draft as per-session overrides of its base preset."""
@@ -2259,8 +2206,9 @@ class MainWindow(QMainWindow):
         self.export_absolute_time_origin_radio.setChecked(not is_event)
         del blockers
         self.export_event_time_origin_radio.setEnabled(
-            self._session.event_reference_time_s is not None
+            self._session.event_reference_time_s is not None and not self._analysis_adapter.busy
         )
+        self.export_absolute_time_origin_radio.setEnabled(not self._analysis_adapter.busy)
         self.export_event_time_origin_radio.setToolTip(
             self.tr("需要先设置事件参考。")
             if self._session.event_reference_time_s is None
@@ -3433,7 +3381,6 @@ class MainWindow(QMainWindow):
         self._apply_state()
         self.analysis_status_label.setText(self.tr("自动分析完成；结果为当前有效。"))
         self.formal_velocity_status_label.setText(self.tr("当前正式结果有效"))
-        self.stft_ready_label.setText(self.tr("当前 STFT 有效。"))
         self.automatic_ridge_status_label.setText(self.tr("自动脊线结果有效。"))
         self._append_log(
             self.tr("自动分析完成：{channels} 个独立通道。").format(
@@ -3458,9 +3405,8 @@ class MainWindow(QMainWindow):
             relative_db_floor=configuration.relative_db_floor,
         )
         self.spectrogram_view.set_corridors(self._session.ridge_constraints)
-        self.stft_ready_label.setText(self.tr("当前 STFT 有效，可进入脊线提取。"))
         self.analysis_status_label.setText(self.tr("时频图计算完成。"))
-        self.automatic_ridge_status_label.setText(self.tr("当前 STFT 已就绪。"))
+        self.automatic_ridge_status_label.clear()
         self._apply_state()
         self._sync_guided_panel()
         self._append_log(
@@ -3558,7 +3504,6 @@ class MainWindow(QMainWindow):
             failure_text = self.tr("时频图计算失败：{summary}").format(
                 summary=summary
             )
-            self.stft_ready_label.setText(failure_text)
             self.quality_summary.clear_results(failure_text)
         elif candidate_detection:
             failure_text = self.tr("事件候选检测失败：{summary}").format(
@@ -3618,6 +3563,7 @@ class MainWindow(QMainWindow):
 
     def _refresh_export_controls(self) -> None:
         """Reflect only the current valid Automatic/Guided result sets."""
+        self._sync_export_time_origin_controls()
         available = self._exportable_result_sets()
         selected_mode = self._selected_export_mode()
         mode_blocker = QSignalBlocker(self.export_mode_combo)
@@ -3658,7 +3604,7 @@ class MainWindow(QMainWindow):
             modes = " / ".join(labels[mode] for mode in available)
             availability_text = self.tr("可导出的当前有效结果：{modes}。").format(
                 modes=modes
-            ) + self.tr("Automatic 与 Guided 将保持独立导出。")
+            )
             action_tooltip = self.tr("打开复核与导出页面，检查当前结果和导出参数。")
             if not event_origin_ready:
                 availability_text += self.tr(
@@ -3889,7 +3835,6 @@ class MainWindow(QMainWindow):
         self._refresh_export_controls()
         self.analysis_status_label.setText(reason)
         self.formal_velocity_status_label.setText(self.tr("尚无正式结果"))
-        self.stft_ready_label.setText(self.tr("尚未计算时频图。"))
         self.automatic_ridge_status_label.setText(self.tr("当前 STFT 尚未就绪。"))
         self._sync_guided_panel()
 

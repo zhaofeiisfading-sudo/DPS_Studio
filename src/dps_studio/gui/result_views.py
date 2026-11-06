@@ -772,11 +772,6 @@ class SpectrogramView(_ChannelView):
             insert_in=self.plot_widget.plotItem,
         )
         self.root_layout.addWidget(self.plot_widget, 1)
-        self.definition_label = QLabel(
-            self.tr("显示定义：20 log10(|STFT| / 通道全局最大值)，不是正式 SNR。")
-        )
-        self.definition_label.setObjectName("spectrogramDefinitionLabel")
-        self.root_layout.addWidget(self.definition_label)
         self.current_image_db: FloatArray | None = None
         self._corridors: Mapping[str, RidgeSearchConstraint] = {}
         self._stft_results: Mapping[str, STFTResult] = {}
@@ -974,9 +969,6 @@ class RidgeView(_ChannelView):
         self.plot_widget.setLabel("left", self.tr("频率"), units="GHz")
         self.plot_widget.showGrid(x=True, y=True, alpha=0.18)
         self.root_layout.addWidget(self.plot_widget, 1)
-        self.quality_label = QLabel(self.tr("尚无质量状态。"))
-        self.quality_label.setObjectName("ridgeQualitySummary")
-        self.root_layout.addWidget(self.quality_label)
         self.current_colormap_name = DEFAULT_SPECTROGRAM_COLORMAP
         self.image_item: Any | None = None
         self.candidate_curve: Any | None = None
@@ -1131,20 +1123,6 @@ class RidgeView(_ChannelView):
             connect="finite",
             name=self.tr("正式可信脊线"),
         )
-        counts = Counter(
-            state.name for state in analysis.signal_detection_result.signal_states
-        )
-        summary = ", ".join(f"{name}={count}" for name, count in counts.items())
-        working_counts = Counter(source.name for source in analysis.working_source)
-        working_summary = ", ".join(
-            f"{name}={count}" for name, count in working_counts.items()
-        )
-        self.quality_label.setText(
-            self.tr("逐帧质量状态：{summary}；工作点来源：{working}").format(
-                summary=summary,
-                working=working_summary,
-            )
-        )
         if fit_view:
             self.plot_widget.autoRange()
             self._fit_current_view(analysis)
@@ -1154,7 +1132,6 @@ class RidgeView(_ChannelView):
     def _clear_plot(self) -> None:
         self.dispose_search_region_interactions()
         self.plot_widget.clear()
-        self.quality_label.setText(self.tr("尚无质量状态。"))
         self.image_item = None
         self.candidate_curve = None
         self.refined_curve = None
@@ -1876,16 +1853,13 @@ class QualitySummaryWidget(QWidget):
         self.notice.setObjectName("qualityNotice")
         self.notice.setWordWrap(True)
         layout.addWidget(self.notice)
-        self.table = QTableWidget(0, 7)
+        self.table = QTableWidget(0, 4)
         self.table.setObjectName("qualitySummaryTable")
         self.table.setHorizontalHeaderLabels(
             [
                 self.tr("通道"),
-                self.tr("信号状态计数"),
                 self.tr("可信帧"),
                 self.tr("低可信/候选帧"),
-                self.tr("连续结果回退"),
-                self.tr("连续性诊断"),
                 self.tr("通道警告"),
             ]
         )
@@ -1908,53 +1882,38 @@ class QualitySummaryWidget(QWidget):
                 0,
             )
             low_confidence_count = len(detection.signal_states) - measured_count - outside_count
-            fallback_counts = Counter(
-                source.name
-                for source in analysis.working_source
-                if source.name != "REFINED"
-            )
-            continuity_counts = Counter(
-                status.name for status in analysis.continuity_result.continuity_statuses
-            )
             warnings = []
             if measured_count == 0:
-                warnings.append(self.tr("无 MEASURED 帧"))
+                warnings.append(self.tr("无可信帧"))
             formal_nan_count = int(
                 np.count_nonzero(np.isnan(detection.apparent_velocity_m_s))
             )
             if formal_nan_count:
                 warnings.append(
-                    self.tr("{count} 帧仅缺少 formal/trusted 值").format(
+                    self.tr("{count} 帧缺少可信速度").format(
                         count=formal_nan_count
                     )
                 )
             values = (
                 channel_label(channel_name),
-                self._format_counts(state_counts),
                 str(measured_count),
                 str(low_confidence_count),
-                self._format_counts(fallback_counts) or self.tr("无"),
-                self._format_counts(continuity_counts),
                 "; ".join(warnings) if warnings else self.tr("无额外警告"),
             )
             for column, value in enumerate(values):
                 self.table.setItem(row, column, QTableWidgetItem(value))
-        self.notice.setText(
-            self.tr("质量仅描述连续速度的可信程度；展开此诊断可查看 formal/trusted 子集。")
-        )
+        self.notice.hide()
 
     def clear_results(self, message: str | None = None) -> None:
         """Clear stale quality statistics and show an explicit reason."""
         self.table.setRowCount(0)
+        self.notice.show()
         self.notice.setText(
             message
             if message is not None
             else self.tr("尚未运行分析；当前没有正式质量结果。")
         )
 
-    @staticmethod
-    def _format_counts(counts: Counter[str]) -> str:
-        return ", ".join(f"{name}={count}" for name, count in counts.items())
 
 
 __all__ = [

@@ -158,7 +158,6 @@ class SegmentWorkspace(QWidget):
             first_widget = first_item.widget() if first_item is not None else None
             if first_widget is not None:
                 first_widget.hide()
-        self.spectrogram.definition_label.hide()
         self.reference_velocity.result_source_combo.hide()
         self.reference_velocity.source_notice.setText("请先在经典工作区生成速度结果。")
         self.result_plot = pg.PlotWidget(background="w")

@@ -43,6 +43,8 @@ def violations(name: str, size: int) -> list[str]:
                    and (path.suffix == ".md" or path.name == "__init__.py"))
         allowed |= (len(parts) == 4 and parts[1:3] == ("research_clean_task13", "repro")
                     and path.suffix in {".py", ".ps1", ".toml"})
+        allowed |= (len(parts) == 3 and parts[1] == "research_clean_task14"
+                    and path.suffix in {".md", ".py"})
         old_tasks = {f"research_clean_task{n}" for n in range(8, 13)}
         allowed |= (len(parts) == 3 and parts[1] in old_tasks and path.suffix == ".md")
         allowed |= (len(parts) == 3 and parts[1] in {f"research_clean_task{n}" for n in (8, 9, 10)}

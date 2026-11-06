@@ -1,14 +1,23 @@
-# DPS Studio
+# PDV Studio Research
 
-PDV/DPS signal analysis software.
+Windows x64 科研测试版。经典 STFT 与人工分段工作区共用只读输入，正式导出保留时间参考、质量标志、算法来源与修正配置。Research Balanced 默认 W1024/H64。阶段专项结论和已知限制见 [TASK-014](artifacts/research_clean_task14/README.md)。
 
-For a new Windows computer, follow the [beginner installation guide](docs/deployment/WINDOWS_BEGINNER_INSTALL_GUIDE.md). A shorter version is available in [Quick Start for Windows](docs/deployment/QUICK_START_WINDOWS.md).
+## Windows 源码运行与自动构建
 
-The GUI entry point after installation is:
+使用 Python 3.12 x64，从仓库根目录执行：
 
 ```powershell
-python -m dps_studio.gui
+py -3.12 -m venv .venv
+.\.venv\Scripts\python -m pip install -c packaging/windows-constraints.txt -e ".[dev]"
+.\.venv\Scripts\python -m dps_studio.gui
+.\.venv\Scripts\python -m PyInstaller --workpath build --distpath dist packaging/pdv_research.spec
 ```
+
+科研复现加装 `.[dev,research]`，并提供本地研究数据索引所列文件。GitHub Actions 的 **Windows Research test build** 支持手动启动和 `v*` 标签启动，检查通过后上传整个 onedir 目录。下载后先完整解压，再运行其中的 EXE。无需复制 Production、配置密钥或提供私有实验数据来构建。
+
+## 继承的流程与历史文档
+
+下列 Production 资料用于追溯历史流程。Research 发布验收以 TASK-014 和当前 Windows 工作流为准。
 
 The formal production pipeline is for an authorized local raw-data file, which is intentionally not included in this repository. After activating the project environment and updating the TOML input path for that local file, run:
 

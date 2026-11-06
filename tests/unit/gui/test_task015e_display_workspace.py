@@ -94,6 +94,7 @@ def test_colormaps_are_display_only_and_colorbar_matches_definition(
         assert view.color_bar.region is None
     finally:
         view.close()
+        view.deleteLater()
         qapp.processEvents()
 
 
@@ -180,6 +181,7 @@ def test_analysis_boundaries_use_native_hover_hit_shape_and_resize_cursor(
         np.testing.assert_array_equal(record.voltage_v, voltage_before)
     finally:
         view.close()
+        view.deleteLater()
         qapp.processEvents()
 
 

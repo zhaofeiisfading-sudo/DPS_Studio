@@ -40,7 +40,7 @@ def test_action_cursor_tracks_enabled_state_without_changing_controls(
     """Use a click cursor only for available action controls, not input fields."""
     window = MainWindow(translation_manager=translation_manager())
     try:
-        secondary = window.cancel_analysis_button
+        secondary = window.export_directory_button
         primary = window.compute_stft_button
         assert not secondary.isEnabled()
         assert not primary.isEnabled()

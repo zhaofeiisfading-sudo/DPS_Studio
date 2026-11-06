@@ -28,7 +28,7 @@ def wait_idle(window: ResearchMainWindow) -> None:
     deadline = time.monotonic() + 900
     while (window._analysis_adapter.busy or window.segment_workspace.busy) and time.monotonic() < deadline:
         QApplication.processEvents()
-        QTest.qWait(20)
+        time.sleep(.02)  # Let the Python analysis worker acquire the GIL.
     assert not window._analysis_adapter.busy and not window.segment_workspace.busy, "worker timeout"
     QApplication.processEvents()
 

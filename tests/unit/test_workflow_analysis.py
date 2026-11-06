@@ -110,7 +110,7 @@ def test_channels_are_independent_and_profiles_are_not_fused(tmp_path: Path) -> 
         balanced_after["pdv_channel_1"].stft_result.spectrum,
     )
     assert high["pdv_channel_1"].stft_result.window_length_samples == 512
-    assert balanced_after["pdv_channel_1"].stft_result.window_length_samples == 768
+    assert balanced_after["pdv_channel_1"].stft_result.window_length_samples == 1024
     assert not np.array_equal(
         balanced_after["pdv_channel_1"].refined_velocity_m_s,
         balanced_after["pdv_channel_2"].refined_velocity_m_s,

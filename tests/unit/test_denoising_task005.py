@@ -10,7 +10,8 @@ from typing import Any
 import numpy as np
 import pytest
 
-from dps_studio.core.analysis_profiles import BALANCED_PROFILE, HIGH_TIME_RESOLUTION_PROFILE
+from dps_studio.research.archived_profiles import ARCHIVED_BALANCED
+from dps_studio.core.analysis_profiles import HIGH_TIME_RESOLUTION_PROFILE
 from dps_studio.core.models import SignalRecord
 from dps_studio.research.task028_consolidation import frontend
 
@@ -25,7 +26,7 @@ def test_task005_module_exists_separately_from_frozen_methods() -> None:
 
 
 def physical_input(*, gap: bool = False, competitor: bool = True,
-                   profile: Any = BALANCED_PROFILE) -> tuple[Any, Any, np.ndarray]:
+                   profile: Any = ARCHIVED_BALANCED) -> tuple[Any, Any, np.ndarray]:
     t = np.arange(32000) / 40e9
     frequency = 2.8e9 + 1e15 * t
     phase = 2 * np.pi * np.cumsum(frequency) / 40e9
@@ -141,7 +142,7 @@ def test_equal_persistent_components_do_not_identify_a_target_automatically() ->
     m = method()
     t = np.arange(16000) / 40e9
     voltage = np.cos(2 * np.pi * 2.4e9 * t) + np.cos(2 * np.pi * 3.4e9 * t + .7)
-    stft, peaks = frontend(SignalRecord(t, voltage), BALANCED_PROFILE)
+    stft, peaks = frontend(SignalRecord(t, voltage), ARCHIVED_BALANCED)
     result = m.track_band(m.make_observations(stft, peaks))
     assert np.isnan(result.frequency_hz).all()
     assert all("IDENTITY_AMBIGUOUS" in flag for flag in result.quality_flags)
@@ -151,7 +152,7 @@ def test_connected_parallel_bands_disclose_structural_branching() -> None:
     m = method()
     t = np.arange(16000) / 40e9
     voltage = np.cos(2 * np.pi * 3e9 * t) + .8 * np.cos(2 * np.pi * 3.15e9 * t + .7)
-    stft, peaks = frontend(SignalRecord(t, voltage), BALANCED_PROFILE)
+    stft, peaks = frontend(SignalRecord(t, voltage), ARCHIVED_BALANCED)
     result = m.track_band(m.make_observations(stft, peaks), seed=m.BandSeed(150e-9, 3e9))
     finite = np.isfinite(result.frequency_hz)
     assert finite.mean() > .9

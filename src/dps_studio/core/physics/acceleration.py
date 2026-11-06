@@ -120,9 +120,10 @@ def local_linear_acceleration(
         tolerance = 8 * np.finfo(np.float64).eps * max(
             float(np.max(np.abs(time[start:end]))), window_s,
         )
+        left_edges = np.searchsorted(segment_time, segment_time - half - tolerance, side="left")
+        right_edges = np.searchsorted(segment_time, segment_time + half + tolerance, side="right")
         for offset, center in enumerate(segment_time):
-            left = int(np.searchsorted(segment_time, center - half - tolerance, side="left"))
-            right = int(np.searchsorted(segment_time, center + half + tolerance, side="right"))
+            left, right = left_edges[offset], right_edges[offset]
             if right - left < 3:
                 continue
             x = (segment_time[left:right] - center) / window_s

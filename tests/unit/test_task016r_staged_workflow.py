@@ -110,13 +110,13 @@ def test_guided_domain_is_local_nan_and_never_falls_back_to_automatic(
     assert guided.signal_detection_result.analysis_end_time_s == constraint.end_time_s
 
 
-def test_profiles_preserve_old_values_and_add_validated_experimental_extremes() -> None:
+def test_profiles_use_research_defaults_and_validated_experimental_extremes() -> None:
     assert (
         BALANCED_PROFILE.window_length_samples,
         BALANCED_PROFILE.overlap_samples,
         BALANCED_PROFILE.hop_samples,
         BALANCED_PROFILE.nfft,
-    ) == (768, 640, 128, 4096)
+    ) == (1024, 960, 64, 4096)
     assert (
         HIGH_TIME_RESOLUTION_PROFILE.window_length_samples,
         HIGH_TIME_RESOLUTION_PROFILE.overlap_samples,
@@ -128,7 +128,7 @@ def test_profiles_preserve_old_values_and_add_validated_experimental_extremes() 
         HIGH_FREQUENCY_RESOLUTION_PROFILE.overlap_samples,
         HIGH_FREQUENCY_RESOLUTION_PROFILE.hop_samples,
         HIGH_FREQUENCY_RESOLUTION_PROFILE.nfft,
-    ) == (1024, 896, 128, 4096)
+    ) == (1536, 1408, 128, 4096)
     assert HIGH_FREQUENCY_RESOLUTION_PROFILE.minimum_frequency_hz == 0.05e9
     assert HIGH_FREQUENCY_RESOLUTION_PROFILE.maximum_frequency_hz == 6.0e9
     assert (

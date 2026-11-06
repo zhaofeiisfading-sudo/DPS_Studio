@@ -21,9 +21,9 @@ def test_formal_profiles_have_exact_parameters() -> None:
     assert BALANCED_PROFILE.profile_id is AnalysisProfileId.BALANCED
     assert BALANCED_PROFILE.display_name == "Balanced"
     assert BALANCED_PROFILE.window_name == "hann"
-    assert BALANCED_PROFILE.window_length_samples == 768
-    assert BALANCED_PROFILE.overlap_samples == 640
-    assert BALANCED_PROFILE.hop_samples == 128
+    assert BALANCED_PROFILE.window_length_samples == 1024
+    assert BALANCED_PROFILE.overlap_samples == 960
+    assert BALANCED_PROFILE.hop_samples == 64
     assert BALANCED_PROFILE.nfft == 4096
     assert BALANCED_PROFILE.minimum_frequency_hz == 0.05e9
     assert BALANCED_PROFILE.maximum_frequency_hz == 6.0e9

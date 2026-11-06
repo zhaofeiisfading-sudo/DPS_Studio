@@ -19,7 +19,7 @@ from dps_studio.gui.state import WorkflowState
 
 def test_qapplication_can_be_created(qapp: QApplication) -> None:
     assert QApplication.instance() is qapp
-    assert qapp.applicationDisplayName() == "PDV Studio · Research / Test · TASK-012"
+    assert qapp.applicationDisplayName() == "PDV Studio · Research / Test · TASK-014"
 
 
 def test_main_window_has_required_workstation_regions(qapp: QApplication) -> None:

@@ -12,7 +12,8 @@ from typing import Any, cast
 
 import numpy as np
 
-from dps_studio.core.analysis_profiles import BALANCED_PROFILE, HIGH_TIME_RESOLUTION_PROFILE, AnalysisProfile
+from dps_studio.research.archived_profiles import ARCHIVED_BALANCED
+from dps_studio.core.analysis_profiles import HIGH_TIME_RESOLUTION_PROFILE, AnalysisProfile
 from dps_studio.core.models import SignalRecord
 from dps_studio.core.ridge import GlobalPathConfig, RidgeCandidateSet, extract_global_path_candidates
 from dps_studio.core.time_frequency import STFTResult, compute_stft
@@ -23,7 +24,7 @@ FAMILIES = (
     "separated_edges", "divergence", "merge_crossing", "internal_wrong_core",
     "amplitude_exchange", "transient_leakage", "correct_and_fast", "dropout_noise",
 )
-PROFILES = (BALANCED_PROFILE, HIGH_TIME_RESOLUTION_PROFILE)
+PROFILES = (ARCHIVED_BALANCED, HIGH_TIME_RESOLUTION_PROFILE)
 
 
 @dataclass(frozen=True)

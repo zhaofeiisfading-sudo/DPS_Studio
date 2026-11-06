@@ -331,7 +331,7 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
         _wait(window, window.run_stft_analysis)
         session = window.analysis_session
         stft = session.stft_results["pdv_channel_1"]
-        session.set_event_reference_time_s(float(stft.time_s[12]))
+        window._event_reference_confirmed(float(stft.time_s[12]))
         session.set_display_velocity_configuration(
             enabled=True,
             pre_event_display_velocity_m_s=0.0,

@@ -69,8 +69,9 @@ QTabBar::tab:selected {
     color: #0b6fa4;
 }
 QPushButton {
-    min-height: 26px;
-    padding: 2px 10px;
+    min-height: 25px;
+    padding: 3px 9px;
+    border-radius: 4px;
     background: #ffffff;
     border: 1px solid #d6dde3;
     color: #263746;
@@ -189,7 +190,6 @@ QToolBar { padding: 7px; spacing: 8px; border-bottom: 1px solid #dce3e9; }
 QToolButton { padding: 5px 9px; border-radius: 4px; }
 QToolButton:hover { background: #e9f0f6; }
 QToolButton#sectionDisclosure { text-align: left; font-weight: 600; color: #254b66; }
-QPushButton { min-height: 25px; padding: 3px 9px; border-radius: 4px; }
 QPushButton:checked { background: #e4eff8; border-color: #6e9cba; color: #154c73; }
 QPushButton[primary="true"] { background: #25658d; color: white; border: 1px solid #25658d; }
 QPushButton[primary="true"]:hover { background: #194f74; }

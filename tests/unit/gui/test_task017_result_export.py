@@ -159,9 +159,6 @@ def test_export_controls_are_translated_in_english(qapp: QApplication) -> None:
         assert window.export_directory_button.text() == "Choose Export Directory…"
         assert window.action_export.text() == "Review & Export"
         assert window.export_button.text() == "Export Results"
-        assert window.export_description_label.text() == (
-            "Exports time–velocity data, diagnostic data, and analysis parameters."
-        )
         assert window.export_include_pre_event_check.text() == (
             "Include pre-event display-only platform"
         )
@@ -293,6 +290,7 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
 def test_guided_mode_selection_keeps_missing_channels_visible_but_safe(
     qapp: QApplication,
     tmp_path: Path,
+    monkeypatch: Any,
 ) -> None:
     window, _source_path, _source_before = _window(qapp, tmp_path)
     try:
@@ -320,6 +318,17 @@ def test_guided_mode_selection_keeps_missing_channels_visible_but_safe(
         assert window.export_mode_combo.currentData() == "guided"
         assert window.export_channel_combo.count() == 2
         assert window.export_channel_combo.currentData() == "pdv_channel_1"
+
+        reference = float(active_times[len(active_times) // 2])
+        window._event_reference_confirmed(reference)
+        window.export_event_time_origin_radio.click()
+        window._set_export_output_directory(tmp_path)
+        monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *_args: None))
+        assert window._export_current_result()
+        metadata = json.loads(next(tmp_path.glob("*.metadata.json")).read_text(encoding="utf-8"))
+        assert metadata["analysis_mode"] == "guided"
+        assert metadata["event_reference_time_s"] == reference
+        assert metadata["time_coordinate"]["simple_csv_time_column"] == "time_from_event_s"
 
         window.export_channel_combo.setCurrentIndex(
             window.export_channel_combo.findData("pdv_channel_2")

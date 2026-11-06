@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from dps_studio.research.archived_profiles import ARCHIVED_BALANCED
 from dps_studio.core.io import read_delimited_signals
 from dps_studio.core.physics import convert_ridge_to_apparent_velocity
 from dps_studio.core.ridge import (
@@ -44,7 +45,7 @@ def _analyze(mode: AutomaticRidgeExtractionMode):
     end_s = min(record.end_time_s for record in loaded.records.values())
     analyses = analyze_profile(
         loaded.records,
-        profile=configuration.analysis.default_profile,
+        profile=ARCHIVED_BALANCED,
         analysis_start_time_s=start_s,
         analysis_end_time_s=end_s,
         manual_event_reference_time_s=None,

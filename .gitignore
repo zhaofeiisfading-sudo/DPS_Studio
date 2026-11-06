@@ -205,3 +205,8 @@ desktop.ini
 __pycache__/
 *.py[cod]
 
+
+!/artifacts/research_clean_task14/
+/artifacts/research_clean_task14/*
+!/artifacts/research_clean_task14/*.md
+!/artifacts/research_clean_task14/*.py

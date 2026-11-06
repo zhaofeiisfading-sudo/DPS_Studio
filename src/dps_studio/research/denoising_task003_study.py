@@ -13,7 +13,8 @@ from typing import Any
 
 import numpy as np
 
-from dps_studio.core.analysis_profiles import BALANCED_PROFILE, HIGH_TIME_RESOLUTION_PROFILE
+from dps_studio.research.archived_profiles import ARCHIVED_BALANCED
+from dps_studio.core.analysis_profiles import HIGH_TIME_RESOLUTION_PROFILE
 from dps_studio.research import denoising_task001 as m2
 from dps_studio.research import denoising_task001_benchmark as old1
 from dps_studio.research import denoising_task002 as old2
@@ -24,7 +25,7 @@ from dps_studio.research import task028_consolidation as frozen
 ROOT = Path(__file__).resolve().parents[3]
 OLD1 = Path('D:/Research/DPS_Denoising_Runs/TASK-001/20261014T115200Z')
 OLD2 = Path('D:/Research/DPS_Denoising_Runs/TASK-002/20261015T060621Z')
-PROFILES = (BALANCED_PROFILE, HIGH_TIME_RESOLUTION_PROFILE)
+PROFILES = (ARCHIVED_BALANCED, HIGH_TIME_RESOLUTION_PROFILE)
 
 PROTOCOL = """# TASK-003 protocol, registered before fresh outcomes
 

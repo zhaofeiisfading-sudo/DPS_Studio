@@ -67,7 +67,6 @@ def test_explicit_overrides_are_immutable_and_do_not_mutate_balanced() -> None:
     assert parameters.hop_samples == 256
     assert dict(parameters.custom_overrides) == {
         "vacuum_wavelength_m": 1.064e-6,
-        "window_length_samples": 1024,
         "overlap_samples": 768,
         "nfft": 4095,
         "minimum_frequency_hz": 0.1e9,
@@ -91,9 +90,9 @@ def test_hop_is_derived_and_cannot_be_overridden_independently() -> None:
         base_vacuum_wavelength_m=1.55e-6,
         overrides=AnalysisParameterOverrides(overlap_samples=512),
     )
-    assert parameters.window_length_samples == 768
+    assert parameters.window_length_samples == 1024
     assert parameters.overlap_samples == 512
-    assert parameters.hop_samples == 256
+    assert parameters.hop_samples == 512
     assert "hop_samples" not in AnalysisParameterOverrides.__dataclass_fields__
 
 

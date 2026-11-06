@@ -64,9 +64,9 @@ def test_balanced_loads_all_fields_with_explicit_unchanged_provenance(
         assert configuration.final_run_configuration is configuration.parameters
         assert window.vacuum_wavelength_spin.value() == pytest.approx(1550.0)
         assert window.window_name_combo.currentData() == BALANCED_PROFILE.window_name
-        assert window.window_length_spin.value() == 768
-        assert window.overlap_spin.value() == 640
-        assert window.hop_label.text().startswith("128")
+        assert window.window_length_spin.value() == 1024
+        assert window.overlap_spin.value() == 960
+        assert window.hop_label.text().startswith("64")
         assert window.nfft_spin.value() == 4096
         assert window.minimum_frequency_spin.value() == pytest.approx(0.05)
         assert window.maximum_frequency_spin.value() == pytest.approx(6.0)
@@ -85,24 +85,24 @@ def test_window_and_overlap_edits_create_custom_and_update_derived_hop(
     )
     window = MainWindow(translation_manager=translation_manager())
     try:
-        window.window_length_spin.setValue(1024)
+        window.window_length_spin.setValue(1280)
         qapp.processEvents()
         configuration = window.analysis_session.run_configuration
         assert configuration is not None
         assert configuration.profile is None
         assert configuration.base_profile is BALANCED_PROFILE
-        assert configuration.custom_overrides == {"window_length_samples": 1024}
+        assert configuration.custom_overrides == {"window_length_samples": 1280}
         assert window.profile_combo.currentData() == CUSTOM_PRESET_ID
         assert window.profile_combo.currentText() == "自定义（基于 平衡）"
-        assert window.hop_label.text().startswith("384")
+        assert window.hop_label.text().startswith("320")
 
         window.overlap_spin.setValue(768)
         qapp.processEvents()
         configuration = window.analysis_session.run_configuration
         assert configuration is not None
-        assert configuration.parameters.hop_samples == 256
+        assert configuration.parameters.hop_samples == 512
         assert configuration.custom_overrides == {
-            "window_length_samples": 1024,
+            "window_length_samples": 1280,
             "overlap_samples": 768,
         }
         assert original == (
@@ -221,7 +221,6 @@ def test_stft_ui_units_are_exact_and_region_inputs_wait_for_stft(
         assert final.maximum_frequency_hz == pytest.approx(expected_grid_max_hz)
         assert dict(request.configuration.custom_overrides) == {
             "vacuum_wavelength_m": pytest.approx(1064.0e-9),
-            "window_length_samples": 1024,
             "overlap_samples": 768,
             "nfft": 4095,
             "maximum_frequency_hz": pytest.approx(expected_grid_max_hz),

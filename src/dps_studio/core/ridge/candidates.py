@@ -78,6 +78,7 @@ def extract_local_peak_candidates(
     first_band_index = int(band_indices[0])
     last_band_index = int(band_indices[-1])
 
+    band_frequency = frequency_axis[band_indices]
     candidates_by_frame: list[tuple[LocalPeakCandidate, ...]] = []
     for frame_index in range(stft_result.time_s.size):
         magnitudes = np.abs(stft_result.spectrum[band_indices, frame_index])
@@ -86,17 +87,17 @@ def extract_local_peak_candidates(
             local_offsets = local_offsets[
                 validated_search_mask[band_indices[local_offsets], frame_index]
             ]
-        ranked_offsets = sorted(
-            (int(offset) for offset in local_offsets),
-            key=lambda offset: (-float(magnitudes[offset]), int(band_indices[offset])),
-        )[: config.maximum_candidates_per_frame]
+        # find_peaks returns increasing offsets; stable ties retain the lower bin.
+        order = np.argsort(-magnitudes[local_offsets], kind="stable")
+        ranked_offsets = local_offsets[order[:config.maximum_candidates_per_frame]]
         frame_candidates = tuple(
             _candidate(
                 stft_result,
                 frame_index=frame_index,
                 bin_index=int(band_indices[offset]),
                 amplitude_rank=rank,
-                band_indices=band_indices,
+                band_frequency=band_frequency,
+                magnitudes=magnitudes,
                 first_band_index=first_band_index,
                 last_band_index=last_band_index,
                 frequency_spacing_hz=spacing_hz,
@@ -128,7 +129,8 @@ def _candidate(
     frame_index: int,
     bin_index: int,
     amplitude_rank: int,
-    band_indices: np.ndarray,
+    band_frequency: NDArray[np.float64],
+    magnitudes: NDArray[np.float64],
     first_band_index: int,
     last_band_index: int,
     frequency_spacing_hz: float,
@@ -159,11 +161,8 @@ def _candidate(
             ),
         )
     )
-    retained = band_indices[
-        np.abs(stft_result.frequency_hz[band_indices] - discrete_frequency_hz)
-        > guard_hz
-    ]
-    background_count = int(retained.size)
+    retained = np.abs(band_frequency - discrete_frequency_hz) > guard_hz
+    background_count = int(np.count_nonzero(retained))
     background = math.nan
     competitor = math.nan
     peak_to_background_db = math.nan
@@ -173,7 +172,7 @@ def _candidate(
     elif background_count < minimum_background_bin_count:
         quality_status = RidgeSpectralQualityStatus.INSUFFICIENT_BACKGROUND_BINS
     else:
-        background_magnitudes = np.abs(stft_result.spectrum[retained, frame_index])
+        background_magnitudes = magnitudes[retained]
         background = float(np.median(background_magnitudes))
         competitor = float(np.max(background_magnitudes))
         if not math.isfinite(background) or background <= 0.0:

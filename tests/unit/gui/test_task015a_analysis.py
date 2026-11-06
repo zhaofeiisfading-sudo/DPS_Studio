@@ -164,7 +164,7 @@ def test_background_adapter_calls_public_workflow_outside_gui_thread(
     qapp: QApplication,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    record = SignalRecord(np.arange(1024) * 1e-10, np.ones(1024))
+    record = SignalRecord(np.arange(2048) * 1e-10, np.ones(2048))
     records = MappingProxyType({"a": record, "b": record})
     session = AnalysisSession(records=records)
     configuration = _configuration()
