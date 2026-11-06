@@ -13,7 +13,10 @@ import sys
 LIMIT_BYTES = 2 * 1024 * 1024
 BINARY_SUFFIXES = {".exe", ".dll", ".pyd", ".so", ".dylib", ".zip", ".7z", ".gz",
                    ".tar", ".whl", ".bundle", ".npy", ".npz", ".h5", ".hdf5", ".opju",
-                   ".tif", ".tiff"}
+                   ".tif", ".tiff", ".pyc", ".pyo", ".mat", ".pkl", ".pickle",
+                   ".parquet", ".feather"}
+NUMERIC_TEXT_SUFFIXES = {".csv", ".tsv", ".dat"}
+TEXT_DATA_EXCEPTIONS = {"docs/maintenance/artifact_keep_manifest.csv", "tests/fixtures/test.csv"}
 GENERATED_DIRS = {"release", "build", "dist", "__pycache__", ".pytest_cache", ".ruff_cache",
                   ".mypy_cache", ".venv", "venv"}
 LEGACY_DATA = {"docs/原始数据.csv", "docs/旧软件速度时间数据.csv"}
@@ -26,6 +29,8 @@ def violations(name: str, size: int) -> list[str]:
         reasons.append("generated build/cache/environment directory")
     if path.suffix.lower() in BINARY_SUFFIXES:
         reasons.append("binary release or generated numeric/plotting artifact")
+    if path.suffix.lower() in NUMERIC_TEXT_SUFFIXES and name not in TEXT_DATA_EXCEPTIONS:
+        reasons.append("numeric data outside reviewed text inventory/test-fixture allowlist")
     if size > LIMIT_BYTES:
         reasons.append("object exceeds 2 MiB lightweight repository limit")
     if name.startswith("data/raw/") and path.name != ".gitkeep":
@@ -38,6 +43,15 @@ def violations(name: str, size: int) -> list[str]:
                    and (path.suffix == ".md" or path.name == "__init__.py"))
         allowed |= (len(parts) == 4 and parts[1:3] == ("research_clean_task13", "repro")
                     and path.suffix in {".py", ".ps1", ".toml"})
+        old_tasks = {f"research_clean_task{n}" for n in range(8, 13)}
+        allowed |= (len(parts) == 3 and parts[1] in old_tasks and path.suffix == ".md")
+        allowed |= (len(parts) == 3 and parts[1] in {f"research_clean_task{n}" for n in (8, 9, 10)}
+                    and path.suffix == ".py")
+        allowed |= (len(parts) == 4 and parts[1] == "research_clean_task8"
+                    and path.name in {"implementation.py", "__init__.py"})
+        allowed |= name in {"artifacts/research_clean_task8/source_freeze.json",
+                            "artifacts/research_clean_task9/data_index.json",
+                            "artifacts/research_clean_task10/config.json"}
         if not allowed:
             reasons.append("artifact output outside precise text/source allowlist")
     return reasons
@@ -52,8 +66,8 @@ def audit(*, tracked: bool = False) -> list[str]:
     if tracked:
         for entry in raw.split(b"\0"):
             if entry:
-                header, name = entry.split(b"\t", 1)
-                entries.append((header.split()[1].decode(), name.decode("utf-8")))
+                raw_header, raw_name = entry.split(b"\t", 1)
+                entries.append((raw_header.split()[1].decode(), raw_name.decode("utf-8")))
     else:
         fields = raw.split(b"\0")
         i = 0

@@ -52,6 +52,17 @@ coverage.xml
 *.tar
 *.gz
 *.bundle
+*.csv
+*.tsv
+*.dat
+*.mat
+*.pkl
+*.pickle
+*.parquet
+*.feather
+# Reviewed lightweight text inventory and deterministic test fixture.
+!/docs/maintenance/artifact_keep_manifest.csv
+!/tests/fixtures/test.csv
 *.egg-info/
 .eggs/
 pip-wheel-metadata/
@@ -125,11 +136,36 @@ desktop.ini
 
 # ============================================================
 # DPS Studio Git hygiene - 2026-09-28
-# Generated research output stays local. Explicit TASK-013 text sources below
-# are versioned; this is not a blanket ban on artifact documentation/config.
+# Generated research output stays local. Selected TASK-008--013 text sources,
+# protocols and small input/config manifests are versioned explicitly below.
 # ============================================================
 
 /artifacts/*
+!/artifacts/research_clean_task8/
+/artifacts/research_clean_task8/*
+!/artifacts/research_clean_task8/*.py
+!/artifacts/research_clean_task8/*.md
+!/artifacts/research_clean_task8/source_freeze.json
+!/artifacts/research_clean_task8/*/
+/artifacts/research_clean_task8/*/*
+!/artifacts/research_clean_task8/*/implementation.py
+!/artifacts/research_clean_task8/*/__init__.py
+!/artifacts/research_clean_task9/
+/artifacts/research_clean_task9/*
+!/artifacts/research_clean_task9/*.py
+!/artifacts/research_clean_task9/*.md
+!/artifacts/research_clean_task9/data_index.json
+!/artifacts/research_clean_task10/
+/artifacts/research_clean_task10/*
+!/artifacts/research_clean_task10/*.py
+!/artifacts/research_clean_task10/*.md
+!/artifacts/research_clean_task10/config.json
+!/artifacts/research_clean_task11/
+/artifacts/research_clean_task11/*
+!/artifacts/research_clean_task11/*.md
+!/artifacts/research_clean_task12/
+/artifacts/research_clean_task12/*
+!/artifacts/research_clean_task12/*.md
 !/artifacts/research_clean_task13/
 /artifacts/research_clean_task13/*
 !/artifacts/research_clean_task13/*.md

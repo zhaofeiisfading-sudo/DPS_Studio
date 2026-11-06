@@ -1,0 +1,20 @@
+{
+  "artifacts/research_clean_task8/audit.py": "592852ec3aa4672083c71a050be833bc2bd82e9cc51f007f2ae57f59c3f73055",
+  "artifacts/research_clean_task8/common.py": "922ddef1a840972a1ab3128e4016191fc047119e9cbf1a9edb63a36df49da072",
+  "artifacts/research_clean_task8/data.py": "822138d910f30e5a4ae051c5b9d99a78e075135edb2a15adae57e068323be2a8",
+  "artifacts/research_clean_task8/runner.py": "3550cea5cbfc2f8739142aa195196e0af7638a401de8d56dce9a17490d4a111c",
+  "artifacts/research_clean_task8/__init__.py": "c77b257e5fc86ba12a9c9ce51a822477ace6dd79b56a8a3ac2c390ff24c2a834",
+  "artifacts/research_clean_task8/acmd/implementation.py": "893ca6401046372bf75d94ba861a73e84f02b6bec69639b575c8b6714bed0d74",
+  "artifacts/research_clean_task8/baseband/implementation.py": "953bf1e7485b006791fa291607f078fd0bf53f6a65df09880e8a6913d1477e22",
+  "artifacts/research_clean_task8/clutter_varpro/implementation.py": "22efd93fac2dceaba8714485788b6f7e7972010611e77cb4e353931f60b0402e",
+  "artifacts/research_clean_task8/dechirp/implementation.py": "1c30d1938b7ab6fa3b9163681375419dfb8bcfaf49741c3365f0581e6741c217",
+  "artifacts/research_clean_task8/gated_stft256/implementation.py": "6c569dac1e7916076d4a5847c05475f3def4daecd599882e9e5ae1f932b0047b",
+  "artifacts/research_clean_task8/gated_stft512/implementation.py": "81dc7ed2756c08d9681c292cc718083838d1446653e10e44450b1efc797c2549",
+  "artifacts/research_clean_task8/matrix_pencil/implementation.py": "fc4360d8bf26f9b52817a6ee2d54ae8e77c11ad9b912e5b7993d2532143edefb",
+  "artifacts/research_clean_task8/stft512/implementation.py": "d75407ab07eb12cb5467541cda091233e040748c0b1ffadcbbcf4a03403358c3",
+  "artifacts/research_clean_task8/stft512_wide/implementation.py": "11010835cb3d7c599ed6081c895fa85cc2b93f5682763da32f60d8003d27bb63",
+  "artifacts/research_clean_task8/stft768/implementation.py": "f27ea6ad51298e2cd0c401720015a78f439fa8aa678d03d2e6a69d278950abdc",
+  "artifacts/research_clean_task8/time_domain/implementation.py": "9ae9b20f978535a74f6a3aab5e0429c9e84723be61d761954d189530000e542e",
+  "artifacts/research_clean_task8/varpro/implementation.py": "fff784b91d8091c477c5c6ec3008d522ac9bdea0b07d7bf816e7b29eb7f3ffc6",
+  "tests/unit/test_research_task008.py": "1fc54af1e4ef88631a9424a32d0c918da54acdc4a6cd3a446d04abde5829c21f"
+}
