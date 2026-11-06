@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dps_studio.gui.workspace_ui import channel_label
+
 import math
 
 from PySide6.QtCore import QSignalBlocker, Signal
@@ -319,7 +321,7 @@ class AnalysisRangePanel(QWidget):
             row_layout.setContentsMargins(0, 0, 0, 0)
             if candidate_s is None:
                 text = self.tr("{channel}：未检测到可采用的推荐候选").format(
-                    channel=channel_name
+                    channel=channel_label(channel_name)
                 )
                 label = QLabel(text)
                 label.setWordWrap(True)
@@ -333,7 +335,7 @@ class AnalysisRangePanel(QWidget):
                 row_layout.addWidget(label)
             else:
                 label = QLabel(
-                    f"{channel_name}\n{candidate_s * 1e6:.9f} μs"
+                    f"{channel_label(channel_name)} · {candidate_s * 1e6:.6g} μs"
                 )
                 label.setToolTip(tooltip)
                 button = QPushButton(self.tr("选择候选"))

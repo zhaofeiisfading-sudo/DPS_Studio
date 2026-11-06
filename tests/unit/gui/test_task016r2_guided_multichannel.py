@@ -133,7 +133,7 @@ def test_guided_channels_are_independent_and_runs_target_displayed_channel(
         window.guided_mode_radio.click()
         qapp.processEvents()
         assert window.ridge_extraction_mode is RidgeExtractionMode.GUIDED
-        assert window.guided_channel_label.text() == "pdv_channel_1"
+        assert window.guided_channel_label.text() == "候选1"
         corridor_1 = _constraint(window, "pdv_channel_1", 0.63e9)
         window._ridge_constraint_changed("pdv_channel_1", corridor_1)
         _wait(window, window.run_guided_analysis)
@@ -151,7 +151,7 @@ def test_guided_channels_are_independent_and_runs_target_displayed_channel(
         _select_spectrogram_channel(window, "pdv_channel_2")
         qapp.processEvents()
         controller = window.spectrogram_view.corridor_controller
-        assert window.guided_channel_label.text() == "pdv_channel_2"
+        assert window.guided_channel_label.text() == "候选2"
         assert controller.channel_name == "pdv_channel_2"
         assert controller.constraint is None
         assert "pdv_channel_2" not in session.ridge_constraints

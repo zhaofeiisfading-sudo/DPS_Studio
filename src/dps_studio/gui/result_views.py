@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dps_studio.gui.workspace_ui import channel_label
+
 import math
 from collections import Counter
 from collections.abc import Mapping
@@ -290,6 +292,7 @@ class _ChannelView(QWidget):
         super().__init__(parent)
         self._analyses: Mapping[str, ChannelAnalysis] = {}
         self._floor_db = -60.0
+        self.spectral_view_mode = "analysis"
         self._view_analysis_range_s: tuple[float, float] | None = None
         self._view_search_band_hz: tuple[float, float] | None = None
         self._search_lines: list[Any] = []
@@ -320,9 +323,11 @@ class _ChannelView(QWidget):
         """Add the two display-only frequency shortcuts used by STFT views."""
         self.fit_search_region_button = QPushButton(self.tr("适合搜索区域"))
         self.fit_search_region_button.setObjectName("fitSearchRegionButton")
+        self.fit_search_region_button.setCheckable(True)
         self.fit_search_region_button.clicked.connect(self.fit_search_region)
         self.show_full_spectrum_button = QPushButton(self.tr("显示完整频谱"))
         self.show_full_spectrum_button.setObjectName("showFullSpectrumButton")
+        self.show_full_spectrum_button.setCheckable(True)
         self.show_full_spectrum_button.clicked.connect(self.show_full_spectrum)
         self.controls_layout.insertWidget(
             self.controls_layout.count() - 1,
@@ -332,6 +337,12 @@ class _ChannelView(QWidget):
             self.controls_layout.count() - 1,
             self.show_full_spectrum_button,
         )
+
+    def _set_spectral_view_mode(self, mode: str) -> None:
+        self.spectral_view_mode = mode
+        if hasattr(self, "fit_search_region_button"):
+            self.fit_search_region_button.setChecked(mode == "search")
+            self.show_full_spectrum_button.setChecked(mode == "full")
 
     def set_view_configuration(
         self,
@@ -615,7 +626,7 @@ class _ChannelView(QWidget):
         self.channel_combo.blockSignals(True)
         self.channel_combo.clear()
         for channel_name in analyses:
-            self.channel_combo.addItem(channel_name, channel_name)
+            self.channel_combo.addItem(channel_label(channel_name), channel_name)
         self.channel_combo.blockSignals(False)
         self.channel_combo.setEnabled(bool(analyses))
         if analyses:
@@ -639,11 +650,20 @@ class _ChannelView(QWidget):
 
     def fit_analysis_range(self) -> None:
         """Restore X to the confirmed analysis range for the current channel."""
+        self._set_spectral_view_mode("analysis")
         channel_name = self.channel_combo.currentData()
         if isinstance(channel_name, str) and channel_name in self._analyses:
             self._fit_current_view(self._analyses[channel_name])
 
     def _fit_current_view(self, analysis: ChannelAnalysis) -> None:
+        if self.spectral_view_mode == "full":
+            self.show_full_spectrum()
+            return
+        if self.spectral_view_mode == "search":
+            self.fit_search_region()
+            return
+        if self.spectral_view_mode == "custom":
+            return
         if self._view_analysis_range_s is None:
             _fit_analysis_x(self.plot_widget, analysis)
             return
@@ -655,6 +675,7 @@ class _ChannelView(QWidget):
 
     def fit_search_region(self) -> None:
         """Fit X to analysis range and Y to the scientific search band."""
+        self._set_spectral_view_mode("search")
         if self._view_analysis_range_s is not None:
             self.plot_widget.setXRange(
                 self._view_analysis_range_s[0] * 1.0e6,
@@ -670,6 +691,7 @@ class _ChannelView(QWidget):
 
     def show_full_spectrum(self) -> None:
         """Restore the complete frequency extent of the current STFT."""
+        self._set_spectral_view_mode("full")
         stft_result = self._current_stft_result()
         if stft_result is None:
             return
@@ -722,6 +744,8 @@ class SpectrogramView(_ChannelView):
         self.root_layout.addLayout(colormap_row)
         self.plot_widget = pg.PlotWidget(background="w")
         self.plot_widget.setObjectName("spectrogramPlot")
+        self.plot_widget.plotItem.vb.sigRangeChangedManually.connect(
+            lambda _axes: self._set_spectral_view_mode("custom"))
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
         self.plot_widget.setLabel("left", self.tr("频率"), units="GHz")
         self.plot_widget.showGrid(x=True, y=True, alpha=0.18)
@@ -775,7 +799,7 @@ class SpectrogramView(_ChannelView):
         blocker = QSignalBlocker(self.channel_combo)
         self.channel_combo.clear()
         for channel_name in stft_results:
-            self.channel_combo.addItem(channel_name, channel_name)
+            self.channel_combo.addItem(channel_label(channel_name), channel_name)
         self.channel_combo.setEnabled(bool(stft_results))
         del blocker
         if stft_results:
@@ -812,6 +836,7 @@ class SpectrogramView(_ChannelView):
         return None
 
     def fit_analysis_range(self) -> None:
+        self._set_spectral_view_mode("analysis")
         if self._view_analysis_range_s is not None:
             self.plot_widget.setXRange(
                 self._view_analysis_range_s[0] * 1.0e6,
@@ -851,6 +876,8 @@ class SpectrogramView(_ChannelView):
         self.colormap_changed.emit(self.current_colormap_name)
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
+        previous_range = self.plot_widget.viewRange()
+        fit_view = fit_view and self.spectral_view_mode != "custom"
         stft_result = self._stft_results[channel_name]
         self.dispose_search_region_interactions()
         self.plot_widget.clear()
@@ -901,6 +928,13 @@ class SpectrogramView(_ChannelView):
                     padding=0.0,
                 )
 
+        if fit_view and self.spectral_view_mode == "full":
+            self.show_full_spectrum()
+        elif fit_view and self.spectral_view_mode == "search":
+            self.fit_search_region()
+        elif not fit_view:
+            self.plot_widget.setRange(xRange=previous_range[0], yRange=previous_range[1], padding=0)
+
     def _clear_plot(self) -> None:
         self.dispose_search_region_interactions()
         self.plot_widget.clear()
@@ -934,6 +968,8 @@ class RidgeView(_ChannelView):
         self.root_layout.addLayout(source_row)
         self.plot_widget = pg.PlotWidget(background="w")
         self.plot_widget.setObjectName("ridgePlot")
+        self.plot_widget.plotItem.vb.sigRangeChangedManually.connect(
+            lambda _axes: self._set_spectral_view_mode("custom"))
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
         self.plot_widget.setLabel("left", self.tr("频率"), units="GHz")
         self.plot_widget.showGrid(x=True, y=True, alpha=0.18)
@@ -1037,6 +1073,8 @@ class RidgeView(_ChannelView):
             )
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
+        previous_range = self.plot_widget.viewRange()
+        fit_view = fit_view and self.spectral_view_mode != "custom"
         analysis = self._analyses[channel_name]
         self.dispose_search_region_interactions()
         self.plot_widget.clear()
@@ -1110,6 +1148,8 @@ class RidgeView(_ChannelView):
         if fit_view:
             self.plot_widget.autoRange()
             self._fit_current_view(analysis)
+        else:
+            self.plot_widget.setRange(xRange=previous_range[0], yRange=previous_range[1], padding=0)
 
     def _clear_plot(self) -> None:
         self.dispose_search_region_interactions()
@@ -1141,6 +1181,9 @@ class VelocityView(_ChannelView):
         self.fit_result_range_button.setToolTip(
             self.tr("将视图适配到当前显示的有效速度结果。")
         )
+        self.fit_analysis_range_button.setCheckable(True)
+        self.fit_analysis_range_button.setChecked(True)
+        self.fit_result_range_button.setCheckable(True)
         self.fit_result_range_button.clicked.connect(self.fit_result_range)
         self.controls_layout.insertWidget(
             self.controls_layout.count() - 1,
@@ -1161,6 +1204,7 @@ class VelocityView(_ChannelView):
         self.quantity_combo.setObjectName("velocityQuantitySelector")
         self.quantity_combo.addItem(self.tr("速度"), "velocity")
         self.quantity_combo.addItem(self.tr("加速度 dv/dt"), "acceleration")
+        self._last_quantity = "velocity"
         self.quantity_combo.currentIndexChanged.connect(self._quantity_changed)
         source_row.insertWidget(source_row.count() - 1, self.quantity_combo)
         self.acceleration_method_combo = QComboBox()
@@ -1230,6 +1274,21 @@ class VelocityView(_ChannelView):
         self.acceleration_notice.hide()
         self.root_layout.addWidget(self.acceleration_notice)
         self.acceleration_curve: Any | None = None
+        self.view_mode = "analysis"
+        self.plot_widget.plotItem.vb.sigRangeChangedManually.connect(self._manual_view_changed)
+
+    def _manual_view_changed(self, _axes: object) -> None:
+        self.view_mode = "custom"
+        self._sync_range_buttons()
+
+    def _sync_range_buttons(self) -> None:
+        self.fit_analysis_range_button.setChecked(self.view_mode == "analysis")
+        self.fit_result_range_button.setChecked(self.view_mode == "result")
+
+    def fit_analysis_range(self) -> None:
+        self.view_mode = "analysis"
+        self._sync_range_buttons()
+        super().fit_analysis_range()
 
     @property
     def result_source(self) -> str:
@@ -1237,6 +1296,9 @@ class VelocityView(_ChannelView):
         return source if isinstance(source, str) else "automatic"
 
     def _quantity_changed(self, _index: int) -> None:
+        quantity = str(self.quantity_combo.currentData())
+        unit_changed = quantity != self._last_quantity
+        self._last_quantity = quantity
         acceleration = self.quantity_combo.currentData() == "acceleration"
         self.diagnostic_velocity_check.setVisible(not acceleration)
         self.acceleration_method_combo.setVisible(acceleration)
@@ -1245,6 +1307,15 @@ class VelocityView(_ChannelView):
         channel = self.channel_combo.currentData()
         if isinstance(channel, str) and channel in self._analyses:
             self._render_channel(channel, fit_view=True)
+            if unit_changed and self.view_mode == "custom":
+                # X still describes the same experiment interval; Y has a new
+                # physical unit and must not retain a velocity-only zoom.
+                bounds = finite_velocity_xy_view_range(
+                    self._visible_velocity_series(),
+                    x_limits=tuple(self.plot_widget.viewRange()[0]),
+                )
+                if bounds is not None:
+                    self.plot_widget.setYRange(*bounds[1], padding=0.)
 
     @property
     def local_fit_window_s(self) -> float | None:
@@ -1279,7 +1350,7 @@ class VelocityView(_ChannelView):
             self._clear_plot()
             self.source_notice.setText(
                 self.tr("当前预览中没有通道：{channel}").format(
-                    channel=channel_name
+                    channel=channel_label(channel_name)
                 )
             )
             self.source_notice.show()
@@ -1415,7 +1486,7 @@ class VelocityView(_ChannelView):
         blocker = QSignalBlocker(self.channel_combo)
         self.channel_combo.clear()
         for channel_name in self._available_channel_names:
-            self.channel_combo.addItem(channel_name, channel_name)
+            self.channel_combo.addItem(channel_label(channel_name), channel_name)
         index = self.channel_combo.findData(previous_channel)
         self.channel_combo.setCurrentIndex(max(index, 0))
         self.channel_combo.setEnabled(bool(self._available_channel_names))
@@ -1446,7 +1517,7 @@ class VelocityView(_ChannelView):
         self.source_notice.setText(
             self.tr("当前通道尚无{source}：{channel}").format(
                 source=source_name,
-                channel=channel_name,
+                channel=channel_label(channel_name),
             )
         )
         self.source_notice.show()
@@ -1472,6 +1543,7 @@ class VelocityView(_ChannelView):
             self._render_channel(channel_name, fit_view=False)
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
+        fit_view = fit_view and self.view_mode != "custom"
         analysis = self._analyses[channel_name]
         self.source_notice.clear()
         self.source_notice.hide()
@@ -1559,6 +1631,11 @@ class VelocityView(_ChannelView):
             self.plot_widget.setYRange(*previous_range[1], padding=0.0)
 
     def _fit_current_view(self, analysis: ChannelAnalysis) -> None:
+        if self.view_mode == "custom":
+            return
+        if self.view_mode == "result":
+            self.fit_result_range()
+            return
         x_bounds = self._analysis_view_range_us(analysis)
         self.plot_widget.setXRange(*x_bounds, padding=0.0)
         bounds = finite_velocity_xy_view_range(
@@ -1601,7 +1678,9 @@ class VelocityView(_ChannelView):
         self.acceleration_notice.show()
 
     def fit_result_range(self) -> None:
-        """Fit both axes to finite data from only the currently visible curves."""
+        """Fit both axes and retain this intent on subsequent redraws."""
+        self.view_mode = "result"
+        self._sync_range_buttons()
         bounds = finite_velocity_xy_view_range(self._visible_velocity_series())
         if bounds is None:
             return
@@ -1709,7 +1788,7 @@ class ComparisonView(QWidget):
                 f"automatic:{channel_name}" if guided_analyses else channel_name
             )
             label = (
-                self.tr("{channel} — 自动结果").format(channel=channel_name)
+                self.tr("{channel} — 自动结果").format(channel=channel_label(channel_name))
                 if guided_analyses
                 else channel_name
             )
@@ -1725,7 +1804,7 @@ class ComparisonView(QWidget):
                 (
                     f"guided:{channel_name}",
                     self.tr("{channel} — 人工范围结果").format(
-                        channel=channel_name
+                        channel=channel_label(channel_name)
                     ),
                     analysis,
                 )
@@ -1850,7 +1929,7 @@ class QualitySummaryWidget(QWidget):
                     )
                 )
             values = (
-                channel_name,
+                channel_label(channel_name),
                 self._format_counts(state_counts),
                 str(measured_count),
                 str(low_confidence_count),

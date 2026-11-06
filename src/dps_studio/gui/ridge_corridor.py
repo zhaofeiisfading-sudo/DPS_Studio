@@ -545,6 +545,14 @@ class RidgeCorridorController(QObject):
             self._updating_roi = False
 
     def _remove_overlay(self) -> None:
+        # A completed drag can rebuild the plot from the ROI's own Qt signal.
+        # Give Qt ownership before releasing Python references, then defer native
+        # destruction until the signal stack has unwound (including ROI handles).
+        for roi in self._boundary_rois.values():
+            roi.blockSignals(True)
+            roi.sigRegionChangeFinished.disconnect()
+            roi.setParent(self)
+            roi.deleteLater()
         for item in (
             self._fill_item,
             self._upper_curve,

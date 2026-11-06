@@ -38,9 +38,9 @@ def create_application(
     else:
         application = cast("QApplication", existing)
     application.setOrganizationName("DPS Studio Research")
-    application.setApplicationName("PDV Studio TASK011 Test")
+    application.setApplicationName("PDV Studio TASK012 Test")
     application.setApplicationVersion(__version__)
-    application.setApplicationDisplayName("PDV Studio · Research / Test · TASK-011")
+    application.setApplicationDisplayName("PDV Studio · Research / Test · TASK-012")
     application.setWindowIcon(
         QIcon(str(package_resource_path("gui", "icons", "pdv_studio.ico")))
     )
@@ -63,6 +63,10 @@ def main(arguments: Sequence[str] | None = None) -> int:
     from dps_studio.gui.research_safety import install_write_guard
 
     install_write_guard()
+    if "--task012-smoke" in args:
+        from dps_studio.gui.task012_smoke import run_smoke as run_task012_smoke
+
+        return run_task012_smoke(args)
     if "--task011-smoke" in args:
         from dps_studio.gui.task011_smoke import run_smoke
 

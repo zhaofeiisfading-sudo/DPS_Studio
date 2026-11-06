@@ -31,6 +31,7 @@ from dps_studio.core.io import (
     preview_delimited_file,
 )
 from dps_studio.gui.data_controller import ChannelImportSpec, SignalLoadRequest
+from dps_studio.gui.workspace_ui import channel_label
 
 
 _SIGNAL_SLOT_COUNT = 3
@@ -145,7 +146,10 @@ class ImportSettingsDialog(QDialog):
                 self.tr("导入信号 {number}").format(number=slot_number)
             )
             enabled.setObjectName(f"importSignal{slot_number}Enabled")
-            name = QLineEdit(f"pdv_channel_{slot_number}")
+            identity = f"pdv_channel_{slot_number}"
+            name = QLineEdit(channel_label(identity))
+            name.setProperty("defaultIdentity", identity)
+            name.setToolTip(self.tr("可填写自定义名称；默认候选编号保留原通道标识。"))
             column = self._column_spin_box(slot_number)
             unit = self._voltage_unit_combo()
             editor = self._channel_editor(name, column, unit)
@@ -237,7 +241,7 @@ class ImportSettingsDialog(QDialog):
         """Return the explicit immutable request represented by the controls."""
         channels = tuple(
             ChannelImportSpec(
-                name=slot.name.text().strip(),
+                name=self._channel_identity(slot),
                 column_index=slot.column.value(),
                 voltage_scale=float(slot.unit.currentData()),
                 original_voltage_unit=("V", "mV")[slot.unit.currentIndex()],
@@ -269,10 +273,11 @@ class ImportSettingsDialog(QDialog):
         time_column = self.time_column_spin.value()
         if not 0 <= time_column < self._column_count:
             return self.tr("时间列超出实际列范围。")
-        names = [slot.name.text().strip() for slot in enabled_slots]
+        names = [self._channel_identity(slot) for slot in enabled_slots]
+        display_names = [slot.name.text().strip() for slot in enabled_slots]
         if not all(names):
             return self.tr("每个启用信号的名称都不能为空。")
-        if len(set(names)) != len(names):
+        if len(set(names)) != len(names) or len(set(display_names)) != len(display_names):
             return self.tr("启用信号的名称不能重复。")
         columns = [slot.column.value() for slot in enabled_slots]
         if any(not 0 <= column < self._column_count for column in columns):
@@ -282,6 +287,12 @@ class ImportSettingsDialog(QDialog):
         if len(set(columns)) != len(columns):
             return self.tr("启用信号的电压列不能重复。")
         return None
+
+    @staticmethod
+    def _channel_identity(slot: _SignalSlot) -> str:
+        value = slot.name.text().strip()
+        identity = str(slot.name.property("defaultIdentity"))
+        return identity if value == channel_label(identity) else value
 
     def _validate_and_accept(self) -> None:
         error = self.validation_error()

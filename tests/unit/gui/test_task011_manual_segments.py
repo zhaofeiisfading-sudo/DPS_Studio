@@ -47,7 +47,8 @@ def window(qapp: QApplication, tmp_path: Path) -> ResearchMainWindow:
 def test_edit_drag_numeric_delete_and_per_channel_plan(window: ResearchMainWindow, qapp: QApplication) -> None:
     workspace = window.segment_workspace
     assert "Research / Test" in window.windowTitle()
-    assert window.science_tabs.currentWidget() is workspace
+    assert window.mode_stack.currentWidget() is workspace
+    assert window.properties_stack.currentWidget() is workspace.properties
     assert len(workspace.plan) == 1
     QTest.mouseClick(workspace.add_button, Qt.MouseButton.LeftButton)
     assert len(workspace.plan) == 2

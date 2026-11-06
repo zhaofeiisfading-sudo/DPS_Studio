@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dps_studio.gui.workspace_ui import channel_label
+
 from collections.abc import Mapping
 from typing import Any
 
@@ -87,11 +89,11 @@ class RawSignalView(QWidget):
                 record.time_s * 1e6,
                 record.voltage_v * 1e3,
                 pen=pg.mkPen(self._COLORS[index % len(self._COLORS)], width=1.0),
-                name=channel_name,
+                name=channel_label(channel_name),
                 connect="finite",
             )
             self._curves[channel_name] = curve
-            self.channel_combo.addItem(channel_name, channel_name)
+            self.channel_combo.addItem(channel_label(channel_name), channel_name)
         self.channel_combo.setCurrentIndex(0)
         self.channel_combo.setEnabled(bool(records))
         self.channel_combo.blockSignals(False)

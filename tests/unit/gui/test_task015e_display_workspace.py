@@ -283,10 +283,10 @@ def test_layout_settings_restore_reset_and_survive_language_change(
         restored.action_restore_default_layout.trigger()
         qapp.processEvents()
         reset_sizes = restored.workspace_splitter.sizes()
-        assert reset_sizes[0] == 220
-        assert reset_sizes[2] == 340
+        assert reset_sizes[0] == 155
+        assert reset_sizes[2] == 310
         assert reset_sizes[1] > 0
-        assert restored.diagnostics_dock.height() == 210
+        assert restored.diagnostics_dock.height() == 86
         assert restored.diagnostics_dock.isVisible()
     finally:
         restored.close()

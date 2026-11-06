@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dps_studio.gui.workspace_ui import CollapsibleSection, channel_label
+
 import math
 from collections.abc import Mapping
 from dataclasses import replace
@@ -131,8 +133,8 @@ _GEOMETRY_SETTINGS_KEY = "layout/main_window_geometry"
 _WINDOW_STATE_SETTINGS_KEY = "layout/main_window_state"
 _SPLITTER_STATE_SETTINGS_KEY = "layout/workspace_splitter_state"
 _DIAGNOSTICS_HEIGHT_SETTINGS_KEY = "layout/diagnostics_dock_height"
-_DEFAULT_WORKSPACE_SIZES = (220, 830, 340)
-_DEFAULT_DIAGNOSTICS_HEIGHT = 210
+_DEFAULT_WORKSPACE_SIZES = (155, 980, 310)
+_DEFAULT_DIAGNOSTICS_HEIGHT = 86
 _AUTOMATIC_MODE_BUTTON_ID = 101
 _GUIDED_MODE_BUTTON_ID = 102
 _STFT_WINDOW_OPTIONS = (
@@ -1011,23 +1013,14 @@ class MainWindow(QMainWindow):
 
         velocity_page = QWidget()
         velocity_layout = QVBoxLayout(velocity_page)
-        velocity_layout.addWidget(self._section_title(self.tr("速度参数")))
-        velocity_layout.addWidget(
-            self._notice(
-                self.tr(
-                    "当前曲线已应用所选修正。"
-                )
-            )
-        )
+        velocity_layout.addWidget(self._section_title(self.tr("速度结果")))
         velocity_layout.addWidget(self.analysis_range_panel)
         velocity_form = QFormLayout()
         velocity_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self.formal_velocity_status_label = QLabel(self.tr("尚无速度结果"))
         self.formal_velocity_status_label.setWordWrap(True)
         self.display_velocity_status_label = QLabel(self.tr("关闭"))
-        velocity_form.addRow(
-            self.tr("最终速度"), self.formal_velocity_status_label
-        )
+        velocity_layout.addWidget(self.formal_velocity_status_label)
         self.pre_event_display_check = QCheckBox(self.tr("启用"))
         self.pre_event_display_check.setObjectName("preEventDisplayCheck")
         self.pre_event_display_check.setToolTip(
@@ -1138,8 +1131,14 @@ class MainWindow(QMainWindow):
         lif_form.addRow(self.tr("来源"), self.lif_provenance_label)
         lif_form.addRow("", self.restore_lif_defaults_button)
         self.lif_parameter_panel.setVisible(False)
-        velocity_layout.addLayout(velocity_form)
-        velocity_layout.addWidget(self.lif_parameter_panel)
+        experiment_content = QWidget()
+        experiment_layout = QVBoxLayout(experiment_content)
+        experiment_layout.setContentsMargins(0, 0, 0, 0)
+        experiment_layout.addLayout(velocity_form)
+        experiment_layout.addWidget(self.lif_parameter_panel)
+        self.experiment_section = CollapsibleSection(self.tr("实验参数"), experiment_content)
+        self.experiment_section.setObjectName("experimentParametersSection")
+        velocity_layout.addWidget(self.experiment_section)
         self.velocity_correction_warning_label = self._notice("")
         self.velocity_correction_warning_label.setObjectName(
             "velocityCorrectionWarning"
@@ -2875,7 +2874,7 @@ class MainWindow(QMainWindow):
             )
         self._append_log(
             self.tr("{channel} 的人工频率范围已更新：{detail}。").format(
-                channel=channel_name,
+                channel=channel_label(channel_name),
                 detail=detail,
             )
         )
@@ -2895,7 +2894,7 @@ class MainWindow(QMainWindow):
         self._apply_state()
         self._append_log(
             self.tr("{channel} 的人工频率范围已清除。").format(
-                channel=channel_name
+                channel=channel_label(channel_name)
             )
         )
 
@@ -2923,7 +2922,7 @@ class MainWindow(QMainWindow):
         if channel_name is None and self._session.stft_results:
             channel_name = next(iter(self._session.stft_results))
             self._current_guided_channel = channel_name
-        self.guided_channel_label.setText(channel_name or "—")
+        self.guided_channel_label.setText(channel_label(channel_name) if channel_name else "—")
         constraint = (
             self._session.ridge_constraints.get(channel_name)
             if channel_name is not None
@@ -3291,7 +3290,7 @@ class MainWindow(QMainWindow):
         )
         self._set_ridge_extraction_mode(RidgeExtractionMode.AUTOMATIC)
         self._pending_analysis_source = AnalysisResultSource.AUTOMATIC
-        self._pending_navigation_tab = 0
+        self._pending_navigation_tab = None
         self._pending_candidate_detection = True
         started = self._analysis_adapter.start(request)
         if not started:
@@ -3696,7 +3695,7 @@ class MainWindow(QMainWindow):
         channel_blocker = QSignalBlocker(self.export_channel_combo)
         self.export_channel_combo.clear()
         for channel_name in channel_names:
-            self.export_channel_combo.addItem(channel_name, channel_name)
+            self.export_channel_combo.addItem(channel_label(channel_name), channel_name)
         if isinstance(selected_channel, str) and selected_channel in channel_names:
             self.export_channel_combo.setCurrentIndex(
                 self.export_channel_combo.findData(selected_channel)
@@ -3857,7 +3856,7 @@ class MainWindow(QMainWindow):
                 "{mode} / {channel} 已导出至 {directory}：{csv}；{detail}；{metadata}"
             ).format(
                 mode=mode.value,
-                channel=channel_name,
+                channel=channel_label(channel_name),
                 directory=report.output_directory,
                 csv=exported.csv_path.name,
                 detail=exported.detail_csv_path.name,
@@ -3960,7 +3959,7 @@ class MainWindow(QMainWindow):
             (self.tr("源文件"), str(result.source_path)),
             (self.tr("数据行数"), str(result.row_count)),
             (self.tr("源列数"), str(result.column_count)),
-            (self.tr("独立通道"), ", ".join(result.channel_names)),
+            (self.tr("独立通道"), ", ".join(channel_label(name) for name in result.channel_names)),
             (self.tr("未选择列索引"), unselected),
             (self.tr("样本数/通道"), str(first_record.sample_count)),
             (
@@ -4184,7 +4183,7 @@ class MainWindow(QMainWindow):
 
     def _channel_changed(self, channel_name: str) -> None:
         self.status_channel.setText(
-            self.tr("通道：{channel}").format(channel=channel_name)
+            self.tr("通道：{channel}").format(channel=channel_label(channel_name))
         )
 
     def _cursor_changed(
@@ -4199,7 +4198,7 @@ class MainWindow(QMainWindow):
         self.status_value.setText(
             self.tr("电压：{voltage_mv:.6f} mV ({channel})").format(
                 voltage_mv=voltage_v * 1e3,
-                channel=channel_name,
+                channel=channel_label(channel_name),
             )
         )
 
