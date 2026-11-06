@@ -40,6 +40,18 @@ coverage.xml
 
 /build/
 /dist/
+/release/
+*.exe
+*.dll
+*.pyd
+*.so
+*.dylib
+*.whl
+*.zip
+*.7z
+*.tar
+*.gz
+*.bundle
 *.egg-info/
 .eggs/
 pip-wheel-metadata/
@@ -61,6 +73,10 @@ pip-wheel-metadata/
 
 # Legacy reference CSV files may contain experimental data
 /data/reference/legacy/*.csv
+/data/reference/legacy(旧软件参考速度)/*.csv
+# Legacy copied acquisition table; local copy is preserved.
+/docs/原始数据.csv
+/docs/旧软件速度时间数据.csv
 
 # Generated program outputs
 /outputs/
@@ -109,10 +125,32 @@ desktop.ini
 
 # ============================================================
 # DPS Studio Git hygiene - 2026-09-28
-# Research artifacts stay local and are never tracked by Git
+# Generated research output stays local. Explicit TASK-013 text sources below
+# are versioned; this is not a blanket ban on artifact documentation/config.
 # ============================================================
 
-/artifacts/
+/artifacts/*
+!/artifacts/research_clean_task13/
+/artifacts/research_clean_task13/*
+!/artifacts/research_clean_task13/*.md
+!/artifacts/research_clean_task13/__init__.py
+!/artifacts/research_clean_task13/repro/
+/artifacts/research_clean_task13/repro/*
+!/artifacts/research_clean_task13/repro/*.py
+!/artifacts/research_clean_task13/repro/*.ps1
+!/artifacts/research_clean_task13/repro/*.toml
+
+# Generated numeric arrays, scientific exports, native plotting projects.
+*.npy
+*.npz
+*.h5
+*.hdf5
+*.opju
+*.tif
+*.tiff
+
+# Local metadata backups / scratch. Maintained .spec and configs remain visible.
+/.task13_*/
 
 # pytest / research scratch directories
 /.pytest_tmp*/

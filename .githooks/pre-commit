@@ -1,0 +1,3 @@
+#!/bin/sh
+# Repository-local hook; standard library only, no global installation.
+exec python scripts/check_git_hygiene.py
