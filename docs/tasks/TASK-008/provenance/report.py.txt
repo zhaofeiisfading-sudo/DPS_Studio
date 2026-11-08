@@ -1,0 +1,327 @@
+"""Build reviewable Chinese research documents from actual frozen result tables."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd  # type: ignore[import-untyped]
+
+from .audit import OUT, ROOT
+from dps_studio.algorithms.waveform.catalog import METHODS
+
+BASE = "artifacts/TASK-008"
+NAMES = {
+    "stft512": "正式 strict-refined STFT 512", "stft768": "正式 strict-refined STFT 768",
+    "stft512_wide": "宽频带原 STFT 控制", "gated_stft256": "去 DC＋截断 STFT 256",
+    "gated_stft512": "去 DC＋截断 STFT 512", "dechirp": "局部 Dechirp",
+    "varpro": "实值 VarPro", "clutter_varpro": "相干杂散预测＋VarPro",
+    "acmd": "单模态边界 ACMD 变体", "matrix_pencil": "短窗 LS 子空间极点",
+    "time_domain": "分段时域前向反演", "baseband": "数字基带相位精修",
+    "legacy_m0_512": "历史 M0 strongest 512", "legacy_m0_768": "历史 M0 strongest 768"}
+
+LIMITS = {
+    "stft512": "保留原基准；DC、持续杂散、时间窗边界和 refinement 缺失均暴露。",
+    "stft768": "整体很强的对照，弱信号及双分量较好；长窗提前响应、杂散身份误锁、低频边界仍存在。",
+    "stft512_wide": "单独扩展频带并不构成新算法收益；更容易选中低频漂移，原 sub-bin 边界拒绝仍保留。",
+    "gated_stft256": "低成本基础对照；起跳后覆盖高，但短窗低频镜像偏差明显，弱信号事件漏检。",
+    "gated_stft512": "复杂方法必须击败的简单对照；低速和快变存在偏差，持续杂散使能量事件漏检。",
+    "dechirp": "强加速族有净收益；卸载、低速、双冲击和弱信号没有整体优势。不是精确实值似然。",
+    "varpro": "低速爬升、强加速有局部价值；15 m/s 亚周期压力会跳入错误极值，常数包络不能解释所有散斑与双分量。",
+    "clutter_varpro": "新增收益集中在可预测持续正弦杂散；前缀若包含真实运动，或杂散漂移/失相干，会误减目标或失效。",
+    "acmd": "本轮单模态变体没有综合净优势；弱/有色噪声下包络门槛损失大量覆盖，粗轨迹和正则带宽影响明显。",
+    "matrix_pencil": "噪声与短窗令极点不稳定；无噪双音单测可分不意味着 12 dB 近邻双分量稳定可分。",
+    "time_domain": "低速爬升有条件价值；15–30 m/s 压力、双冲击及全局相位盆地失败，收敛不认证正确解。",
+    "baseband": "高频单分量强加速条件下精度较高；近零/低频由镜像保护拒绝，整体覆盖低，不能作为通用主引擎。",
+    "legacy_m0_512": "逐值复现旧 Research M0；refined 失败时显式保留 discrete，不把边界候选伪称可靠测量。",
+    "legacy_m0_768": "逐值复现旧 Research M0 的长窗；与 strict refined 通道并列，避免 NaN 细化契约削弱基准。"}
+
+
+def fmt(x: Any, digits: int = 3, percentage: bool = False) -> str:
+    if x is None or (isinstance(x, (float, np.floating)) and not np.isfinite(x)):
+        return "—"
+    if isinstance(x, (float, np.floating, int, np.integer)):
+        return f"{x*100:.2f}%" if percentage else f"{x:.{digits}f}"
+    return str(x).replace("|", "\\|").replace("\n", " ")
+
+
+def table(headers: list[str], rows: list[list[Any]]) -> str:
+    return ("| " + " | ".join(headers) + " |\n| " + " | ".join("---" for _ in headers)
+            + " |\n" + "\n".join("| "+" | ".join(fmt(x) for x in row)+" |" for row in rows)+"\n")
+
+
+def write(path: Path, text: str, *, replace_authorized_readme: bool = False) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    mode = "w" if replace_authorized_readme else "x"
+    with path.open(mode, encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
+
+
+def selected(summary: Any, name: str, family: str = "ALL", region: str = "motion",
+             channel: str = "accepted") -> Any:
+    return summary[(summary.method == name) & (summary.family == family)
+                   & (summary.region == region) & (summary.channel == channel)].iloc[0]
+
+
+def method_table(summary: Any) -> str:
+    rows = []
+    for name in METHODS:
+        c = selected(summary, name, channel="candidate")
+        a = selected(summary, name)
+        rows.append([f"[{name}]({BASE}/{name}/README.md)", fmt(c.finite_rmse_m_s),
+                     fmt(c.coverage, percentage=True), fmt(a.finite_rmse_m_s),
+                     fmt(a.coverage, percentage=True), fmt(a.failure_fraction, percentage=True)])
+    return table(["方法", "候选有限 RMSE m/s", "候选覆盖", "支持后有限 RMSE m/s",
+                  "支持后覆盖", "支持后失败含缺失"], rows)
+
+
+def method_cards(summary: Any, real: Any, runtime: Any) -> None:
+    for name in METHODS:
+        a = selected(summary, name)
+        r = runtime[(runtime.method == name) & (runtime.samples == 80000)].iloc[0]
+        s = real[real.method == name]
+        content = f"""# {NAMES[name]}
+
+{LIMITS[name]}
+
+## 📊 实际结果与限制
+
+- 新种子主评价：96 波形，其中 88 条含运动；运动目标共 {int(a.target_n)} 帧，支持后有限 {int(a.finite_n)} 帧。
+- 支持后有限 RMSE **{fmt(a.finite_rmse_m_s)} m/s**，覆盖 **{fmt(a.coverage, percentage=True)}**，全分母失败率 **{fmt(a.failure_fraction, percentage=True)}**。有限 RMSE 不能脱离覆盖率解释。
+- 全部 13 原始文件、17 电压列已运行，执行异常 {int(sum(s.status != 'OK'))}；没有真实 GT，不报告真实正确率。
+- 当前统一 harness 的 80k 点耗时中位数 {r.median_total_s:.3f} s，最大 {r.max_total_s:.3f} s；包含公共初始化和支持检查，不含画图。
+
+## 📁 可复核产物
+
+| 文件 / 目录 | 含义 |
+| --- | --- |
+| [implementation.py](implementation.py) | 实际运行的实现，冻结指纹在上级 source_freeze.json |
+| [parameters.json](parameters.json) | 全部方法超参数，共同背景/支持门槛另见 PROTOCOL.md |
+| [fresh_metrics.csv](fresh_metrics.csv) | 逐合成波形、各区域、候选/支持后完整计数与误差 |
+| [phase_stress_metrics.csv](phase_stress_metrics.csv) | 全部 50 条低速随机初相压力结果 |
+| [real_metrics.csv](real_metrics.csv) | 全部真实通道的观测诊断；无准确率 |
+| [failure_records.json](failure_records.json) | 固定评价的最差实例与失败诊断选择口径 |
+| [real_limitations.json](real_limitations.json) | 未检测事件/没有支持输出的真实记录，不能解释为零速 |
+| [tests_results.json](tests_results.json) | 方法输入不变性和相关数值契约验证 |
+| runs/fresh、runs/phase_stress、runs/real | 各案例轨迹 NPZ、细节 JSON；real 另含逐点 CSV |
+| figures/real | 每条真实通道的原谱图、频率假设、等效速度和支持统计 |
+| figures/synthetic | 每族预先固定第 0 条的真值与误差图，失败例不替换 |
+
+真实图的速度只按假设 1550 nm 换算，物理波长/参考频移未核验；corrected_velocity_m_s 全为 NaN。`accepted_hz` 是启发式支持后的假设，不是校准的测量通道。{'本方法的 R2 针对减去预测杂散后的电压，不可直接与原电压域 R2 排名。' if name == 'clutter_varpro' else ''}
+
+共同协议见 [PROTOCOL.md](../PROTOCOL.md)，完整对照与逐真实数据表见根目录 [COMPARISON.md](../../../COMPARISON.md)。本方法没有进入 Production。
+"""
+        write(OUT/name/"README.md", content)
+
+
+def recommendations(summary: Any, phase: Any, runtime: Any) -> str:
+    fast = {n: selected(summary, n, "fast_accel") for n in
+            ("gated_stft256", "gated_stft512", "dechirp", "varpro", "baseband")}
+    low = {n: selected(summary, "legacy_m0_768" if n == "stft768" else n, "low_ramp") for n in
+           ("gated_stft512", "stft768", "varpro", "time_domain")}
+    p50 = phase[(phase.method == "time_domain") & (phase.specified_velocity_m_s == 50)].iloc[0]
+    return f"""## 🧭 推荐继续研究的四条路线
+
+1. **相干杂散的显式时域 nuisance 模型＋局部实值估计。** 当前最有辨识度的新增能力是恢复强持续杂散场景的事件与目标频率；不是重做 PSD Whitening。下一次研究应专门加入杂散频率缓慢漂移、相位漂移、幅度改变，以及前缀已含运动的反例，评价误减目标和相位预测残差。当前单正弦预测不能直接转为默认自动净化器。
+2. **按需局部 Dechirp，用于已可见的强连续加速。** fast_accel 的支持后 RMSE 为 {fast['dechirp'].finite_rmse_m_s:.3f} m/s，短窗 256 对照 {fast['gated_stft256'].finite_rmse_m_s:.3f}，截断 512 对照 {fast['gated_stft512'].finite_rmse_m_s:.3f}；覆盖均约 99%。该优势限定到此族，双冲击和卸载会变差。下一步应按波形模型证据触发，仅在高加速度局部搜索，保留零斜率/短窗控制，避免把变点截断收益算给 Chirp 搜索。
+3. **带条件数与多极值诊断的局部 VarPro。** 低速爬升的 RMSE 为 {low['varpro'].finite_rmse_m_s:.3f} m/s，截断 512 为 {low['gated_stft512'].finite_rmse_m_s:.3f}，覆盖分别 {low['varpro'].coverage:.1%}/{low['gated_stft512'].coverage:.1%}；完整历史 M0 768 为 {low['stft768'].finite_rmse_m_s:.3f} m/s、覆盖 {low['stft768'].coverage:.1%}。这是一种精度/覆盖折中，不能称全面击败长窗。后续需要自适应观测长度、显式噪声/基线模型、多起点一致性和搜索后置信度标定。80k 全记录超过 3 秒，优先作为局部精修研究。
+4. **分段确定性时域反演，限定相干性与足够周期数。** 低速爬升 RMSE {low['time_domain'].finite_rmse_m_s:.3f} m/s、覆盖 {low['time_domain'].coverage:.1%}；50 m/s 压力单元的候选 RMSE {p50.finite_rmse_m_s:.3f} m/s、候选覆盖 {p50.coverage:.1%}。它在 15–30 m/s 和双冲击上有明确错误极值/失配，不能宣称越过不可辨识性。下一步是已知前端传递函数条件下的带边缘速度节点、相位重置与后验多模态诊断；本轮没有估计未知 AC 参数，也没有用优化器逆海森伪造可信区间。
+
+上述只是研究优先级，不是 Production 准入建议。单模态 ACMD、短窗矩阵束和全记录基带方案保留负结果；新实现/新参数需重新跑同一全量协议。任何路线都应以廉价的截断短窗对照和原 STFT 为门槛，不能用曲线平滑或少输出代替真实性能。
+"""
+
+
+def build() -> None:
+    summary = pd.read_csv(OUT/"tables/fresh_summary.csv")
+    real = pd.read_csv(OUT/"tables/real_diagnostics.csv")
+    runtime = pd.read_csv(OUT/"tables/real_runtime.csv")
+    phase = pd.read_csv(OUT/"tables/phase_stress_by_velocity.csv")
+    onset = pd.read_csv(OUT/"tables/onset_and_false_outputs.csv")
+    paired = pd.read_csv(OUT/"tables/fresh_paired_bootstrap.csv")
+    boundary = json.loads((OUT/"boundary_before.json").read_text(encoding="utf-8"))
+    raw = json.loads((OUT/"raw_inventory.json").read_text(encoding="utf-8"))
+    dual = pd.read_csv(OUT/"tables/matrix_pencil_dual_diagnostic.csv")
+    opt = pd.read_csv(OUT/"tables/optimizer_convergence.csv")
+    best = selected(summary, "clutter_varpro")
+    old = selected(summary, "legacy_m0_768")
+    control = selected(summary, "gated_stft512")
+    validation = json.loads((OUT/"checks/validation.json").read_text(encoding="utf-8"))
+    intro = f"""# TASK-008｜PDV 速度重建算法开放探索
+
+研究实验与报告完成；停留在 Research。14 个方法/对照均运行了 **13 个真正原始文件、17 条电压通道**，另完成 96 条新种子主合成测试和 50 条低速随机初相压力测试，共 2282 个正式方法流，执行异常为 0。12 个探索方法先冻结；随后追加两种历史 M0 契约对照，不改变探索参数。开发轮失败另外保留，没有混入最终统计。
+
+有条件的最明确新增收益来自“相干杂散预测＋VarPro”：主分布支持后全分母失败率 {best.failure_fraction:.2%}，原 768 点 STFT 为 {old.failure_fraction:.2%}，去 DC＋截断 512 点控制为 {control.failure_fraction:.2%}。**相对原 768 的配对区间跨零，不能宣布全面胜出。** 低速极限、弱信号漏检、双分量身份与前端未知传递函数仍未解决。
+
+## 📁 阅读入口
+
+| 入口 | 内容 |
+| --- | --- |
+| [COMPARISON.md](COMPARISON.md) | 全部算法、逐真实数据表、合成/压力结果、负结果与四条推荐路线 |
+| [冻结协议]({BASE}/PROTOCOL.md) | 物理模型、输入全集、参数开发与新种子分离、分母与成本口径 |
+| [主结果图]({BASE}/figures/synthetic_comparison.png) | 各族 RMSE、覆盖和含缺失失败率同时显示 |
+| [低速初相压力]({BASE}/figures/low_speed_phase_stress.png) | 不掩盖 15–30 m/s 失败和拒绝输出 |
+| [原始文件清单]({BASE}/tables/raw_inventory.csv) | 13 个波形、5 个处理结果及辅助文件的分类、SHA 和采样率 |
+| [全部真实诊断]({BASE}/tables/real_diagnostics.csv) | 238 条方法×通道观测记录，真实准确率不可得 |
+| [图清单]({BASE}/figure_manifest.csv) | 408 PNG 与对应来源，其中真实图 238 张、固定合成例 168 张；原12方法总图另存 |
+| [边界验收]({BASE}/checks/final_boundary_check.json) | raw/Production/Git/既有修改前后核对 |
+| [检查记录]({BASE}/checks/validation.json) | 新测试、全仓 pytest、Ruff、mypy 与既有失败区别 |
+
+真实数据没有 Ground Truth，波长与参考频移没有重新标定。真实速度图仅按 **1550 nm 假设给出等效表观速度**，主输出保留 Hz；不计算 LiF 或 corrected velocity，不把无拍频置为实测零速。每个方法的 `accepted_hz` 只是启发式波形支持后的研究假设。
+
+## 🔁 安全复现
+
+PowerShell 7，现有 dps-studio 环境，无新增安装。下列命令从本工作区运行，只向一个**尚不存在**的新目录写入；遇到已有目录会拒绝覆盖：
+
+```powershell
+$env:PYTHONPATH='D:\\Code\\Python_Projects\\DPS_Studio_TASK021A\\src;D:\\Code\\Python_Projects\\DPS_Studio_TASK021A'
+$env:OPENBLAS_NUM_THREADS='1'
+$env:OMP_NUM_THREADS='1'
+$env:MKL_NUM_THREADS='1'
+$env:PYTHONDONTWRITEBYTECODE='1'
+& 'D:\\miniconda3\\envs\\dps-studio\\python.exe' -B -m dps_studio.research.waveform.reproduce --output 'D:\\Research\\DPS_TASK008_replay_new' --figures
+```
+
+快速数值重放可增加 `--smoke`，只运行 12 族第 0 条，并与原冻结输出逐值比较；不把 smoke 当全量验收。源文件如果偏离冻结指纹会停止。原项目 README 已逐字节保存为 [README_before.md]({BASE}/README_before.md)。
+
+## ✅ 验证状态
+
+新增算法契约测试 {validation['new_pytest']['passed']} 项通过。全仓 pytest 为 {validation['full_pytest']['passed']} 通过、{validation['full_pytest']['failed']} 失败；失败集合与任务前相同，涉及历史启动器约定/冻结记录/缺失旧 artifact，未改这些文件。Ruff、mypy 通过；完整日志在 checks。未 stage、commit、push、merge 或 promotion，Production 未修改。
+"""
+    parts = ["# TASK-008｜PDV 算法完整比较与研究结论\n\n", intro.split("## 📁")[0].split("\n", 2)[2],
+             "\n## 🧪 样本、测量契约与历史依据\n\n",
+             "实际递归发现 24 个文件：13 个原始时间–电压文件，5 个文件名标记 result 的处理结果，5 张参考图片与 1 个占位文件。全部文件均纳入 SHA-256 边界检查；只对 13 个原波形的全部 17 个电压列估计。四个双列 CSV 的通道和独立命名的 ch1/ch2/ch3/ch4 文件不作独立实验次数推断。两条 DAT 为约 80 GS/s，其余约 40 GS/s，均直接使用真实时间轴，无重采样。无单位表头；时间/电压按已有 acquisition reader 配置为 s/V，新加入的独立通道文件沿用同一格式假设，并保留标定未核验标签。\n\n",
+             "当前源码、Git 和实际运行优先于旧报告。已读取 TASK-026/027/028 的实际报告与前端源码，以及 clean_task4/4A/4B/5/7 的研究结果：表示层重分配、候选路径/IMM/MHT/Rescue、固定 FIR 或 PSD Whitening 不能自动转化为新的原始波形信息。本轮不重新调 Global Path/P3 权重，也不把历史半自动种子收益算给新算法。历史资料仅帮助选择路线，没有将旧分布合并进本轮 RMSE。\n\n",
+             f"Research 分支 `{boundary['research']['branch']}`，HEAD `{boundary['research']['head']}`。任务开始已有 12375 条 tracked 删除和 40 项 untracked 状态（含本任务初始目录），全部保留；Production 起始为 clean。原始前后证据见 `boundary_before.json`、`boundary_after.json` 和 `checks/final_boundary_check.json`。\n\n",
+             "开发使用 48 条独立波形，三轮共 792 个方法流；development00/02 重用每族第 0 条，不把 72 次生成算为 72 条独立波形。初版因低频/DC 选峰导致部分方法无初值，异常和原代码保存在 development_sources00；修正显式局部 DC 初始化、短窗 DC 极点后才冻结。新评价为 12 族×8=96 条，另 50 条新初相低速压力。每条 320 ns、40 GS/s。全部真值仅进入外部 scorer，不给估计器提供真值速度、起跳点或目标身份。完整注册条件与算子见 [PROTOCOL.md](docs/tasks/TASK-008/PROTOCOL.md)。\n\n",
+              "基准口径补充：旧 Research M0 对 refinement 失败显式保留 discrete 候选，正式 strict refined 通道则保留 NaN。原12方法的 source_freeze 和结果未改，另追加 legacy_m0_512/768 对照，全部数据再跑；其注册发生在查看主结果后，只修正对照完整性，不据结果调新算法。两种契约均在下表展示，完整说明见 [BASELINE_AUDIT.md](docs/tasks/TASK-008/BASELINE_AUDIT.md)。\n\n",
+              "候选、启发式支持后的假设和物理测量必须区分。所有方法保存原候选/NaN；共同 256 点局部正余弦拟合解释率≥0.20、条件数≤1e5、谱对比≥10 dB 只是固定启发式门槛，不是正式 SNR、F 检验 p 值或目标身份认证。复杂方法另有显式包络/镜像门槛。杂散组合的支持统计在 nuisance-subtracted 电压域，表中已单列模型域，不能直接据 R2 比其他方法更可信。\n\n",
+             "合成使用 $v=1550\\times10^{-9} f/2$，真实数据只作同一波长假设下的等效表观速度。无参考频移实值模型不辨速度符号；AC 耦合下没有可辨拍频时输出 NaN/状态，不输出实测零速。参考频移、波长、AC 截止、真实反射界面和 LiF 修正均没有凭模型猜测补齐。\n\n",
+             "## 📊 96 条新种子主评价：全部方法\n\n",
+             "主表为全部有真值运动点，包含消光、不混入起跳前静止。有限 RMSE 只在有限点计算，失败率则保留所有目标帧，缺失也失败。有限误差 >100 MHz（77.5 m/s）算频率偏离；这不是独立物理身份误判率。50/200 MHz 敏感性在完整 summary 表。\n\n",
+             method_table(summary),
+             f"\n![全部族比较]({BASE}/figures/synthetic_comparison.png)\n\n",
+             "有限 RMSE 的大幅降低部分来自拒绝/缺失和去 DC/事件截断。不能把原 STFT 在噪声或谱边界的无输出、以及复杂方法在困难样本的漏检隐去。相干杂散组合与单独 VarPro 的区别集中在 8 条 stationary_spur；其他场景大多相同，不能说 VarPro 自身解决了强杂散。\n\n",
+             "## 📐 配对不确定度与增益归因\n\n",
+             "每次 bootstrap 重采样 88 条有运动的独立波形，2000 次、seed=81300001。下表为每波形全分母失败率差，负数表示新方法更少失败；不是重叠帧的独立置信区间，也不是仪器测量不确定度。\n\n"]
+    pairs = paired[(paired.channel == "accepted") & (paired.reference.isin(["stft768", "legacy_m0_768", "gated_stft512"]))
+                   & paired.method.isin(["dechirp", "varpro", "clutter_varpro", "time_domain"])]
+    parts.append(table(["方法", "对照", "失败率宏差/百分点", "配对95%区间/百分点", "波形N"],
+        [[r.method, r.reference, f"{r.failure_macro_delta*100:+.3f}",
+          f"[{r.failure_macro_delta_ci_low*100:+.3f}, {r.failure_macro_delta_ci_high*100:+.3f}]", str(r.waveform_n)]
+         for r in pairs.itertuples()]))
+    parts += ["\n相对截断 512，组合收益区间未跨零；相对原 768，区间跨零。这一分布上的均值改善不能推成全面取代 STFT。单独 VarPro 相对截断 512 的整体失败差接近零。8 条确定性持续杂散构成主分布的固定比例，不能用该总体数值估计真实杂散发生率。\n\n",
+              "## 🔬 机制与数学实现\n\n",
+              r"""VarPro 在实值域最小化 $\|(I-\Phi\Phi^\dagger)y\|^2$，$\Phi=[\cos\phi,\sin\phi,1]$，$\phi=2\pi(f\tau+a\tau^2/2)$；用 SVD 消去线性幅相/DC，再以带解析梯度的多起点 L-BFGS-B 搜索频率与斜率。变量投影的来源是 Golub–Pereyra；本轮具体模型和质量门槛由代码及数值验证定义。[^1] 搜索频率后不能套用固定设计的 F 分布；非线性有限样本估计也不保证亚周期无偏。
+
+Dechirp 在 512 点截断窗上遍历 17 个斜率，最大化实值输入的复指数投影；不用全局 Hilbert 或双向高通，保留负频镜像失配，并把非对称窗口中心频率按斜率运回原采样中心。它是局部近似频率集中法，不冒充精确实值似然。
+
+ACMD 变体求解 $\|y-Cu-Sv\|^2+\alpha(\|D^2u\|^2+\|D^2v\|^2)$，在起跳处断开区间，交错变量形成带宽 4 的 SPD 系统，六次迭代更新频率。对于 $y=u\cos\theta+v\sin\theta$，物理相位是 $\theta-\operatorname{atan2}(v,u)$，故修正为 $(v u'-u v')/[2\pi(u^2+v^2)]$；符号由解析单音单测验证。这里只测试自推导单模态变体，不声称完整复现 Chen 等 VNCMD 的多模态算法。[^2]
+
+矩阵束家族实现为 96 点窗、32 列 Hankel、五维信号子空间的 LS 移位估计。四个共轭信号极点之外保留一个 DC nuisance 极点；去均值后直接用 rank 4 会使常数项占据信号子空间。正角极点在实值波形中重新拟合幅度，主/次分量都保存。未实现 TLS，也没有用“超分辨”一词代替噪声稳定性验证。
+
+时域反演把每 2048 点分为独立相干 slab，以 9 个分段线性频率节点积分相位，再消去余弦、正弦及 DC 系数，以解析梯度 L-BFGS-B 优化，加固定二阶节点惩罚。该前向建模思路受 Allison 等时域 PDV 工作启发，本文实现是确定性局部正则最小二乘；没有运行 MCMC、未知前端协方差或后验多模态采样，不能宣称与贝叶斯采样等价。[^3]
+
+基带法把去基线的实值电压乘以粗相位负指数，使用明确的 257 点、200 MHz 中心 FIR 和 129 点二阶 SG 相位导数；离线中心滤波只作用于独立事件之后，不以此定位因果起跳。低于 400 MHz 或低包络时拒绝，代价是低速和弱信号覆盖为零。
+
+相干杂散组合只在首 10%（最多 4096 点）拟合一个强静态正弦的频率、幅相和偏置，预测全记录电压后在内存副本相减，再执行完全相同的 VarPro。它利用相位预测，不是 PSD Whitening、notch 或完整 OMP；相位可预测性和前缀无目标仍是待验证先验。
+
+""",
+              "## ⚡ 局部场景，不用总体均值掩盖失败\n\n"]
+    local_rows = []
+    for family in ("fast_accel", "low_ramp", "stationary_spur", "weak_chirp", "two_shock", "two_component"):
+        for name in ("stft768", "legacy_m0_768", "gated_stft256", "gated_stft512", "dechirp", "varpro", "clutter_varpro", "time_domain"):
+            a = selected(summary, name, family)
+            local_rows.append([family, name, fmt(a.finite_rmse_m_s), fmt(a.coverage, percentage=True),
+                               fmt(a.failure_fraction, percentage=True)])
+    parts.append(table(["场景（各8条）", "方法", "有限RMSE m/s", "支持覆盖", "失败含缺失"], local_rows))
+    parts += ["\n强加速中 Dechirp 和 VarPro 相比两个短窗控制确有条件性精度改善；基带法更准但少输出。双冲击中截断 STFT512 的 1.001 m/s 优于 VarPro 6.666 和时域反演 8.463 m/s，不能把连续相位模型推成阶跃恢复最优。-5 dB 弱信号的 VarPro 支持覆盖只有约 31%，原 768 约 79%；弱信号瓶颈并未解决。\n\n",
+              "## ⏱️ 起跳、静止误报与消光\n\n",
+              table(["方法", "检出/88", "漏检", "已检出中位绝对误差 ns", "95%绝对误差 ns", "噪声假事件/8", "静止支持误报", "消光支持误报"],
+                    [[r.method, f"{r.detected_n}/88", str(r.missed_n), fmt(r.onset_median_absolute_ns),
+                      fmt(r.onset_p95_absolute_ns), f"{r.false_events_on_noise}/8",
+                      fmt(r.static_false_fraction, percentage=True), fmt(r.dropout_false_fraction, percentage=True)]
+                     for r in onset.itertuples()]),
+              "\n能量检测的已检出中位数 0.189 ns 不能包装成一般起跳精度：普通共享检测漏 13/88，95 分位为 8.634 ns；杂散组合漏 5/88，95 分位为 8.178 ns。多个估计器共用检测器，不是独立重复。零速度没有作为可测量物理量恢复；完全消光中仍有边界混合/假支持，必须保留在失败记录，不能按平滑曲线连接缺口。速度历史网格为 3.2/1.6 ns，与该事件时刻估计的亚采样块统计分辨不同。\n\n",
+              "## 🌡️ 50 次随机初相低速压力\n\n",
+              "15/30/50/100/200 m/s 每档 10 条，AC 截止和 SNR 与实例模数共同分配，存在条件关联；不能作每个截止/SNR 单元 50 次独立重复。下表保留候选错误，防止仅靠支持拒绝隐藏发散。\n\n",
+              table(["方法", "速度 m/s", "候选有限RMSE m/s", "候选覆盖", "支持覆盖", "支持失败含缺失"],
+                    [[r.method, str(r.specified_velocity_m_s), fmt(r.finite_rmse_m_s),
+                      fmt(r.coverage, percentage=True), fmt(r.accepted_coverage, percentage=True),
+                      fmt(r.accepted_failure_fraction, percentage=True)] for r in phase.itertuples()
+                     if r.method in ("stft768", "legacy_m0_768", "gated_stft512", "varpro", "time_domain", "matrix_pencil")]),
+              f"\n![低速压力]({BASE}/figures/low_speed_phase_stress.png)\n\n",
+              "VarPro 在 15 m/s 候选有限 RMSE 641.908 m/s，时域反演在 15/30 m/s 分别 333.287/559.564 m/s；这些输出都可能伴随优化器成功收敛。半周期实值模型在未知幅度/DC/噪声下不能自动解决可辨识性。严格 refined 的 768 在 15/30 m/s 几乎没有有限输出，但完整历史 M0 有 100% 候选覆盖，RMSE 为 30.427/15.916 m/s；不能用 strict-refined 的缺失削弱历史基准。100 MHz 对应 77.5 m/s，对极低速非常宽松，‘阈值内’不意味着准确重建 15 m/s，必须同时看 RMSE/真值尺度。50 m/s 时域反演候选 RMSE 3.686 m/s、覆盖 99.24%，历史 M0 为 4.585 m/s、100% 候选覆盖；增益有限，不外推到所有零/低速。\n\n",
+              "## 🧩 双分量与优化器诊断\n\n",
+              f"矩阵束保存了两个正频率候选。额外事后双分量配对诊断要求两个输出分别在两个真频率 ±50 MHz 内：仅 **{int(dual.both_components_within_50mhz.sum())}/{int(dual.target_frames.sum())}** 目标帧通过；两真频率相隔≥100 MHz 的帧为 **{int(dual.both_success_separated.sum())}/{int(dual.separation_ge_100mhz_frames.sum())}**。分母是重叠窗帧，不是独立重复次数；此项未用于调参。无噪固定双音单测通过，含噪/近邻/慢 chirp 条件下稳定超分辨并未建立。\n\n",
+              table(["阶段", "方法", "拟合次数", "优化器报告收敛", "未收敛却支持的帧"],
+                    [[stage, name, str(int(g.fits.sum())), str(int(g.converged.sum())),
+                      str(int(g.accepted_frames_from_unconverged.sum()))]
+                     for (stage, name), g in opt.groupby(["stage", "method"])]),
+              "\n当前全部已执行拟合报告收敛；极低速错误解仍然存在，所以优化器成功不是速度正确性或后验单峰性的证据。没有用逆海森局部曲率给出未经校准的真实误差带。\n\n",
+              "## 💻 实测计算成本\n\n",
+              "当前机器、单线程 BLAS、wall clock；包含公共 setup 和质量支持检查，排除数据读入/图片导出。setup 对某些原基准含不必要的粗初始化，所以这是统一 harness 的实际成本，不是各方法的最优实现成本。每条真实通道独立测量，不从 12,800 点合成线性外推。\n\n"]
+    runtime_rows = []
+    for name in METHODS:
+        s80 = runtime[(runtime.method == name) & (runtime.samples == 80000)].iloc[0]
+        s200 = runtime[(runtime.method == name) & (runtime.samples == 200001)].iloc[0]
+        runtime_rows.append([name, f"{s80.median_total_s:.3f}", f"{s80.p95_total_s:.3f}",
+                             f"{int(s80.runs_above_three_seconds)}/12", f"{s200.max_total_s:.3f}"])
+    parts += [table(["方法", "80k中位 s", "80k P95 s", "80k超过3秒", "200001点最大 s"], runtime_rows),
+              "\nVarPro/组合的 80k 中位数约 3.18/3.20 秒，已经超过附件的默认交互目标；后续优先研究局部调用，不能拿 320 ns 小合成的耗时声称全记录满足 3 秒。时域反演确实是亚秒级，但精度和模型适配没有因此过关。峰值 RAM 未做专门进程级计量，不报告伪造内存基准。\n\n",
+              "## 🗂️ 每种方法的实际实现与负结果\n\n",
+              table(["方法", "范围/限制"], [[f"[{name}]({BASE}/{name}/README.md)", LIMITS[name]] for name in METHODS]),
+              "\n## 🧾 ALG-01～18 的处置\n\n",
+              table(["候选", "本轮处置"], [
+                  ["ALG-01", "只实现截断短窗/去DC控制；未实现完整 LPA-ICI/DPSS 多窗，不冒称相同方法。"],
+                  ["ALG-02", "未重做高阶 SST；已读 TASK-026 表示层负结果，无新的弱信号导数证据。"],
+                  ["ALG-03", "局部 chirplet 集中归入 Dechirp，不构造全长三维张量。"],
+                  ["ALG-04", "实现实值 VarPro 与相干杂散组合；不采信无偏/固定F置信度的强论断。"],
+                  ["ALG-05", "实现 raw-real 局部 Dechirp 变体，无全局 Hilbert，不冒充完整 CB-LCMLE。"],
+                  ["ALG-06", "实现数字基带相位精修；频移外差论文的结论不直接套用本无偏频假设。"],
+                  ["ALG-07", "实现 LS 子空间极点变体、主/次频率及双分量诊断；未实现 TLS。"],
+                  ["ALG-08", "未实现 TVAR；优先把算力用于独立原波形模型，不据理论风险声称实测淘汰。"],
+                  ["ALG-09", "只实现单相干 nuisance 预测，非 OMP-MCA；完整稀疏字典仍待研究。"],
+                  ["ALG-10", "未实现 TV/L1 后端；本轮先识别前端观测与多极值问题，未把平滑当新证据。"],
+                  ["ALG-11", "未实现 raw-EKF/UKF；锁定/重捕获与低速可观测性需单独设计。"],
+                  ["ALG-12", "未实现 raw-IMM-SLDS；不以旧 STFT IMM 的结果替代它的实测。"],
+                  ["ALG-13", "实现确定性分段前向反演；未实现 MCMC/Laplace/未知前端噪声协方差。"],
+                  ["ALG-14", "实现单模态边界 ACMD-inspired 变体；未实现完整多模态 VNCMD。"],
+                  ["ALG-15", "未实现 VMD/CEEMDAN，本轮无新实测结论，不称彻底否定全部变体。"],
+                  ["ALG-16", "采用显式块能量/局部方差事件检测；不是 PELT/BOCPD。"],
+                  ["ALG-17", "未实现 CTKEO；不把块能量的起跳数字算给三点 TKEO。"],
+                  ["ALG-18", "未训练网络；缺少真实GT/前端域标定，不以合成拟合替代物理验证。"]]),
+              "\n## 🧪 全部真实数据的逐通道结果\n\n",
+              "以下覆盖全部 17 条通道。支持覆盖和 R2 是观测量，不是准确率。R2 列对杂散组合取减去预测 nuisance 的电压域，对其他方法取原电压域；它们不能无条件横向排序。所有时刻为相对原首样本的 ns；中位频率为有限候选的统计，不能当已确认界面速度。原谱中的强低频、谐波和多分量都保留在各方法全记录图中。\n\n"]
+    for case_id, stream in real.groupby("case_id", sort=False):
+        first = stream.iloc[0]
+        source = next(r for r in raw if r["path"] == first.raw_path)
+        parts.append(f"### {case_id}\n\n`{first.raw_path}`，电压列 {int(first.voltage_column)}，"
+                     f"{int(first.samples):,} 点，采样率 {first.sample_rate_hz/1e9:.3f} GS/s，"
+                     f"SHA-256 `{source['sha256']}`。\n\n")
+        parts.append(table(["方法/全记录图", "候选覆盖", "支持覆盖", "候选中位 GHz", "模型域R2", "耗时 s"],
+            [[f"[{r.method}]({BASE}/{r.method}/figures/real/{case_id}.png)",
+              fmt(r.candidate_coverage, percentage=True), fmt(r.accepted_coverage, percentage=True),
+              fmt(r.frequency_median_hz/1e9), fmt(r.model_domain_fit_r2_median), fmt(r.total_s)]
+             for r in stream.itertuples()]))
+    parts += ["\n可直接观察的例子：`20260607.csv` 第一电压列的图中，主拍频及晚期多条谱带同时可见，新方法仍有晚期候选尖峰与支持缺口。它们没有从展示中删除。没有独立实验身份信息，不能把每个更平滑的新选择写为真实纠错。所有原始记录未因曲线难看被排除；一条记录没有检测到事件时，图中保留全 NaN 的结果及原因。\n\n",
+              recommendations(summary, phase, runtime),
+              "\n## ✅ 测试、边界与复现\n\n",
+              f"新增 {validation['new_pytest']['passed']} 个测试通过，覆盖原基准逐值一致、解析梯度、积分基函数、ACMD 符号/带状解、DC 双音、nuisance 预测、缺失计分、非均匀/NaN拒绝以及每个方法的输入字节不变性。全仓 pytest **{validation['full_pytest']['passed']} 通过、{validation['full_pytest']['failed']} 失败**，与任务前同一六项；不声称全仓通过。Ruff 和严格 mypy 正常。日志和失败名称见 `checks/validation.json`。\n\n",
+              "全部 24 个 raw/辅助文件逐文件 SHA-256 前后一致；既有 Research 源文件与 Production 代码/配置指纹核验，Git HEAD、分支、index 与既有状态保持。本轮只新增独立 Research artifact、一个测试文件，按要求更新根 README/COMPARISON 并写指定笔记。没有修改 Production、raw 或 promotion 入口，没有 commit/push。根 README 原文保留。\n\n",
+              "完整重放命令见 [README.md](README.md)。`reproduce --output <new-directory> --figures` 拒绝覆盖旧输出；`--smoke` 在独立目录重跑 12 个固定合成例并核对所有 12 个方法的轨迹。参数、实现、数据生成真值、逐点CSV/NPZ、失败和图源均保留。源码/协议与最终材料指纹在 source_freeze.json 和 checks/final_source_manifest.json。\n\n",
+              "## 📚 文献核验与结论来源\n\n",
+              "本轮 DOI/作者/卷期等元数据通过 Crossref 注册记录核验，原始响应摘录在 literature_metadata.json；没有把元数据可查等同于全文已核验。Allison 的公开 HTML 已读；其对模型失配、多峰后验和数小时采样成本的讨论不等于本轮快求解器与 MCMC 等价。Chen 的 VNCMD 本轮仅核验书目/摘要，完整论文方程复现仍 **unverified**；因此实现明确写为受启发的单模态变体。Gemini 附件里其余未使用文献的“已核实”标签没有继承，仍 unverified。所有性能数字只来源本次运行，不从文献或模型猜测搬入。\n\n",
+              "[^1]: G. H. Golub, V. Pereyra. The Differentiation of Pseudo-Inverses and Nonlinear Least Squares Problems Whose Variables Separate. SIAM Journal on Numerical Analysis 10(2), 413–432 (1973). [DOI](https://doi.org/10.1137/0710036)。另见 [2003 review](https://doi.org/10.1088/0266-5611/19/2/201)，书目已核验，付费全文未完整核验。\n\n",
+              "[^2]: S. Chen, X. Dong, Z. Peng, W. Zhang, G. Meng. Nonlinear Chirp Mode Decomposition: A Variational Method. IEEE Transactions on Signal Processing 65(22), 6024–6037 (2017). [DOI](https://doi.org/10.1109/TSP.2017.2731300)。书目/摘要已核验，完整方法复现 unverified。\n\n",
+              "[^3]: J. R. Allison et al. A Bayesian approach to time-domain photonic Doppler velocimetry analysis (2025). [DOI](https://doi.org/10.1063/5.0267409)，[作者公开全文](https://arxiv.org/html/2508.13695v1)。该文报告时域概率反演及模型/计算限制；本文确定性变体是独立研究实现。\n\n",
+              "D. H. Dolan. Accuracy and precision in photonic Doppler velocimetry (2010). [DOI](https://doi.org/10.1063/1.3429257)。书目已核验；本轮噪声/窗长/前端限制由自己的合成与代码检查衡量，不冒称已完整复现该文理论误差界。\n"]
+    write(ROOT/"README.md", intro, replace_authorized_readme=True)
+    write(ROOT/"docs/tasks/TASK-008/COMPARISON.md", "".join(parts))
+    write(OUT/"README.md", intro.replace("]("+BASE+"/", "](").replace("](COMPARISON.md)", "](../../COMPARISON.md)"))
+    method_cards(summary, real, runtime)
+    print("Root README, complete comparison and all method cards written", flush=True)
+
+
+if __name__ == "__main__":
+    build()

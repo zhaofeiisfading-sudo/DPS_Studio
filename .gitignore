@@ -1,46 +1,67 @@
-# ============================================================
-# Python bytecode and caches
-# ============================================================
+# Generated results and releases never enter Git.
+/artifacts/
+/release/
+/build/
+/dist/
+/outputs/
+/results/
+/logs/
 
+# Read-only, locally supplied experimental data.
+/data/raw/*
+!/data/raw/.gitkeep
+/data/processed/*
+!/data/processed/.gitkeep
+/data/research/
+/data/reference/
+
+# Python/tool caches and local environments (including accidental old root scratch).
 __pycache__/
 *.py[cod]
-*$py.class
-
 .pytest_cache/
-.pytest_tmp/
+.pytest_tmp*/
 .test_tmp/
-/.task*_tmp/
-/.task*_cache/
 .mypy_cache/
 .ruff_cache/
 .pytype/
 .hypothesis/
-
-# Coverage reports
-.coverage
-.coverage.*
-htmlcov/
-coverage.xml
-
-# ============================================================
-# Local Python environments
-# Only ignore environments located at the repository root
-# ============================================================
-
-/.venv/
-/venv/
-/env/
-
-# Conda environment export or local metadata
+.ipynb_checkpoints/
+.cache/
+.venv/
+venv/
+env/
 .conda/
+.tox/
+.nox/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+/.task*/
+/.t[0-9]*/
+/.f_*/
+/.g_*/
 
-# ============================================================
-# Build and packaging outputs
-# ============================================================
-
-/build/
-/dist/
-/release/
+# Generated numeric data and binaries. Keep small fixtures/inventories by role.
+*.csv
+*.tsv
+*.dat
+!/tests/fixtures/*.csv
+!/tests/fixtures/**/*.csv
+!/tests/fixtures/*.tsv
+!/tests/fixtures/**/*.tsv
+!/docs/maintenance/*.csv
+*.npy
+*.npz
+*.h5
+*.hdf5
+*.mat
+*.pkl
+*.pickle
+*.parquet
+*.feather
+*.opju
+*.tif
+*.tiff
 *.exe
 *.dll
 *.pyd
@@ -52,161 +73,24 @@ coverage.xml
 *.tar
 *.gz
 *.bundle
-*.csv
-*.tsv
-*.dat
-*.mat
-*.pkl
-*.pickle
-*.parquet
-*.feather
-# Reviewed lightweight text inventory and deterministic test fixture.
-!/docs/maintenance/artifact_keep_manifest.csv
-!/tests/fixtures/test.csv
-*.egg-info/
-.eggs/
-pip-wheel-metadata/
 
-# Do not globally ignore *.spec.
-# A maintained PyInstaller spec file should usually be committed.
-
-# ============================================================
-# Experimental and generated data
-# ============================================================
-
-# Raw experimental data must never enter Git
-/data/raw/*
-!/data/raw/.gitkeep
-
-# Processed data is generated locally
-/data/processed/*
-!/data/processed/.gitkeep
-
-# Legacy reference CSV files may contain experimental data
-/data/reference/legacy/*.csv
-/data/reference/legacy(旧软件参考速度)/*.csv
-# Legacy copied acquisition table; local copy is preserved.
-/docs/原始数据.csv
-/docs/旧软件速度时间数据.csv
-
-# Generated program outputs
-/outputs/
-
-/results/*
-!/results/.gitkeep
-
-/logs/*
-!/logs/.gitkeep
-
-# ============================================================
-# Notebooks
-# ============================================================
-
-.ipynb_checkpoints/
-
-# ============================================================
-# IDE and editor local files
-# ============================================================
-
-.idea/
-.vscode/*.local.json
-
-# Temporary editor files
-*.swp
-*.swo
-*~
-~$*
-
-# ============================================================
-# Logs and temporary files
-# ============================================================
-
+# Coverage, logs and editor/OS scratch.
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
 *.log
 *.tmp
 *.temp
 *.bak
-
-# ============================================================
-# Operating-system files
-# ============================================================
-
+*.swp
+*.swo
+*~
+~$*
+.idea/
+.vscode/*.local.json
 Thumbs.db
 desktop.ini
 .DS_Store
 
-# ============================================================
-# DPS Studio Git hygiene - 2026-09-28
-# Generated research output stays local. Selected TASK-008--013 text sources,
-# protocols and small input/config manifests are versioned explicitly below.
-# ============================================================
-
-/artifacts/*
-!/artifacts/research_clean_task8/
-/artifacts/research_clean_task8/*
-!/artifacts/research_clean_task8/*.py
-!/artifacts/research_clean_task8/*.md
-!/artifacts/research_clean_task8/source_freeze.json
-!/artifacts/research_clean_task8/*/
-/artifacts/research_clean_task8/*/*
-!/artifacts/research_clean_task8/*/implementation.py
-!/artifacts/research_clean_task8/*/__init__.py
-!/artifacts/research_clean_task9/
-/artifacts/research_clean_task9/*
-!/artifacts/research_clean_task9/*.py
-!/artifacts/research_clean_task9/*.md
-!/artifacts/research_clean_task9/data_index.json
-!/artifacts/research_clean_task10/
-/artifacts/research_clean_task10/*
-!/artifacts/research_clean_task10/*.py
-!/artifacts/research_clean_task10/*.md
-!/artifacts/research_clean_task10/config.json
-!/artifacts/research_clean_task11/
-/artifacts/research_clean_task11/*
-!/artifacts/research_clean_task11/*.md
-!/artifacts/research_clean_task12/
-/artifacts/research_clean_task12/*
-!/artifacts/research_clean_task12/*.md
-!/artifacts/research_clean_task13/
-/artifacts/research_clean_task13/*
-!/artifacts/research_clean_task13/*.md
-!/artifacts/research_clean_task13/__init__.py
-!/artifacts/research_clean_task13/repro/
-/artifacts/research_clean_task13/repro/*
-!/artifacts/research_clean_task13/repro/*.py
-!/artifacts/research_clean_task13/repro/*.ps1
-!/artifacts/research_clean_task13/repro/*.toml
-
-# Generated numeric arrays, scientific exports, native plotting projects.
-*.npy
-*.npz
-*.h5
-*.hdf5
-*.opju
-*.tif
-*.tiff
-
-# Local metadata backups / scratch. Maintained .spec and configs remain visible.
-/.task13_*/
-
-# pytest / research scratch directories
-/.pytest_tmp*/
-/.task*_pytest*/
-/.task_gui_baseline_tmp_*/
-/.f_*/
-/.g_*/
-/.t*_full/
-/.t*_unit/
-/.t*_verify/
-
-# Python/tool caches
-/.mypy_cache/
-/.ruff_cache/
-/.pytest_cache/
-__pycache__/
-*.py[cod]
-
-
-!/artifacts/research_clean_task14/
-/artifacts/research_clean_task14/*
-!/artifacts/research_clean_task14/*.md
-!/artifacts/research_clean_task14/*.py
+# Maintained .spec, .ico, .svg, .qm, configs and .agents skills stay visible.

@@ -9,7 +9,7 @@ import pytest
 from dps_studio.core.io import read_delimited_signals
 from dps_studio.core.ridge import extract_peak_ridge, refine_peak_ridge_subbin
 from dps_studio.core.time_frequency import compute_stft
-from scripts.audit_legacy_velocity_reference import (
+from scripts.workflows.audit_legacy_velocity_reference import (
     EXPECTED_RAW_SHA256,
     VACUUM_WAVELENGTH_M,
     AuditConfiguration,

@@ -15,7 +15,7 @@ from dps_studio.gui.workspace_ui import channel_label
 class ResearchMainWindow(MainWindow):
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
-        self.setWindowTitle("PDV Studio · Research / Test · TASK-014")
+        self.setWindowTitle("PDV Studio · Research / Test · TASK-015")
         self.segment_workspace = SegmentWorkspace(self)
         self._segment_roi_override: AnalysisRange | None = None
         self.segment_workspace.can_analyze = lambda: (

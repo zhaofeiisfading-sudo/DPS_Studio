@@ -40,8 +40,8 @@
 |---|---|---|---|---|
 | `dps-studio` | `pyproject.toml` → `src/dps_studio/cli.py` | `cli.main` | 仅解析 `--version`；不运行分析 | 是，未修改 |
 | `python -m dps_studio` | `src/dps_studio/__main__.py` | `cli.main` | 与安装后的 CLI 相同 | 是，未修改 |
-| `run_demo_pipeline.bat` | 仓库根 | conda Python + `scripts/run_demo_pipeline.py` | Windows 正式双 profile 生产入口，成功后打开输出目录 | 是；GUI 不调用 |
-| `python scripts/run_demo_pipeline.py --config ...` | `scripts/run_demo_pipeline.py` | `load_workflow_config`、`read_delimited_signals`、`run_production_outputs` | 命令行正式生产编排 | 是；GUI 不调用 |
+| `run_demo_pipeline.bat` | 仓库根 | conda Python + `scripts/workflows/run_demo_pipeline.py` | Windows 正式双 profile 生产入口，成功后打开输出目录 | 是；GUI 不调用 |
+| `python scripts/workflows/run_demo_pipeline.py --config ...` | `scripts/workflows/run_demo_pipeline.py` | `load_workflow_config`、`read_delimited_signals`、`run_production_outputs` | 命令行正式生产编排 | 是；GUI 不调用 |
 | 各开发脚本的 `main()` | `scripts/assess_*`、`compare_*`、`plot_*`、`audit_*` | 各自开发/历史流程 | 绘图、质量证据、历史审计和参数比较 | 是；不是 GUI API |
 | `python -m dps_studio.gui` | `src/dps_studio/gui/__main__.py` | `gui.app.main` | TASK-014 新增桌面入口 | 是 |
 
@@ -104,8 +104,8 @@ public 导出服务。
 | `core/workflow/analysis.py` | `analyze_configuration` | I/O-free 单 profile、多通道独立正式数值链 | records + 显式参数 | 只读 channel mapping | SI | `analyze_profile`、测试 | ADAPTER |
 | `core/workflow/analysis.py` | `analyze_profile` | 将 `AnalysisProfile` 展开给正式 workflow | records + profile | `Mapping[str, ChannelAnalysis]` | SI | production、开发脚本 | ADAPTER |
 | `core/workflow/models.py` | `ChannelAnalysis` | 聚合一个独立通道的 STFT、ridge、质量、正式/显示速度 | core results | 冻结聚合结果 | s、Hz、m/s | production | YES（接收） |
-| `scripts/run_demo_pipeline.py` | `main`、`run_pipeline` | CLI、哈希核验、生产目录和 `LATEST_RUN` 编排 | TOML、路径 | 路径列表/磁盘树 | SI 配置 | BAT、命令行 | NO |
-| `scripts/production_outputs.py` | `run_production_outputs` | 阈值校准、profile/通道编排、Matplotlib/CSV/manifest 导出 | records + workflow config | production 文件树 | SI 文件字段；图可显示 μs | CLI | NO |
+| `scripts/workflows/run_demo_pipeline.py` | `main`、`run_pipeline` | CLI、哈希核验、生产目录和 `LATEST_RUN` 编排 | TOML、路径 | 路径列表/磁盘树 | SI 配置 | BAT、命令行 | NO |
+| `scripts/workflows/production_outputs.py` | `run_production_outputs` | 阈值校准、profile/通道编排、Matplotlib/CSV/manifest 导出 | records + workflow config | production 文件树 | SI 文件字段；图可显示 μs | CLI | NO |
 | `src/dps_studio/cli.py` | `main` | 版本查询占位 CLI | argv | exit code | 无 | console script | NO |
 | `src/dps_studio/gui/data_controller.py` | `DataImportController` | TASK-014 导入 adapter，只组装显式参数并调用 public reader | `SignalLoadRequest` | `DelimitedSignalLoadResult` | 输入 scale → s/V | GUI | GUI 内部 |
 
@@ -178,17 +178,17 @@ GUI 接入结论含义：
 | 表观速度 | `convert_ridge_to_apparent_velocity` | `core/physics/velocity.py` | ridge + vacuum wavelength m | unsigned apparent velocity | ADAPTER；不得复制公式 |
 | 连续性诊断 | `assess_ridge_continuity` | `core/ridge/diagnostics.py` | refined ridge | step/slope/second difference/status | ADAPTER |
 | 聚合 workflow | `analyze_profile` / `analyze_configuration` | `core/workflow/analysis.py` | records + profile/显式参数 | 每通道 `ChannelAnalysis` | ADAPTER；未来后台任务 |
-| 导出 | `run_production_outputs` 及私有 writers | `scripts/production_outputs.py` | workflow config + records | CSV/PNG/JSON/text | NO；缺少 public core/application export service |
+| 导出 | `run_production_outputs` 及私有 writers | `scripts/workflows/production_outputs.py` | workflow config + records | CSV/PNG/JSON/text | NO；缺少 public core/application export service |
 
 ## 8. 明确禁止引入 GUI 的代码
 
-- `scripts/run_demo_pipeline.py`：命令行解析、源文件哈希、输出目录和 `LATEST_RUN`。
-- `scripts/production_outputs.py`：production 编排、Pandas CSV、Matplotlib 图、
+- `scripts/workflows/run_demo_pipeline.py`：命令行解析、源文件哈希、输出目录和 `LATEST_RUN`。
+- `scripts/workflows/production_outputs.py`：production 编排、Pandas CSV、Matplotlib 图、
   manifest、README、log、输出契约和阈值校准。
-- `scripts/compare_real_ridge_refinement.py`、`assess_real_ridge_quality.py`、
+- `scripts/workflows/compare_real_ridge_refinement.py`、`assess_real_ridge_quality.py`、
   `assess_real_ridge_diagnostics.py`：开发参数、绘图、表格和报告。
-- `scripts/plot_real_stft.py`、`plot_real_velocity.py`：写死 demo 路径/旧参数的预览。
-- `scripts/audit_legacy_velocity_reference.py`：历史审计、独立参数网格、合成真值和报告。
+- `scripts/workflows/plot_real_stft.py`、`plot_real_velocity.py`：写死 demo 路径/旧参数的预览。
+- `scripts/workflows/audit_legacy_velocity_reference.py`：历史审计、独立参数网格、合成真值和报告。
 - 全部 `tests/**`、`notebooks/**`、`outputs/**`、`presentation/**`、
   `presentations/**`、脚本私有函数和 Matplotlib 图均禁止成为 GUI 运行依赖。
 
@@ -201,7 +201,7 @@ TASK-014 GUI 源码的自动测试会扫描上述禁止 import，并扫描 core 
 | 缺失接口 | 为什么需要 | 建议新增位置 | 是否属于 TASK-014 |
 |---|---|---|---|
 | 可取消、可报告进度的分析 job service | `analyze_profile` 是同步纯函数，完整分析不应阻塞 Qt 主线程 | 新的 application/controller adapter，内部只调 public workflow | 否 |
-| GUI 可用的 public export service | 当前导出全部在 `scripts/production_outputs.py` 且耦合 Matplotlib/生产目录 | 将稳定导出契约设计为独立 application/export API，core 保持 I/O-free | 否 |
+| GUI 可用的 public export service | 当前导出全部在 `scripts/workflows/production_outputs.py` 且耦合 Matplotlib/生产目录 | 将稳定导出契约设计为独立 application/export API，core 保持 I/O-free | 否 |
 | 工作区/项目状态持久化 | 保存文件、单位映射、范围、参数和失效关系 | GUI project model 或 application 层 | 否 |
 | 引导分析约束模型 | 需要保存 `time_s/frequency_hz` 走廊和 inclusion/exclusion regions | 经审计的 core/application public model | 否 |
 | corrected velocity 模型和经验证公式 | 必须与 apparent/display 分离，且 LiF 公式尚未验证 | `core/physics`，仅在物理模型核验后 | 否 |

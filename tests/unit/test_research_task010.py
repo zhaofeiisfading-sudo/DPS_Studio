@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from artifacts.research_clean_task8.common import Signal, event_detector, projection
-from artifacts.research_clean_task10.experiment import (
+from dps_studio.algorithms.waveform.common import Signal, event_detector, projection
+from scripts.research.task010.experiment import (
     Spec,
     adaptive,
     common_centers,
@@ -16,7 +16,7 @@ from artifacts.research_clean_task10.experiment import (
     metric,
     support,
 )
-from artifacts.research_clean_task10.run import select
+from scripts.research.task010.run import select
 from dps_studio.core.models import SignalRecord
 from dps_studio.core.ridge import extract_peak_ridge, refine_peak_ridge_subbin
 from dps_studio.core.time_frequency import compute_stft
@@ -106,7 +106,7 @@ def test_adaptive_selection_copies_an_existing_value_without_blending(signal: Si
 
 def test_declared_protocol_has_full_parameter_matrix_and_no_promotion() -> None:
     root = Path(__file__).resolve().parents[2]
-    config = json.loads((root / "artifacts/research_clean_task10/config.json").read_text())
+    config = json.loads((root / "configs/research/task010.json").read_text())
     assert config["windows"] == [512, 768, 1024, 1536, 2048]
     assert config["hops"] == [128, 64, 32, 16, 8, 1]
     assert config["production_defaults_changed"] is False
@@ -114,7 +114,7 @@ def test_declared_protocol_has_full_parameter_matrix_and_no_promotion() -> None:
 
 def test_cloud_copy_preserves_a_different_version(tmp_path: Path,
                                                  monkeypatch: pytest.MonkeyPatch) -> None:
-    from artifacts.research_clean_task10 import sync_cloud
+    from scripts.research.task010 import sync_cloud
     local=tmp_path/"local"
     local.mkdir()
     (local/"COMPARISON.md").write_text("new research",encoding="utf-8")
@@ -132,7 +132,7 @@ def test_cloud_copy_preserves_a_different_version(tmp_path: Path,
 
 def test_cloud_copy_keeps_identical_file(tmp_path: Path,
                                         monkeypatch: pytest.MonkeyPatch) -> None:
-    from artifacts.research_clean_task10 import sync_cloud
+    from scripts.research.task010 import sync_cloud
     local=tmp_path/"local"
     local.mkdir()
     cloud=tmp_path/"cloud"
@@ -148,7 +148,7 @@ def test_cloud_copy_keeps_identical_file(tmp_path: Path,
 
 def test_cloud_copy_rejects_source_outside_research(tmp_path: Path,
                                                   monkeypatch: pytest.MonkeyPatch) -> None:
-    from artifacts.research_clean_task10 import sync_cloud
+    from scripts.research.task010 import sync_cloud
     local=tmp_path/"local"
     local.mkdir()
     source=tmp_path/"outside.md"

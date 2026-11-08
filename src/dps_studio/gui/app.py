@@ -40,7 +40,7 @@ def create_application(
     application.setOrganizationName("DPS Studio Research")
     application.setApplicationName("PDV Studio TASK012 Test")
     application.setApplicationVersion(__version__)
-    application.setApplicationDisplayName("PDV Studio · Research / Test · TASK-014")
+    application.setApplicationDisplayName("PDV Studio · Research / Test · TASK-015")
     application.setWindowIcon(
         QIcon(str(package_resource_path("gui", "icons", "pdv_studio.ico")))
     )

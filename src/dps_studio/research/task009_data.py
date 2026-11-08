@@ -9,8 +9,10 @@ from typing import Any
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[3]
-INDEX = ROOT/"artifacts/research_clean_task9/data_index.json"
+from dps_studio.runtime_paths import application_resource_path, application_resource_root
+
+ROOT = application_resource_root()
+INDEX = application_resource_path("configs", "research", "task009_data_index.json")
 
 
 def inventory() -> list[dict[str, Any]]:
@@ -31,7 +33,7 @@ def inventory() -> list[dict[str, Any]]:
 
 
 def read_raw(row: dict[str, Any]) -> list[Any]:
-    from artifacts.research_clean_task8.common import Signal
+    from dps_studio.algorithms.waveform.common import Signal
     records = json.loads(INDEX.read_text(encoding="utf-8"))["records"]
     item = next(r for r in records if r["path"] == row["path"] and r["kind"] == "RAW")
     path = ROOT/item["local_path"]
@@ -43,6 +45,6 @@ def read_raw(row: dict[str, Any]) -> list[Any]:
 def install() -> None:
     """Bind only Research data functions; physics/algorithms/parameters unchanged."""
     for name in ("data", "runner"):
-        module = importlib.import_module(f"artifacts.research_clean_task8.{name}")
+        module = importlib.import_module(f"dps_studio.research.waveform.{name}")
         setattr(module, "inventory", inventory)
         setattr(module, "read_raw", read_raw)

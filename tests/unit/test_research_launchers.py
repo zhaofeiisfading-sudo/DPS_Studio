@@ -9,13 +9,14 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _launcher(name: str) -> str:
-    return (REPOSITORY_ROOT / name).read_text(encoding="utf-8")
+    folder = "docs/development" if name.endswith(".md") else "scripts/launchers"
+    return (REPOSITORY_ROOT / folder / name).read_text(encoding="utf-8")
 
 
 def test_global_path_launcher_uses_its_own_root_and_research_source() -> None:
     launcher = _launcher("run_research_global_path.bat")
 
-    assert 'set "ROOT=%~dp0"' in launcher
+    assert 'for %%I in ("%~dp0..\\..")' in launcher
     assert 'set "DPS_RESEARCH_SRC=%ROOT%src"' in launcher
     assert 'set "PYTHONPATH=%DPS_RESEARCH_SRC%;%PYTHONPATH%"' in launcher
     assert "conda" in launcher.lower()
@@ -30,7 +31,7 @@ def test_global_path_launcher_uses_its_own_root_and_research_source() -> None:
 def test_research_gui_launcher_checks_import_before_starting_gui() -> None:
     launcher = _launcher("run_research_gui.bat")
 
-    assert 'set "ROOT=%~dp0"' in launcher
+    assert 'for %%I in ("%~dp0..\\..")' in launcher
     assert 'set "PYTHONPATH=%DPS_RESEARCH_SRC%;%PYTHONPATH%"' in launcher
     assert "dps_studio import:" in launcher
     assert "is_relative_to(research_src)" in launcher

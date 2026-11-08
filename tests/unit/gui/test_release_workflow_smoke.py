@@ -52,7 +52,7 @@ def test_gui_workflow_audits_real_sample_and_exports(qapp: QApplication, tmp_pat
     try:
         window.resize(1366, 768)
         window.show()
-        source = Path(__file__).resolve().parents[3] / "docs/原始数据.csv"
+        source = Path(__file__).resolve().parents[3] / "data/reference/legacy_docs/原始数据.csv"
         report = _exercise(window, source, tmp_path)
         assert report["workflow_complete"] and report["input_unchanged"]
         assert len(report["builtin_derivative_audit"]) == 2

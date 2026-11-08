@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.summarize_task026 import gate_verdict
+from scripts.research.inherited.task026.summarize_task026 import gate_verdict
 
 
 @pytest.mark.parametrize('failed', range(6))

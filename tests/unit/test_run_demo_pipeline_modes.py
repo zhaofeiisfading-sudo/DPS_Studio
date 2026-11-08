@@ -11,11 +11,11 @@ from dps_studio.core.workflow import load_workflow_config
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS_DIRECTORY = PROJECT_ROOT / "scripts"
+SCRIPTS_DIRECTORY = PROJECT_ROOT / "scripts/workflows"
 if str(SCRIPTS_DIRECTORY) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIRECTORY))
 
-import run_demo_pipeline as pipeline  # noqa: E402
+import scripts.workflows.run_demo_pipeline as pipeline  # noqa: E402
 
 
 def test_cli_defaults_to_single_toml_and_timestamped_output() -> None:

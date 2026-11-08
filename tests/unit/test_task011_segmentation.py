@@ -74,9 +74,9 @@ def test_boundaries_have_single_owner_and_final_endpoint(request_data: Estimator
 
 @pytest.mark.parametrize("algorithm", ["dechirp", "varpro", "clutter_varpro"])
 def test_adapters_preserve_frozen_frequency_flags_and_raw(request_data: EstimatorRequest, algorithm: str) -> None:
-    from dps_studio.algorithms.task008.common import Context, Signal
+    from dps_studio.algorithms.waveform.common import Context, Signal
 
-    module = importlib.import_module(f"dps_studio.algorithms.task008.{algorithm}.implementation")
+    module = importlib.import_module(f"dps_studio.algorithms.waveform.{algorithm}.implementation")
     before = request_data.record.voltage_v.tobytes()
     context = Context(Signal(np.array(request_data.record.time_s), np.array(request_data.record.voltage_v)))
     direct = module.run(context)

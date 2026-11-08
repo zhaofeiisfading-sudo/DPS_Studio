@@ -3,9 +3,9 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from artifacts.research_clean_task13.repro import stage
-from artifacts.research_clean_task13.repro.cases import VELOCITY, fresh
-from artifacts.research_clean_task14.study import one_peak
+from scripts.research.task013 import stage
+from scripts.research.task013.cases import VELOCITY, fresh
+from scripts.research.task014.study import one_peak
 
 
 def test_refinement_preserves_support_and_resolves_stationary_tone() -> None:
@@ -29,7 +29,7 @@ def test_refinement_preserves_support_and_resolves_stationary_tone() -> None:
 
 def test_failed_refinement_leaves_a_flagged_gap(monkeypatch: pytest.MonkeyPatch) -> None:
     case = fresh("low_plateau", 100)
-    monkeypatch.setattr("artifacts.research_clean_task14.study.minimize_scalar",
+    monkeypatch.setattr("scripts.research.task014.study.minimize_scalar",
                         lambda *args, **kwargs: SimpleNamespace(success=False))
     trace = one_peak(case.signal, case.plan)
     assert np.isnan(trace.accepted_hz).all()

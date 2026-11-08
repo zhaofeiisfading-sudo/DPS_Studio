@@ -12,7 +12,7 @@ from dps_studio.research import task009_runtime as runtime
 def test_frozen_package_is_physical_local_directory() -> None:
     runtime.assert_local()
     assert runtime.TASK8.resolve().is_relative_to(runtime.ROOT)
-    assert runtime.ROOT.name == "DPS_Studio_RESEARCH_CLEAN"
+    assert (runtime.ROOT / "pyproject.toml").is_file()
 
 
 @pytest.mark.parametrize("event", ["open", "os.listdir", "os.scandir"])
@@ -22,21 +22,21 @@ def test_old_worktree_guard_blocks_even_historical_source(event: str) -> None:
 
 
 def test_target_protocol_is_allowed_and_has_fixed_counts() -> None:
-    runtime.source_guard("open", (str(runtime.TASK8/"PROTOCOL.md"),))
-    text = (runtime.TASK8/"PROTOCOL.md").read_text(encoding="utf-8")
+    runtime.source_guard("open", (str(runtime.PROTOCOL),))
+    text = runtime.PROTOCOL.read_text(encoding="utf-8")
     assert "96" in text and "50" in text
 
 
 def test_original_algorithms_and_test_sources_match_frozen_fingerprints() -> None:
-    from artifacts.research_clean_task8.audit import sha
-    frozen = json.loads((runtime.TASK8/"source_freeze.json").read_text(encoding="utf-8"))
+    from dps_studio.research.source_records import frozen_source_matches
+    frozen = json.loads((runtime.ROOT/"docs/tasks/TASK-008/provenance/source_freeze.json").read_text(encoding="utf-8"))
     assert frozen
     for path, digest in frozen.items():
-        assert sha(runtime.ROOT/path) == digest
+        assert frozen_source_matches(runtime.ROOT, path, digest), path
 
 
 def test_excluded_scratch_does_not_include_frozen_results() -> None:
-    from artifacts.research_clean_task9.migrate import disposition
+    from scripts.research.task009.migrate import disposition
     assert disposition("varpro/runs/fresh/fresh_step_00/trajectory.npz")[0]
     assert disposition("development_sources00/common.py")[0]
     assert disposition("checks/reproduction_smoke/replay_comparison.json")[0]

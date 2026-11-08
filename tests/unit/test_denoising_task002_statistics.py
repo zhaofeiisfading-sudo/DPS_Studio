@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 import pytest
 
-from report_denoising_task002 import aggregate, paired_bootstrap
+from scripts.research.inherited.task002.report_denoising_task002 import aggregate, paired_bootstrap
 from dps_studio.research import denoising_task002 as bench
 
 

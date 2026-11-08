@@ -145,6 +145,8 @@ def test_stage_recommendations_manual_override_survive_gates_channels_and_save(
     assert s.plan[0].algorithm == "dechirp"
     s.set_segment(0, algorithm="varpro")
     s.set_segment(0, stage="plateau")
+    assert s.plan[0].algorithm == RECOMMENDATIONS.get("plateau", "stft")
+    s.set_segment(0, algorithm="varpro")
     assert s.plan[0].algorithm == "varpro"
     assert "保留人工" in s.recommendation_label.text()
     assert s.add_boundary(100e-9)
@@ -162,9 +164,9 @@ def test_stage_recommendations_manual_override_survive_gates_channels_and_save(
     s.load_plan(path)
     s.interval_combo.setCurrentIndex(1)
     s.set_segment(1, stage="noise")
-    assert s.plan[1].algorithm == "varpro"
+    assert s.plan[1].algorithm == "stft"
     s._adopt_recommendation()
-    assert s.plan[1].algorithm == "unobservable"
+    assert s.plan[1].algorithm == "stft"
 
 
 def test_mirror_boundary_drag_clamps_and_keeps_ids_and_properties(
@@ -259,8 +261,9 @@ def test_channel_undo_does_not_erase_other_channel_manual_selection(
     s.undo_edit()
     assert ("pdv_channel_2", second_id) in s.manual_choices
     s.channel_combo.setCurrentIndex(1)
-    s.set_segment(0, stage="noise")
     assert s.plan[0].algorithm == "varpro"
+    s.set_segment(0, stage="noise")
+    assert s.plan[0].algorithm == "stft"
 
 
 def test_manual_reference_reuses_cache_and_preserves_classic_result_and_channel_zoom(

@@ -61,12 +61,16 @@ def export_segmented_results(
         stem = f"{channel_index:02d}_{safe_name}_segmented"
         csv_path, meta_path = destination / f"{stem}.csv", destination / f"{stem}.metadata.json"
         stage_by_id = {segment.id: segment.stage for segment in result.segments}
+        observation_by_id = {segment.id: segment.observation_quality for segment in result.segments}
+        source_by_id = {item["id"]: item["source"] for item in result.metadata["algorithms"]}
         with csv_path.open("x", encoding="utf-8-sig", newline="") as handle:
             writer = csv.writer(handle)
             writer.writerow(("time_s", "absolute_time_s", "frequency_hz",
                              "candidate_frequency_hz", "apparent_velocity_m_s",
                              "angle_corrected_velocity_m_s", "corrected_velocity_m_s",
-                             "valid", "quality", "segment_id", "stage", "algorithm_id"))
+                             "valid", "quality", "segment_id", "stage", "algorithm_id",
+                             "estimator_source", "observation_quality", "stationary_prior_m_s",
+                             "prior_source"))
             for index, t in enumerate(result.time_s):
                 writer.writerow((format(float(t - time_origin_s), ".17g"), format(float(t), ".17g"),
                                  result.frequency_hz[index], result.candidate_frequency_hz[index],
@@ -74,7 +78,12 @@ def export_segmented_results(
                                  result.angle_corrected_velocity_m_s[index],
                                  result.corrected_velocity_m_s[index], int(result.valid[index]),
                                  result.quality[index], result.segment_ids[index],
-                                 stage_by_id[result.segment_ids[index]], result.algorithm_ids[index]))
+                                 stage_by_id[result.segment_ids[index]], result.algorithm_ids[index],
+                                 source_by_id[result.segment_ids[index]],
+                                 observation_by_id[result.segment_ids[index]],
+                                 0. if stage_by_id[result.segment_ids[index]] == "stationary" else np.nan,
+                                 "OPERATOR_PRIOR_NOT_MEASUREMENT"
+                                 if stage_by_id[result.segment_ids[index]] == "stationary" else "NONE"))
         metadata = {**dict(result.metadata), "channel": channel, "source_path": source_path,
                     "source_sha256": source_sha, "segments": result.segments,
                     "vacuum_wavelength_m": result.wavelength_m, "time_origin_s": time_origin_s,

@@ -6,7 +6,7 @@ import importlib
 import numpy as np
 import pytest
 
-from artifacts.research_clean_task8 import common
+from dps_studio.research.waveform import common
 
 
 @pytest.mark.parametrize("window", [512, 768])
@@ -17,7 +17,7 @@ def test_historical_m0_retains_boundary_candidate_without_mutating_raw(window: i
     before = signal.voltage_v.tobytes()
     context = common.Context(signal)
     result = importlib.import_module(
-        f"artifacts.research_clean_task8.legacy_m0_{window}.implementation").run(context)
+        f"dps_studio.algorithms.waveform.legacy_m0_{window}.implementation").run(context)
     assert signal.voltage_v.tobytes() == before
     assert np.isfinite(result.frequency_hz).all()
     assert np.isnan(result.extra["strict_refined_hz"]).all()

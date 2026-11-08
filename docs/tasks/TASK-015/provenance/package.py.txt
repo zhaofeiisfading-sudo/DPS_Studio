@@ -1,0 +1,38 @@
+"""Create one ZIP, verify each member, and extract a fresh launch copy."""
+import hashlib
+import json
+from pathlib import Path
+import zipfile
+
+OUT=(Path(__file__).resolve().parents[3] / "artifacts/TASK-015")
+ROOT=OUT.parents[1]
+source=OUT/'tmp/dist/PDV_Studio_Research_TASK015'
+release=OUT/'release'
+release.mkdir(exist_ok=True)
+target=release/'PDV_Studio_Research_TASK015_Windows_x64.zip'
+manifest={}
+raw=json.loads((OUT/'disk_governance/boundaries_before.json').read_text(encoding='utf-8'))
+raw_hashes={entry['sha256'] for key in ('raw','supplement') for entry in raw[key].values()}
+for p in sorted(source.rglob('*')):
+    if p.is_file():
+        sha=hashlib.sha256(p.read_bytes()).hexdigest()
+        assert sha not in raw_hashes, f'Raw file leaked into package: {p}'
+        manifest[p.relative_to(source.parent).as_posix()]=dict(bytes=p.stat().st_size,sha256=sha)
+with zipfile.ZipFile(target,'x',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as archive:
+    for name in manifest:
+        archive.write(source.parent/name,name)
+with zipfile.ZipFile(target) as archive:
+    assert set(archive.namelist())==set(manifest)
+    for name,entry in manifest.items():
+        assert hashlib.sha256(archive.read(name)).hexdigest()==entry['sha256']
+    destination=OUT/'tmp/zipcheck'
+    destination.mkdir(exist_ok=False)
+    archive.extractall(destination)
+record=dict(zip=str(target.relative_to(OUT)),bytes=target.stat().st_size,
+            sha256=hashlib.sha256(target.read_bytes()).hexdigest(),files=len(manifest),
+            uncompressed_bytes=sum(e['bytes'] for e in manifest.values()),
+            members=manifest,raw_content_hash_matches=0,source_sha256={
+                str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in (ROOT/'src/dps_studio').rglob('*.py')})
+(OUT/'data/package.json').write_text(json.dumps(record,indent=2),encoding='utf-8')
+print(json.dumps({k:v for k,v in record.items() if k not in ('members','source_sha256')},indent=2))

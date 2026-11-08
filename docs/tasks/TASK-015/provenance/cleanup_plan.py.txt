@@ -1,0 +1,33 @@
+"""Prepare conservative cleanup evidence; deletion is a separate PowerShell step."""
+import hashlib
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+OUT = (Path(__file__).resolve().parents[3] / "artifacts/TASK-015")/'disk_governance'
+SAFE = ('.mypy_cache','.pytest_cache','.ruff_cache','build/pip-cache',
+        'build/task14','build/task14-ci-freeze')
+result=[]
+for name in SAFE:
+    path=(ROOT/name).resolve()
+    assert path.is_relative_to(ROOT) and path != ROOT
+    paths=list(path.rglob('*')) if path.exists() else []
+    assert not any(p.is_symlink() or p.is_junction() for p in paths)
+    entries=[]
+    for p in paths:
+        if p.is_file():
+            with p.open('rb') as stream:
+                sha=hashlib.file_digest(stream,'sha256').hexdigest()
+            entries.append(dict(path=p.relative_to(ROOT).as_posix(),bytes=p.stat().st_size,sha256=sha))
+    result.append(dict(path=name,category='SAFE_TO_DELETE',files=entries,
+                       reason='Tool cache or PyInstaller work folder: reproducible from retained source/spec/constraints; no active interpreter under this path'))
+for name in ('build/task14-env','build/task14-ci','build/task14-install','build/task14-scratch',
+             '.t11_verify','.t28_sync_full','.pytest_tmp_mergecheck','.task_gui_baseline_tmp_20260817_a',
+             '.task13_pytest_acceptance','.task13_pytest_final','.task13_pytest_related_v01','.task13_pytest_release'):
+    result.append(dict(path=name,category='UNCERTAIN_REPORT_ONLY',reason=
+        'Retained: environment reproducibility or test-output uniqueness not fully established; no blind deletion'))
+for name in ('.git','src','tests','data','docs','configs','artifacts','release','results','.codex','.vscode','packaging','scripts','tools'):
+    result.append(dict(path=name,category='MUST_KEEP',reason='Source, configuration, raw, historical result or existing release'))
+(OUT/'cleanup_manifest.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
+print(json.dumps(dict(approved_files=sum(len(r.get('files',[])) for r in result),
+                     approved_bytes=sum(f['bytes'] for r in result for f in r.get('files',[])))))

@@ -14,9 +14,9 @@ from dps_studio.research import task023h_raw_evidence as e
 from dps_studio.research.task023e_waveform_benchmark import (
     PROFILES, ambiguous_pair, generate_case, profile_input,
 )
-from scripts import run_task023d_smooth_branch_rescue as legacy
-from scripts import run_task023f_proposal_recovery as runner
-from scripts.run_task023h_raw_audit import configs, fresh_case
+from scripts.research.inherited.task023d import run_task023d_smooth_branch_rescue as legacy
+from scripts.research.inherited.task023f import run_task023f_proposal_recovery as runner
+from scripts.research.inherited.task023h.run_task023h_raw_audit import configs, fresh_case
 
 
 def test_hilbert_reconstructs_known_complex_tone_and_preserves_input() -> None:

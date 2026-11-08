@@ -21,11 +21,11 @@ from dps_studio.core.quality import SignalState
 from dps_studio.core.workflow import analyze_profile, load_workflow_config
 
 
-SCRIPTS_DIRECTORY = Path(__file__).resolve().parents[2] / "scripts"
+SCRIPTS_DIRECTORY = Path(__file__).resolve().parents[2] / "scripts/workflows"
 if str(SCRIPTS_DIRECTORY) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIRECTORY))
 
-from production_outputs import (  # noqa: E402
+from scripts.workflows.production_outputs import (  # noqa: E402
     CHANNEL_FILENAMES,
     CHANNEL_PLOT_FILENAMES,
     COMPARISON_FILENAMES,

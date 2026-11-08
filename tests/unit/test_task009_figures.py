@@ -9,8 +9,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from artifacts.research_clean_task8.catalog import METHODS
-from artifacts.research_clean_task9.prepare_figures import ROOT, T8, T9, VELOCITY, table
+from dps_studio.algorithms.waveform.catalog import METHODS
+from dps_studio.research.source_records import frozen_source_matches, relocated_path
+from scripts.research.task009.prepare_figures import ROOT, T8, T9, VELOCITY, table
 
 FIGURES = T9 / "figures_final"
 MAIN = ["Fig01_GlobalPerformance", "Fig02_PairedEffect", "Fig03_LowVelocity", "Fig04_Onset",
@@ -21,17 +22,15 @@ SUPPLEMENTS = ["SFig01_FamilyFailure", "SFig02_RealCoverage", "SFig03_RealSpectr
 
 @pytest.mark.parametrize("identifier", MAIN + SUPPLEMENTS)
 def test_figures_exist_with_traceable_sources_and_embedded_pdf_fonts(identifier: str) -> None:
-    import hashlib
     folder = FIGURES / identifier
     spec = json.loads((folder / "figure.json").read_text(encoding="utf-8"))
     for extension in ["pdf", "svg", "png"] + (["opju"] if identifier in MAIN else []):
         assert (folder / f"{identifier}.{extension}").stat().st_size > 500
     assert (folder / "caption_zh.md").is_file()
     for item in spec["sources"]:
-        path = (ROOT / item["path"]).resolve()
+        path = relocated_path(ROOT, item["path"])
         assert path.is_relative_to(ROOT)
-        with path.open("rb") as handle:
-            assert hashlib.file_digest(handle, "sha256").hexdigest() == item["sha256"]
+        assert frozen_source_matches(ROOT, item["path"], item["sha256"]), item["path"]
     pdf = json.loads((folder / "pdf_parsed.json").read_text(encoding="utf-8"))
     assert len(pdf["pages"]) == 1
     text = " ".join(w["text"] or "" for p in pdf["pages"] for w in p["words"])

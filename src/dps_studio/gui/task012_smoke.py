@@ -110,6 +110,8 @@ def exercise(window: ResearchMainWindow, source: Path, destination: Path) -> dic
     assert s.plan[2].algorithm == "dechirp"
     s.set_segment(3, algorithm="varpro")
     s.set_segment(3, stage="rebound")
+    assert s.plan[3].algorithm == "stft"
+    s.set_segment(3, algorithm="varpro")
     assert s.plan[3].algorithm == "varpro"
     for index, key in enumerate(("raw", "stft", "classic", "result")):
         s.views.setCurrentIndex(index)
@@ -131,11 +133,14 @@ def exercise(window: ResearchMainWindow, source: Path, destination: Path) -> dic
     assert s.plan == plan
     s.save_plan(destination / "segments.json")
     s.load_plan(destination / "segments.json")
+    for row, algorithm in enumerate(("low_glrt", "stft_short", "stft_long", "tone_refine")):
+        s.set_segment(row, algorithm=algorithm)
     channel_reports = []
     for channel_index in range(s.channel_combo.count()):
         s.channel_combo.setCurrentIndex(channel_index)
         if channel_index:
             assert s.add_boundary(start + (end - start) * .5)
+            s.set_segment(0, algorithm="stft_low")
             s.set_segment(1, stage="acceleration")
         channel = str(s.channel_combo.currentData())
         assert s.run_analysis()
@@ -203,7 +208,7 @@ def exercise(window: ResearchMainWindow, source: Path, destination: Path) -> dic
     assert hashlib.sha256(source.read_bytes()).hexdigest() == before
     import dps_studio.gui.research_window as research
     import dps_studio.core.segmentation as segmentation
-    import dps_studio.algorithms.task008.common as algorithms
+    import dps_studio.algorithms.waveform.common as algorithms
 
     return {"passed": True, "frozen": bool(getattr(sys, "frozen", False)),
         "source": str(source), "source_sha256": before, "raw_unchanged": True,

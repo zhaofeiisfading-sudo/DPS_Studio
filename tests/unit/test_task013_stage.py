@@ -4,13 +4,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from artifacts.research_clean_task13.repro.cases import VELOCITY, fresh, specifications
-from artifacts.research_clean_task13.repro.experiment import metric
-from artifacts.research_clean_task13.repro.stage import (
+from scripts.research.task013.cases import VELOCITY, fresh, specifications
+from scripts.research.task013.experiment import metric
+from scripts.research.task013.stage import (
     Annotation, chirp_objective, frozen_estimate, grid, linear_fit, local_estimate,
     quality_gate, recommended, support,
 )
-from dps_studio.algorithms.task008.common import Signal, strongest
+from dps_studio.algorithms.waveform.common import Signal, strongest
 
 
 def tone(frequency: float, phase: float = .7) -> Signal:
@@ -128,7 +128,7 @@ def test_training_and_independent_test_waveforms_and_seeds_differ() -> None:
 
 
 def test_all_development_and_evaluation_random_streams_are_disjoint_across_families() -> None:
-    from artifacts.research_clean_task13.repro.cases import load
+    from scripts.research.task013.cases import load
 
     development = {load(spec).metadata["seed"] for spec in specifications(development=True)}
     evaluation = {load(spec).metadata["seed"] for spec in specifications() if spec[0] == "independent"}

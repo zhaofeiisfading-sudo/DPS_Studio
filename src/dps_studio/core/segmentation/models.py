@@ -31,12 +31,18 @@ class Segment:
     end_s: float
     stage: str = "unknown"
     algorithm: str = "stft"
+    observation_quality: str = "unspecified"
 
     def __post_init__(self) -> None:
+        if self.stage in ("噪声", "噪声干扰"):
+            object.__setattr__(self, "stage", "noise")
         if not self.id or not all(map(math.isfinite, (self.start_s, self.end_s))):
             raise ValueError("Segment needs an identity and finite SI endpoints")
         if self.start_s >= self.end_s or self.stage not in STAGES or not self.algorithm:
             raise ValueError("Invalid segment interval, stage or algorithm")
+        if self.observation_quality not in ("unspecified", "good", "weak", "interference",
+                                            "unobservable"):
+            raise ValueError("Invalid independent observation quality")
 
 
 def validate_plan(segments: tuple[Segment, ...], start_s: float, end_s: float) -> None:
@@ -57,6 +63,7 @@ class EstimatorRequest:
     end_s: float
     wavelength_m: float
     workflow_options: Mapping[str, Any]
+    segment: Segment | None = None
 
     def __post_init__(self) -> None:
         if not all(map(math.isfinite, (self.start_s, self.end_s, self.wavelength_m))):
@@ -65,6 +72,9 @@ class EstimatorRequest:
             raise ValueError("Invalid ROI or wavelength")
         if self.start_s < self.record.start_time_s or self.end_s > self.record.end_time_s:
             raise ValueError("ROI must lie inside the original record")
+        if self.segment is not None and not (
+                self.start_s <= self.segment.start_s < self.segment.end_s <= self.end_s):
+            raise ValueError("Strategy segment must lie inside the ROI")
         object.__setattr__(self, "workflow_options", MappingProxyType(dict(self.workflow_options)))
 
 

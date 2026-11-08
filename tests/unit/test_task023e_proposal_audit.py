@@ -7,7 +7,7 @@ from dps_studio.research import task023d_smooth_branch_rescue as old
 from dps_studio.research.task023e_proposal_audit import (
     audit_frames, collect_beams, feasibility_gate, terminal_beam,
 )
-from scripts import run_task023d_smooth_branch_rescue as runner
+from scripts.research.inherited.task023d import run_task023d_smooth_branch_rescue as runner
 
 
 def test_majority_stop_is_strict_and_zero_denominator_is_safe():

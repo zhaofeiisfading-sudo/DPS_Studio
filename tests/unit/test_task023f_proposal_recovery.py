@@ -18,8 +18,8 @@ from dps_studio.research import task023f_proposals as f
 from dps_studio.research.task023e_waveform_benchmark import (
     FAMILIES, PROFILES, ambiguous_pair, array_hash, generate_case, oscillator_phase, profile_input,
 )
-from scripts import run_task023d_smooth_branch_rescue as legacy
-from scripts import run_task023f_proposal_recovery as runner
+from scripts.research.inherited.task023d import run_task023d_smooth_branch_rescue as legacy
+from scripts.research.inherited.task023f import run_task023f_proposal_recovery as runner
 
 
 @pytest.fixture(scope='module')

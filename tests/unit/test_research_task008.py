@@ -7,14 +7,14 @@ from collections.abc import Callable
 import numpy as np
 import pytest
 
-from artifacts.research_clean_task8 import common, data
-from artifacts.research_clean_task8.acmd.implementation import correction, envelopes
-from artifacts.research_clean_task8.matrix_pencil.implementation import poles
-from artifacts.research_clean_task8.runner import metric
-from artifacts.research_clean_task8.time_domain.implementation import integrated_basis
-from artifacts.research_clean_task8.time_domain.implementation import objective as td_objective
-from artifacts.research_clean_task8.varpro.implementation import fit
-from artifacts.research_clean_task8.varpro.implementation import objective as vp_objective
+from dps_studio.research.waveform import common, data
+from dps_studio.algorithms.waveform.acmd.implementation import correction, envelopes
+from dps_studio.algorithms.waveform.matrix_pencil.implementation import poles
+from dps_studio.research.waveform.runner import metric
+from dps_studio.algorithms.waveform.time_domain.implementation import integrated_basis
+from dps_studio.algorithms.waveform.time_domain.implementation import objective as td_objective
+from dps_studio.algorithms.waveform.varpro.implementation import fit
+from dps_studio.algorithms.waveform.varpro.implementation import objective as vp_objective
 
 
 def test_time_validation_does_not_sort_or_resample() -> None:
@@ -36,7 +36,7 @@ def test_unchanged_formal_baselines_keep_exact_refined_and_discrete(window: int)
     case = data.generate("step", 911, development=True)
     context = common.Context(case.signal)
     result = importlib.import_module(
-        f"artifacts.research_clean_task8.stft{window}.implementation").run(context)
+        f"dps_studio.algorithms.waveform.stft{window}.implementation").run(context)
     _, refined, discrete, _ = common.strongest(case.signal, window, 50e6, 6e9)
     select = context.seed_indices if window == 512 else np.arange(len(refined))
     np.testing.assert_array_equal(result.frequency_hz, refined[select])
@@ -132,7 +132,7 @@ def test_missing_outputs_count_as_failures() -> None:
 def test_noise_is_never_labeled_measured_zero() -> None:
     case = data.generate("noise_only", 913, development=True)
     context = common.Context(case.signal)
-    method = importlib.import_module("artifacts.research_clean_task8.gated_stft256.implementation")
+    method = importlib.import_module("dps_studio.algorithms.waveform.gated_stft256.implementation")
     result = method.run(context)
     assert np.isnan(result.accepted_hz).all()
     assert not np.any(result.accepted_hz == 0)
@@ -143,7 +143,7 @@ def test_estimator_keeps_input_bytes_and_exposes_missing_or_identity_flags(metho
     case = data.generate("step", 915, development=True)
     before = (case.signal.time_s.tobytes(), case.signal.voltage_v.tobytes())
     context = common.Context(case.signal)
-    result = importlib.import_module(f"artifacts.research_clean_task8.{method}.implementation").run(context)
+    result = importlib.import_module(f"dps_studio.algorithms.waveform.{method}.implementation").run(context)
     assert len(result.frequency_hz) == len(context.centers)
     assert result.flags.shape == result.accepted_hz.shape
     assert before == (case.signal.time_s.tobytes(), case.signal.voltage_v.tobytes())
@@ -181,7 +181,7 @@ def test_pencil_resolves_noiseless_dual_tones_with_dc_nuisance() -> None:
 
 
 def test_coherent_nuisance_uses_phase_and_does_not_erase_new_tone() -> None:
-    module = importlib.import_module("artifacts.research_clean_task8.clutter_varpro.implementation")
+    module = importlib.import_module("dps_studio.algorithms.waveform.clutter_varpro.implementation")
     t = np.arange(12800)/40e9
     nuisance = .05*np.cos(2*np.pi*450e6*t+.3)
     x = nuisance+.025*np.cos(2*np.pi*900e6*t+.2)*(t >= 60e-9)

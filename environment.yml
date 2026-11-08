@@ -1,6 +1,9 @@
-name: dps-studio
+name: dps-studio-research
 channels:
   - conda-forge
 dependencies:
   - python=3.12
   - pip
+  - pip:
+      - '-c scripts/build/windows-constraints.txt'
+      - '-e .[dev,research]'

@@ -1,8 +1,6 @@
-name: Windows Research test build
+name: Windows Research manual build
 on:
   workflow_dispatch:
-  push:
-    tags: ['v*']
 permissions:
   contents: read
 jobs:
@@ -11,7 +9,13 @@ jobs:
     timeout-minutes: 45
     env:
       PYTHONUTF8: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
       OPENBLAS_NUM_THREADS: '1'
+      QT_QPA_PLATFORM: offscreen
+      PIP_CACHE_DIR: '${{ github.workspace }}/artifacts/CI/tmp/pip'
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,21 +23,30 @@ jobs:
           python-version: '3.12'
           architecture: x64
           cache: pip
-          cache-dependency-path: packaging/windows-constraints.txt
-      - run: python -m pip install -c packaging/windows-constraints.txt -e ".[dev]"
-      - run: python -m ruff check src/dps_studio/core src/dps_studio/gui
-      - run: python -m mypy src/dps_studio/core src/dps_studio/gui
-      - run: python -m pytest -q tests/unit/test_analysis_profiles.py tests/unit/test_local_peak_candidates.py tests/unit/test_acceleration.py tests/unit/test_local_acceleration.py tests/unit/test_acceleration_export.py tests/unit/gui/test_task014_export.py
-      - run: python -m PyInstaller --distpath dist --workpath build packaging/pdv_research.spec
-      - name: Launch frozen application
-        shell: pwsh
+          cache-dependency-path: scripts/build/windows-constraints.txt
+      - name: Install source and development tools
+        run: scripts/dev/run.ps1 -Task CI -m pip install -c scripts/build/windows-constraints.txt -e ".[dev]"
+      - name: Check source quality
         run: |
-          $exe = Get-Item 'dist/PDV_Studio_Research_TASK014/PDV Studio Research TASK014.exe'
-          $report = Join-Path $PWD 'startup.json'
+          scripts/dev/run.ps1 -Task CI -m ruff check src/dps_studio/core src/dps_studio/gui scripts/maintenance/check_repo_hygiene.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          scripts/dev/run.ps1 -Task CI -m mypy src/dps_studio/core src/dps_studio/gui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          scripts/dev/run.ps1 -Task CI scripts/maintenance/check_repo_hygiene.py
+      - name: Regress public and synthetic workflows
+        run: scripts/dev/run.ps1 -Task CI -m pytest -q tests/unit/test_repo_hygiene.py tests/unit/test_analysis_profiles.py tests/unit/test_local_peak_candidates.py tests/unit/test_acceleration.py tests/unit/test_local_acceleration.py tests/unit/test_acceleration_export.py tests/unit/test_task015_stage_strategies.py tests/unit/gui/test_task014_export.py
+      - name: Build on demand
+        run: scripts/build/build_windows.ps1 -Task CI -DistDirectory artifacts/CI/dist
+      - name: Launch frozen application
+        env:
+          QT_QPA_PLATFORM: windows
+        run: |
+          $exe = Get-Item 'artifacts/CI/dist/PDV_Studio_Research/PDV Studio Research.exe'
+          $report = Join-Path $PWD 'artifacts/CI/startup.json'
           $p = Start-Process -FilePath $exe.FullName -ArgumentList "--startup-smoke-test `"$report`"" -PassThru -Wait -WindowStyle Hidden
           if ($p.ExitCode -ne 0 -or !(Get-Content $report -Raw | ConvertFrom-Json).event_loop_entered) { throw 'Startup failed' }
       - uses: actions/upload-artifact@v4
         with:
           name: PDV-Studio-Research-Windows-x64
-          path: dist/PDV_Studio_Research_TASK014/
+          path: artifacts/CI/dist/PDV_Studio_Research/
           if-no-files-found: error

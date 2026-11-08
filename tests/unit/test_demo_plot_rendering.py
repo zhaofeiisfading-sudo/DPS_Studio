@@ -17,7 +17,7 @@ SCRIPTS_DIRECTORY = Path(__file__).resolve().parents[2] / "scripts"
 if str(SCRIPTS_DIRECTORY) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIRECTORY))
 
-plotting = importlib.import_module("compare_real_ridge_refinement")
+plotting = importlib.import_module("scripts.workflows.compare_real_ridge_refinement")
 
 
 def test_plot_complete_series_retains_every_value_and_nan_position() -> None:

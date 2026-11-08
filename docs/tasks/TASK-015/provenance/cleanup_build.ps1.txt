@@ -1,0 +1,23 @@
+$ErrorActionPreference = 'Stop'
+$taskRoot = (Resolve-Path $PSScriptRoot).Path
+$taskTemp = (Resolve-Path (Join-Path $taskRoot 'tmp')).Path
+$startup = Get-Content -LiteralPath (Join-Path $taskRoot 'data/zip_startup.json') -Raw | ConvertFrom-Json
+$acceptance = Get-Content -LiteralPath (Join-Path $taskRoot 'data/native_acceptance/report.json') -Raw | ConvertFrom-Json
+$package = Get-Content -LiteralPath (Join-Path $taskRoot 'data/package.json') -Raw | ConvertFrom-Json
+if (!$startup.event_loop_entered -or !$acceptance.passed) { throw 'Package validation incomplete' }
+$zipPath = Join-Path $taskRoot $package.zip
+if ((Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $package.sha256) { throw 'ZIP changed' }
+$running = @(Get-CimInstance Win32_Process | Select-Object -ExpandProperty ExecutablePath)
+$results = @()
+foreach ($name in @('build','dist','zipcheck')) {
+    $target = [IO.Path]::GetFullPath((Join-Path $taskTemp $name))
+    if (!$target.StartsWith($taskTemp + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Outside task tmp: $target" }
+    if (@($running | Where-Object { $_ -and $_.StartsWith($target + '\', [StringComparison]::OrdinalIgnoreCase) }).Count) { throw "Live executable under $target" }
+    $members = @(Get-ChildItem -LiteralPath $target -Recurse -Force)
+    if (@($members | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count) { throw "Reparse point under $target" }
+    $files = @($members | Where-Object {!$_.PSIsContainer})
+    $results += [pscustomobject]@{ path=$target; files=$files.Count; bytes=($files | Measure-Object Length -Sum).Sum; reason='Rebuildable or verified identical ZIP content; unique acceptance reports retained outside tmp' }
+    Remove-Item -LiteralPath $target -Recurse -Force
+}
+$results | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $taskRoot 'disk_governance/task15_build_cleanup.json') -Encoding utf8
+$results | Format-Table

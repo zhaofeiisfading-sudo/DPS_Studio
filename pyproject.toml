@@ -30,16 +30,22 @@ dps-studio = "dps_studio.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/dps_studio"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"configs" = "dps_studio/resources/configs"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
-cache_dir = ".pytest_cache"
+pythonpath = ["src", "."]
+cache_dir = "artifacts/DEV/tmp/pytest-cache"
+addopts = "--basetemp=artifacts/DEV/tmp/pytest"
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+cache-dir = "artifacts/DEV/tmp/ruff"
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
 mypy_path = "src"
+cache_dir = "artifacts/DEV/tmp/mypy"

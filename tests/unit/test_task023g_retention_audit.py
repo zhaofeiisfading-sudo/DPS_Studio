@@ -13,8 +13,8 @@ import pytest
 from dps_studio.research import task023d_smooth_branch_rescue as d
 from dps_studio.research import task023f_proposals as f
 from dps_studio.research import task023g_retention_audit as g
-from scripts import run_task023d_smooth_branch_rescue as legacy
-from scripts import run_task023f_proposal_recovery as runner
+from scripts.research.inherited.task023d import run_task023d_smooth_branch_rescue as legacy
+from scripts.research.inherited.task023f import run_task023f_proposal_recovery as runner
 
 
 @pytest.fixture(scope='module')
@@ -187,7 +187,7 @@ def test_planned_fresh_split_has_no_waveform_profile_leakage() -> None:
 
 
 def test_shared_cohort_keeps_each_source_frames_original_interval() -> None:
-    from scripts.run_task023g_retention_audit import restore_source_context
+    from scripts.research.inherited.task023g.run_task023g_retention_audit import restore_source_context
     rows = [dict(waveform='x', profile='balanced', window='core', frame=i,
                  first_loss_frame=9, taxonomy='FAMILY_COLLISION') for i in (2, 7)]
     original = [dict(case_id='x', profile='balanced', window_id='core', frame='2',

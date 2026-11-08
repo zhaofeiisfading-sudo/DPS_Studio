@@ -14,7 +14,7 @@ import pytest
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-RUNNER_PATH = REPOSITORY_ROOT / "scripts" / "run_task021a_global_path_research.py"
+RUNNER_PATH = REPOSITORY_ROOT / "scripts/research/inherited/task021a" / "run_task021a_global_path_research.py"
 
 
 @pytest.fixture()

@@ -1,0 +1,106 @@
+"""Read-only delivery consistency checks; write only the task-local evidence JSON."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parents[3] / "artifacts/TASK-015"
+ROOT = Path(__file__).resolve().parents[3]
+NOTE = Path(r"D:\Research\Notes\05项目\dps\2026-11-07_TASK-015_阶段先验与算法池专项研究.md")
+
+
+def read(relative: str) -> dict:
+    return json.loads((OUT / relative).read_text(encoding="utf-8"))
+
+
+def sha(path: Path) -> str:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def git(*args: str) -> str:
+    return subprocess.check_output(
+        ["git", *args], cwd=ROOT, text=True, encoding="utf-8"
+    ).strip()
+
+
+def main() -> None:
+    checks: dict[str, bool] = {}
+    for name, field, number in [
+        ("development_v02", "cases", 72),
+        ("heldout", "cases", 288),
+        ("sensitivity_v02", "cases", 336),
+        ("resolution", "records", 20),
+        ("real_v02", "streams", 17),
+    ]:
+        checks[f"{name}_count"] = read(f"data/{name}/complete.json")[field] == number
+    real = read("data/real_v02/complete.json")
+    checks["all_real_files"] = real["files"] == 13 and real["rows"] == 102
+    checks["no_real_truth_claim"] = real["real_truth"] is False
+    checks["heldout_raw_and_results"] = len(list((OUT / "data/heldout").rglob("*.npz"))) == 288
+    checks["heldout_sources_current"] = all(
+        sha(ROOT / path) == digest
+        for path, digest in read("data/heldout/freeze.json")["sources"].items()
+    )
+    checks["protected_boundaries"] = all(read("disk_governance/boundary_comparison.json").values())
+    grid = json.loads((OUT / "data/grid_check.json").read_text(encoding="utf-8"))
+    checks["common_integer_centers"] = len(grid) == 17 and all(
+        row["integer_centers_match"] for row in grid
+    )
+    for log, expected in {
+        "all_core.log": "5 failed, 1162 passed",
+        "strategy_tests_v03.log": "10 passed",
+        "gui_v01.log": "38 passed",
+        "gui_final.log": "8 passed",
+        "gui_prior_plot_v02.log": "1 passed",
+        "ruff_delivery.log": "All checks passed!",
+        "ruff_delivery_audit.log": "All checks passed!",
+        "mypy_delivery.log": "Success: no issues found in 94 source files",
+    }.items():
+        checks[f"log_{log}"] = expected in (OUT / "logs" / log).read_text(encoding="utf-8-sig")
+    package = read("data/package.json")
+    checks["package_hash"] = sha(OUT / package["zip"]) == package["sha256"]
+    checks["one_task_package"] = len(list((OUT / "release").glob("*.zip"))) == 1
+    checks["package_sources_current"] = all(
+        sha(ROOT / path) == digest for path, digest in package["source_sha256"].items()
+    )
+    checks["package_no_raw_content"] = not package["raw_content_hash_matches"]
+    checks["frozen_native_workflow"] = read("data/native_acceptance/report.json")["passed"]
+    checks["zip_started"] = read("data/zip_startup.json")["event_loop_entered"]
+    checks["build_copies_cleaned"] = all(
+        not (OUT / "tmp" / name).exists() for name in ["build", "dist", "zipcheck"]
+    )
+    for filename in ["README.md", "COMPARISON.md", "VALIDATION.md", "FIGURES.md", "PROTOCOL.md"]:
+        checks[f"document_{filename}"] = (OUT / filename).stat().st_size > 100
+    for extension in ["png", "svg", "pdf"]:
+        checks[f"four_figures_{extension}"] = len(list((OUT / "figures").glob(f"*.{extension}"))) == 4
+    checks["research_note"] = NOTE.is_file() and "1162" in NOTE.read_text(encoding="utf-8-sig")
+    checks["head_unchanged"] = git("rev-parse", "HEAD") == "31270d1e20606a54bda1e5daab4c858d3a664ad2"
+    paths = git("ls-files", "--cached", "--others", "--exclude-standard", "artifacts/TASK-015").splitlines()
+    checks["git_only_lightweight_task_files"] = bool(paths) and all(
+        Path(path).suffix in {".py", ".ps1", ".md", ".spec"}
+        and (ROOT / path).stat().st_size < 200_000
+        for path in paths
+    )
+    result = {
+        "passed": all(checks.values()),
+        "checks": checks,
+        "known_pytest_failures": 5,
+        "checks_do_not_replace_experiments": True,
+        "research_note_sha256": sha(NOTE),
+        "git_visible_task_files": paths,
+    }
+    (OUT / "data/delivery_audit.json").write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    print(json.dumps({"passed": result["passed"], "checks": len(checks),
+                      "failed": [key for key, value in checks.items() if not value]}))
+    if not result["passed"]:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

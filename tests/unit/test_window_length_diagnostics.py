@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from scripts.compare_real_ridge_refinement import (
+from scripts.workflows.compare_real_ridge_refinement import (
     _paired_channel_statistics,
     _relative_stft_magnitude_db,
     _series_detail_statistics,

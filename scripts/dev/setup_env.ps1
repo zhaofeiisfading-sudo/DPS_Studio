@@ -1,68 +1,18 @@
+#requires -Version 7.0
+param(
+    [string]$Python = 'python',
+    [string]$EnvironmentDirectory = (Join-Path $env:LOCALAPPDATA 'DPS-Studio/venvs/research')
+)
 Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
-
-$RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-Set-Location $RepoRoot
-
-function Invoke-Checked {
-    param(
-        [Parameter(Mandatory = $true)][scriptblock]$Command,
-        [Parameter(Mandatory = $true)][string]$Description
-    )
-
-    Write-Host $Description -ForegroundColor Cyan
-    & $Command
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "$Description failed with exit code $LASTEXITCODE."
-    }
-}
-
-if (-not (Get-Command conda -ErrorAction SilentlyContinue)) {
-    throw "Conda was not found. Run 'conda init powershell' and reopen PowerShell."
-}
-
-$EnvironmentName = "dps-studio"
-$EnvironmentList = conda env list --json | ConvertFrom-Json
-$EnvironmentExists = $false
-
-foreach ($EnvironmentPath in $EnvironmentList.envs) {
-    if ((Split-Path $EnvironmentPath -Leaf) -eq $EnvironmentName) {
-        $EnvironmentExists = $true
-        break
-    }
-}
-
-if ($EnvironmentExists) {
-    Invoke-Checked `
-        -Description "Updating Conda environment: $EnvironmentName" `
-        -Command { conda env update -n $EnvironmentName -f environment.yml --prune }
-}
-else {
-    Invoke-Checked `
-        -Description "Creating Conda environment: $EnvironmentName" `
-        -Command { conda env create -f environment.yml }
-}
-
-Invoke-Checked `
-    -Description "Upgrading pip" `
-    -Command { conda run -n $EnvironmentName python -m pip install --upgrade pip }
-
-Invoke-Checked `
-    -Description "Installing DPS Studio and development dependencies" `
-    -Command { conda run -n $EnvironmentName python -m pip install -e ".[dev]" }
-
-Invoke-Checked `
-    -Description "Checking package version" `
-    -Command { conda run -n $EnvironmentName python -m dps_studio --version }
-
-Invoke-Checked `
-    -Description "Running tests" `
-    -Command { conda run -n $EnvironmentName python -m pytest }
-
-Invoke-Checked `
-    -Description "Running Ruff" `
-    -Command { conda run -n $EnvironmentName python -m ruff check . }
-
-Write-Host ""
-Write-Host "Environment setup and validation completed successfully." -ForegroundColor Green
+$ErrorActionPreference = 'Stop'
+$setupRepo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path
+$setupEnvironment = [IO.Path]::GetFullPath($EnvironmentDirectory)
+if ($setupEnvironment.StartsWith($setupRepo, [StringComparison]::OrdinalIgnoreCase)) { throw 'Create the environment outside this source checkout.' }
+if (Test-Path -LiteralPath $setupEnvironment) { throw 'Environment exists; activate it or choose a new path. This script does not prune existing environments.' }
+& $Python -B -c 'import sys; sys.exit(0 if sys.version_info[:2] == (3,12) else 2)'
+if ($LASTEXITCODE -ne 0) { throw 'Use Python 3.12 x64 to create the build environment.' }
+& $Python -B -m venv $setupEnvironment
+if ($LASTEXITCODE -ne 0) { throw 'venv creation failed; use Python 3.12 x64.' }
+$setupPython = Join-Path $setupEnvironment 'Scripts/python.exe'
+& (Join-Path $PSScriptRoot 'run.ps1') -Task DEV -Python $setupPython -m pip install -c (Join-Path $setupRepo 'scripts/build/windows-constraints.txt') -e '.[dev,research]'
+exit $LASTEXITCODE

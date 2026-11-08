@@ -32,15 +32,17 @@ from dps_studio.gui.workspace_ui import CollapsibleSection, channel_label
 
 STAGE_LABELS = {"unknown": "未知", "stationary": "静止", "onset": "起跳",
                 "acceleration": "加速", "plateau": "平台", "decline": "下降",
-                "rebound": "回升", "weak_signal": "弱信号", "noise": "噪声"}
-RECOMMENDATIONS = {"acceleration": "dechirp", "noise": "unobservable"}
+                "rebound": "回升", "weak_signal": "弱信号", "noise": "噪声干扰"}
+RECOMMENDATIONS = {"acceleration": "dechirp"}
 REASONS = {
     "acceleration": "连续强加速中 Dechirp 有条件收益；转折、多支路需对照 STFT/VarPro。",
     "onset": "起跳包含突变，保留 STFT 基准；窗内混合会限制时间定位。",
     "decline": "复杂下降以 STFT 为基准，可手动对照 VarPro；不预设模型胜出。",
     "rebound": "回升及转折以 STFT 为基准，可对照 VarPro。",
     "weak_signal": "弱信号可辨识性仍有限，保留 STFT 基准及质量标志。",
-    "noise": "标记不可观测，保留 NaN，不生成速度。",
+    "noise": "保留 STFT 候选与质量检查；杂散投影依赖背景假设，尚不适合默认使用。",
+    "stationary": "静止是人工先验，不是零速测量；低频专项可手选，未检出拍频仍为 NaN。",
+    "plateau": "STFT 为基准；稳定长段可手选长窗或正弦精修，边界和误标可能使其退化。",
 }
 
 
@@ -514,9 +516,8 @@ class SegmentWorkspace(QWidget):
                     plan = []
                     for left, right in zip(edges, edges[1:]):
                         previous = next((s for s in old if s.start_s <= (left + right) / 2 < s.end_s), None)
-                        plan.append(Segment(previous.id if previous else uuid4().hex[:12], left, right,
-                                            previous.stage if previous else "unknown",
-                                            previous.algorithm if previous else "stft"))
+                        plan.append(replace(previous, start_s=left, end_s=right) if previous else
+                                    Segment(uuid4().hex[:12], left, right))
                     self.plans[name] = tuple(plan)
         with QSignalBlocker(self.channel_combo):
             self.channel_combo.clear()
@@ -654,7 +655,10 @@ class SegmentWorkspace(QWidget):
             self.manual_choices.add((self._channel, current.id))
         chosen_stage = stage or current.stage
         chosen_algorithm = algorithm or current.algorithm
-        if algorithm is None and stage is not None and (self._channel, current.id) not in self.manual_choices:
+        if algorithm is None and stage is not None:
+            # A deliberate stage edit starts a new recommendation decision.
+            # Display refreshes never call this method and preserve overrides.
+            self.manual_choices.discard((self._channel, current.id))
             chosen_algorithm = RECOMMENDATIONS.get(chosen_stage, "stft")
         updated = replace(current, stage=chosen_stage, algorithm=chosen_algorithm)
         if current == updated:
@@ -859,6 +863,13 @@ class SegmentWorkspace(QWidget):
             self.result_plot.plot(result.time_s[mask] * 1e6, values[mask],
                                   pen=pg.mkPen(colors[index % len(colors)], width=2),
                                   symbol="o", symbolSize=3, connect="finite")
+            if segment.stage == "stationary" and field == "apparent":
+                self.result_plot.plot([segment.start_s * 1e6, segment.end_s * 1e6], [0., 0.],
+                    pen=pg.mkPen("#777777", width=1, style=Qt.PenStyle.DashLine),
+                    name="人工静止先验（非测量）")
+                label = pg.TextItem("人工静止先验 0 m/s（非测量）", color="#666666", anchor=(0, 1))
+                label.setPos(segment.start_s * 1e6, 0.)
+                self.result_plot.addItem(label)
         if self.candidate_check.isChecked():
             candidate = result.candidate_frequency_hz
             if field == "frequency":

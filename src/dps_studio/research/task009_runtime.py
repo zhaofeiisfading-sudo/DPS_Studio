@@ -14,19 +14,23 @@ from typing import Any
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[3]
-if ROOT.name != "DPS_Studio_RESEARCH_CLEAN":
-    raise RuntimeError("TASK-009 entry must be in the target Research worktree")
-TASK8 = ROOT/"artifacts/research_clean_task8"
-TASK9 = ROOT/"artifacts/research_clean_task9"
+from dps_studio.algorithms import waveform
+from dps_studio.runtime_paths import application_resource_root
+
+ROOT = application_resource_root()
+TASK8 = Path(waveform.__file__).resolve().parent
+PROTOCOL = ROOT/"docs/tasks/TASK-008/PROTOCOL.md"
+TASK9 = ROOT/"artifacts/TASK-009"
 OLD_ROOT = ROOT.parent/"DPS_Studio_TASK021A"
 
 
 def assert_local() -> None:
-    if TASK8.is_junction() or not TASK8.resolve().is_relative_to(ROOT):
-        raise RuntimeError("TASK-008 must be a physical local directory, not an old-worktree alias")
-    if not (TASK8/"source_freeze.json").is_file():
-        raise RuntimeError("Local frozen package missing")
+    import dps_studio
+    package = Path(dps_studio.__file__).resolve().parent
+    if TASK8.is_junction() or not TASK8.resolve().is_relative_to(package):
+        raise RuntimeError("Waveform algorithms must be part of the installed Research package")
+    if not (TASK8/"common.py").is_file():
+        raise RuntimeError("Packaged waveform algorithms missing")
 
 
 def source_guard(event: str, args: tuple[Any, ...]) -> None:
@@ -45,8 +49,8 @@ def source_guard(event: str, args: tuple[Any, ...]) -> None:
 
 def provenance() -> dict[str, Any]:
     import dps_studio
-    from artifacts.research_clean_task8 import common
-    from artifacts.research_clean_task8.catalog import METHODS
+    from dps_studio.algorithms.waveform import common
+    from dps_studio.algorithms.waveform.catalog import METHODS
     return dict(target_root=str(ROOT), frozen_root=str(TASK8.resolve()),
         dps_studio_source=str(Path(dps_studio.__file__).resolve()),
         algorithm_common_source=str(Path(common.__file__).resolve()), methods=list(METHODS),
@@ -54,8 +58,8 @@ def provenance() -> dict[str, Any]:
 
 
 def run_raw(path: Path, column: int, names: list[str], output: Path) -> None:
-    from artifacts.research_clean_task8.common import Context, Signal, WAVELENGTH_M
-    from artifacts.research_clean_task8.runner import write_json
+    from dps_studio.algorithms.waveform.common import Context, Signal, WAVELENGTH_M
+    from dps_studio.research.waveform.runner import write_json
     assert_local()
     matrix = np.loadtxt(path, delimiter=",", ndmin=2)
     if not 0 < column < matrix.shape[1]:
@@ -63,14 +67,14 @@ def run_raw(path: Path, column: int, names: list[str], output: Path) -> None:
     signal = Signal(np.array(matrix[:, 0]), np.array(matrix[:, column]), path.stem)
     context = Context(signal)
     output = output.resolve()
-    if output.exists() or not output.is_relative_to(ROOT):
-        raise ValueError("Output must be a new directory inside the target Research worktree")
+    if output.exists() or not output.is_relative_to(ROOT/"artifacts"):
+        raise ValueError("Output must be a new directory inside Research artifacts")
     output.mkdir(parents=True, exist_ok=False)
     write_json(output/"provenance.json", {**provenance(), "raw_path": str(path.resolve()),
         "voltage_column": column, "real_ground_truth": "UNAVAILABLE",
         "equivalent_velocity_assumed_wavelength_m": WAVELENGTH_M})
     for name in names:
-        module = importlib.import_module(f"artifacts.research_clean_task8.{name}.implementation")
+        module = importlib.import_module(f"dps_studio.algorithms.waveform.{name}.implementation")
         result = module.run(context)
         folder = output/name
         folder.mkdir()
@@ -97,19 +101,19 @@ def main() -> None:
     args = parser.parse_args()
     assert_local()
     sys.addaudithook(source_guard)
-    from dps_studio.research.task009_data import install
-    install()
-    from artifacts.research_clean_task8.catalog import METHODS
+    from dps_studio.algorithms.waveform.catalog import METHODS
     if args.mode == "list":
         print(json.dumps(provenance(), ensure_ascii=False, indent=2))
         return
     if args.output is None:
         parser.error("--output is required and must not exist")
     destination = args.output.resolve()
-    if not destination.is_relative_to(ROOT) or destination.exists():
-        parser.error("Output must be a new directory inside RESEARCH_CLEAN")
+    if not destination.is_relative_to(ROOT/"artifacts") or destination.exists():
+        parser.error("Output must be a new directory inside Research artifacts")
     if args.mode == "replay":
-        module = importlib.import_module("artifacts.research_clean_task8.reproduce")
+        from dps_studio.research.task009_data import install
+        install()
+        module = importlib.import_module("dps_studio.research.waveform.reproduce")
         sys.argv = ["task009-replay", "--output", str(destination)]
         if not args.full:
             sys.argv.append("--smoke")

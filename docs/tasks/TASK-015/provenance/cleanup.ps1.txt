@@ -1,0 +1,23 @@
+$ErrorActionPreference = 'Stop'
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$manifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'disk_governance\cleanup_manifest.json') -Raw | ConvertFrom-Json
+$runningPaths = @(Get-CimInstance Win32_Process | Select-Object -ExpandProperty ExecutablePath)
+$result = @()
+foreach ($entry in $manifest | Where-Object category -eq 'SAFE_TO_DELETE') {
+    $target = [IO.Path]::GetFullPath((Join-Path $repoRoot $entry.path))
+    if (!$target.StartsWith($repoRoot + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Target outside workspace: $target" }
+    if (!(Test-Path -LiteralPath $target)) { throw "Missing target: $target" }
+    if (@($runningPaths | Where-Object { $_ -and $_.StartsWith($target + '\', [StringComparison]::OrdinalIgnoreCase) }).Count) { throw "Active process depends on $target" }
+    $actualFiles = @(Get-ChildItem -LiteralPath $target -File -Recurse -Force)
+    if ($actualFiles.Count -ne $entry.files.Count) { throw "Contents changed: $target" }
+    foreach ($item in $entry.files) {
+        $file = [IO.Path]::GetFullPath((Join-Path $repoRoot $item.path))
+        if (!$file.StartsWith($target + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Invalid member: $file" }
+        if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -ne $item.sha256) { throw "Content changed: $file" }
+    }
+    $byteCount = ($entry.files | Measure-Object bytes -Sum).Sum
+    Remove-Item -LiteralPath $target -Recurse -Force
+    $result += [pscustomobject]@{path=$target; files=$entry.files.Count; bytes=$byteCount; removed=!(Test-Path -LiteralPath $target)}
+}
+$result | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'disk_governance\cleanup_executed.json') -Encoding utf8
+$result | Format-Table

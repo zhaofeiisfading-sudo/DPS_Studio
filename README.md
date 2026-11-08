@@ -1,86 +1,100 @@
 # PDV Studio Research
 
-Windows x64 科研测试版。经典 STFT 与人工分段工作区共用只读输入，正式导出保留时间参考、质量标志、算法来源与修正配置。Research Balanced 默认 W1024/H64。阶段专项结论和已知限制见 [TASK-014](artifacts/research_clean_task14/README.md)。
+Windows x64 的 PDV 信号分析与研究源码仓库。经典 STFT 和人工分段工作区共用只读输入；算法池保留参数、人工先验、质量标志及算法来源。表观速度和物理修正速度分别保存，内部使用 SI。Research Balanced 使用 W1024/H64；真实实验数据没有物理真值，质量合格不等于物理分支已确认。
 
-## Windows 源码运行与自动构建
+## 目录
 
-使用 Python 3.12 x64，从仓库根目录执行：
-
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python -m pip install -c packaging/windows-constraints.txt -e ".[dev]"
-.\.venv\Scripts\python -m dps_studio.gui
-.\.venv\Scripts\python -m PyInstaller --workpath build --distpath dist packaging/pdv_research.spec
+```text
+src/dps_studio/
+  core/                    数值处理、物理修正、分段、导出
+  gui/                     Qt 应用、工作区、图标和翻译
+  algorithms/waveform/     唯一的波形估计器实现
+  research/                可安装的研究支持模块
+scripts/
+  dev/                     统一环境、测试和 GUI 检查入口
+  build/                   手动构建入口、约束和 PyInstaller spec
+  launchers/               兼容的 Windows 启动器
+  maintenance/             只读治理检查及迁移审计
+  workflows/               文件分析和导出工作流
+  research/taskNNN/        独立研究复现；inherited/ 保存继承研究
+configs/                   正式配置和数据索引（不含私有数据）
+tests/                     单元、集成、GUI 回归与轻量夹具
+docs/tasks/TASK-NNN/        报告、协议、任务和验证记录
+artifacts/TASK-NNN/         本地科研结果；tmp/ 集中缓存（不进入 Git）
+release/                   现有发布 ZIP 与将来的手动发布输出（不进入 Git）
+data/                      本地实验输入；raw/ 永远只读
+.github/                   手动 GitHub Actions 构建
+.agents/skills/repo-hygiene/ 仓库专用 Codex Skill
 ```
 
-科研复现加装 `.[dev,research]`，并提供本地研究数据索引所列文件。GitHub Actions 的 **Windows Research test build** 支持手动启动和 `v*` 标签启动，检查通过后上传整个 onedir 目录。下载后先完整解压，再运行其中的 EXE。无需复制 Production、配置密钥或提供私有实验数据来构建。
+TASK-016 的结构、迁移、清理和验证见 [任务记录](docs/tasks/TASK-016/README.md)。旧工作区任务记录保存在 `docs/tasks/inherited/`，与本 Research TASK 编号分开。
 
-## 继承的流程与历史文档
+## 环境与源码运行
 
-下列 Production 资料用于追溯历史流程。Research 发布验收以 TASK-014 和当前 Windows 工作流为准。
-
-The formal production pipeline is for an authorized local raw-data file, which is intentionally not included in this repository. After activating the project environment and updating the TOML input path for that local file, run:
+使用 PowerShell 7 和 Python 3.12 x64。把环境建在仓库外；已有合适环境可直接复用，无须重新安装。
 
 ```powershell
-python scripts\run_demo_pipeline.py --config configs\demo_dual_profile.toml
+# 用你的 Python 3.12 路径创建仓库外 venv，并安装项目与开发/研究依赖。
+pwsh -File scripts/dev/setup_env.ps1 -Python 'C:\path\to\Python312\python.exe'
+$researchPython = Join-Path $env:LOCALAPPDATA 'DPS-Studio/venvs/research/Scripts/python.exe'
+
+pwsh -File scripts/dev/run.ps1 -Python $researchPython -Task DEV -m dps_studio.gui
 ```
 
-The TOML file is the single production configuration entry for the input path,
-column mapping, analysis interval, demonstration wavelength, per-frame quality
-parameters, independent event-candidate/consensus settings, plot ranges, and
-output root. Every production run analyzes the independent acquisition channels
-with both the Balanced and High time resolution profiles.
+`environment.yml` 也定义了独立的 `dps-studio-research` Conda 环境；从仓库根目录使用它。不要更新或裁剪 Production 的既有环境。兼容的 `.bat` 默认使用这个 Research 环境；复用旧环境时显式设置 `DPS_STUDIO_CONDA_ENV`。
 
-Successful formal runs are isolated under
-`outputs/production_runs/run_<YYYYMMDD_HHMMSS>/`. The run root contains the
-profile/channel diagnostic trees, `comparisons/`, `event_consensus.json`, and a
-`simple_exports/` directory. Each actual profile/channel stream has exactly one
-`<profile>__<channel>__velocity_time.csv` file with the Origin/Excel-ready
-columns `time_s` and `velocity_m_s`. Every frame before the cross-profile
-consensus time is defined as zero solely for plotting. At and after consensus,
-the formal quality-gated apparent velocity is copied exactly, including NaN
-gaps; all original STFT frames and times are retained without interpolation,
-smoothing, bridging, or resampling. If consensus is unavailable, the formal
-array is copied unchanged and the manual reference is not substituted. The
-complete per-frame table remains available as
-`apparent_velocity_diagnostics.csv`; no duplicate `apparent_velocity.csv` alias
-is generated. Its formal `apparent_velocity_m_s` and signal states are never
-pre-event zero-filled. Each profile/channel directory also contains the primary
-red/blue `apparent_velocity_full_overview.png`, the simple-series
-`apparent_velocity_full_time_reviewed.png`, a formal full-time plot, and separate
-state diagnostics. `comparisons/threshold_calibration.csv` records the four
-approved threshold pairs and deterministic selection. The retained 10 dB
-peak/background and 3 dB peak/competitor values are development-calibrated for
-this record, not an absolute experimental standard. `outputs/LATEST_RUN.txt` is
-updated only after a complete successful formal run.
+统一入口会临时设置 TMP/TEMP、pytest basetemp、Ruff/mypy、Matplotlib、pip 和 PyInstaller 缓存到 `artifacts/<Task>/tmp/`，结束后恢复调用进程的环境。Python 字节码默认禁写。根目录不保存临时环境或构建中间目录。
 
-Numerical workflow:
+## 检查与回归
 
-raw time-voltage data -> validation -> STFT -> peak ridge -> sub-bin refinement
--> spectral quality -> quality-gated unsigned apparent velocity
--> exact MEASURED segments -> channel consensus -> profile consensus
+```powershell
+# 只读，检查根目录、缓存、已跟踪 blob 大小及暂存产物；退出码 0/1/2 = 无问题/发现问题/检查失败。
+& $researchPython -B scripts/maintenance/check_repo_hygiene.py
+& $researchPython -B scripts/maintenance/check_repo_hygiene.py --staged-only
 
-The formal ridge search is 0.05–2.0 GHz. The analysis-band plots display
-0–2.0 GHz, while full-band plots use the complete one-sided STFT range from
-0 Hz through the actual Nyquist frequency. The configured 1550 nm wavelength
-is an unconfirmed demonstration value. No LiF correction, smoothing,
-interpolation, channel fusion, or profile fusion is implemented.
-`MEASURED` means spectrally qualified under the configured detection rules;
-physical branch identity remains `unreviewed`. Event consensus changes metadata
-only and does not average or fuse voltage, frequency, or velocity.
+pwsh -File scripts/dev/run.ps1 -Python $researchPython -Task DEV -m ruff check src scripts tests
+pwsh -File scripts/dev/run.ps1 -Python $researchPython -Task DEV -m mypy src/dps_studio/core src/dps_studio/gui
+pwsh -File scripts/dev/run.ps1 -Python $researchPython -Task DEV -m pytest tests/unit --ignore tests/unit/gui -q
+pwsh -File scripts/dev/run.ps1 -Python $researchPython -Task DEV scripts/dev/check_gui.py --task DEV
+```
 
-Development rules:
+历史科研回归需要本地 `artifacts/` 冻结结果和 `configs/research/task009_data_index.json` 所列只读实验输入；这些数据不在 Git。完整套件的历史失败和 Qt 生命周期限制应读 [VALIDATION](docs/tasks/TASK-016/VALIDATION.md)，不能据此声称全绿。
 
-- Never overwrite raw data.
-- Keep the numerical core independent from the GUI.
-- Use SI units internally.
-- Store all parameters and manual edits.
-- Return NaN and quality flags when no reliable signal exists.
+不含私有数据的基础回归可直接运行：
 
+```powershell
+pwsh -File scripts/dev/run.ps1 -Python $researchPython -Task DEV -m pytest -q tests/unit/test_repo_hygiene.py tests/unit/test_analysis_profiles.py tests/unit/test_local_peak_candidates.py tests/unit/test_acceleration.py tests/unit/test_local_acceleration.py tests/unit/test_acceleration_export.py tests/unit/test_task015_stage_strategies.py tests/unit/gui/test_task014_export.py
+```
 
-## TASK-009 Research package (2026-11-05)
+必要时按用例隔离有 Qt 生命周期问题的模块：
 
-TASK-008 algorithms and frozen results now have a physical local copy and an independent Research entry.
-See [research package](artifacts/research_clean_task9/README.md), [migration report](MIGRATION_REPORT.md), and [paper figure index](FIGURE_INDEX.md).
-Publication figures are in `artifacts/research_clean_task9/figures_final/` (10 Origin projects; 13 PDF/SVG figures with source data and Chinese captions).
-Real experiments have no Ground Truth; supported curves do not certify physical velocity. Production is outside this task.
+```powershell
+pwsh -File scripts/dev/run.ps1 -Python $researchPython -Task DEV scripts/dev/check_gui.py --task DEV --only test_task012_workspaces --isolate-cases
+```
+
+## 手动构建
+
+从 GitHub 克隆源码后安装 `.[dev]` 即可检查和构建软件，不需要 Production、私有 raw 或本地科研 artifacts。当前配置将图标、翻译和默认配置纳入发行目录；普通安装的配置由 Hatch 的包资源映射纳入。
+
+```powershell
+# 只核验 spec、入口、资源和动态算法路径，不产生包。
+pwsh -File scripts/build/build_windows.ps1 -Python $researchPython -Task DEV -CheckOnly
+
+# 仅在你需要发行时手动执行；生成 release/PDV_Studio_Research/，拒绝覆盖既有目录。
+pwsh -File scripts/build/build_windows.ps1 -Python $researchPython -Task DEV
+```
+
+GitHub Actions 的 **Windows Research manual build** 只通过 `workflow_dispatch` 启动，构建目录在 `artifacts/CI/`。TASK-016 没有执行 PyInstaller、生成新 EXE/ZIP、启动云端构建或更新远程仓库。只有你审阅并提交/推送这些本地变更后，远程克隆才会包含本次治理结果。
+
+## 研究复现与数据边界
+
+```powershell
+# 列出 14 个已迁移波形方法；无需加载 raw 或 artifacts。
+pwsh -File scripts/dev/run.ps1 -Python $researchPython -Task DEV -m dps_studio.research.task009_runtime list
+```
+
+研究执行脚本按模块运行，例如 `-m scripts.research.task010.run --help`。结果写到 `artifacts/TASK-NNN/`；报告在 `docs/tasks/TASK-NNN/`。TASK-008 的协议与原始源码冻结记录保存在 [TASK-008](docs/tasks/TASK-008/PROTOCOL.md) 和其 `provenance/`；迁移链记录在 [SOURCE_MIGRATION](docs/tasks/TASK-016/SOURCE_MIGRATION.json)，不会重写原始科研冻结哈希。
+
+当前物理修正以 `core/physics/` 的已验证实现及适用条件为准，包含角度投影和指定条件的 LiF 模型；不额外叠加静态折射率因子。不得将演示波长或真实数据的算法输出宣称为已确认物理速度。
+
+开始和收尾遵循 [AGENTS.md](AGENTS.md)；结构/Git/缓存/构建目录治理优先使用 [repo-hygiene Skill](.agents/skills/repo-hygiene/SKILL.md)。规则已经覆盖时不重复修改 AGENTS 或添加 TASK 白名单。

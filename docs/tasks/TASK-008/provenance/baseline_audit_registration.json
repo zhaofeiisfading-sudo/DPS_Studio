@@ -1,0 +1,27 @@
+{
+  "reason": "Historical M0 retains discrete rank-one frequency when refinement fails; audit both contracts",
+  "no_estimator_retuning": true,
+  "original_source_freeze_unchanged": true,
+  "methods": [
+    "legacy_m0_512",
+    "legacy_m0_768"
+  ],
+  "original_methods": [
+    "stft512",
+    "stft768",
+    "stft512_wide",
+    "gated_stft256",
+    "gated_stft512",
+    "dechirp",
+    "varpro",
+    "clutter_varpro",
+    "acmd",
+    "matrix_pencil",
+    "time_domain",
+    "baseband"
+  ],
+  "sources": {
+    "artifacts/research_clean_task8/legacy_m0_512/implementation.py": "75aa8fc7c160cd6784b22c28edf35850078f2af1e873d08907164368ca33cdd0",
+    "artifacts/research_clean_task8/legacy_m0_768/implementation.py": "fed24e256bf076ce5ce79dc6efed6b00c3beaf16199f053a32877e515b3c9b43"
+  }
+}

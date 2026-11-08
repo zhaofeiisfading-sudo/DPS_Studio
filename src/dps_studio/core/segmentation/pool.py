@@ -1,10 +1,10 @@
-"""Registry and adapters. Manual intervals select estimates, never crop windows."""
+"""Registry: legacy adapters retain context; explicit strategies isolate boundaries."""
 from __future__ import annotations
 
 import importlib
 from functools import partial
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
 import numpy as np
@@ -15,6 +15,7 @@ from dps_studio.core.physics import (
 from dps_studio.core.workflow import analyze_configuration
 
 from .models import BeatEstimate, EstimatorRequest, Segment, SegmentedResult, validate_plan
+from .strategies import STRATEGIES, estimate_strategy
 
 
 class Estimator(Protocol):
@@ -82,13 +83,13 @@ def _stft(request: EstimatorRequest) -> BeatEstimate:
 
 
 def _frozen(name: str, request: EstimatorRequest) -> BeatEstimate:
-    from dps_studio.algorithms.task008.common import Context, Signal
+    from dps_studio.algorithms.waveform.common import Context, Signal
 
     # The whole record retains the original quiet prefix, absolute phase and
     # window support. Artificial segment boundaries never enter the estimator.
     context = Context(Signal(np.array(request.record.time_s),
                              np.array(request.record.voltage_v)))
-    module = importlib.import_module(f"dps_studio.algorithms.task008.{name}.implementation")
+    module = importlib.import_module(f"dps_studio.algorithms.waveform.{name}.implementation")
     result = module.run(context)
     frequency = np.array(result.accepted_hz, dtype=np.float64)
     flags = [str(flag) for flag in result.flags]
@@ -127,6 +128,12 @@ def default_pool() -> AlgorithmPool:
     for name, label in (("dechirp", "Dechirp"), ("varpro", "VarPro"),
                         ("clutter_varpro", "Clutter VarPro")):
         pool.register(FunctionEstimator(name, label, partial(_frozen, name)))
+    for name, label in (("stft_short", "短窗瞬态 STFT（边界约束）"),
+                        ("stft_long", "长窗平台 STFT（边界约束）"),
+                        ("stft_low", "低频带 STFT（研究）"),
+                        ("low_glrt", "低频 GLRT / 杂散投影（研究）"),
+                        ("tone_refine", "长窗正弦精修（研究）")):
+        pool.register(FunctionEstimator(name, label, partial(estimate_strategy, name=name)))
     pool.register(FunctionEstimator("unobservable", "不估计（NaN）", _unobservable))
     return pool
 
@@ -146,14 +153,16 @@ def analyze_segments(
     diagnostics: list[dict[str, Any]] = []
     for segment_index, segment in enumerate(segments):
         name = segment.algorithm
-        if name not in cache:
+        cache_key = f"{name}:{segment.id}" if name in STRATEGIES else name
+        if cache_key not in cache:
             if progress is not None:
                 progress(name)
             try:
-                cache[name] = registry.estimate(name, request)
+                scoped = replace(request, segment=segment) if name in STRATEGIES else request
+                cache[cache_key] = registry.estimate(name, scoped)
             except Exception as exc:
-                cache[name] = exc
-        entry = cache[name]
+                cache[cache_key] = exc
+        entry = cache[cache_key]
         error: str | None = None
         if isinstance(entry, Exception):
             error = f"{type(entry).__name__}: {entry}"
@@ -178,9 +187,12 @@ def analyze_segments(
         for index in indices:
             flag = estimate.quality[index]
             t = estimate.time_s[index]
-            if ((segment_index > 0 and t - half_support < segment.start_s)
+            if estimate.details.get("support_policy") not in ("clip", "one_sided") and (
+                    (segment_index > 0 and t - half_support < segment.start_s)
                     or (not last and t + half_support >= segment.end_s)):
                 flag += "|BOUNDARY_CONTEXT"
+            if segment.stage == "stationary" and "OPERATOR_STATIONARY_PRIOR" not in flag:
+                flag += "|OPERATOR_STATIONARY_PRIOR_NOT_MEASUREMENT"
             quality.append(flag)
         diagnostics.append({"id": segment.id, "algorithm": name, "source": estimate.source,
                             "frames": len(indices), "error": error,
@@ -199,7 +211,7 @@ def analyze_segments(
         request.wavelength_m, correction_config,
         {"schema": "pdv-manual-segments/1", "mode": "research_test_segmented",
          "interval_ownership": "[start,end); final endpoint inclusive",
-         "boundary_policy": "retain original windows; flag context crossing; never interpolate",
+         "boundary_policy": "legacy retains context; explicit TASK-015 strategies clip; never interpolate",
          "branch_identity": "OPERATOR_SELECTED_UNVALIDATED",
          "raw_processing": "no resampling/smoothing/zero filling",
          "algorithms": diagnostics, "workflow_options": dict(request.workflow_options),

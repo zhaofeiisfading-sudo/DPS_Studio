@@ -33,7 +33,7 @@ _基于 2026-08-13 当前工作树的项目接管审计；面向需要逐步亲�
 
 DPS Studio 当前是一个“核心数值包 + 正式双 profile 批处理 + 可交互 Qt GUI + 开发/历史审计脚本”的 PDV/DPS 分析项目。它已经能严格读取双通道示波器文本数据，建立不可变 `SignalRecord`，独立计算每个通道的单边 STFT，找谱峰、做三点亚频点精修、计算谱对比度、按质量门判定 `MEASURED`、识别连续测量段、构造双通道/双 profile 事件共识、进行孤立跳点的连续性辅助候选重选、换算表观速度、应用观测角和 LiF 窗口修正，并输出 CSV、metadata JSON 和 PNG。
 
-正式数值主链集中在 `src/dps_studio/core/`；`scripts/production_outputs.py` 是正式批处理的输出编排层，但它不是核心算法定义处。GUI 已接上同一套公开 core API，并非纯占位壳。`python -m dps_studio` 和安装后的 `dps-studio` 目前只处理 `--version`，尚未连接分析或 GUI；真正 GUI 入口是 `python -m dps_studio.gui` 或 `run_pdv_studio_gui.bat`。
+正式数值主链集中在 `src/dps_studio/core/`；`scripts/workflows/production_outputs.py` 是正式批处理的输出编排层，但它不是核心算法定义处。GUI 已接上同一套公开 core API，并非纯占位壳。`python -m dps_studio` 和安装后的 `dps-studio` 目前只处理 `--version`，尚未连接分析或 GUI；真正 GUI 入口是 `python -m dps_studio.gui` 或 `run_pdv_studio_gui.bat`。
 
 ### 已进入正式主链
 
@@ -54,7 +54,7 @@ DPS Studio 当前是一个“核心数值包 + 正式双 profile 批处理 + 可
 
 - `reselection.py` 和结果类仍使用 `experimental` 命名，但默认配置会通过 `selection.py` 把通过硬门的替代候选提升为正式 Automatic ridge。这是“命名仍实验、行为已 production”的重要不一致。
 - `very_high_time_resolution_experimental` 与 `very_high_frequency_resolution_experimental` profile 明确标注实验性。
-- `scripts/compare_real_ridge_refinement.py`、`assess_real_ridge_quality.py`、`assess_real_ridge_diagnostics.py` 及 `tools/assess_task018*.py` 是开发证据工具，不是 GUI 或 BAT 的算法入口。
+- `scripts/workflows/compare_real_ridge_refinement.py`、`assess_real_ridge_quality.py`、`assess_real_ridge_diagnostics.py` 及 `tools/assess_task018*.py` 是开发证据工具，不是 GUI 或 BAT 的算法入口。
 - guided ridge 的走廊中心在控制点之间线性插值；这是用户约束的几何插值，不是对测量脊线进行平滑。
 
 ### NOT IMPLEMENTED 或尚未接入
@@ -134,7 +134,7 @@ DPS_Studio/
 
 ### 双击 production BAT
 
-`run_demo_pipeline.bat:L1-L65` 固定使用 `D:\miniconda3\envs\dps-studio\python.exe`，设置 `PYTHONPATH=src`，构造 `outputs/production_runs/run_yyyyMMdd_HHmmss`，再调用 `scripts/run_demo_pipeline.py:L119-L138`。后者载入 `configs/demo_dual_profile.toml`，读取源文件、核对 SHA-256、调用 `scripts/production_outputs.py:run_production_outputs()`，成功后原子更新 `outputs/production_runs/LATEST_RUN.txt`。
+`run_demo_pipeline.bat:L1-L65` 固定使用 `D:\miniconda3\envs\dps-studio\python.exe`，设置 `PYTHONPATH=src`，构造 `outputs/production_runs/run_yyyyMMdd_HHmmss`，再调用 `scripts/workflows/run_demo_pipeline.py:L119-L138`。后者载入 `configs/demo_dual_profile.toml`，读取源文件、核对 SHA-256、调用 `scripts/workflows/production_outputs.py:run_production_outputs()`，成功后原子更新 `outputs/production_runs/LATEST_RUN.txt`。
 
 ```mermaid
 flowchart LR
@@ -193,7 +193,7 @@ GUI 参数变化不是全部重算：STFT 参数变化清空 STFT 和下游；�
 
 ### 旧软件参考审计入口
 
-`scripts/audit_legacy_velocity_reference.py` 是 2934 行的 development-only 工具。它读取 `data/raw/20260607.csv` 与 `data/reference/legacy/legacy_velocity_time.csv`，调用正式 core 的 reader、STFT、峰脊线、精修、谱质量、连续性和表观速度转换，同时在大脚本中自带整数 frame offset 对齐、分批 RFFT 参数网格、量化检查、合成真值、RMSE/相关系数/粗糙度、绘图和 Markdown/JSON 报告。其 `search_integer_frame_offset()` 明确禁止插值和时间拉伸；这些对齐、参数候选和推荐规则没有进入 production core。
+`scripts/workflows/audit_legacy_velocity_reference.py` 是 2934 行的 development-only 工具。它读取 `data/raw/20260607.csv` 与 `data/reference/legacy/legacy_velocity_time.csv`，调用正式 core 的 reader、STFT、峰脊线、精修、谱质量、连续性和表观速度转换，同时在大脚本中自带整数 frame offset 对齐、分批 RFFT 参数网格、量化检查、合成真值、RMSE/相关系数/粗糙度、绘图和 Markdown/JSON 报告。其 `search_integer_frame_offset()` 明确禁止插值和时间拉伸；这些对齐、参数候选和推荐规则没有进入 production core。
 
 ## 📊 4. 数据对象及其转换关系
 
@@ -240,7 +240,7 @@ GUI 参数变化不是全部重算：STFT 参数变化清空 STFT 和下游；�
 
 ### Tier 2：需要理解结构
 
-`*_models.py`、`workflow/models.py`、`workflow/display.py`、`workflow/quality_parameters.py`、`core/export/`、`scripts/run_demo_pipeline.py`、`scripts/production_outputs.py`、两个 TOML、`gui/analysis_adapter.py`、`gui/analysis_session.py`、`gui/main_window.py`、`gui/data_controller.py`、`gui/preset_repository.py`、`gui/result_views.py`。这些代码决定边界、序列化、输出和 GUI 怎样调用 core；不必背每行，但要能从入口追到 Tier 1。
+`*_models.py`、`workflow/models.py`、`workflow/display.py`、`workflow/quality_parameters.py`、`core/export/`、`scripts/workflows/run_demo_pipeline.py`、`scripts/workflows/production_outputs.py`、两个 TOML、`gui/analysis_adapter.py`、`gui/analysis_session.py`、`gui/main_window.py`、`gui/data_controller.py`、`gui/preset_repository.py`、`gui/result_views.py`。这些代码决定边界、序列化、输出和 GUI 怎样调用 core；不必背每行，但要能从入口追到 Tier 1。
 
 ### Tier 3：按需查询
 
@@ -552,14 +552,14 @@ metadata 是“已经运行了什么”的输出证据，不是参数输入。�
 | dB display floor | -60 dB | `configs/demo_dual_profile.toml:L62-L69` | 仅显示，不改数值 |
 | output root | `outputs/production_runs` | `configs/demo_dual_profile.toml:L71-L72` | BAT 还显式传每次 run 目录 |
 
-完整逐参数定位另见同 commit 下的 `docs/PROJECT_STRUCTURE_AND_PARAMETER_AUDIT.md`。如果两份文档与源码冲突，以源码为准。
+完整逐参数定位另见同 commit 下的 `docs/development/PROJECT_STRUCTURE_AND_PARAMETER_AUDIT.md`。如果两份文档与源码冲突，以源码为准。
 
 ### 多入口和重复参数
 
 - `window/overlap/nfft/band/wavelength` 同时存在于 profile、TOML、GUI override 和多个开发脚本。修改 `plot_real_stft.py` 不会影响 BAT 或 GUI。
-- `scripts/plot_real_stft.py:L24-L29` 与 `scripts/plot_real_velocity.py:L26-L31` 使用 1024/768/2048 和 0.1–2 GHz，明显不是当前 Balanced 768/640/4096 和 0.05–2 GHz。
-- `scripts/compare_real_ridge_refinement.py:L43-L64` 又有一套开发常量；它用于报告/图，不是 formal config。
-- `scripts/audit_legacy_velocity_reference.py:L76-L99` 的 1550 nm、hop、band、time range、window grid 和 large nfft 都只属于旧参考审计。
+- `scripts/workflows/plot_real_stft.py:L24-L29` 与 `scripts/workflows/plot_real_velocity.py:L26-L31` 使用 1024/768/2048 和 0.1–2 GHz，明显不是当前 Balanced 768/640/4096 和 0.05–2 GHz。
+- `scripts/workflows/compare_real_ridge_refinement.py:L43-L64` 又有一套开发常量；它用于报告/图，不是 formal config。
+- `scripts/workflows/audit_legacy_velocity_reference.py:L76-L99` 的 1550 nm、hop、band、time range、window grid 和 large nfft 都只属于旧参考审计。
 - production config 没有 `[automatic_ridge_selection]`，因此关键的 continuity-assisted/top-3/-6 dB 来自 core dataclass default；GUI config 则显式写出。手改 GUI TOML不会改变 BAT 默认，反之亦然。
 - `background_guard_window_scale=2.0` 在 TOML、session 和 workflow 参数中传播，但当前 formal guard 使用 bins；不要以为改 2.0 会改变正式质量结果。
 
@@ -573,19 +573,19 @@ metadata 是“已经运行了什么”的输出证据，不是参数输入。�
 - `*_detail.csv`：absolute/relative time、coarse/refined frequency、apparent/angle/final corrected/display velocity、所有状态与 provenance
 - `*.metadata.json`：schema、source、profile、STFT、ridge、quality、wavelength、correction、event、counts
 
-导出目录若在任何 `data/raw` 路径或 GUI 提供的 protected path 下会被拒绝，见 `src/dps_studio/core/export/writer.py:L150-L190`。metadata 会记录 source path，但 core GUI export 当前不记录 Git commit；production run manifest 会通过 `scripts/production_outputs.py:L3793-L3809` 读取 Git 状态。
+导出目录若在任何 `data/raw` 路径或 GUI 提供的 protected path 下会被拒绝，见 `src/dps_studio/core/export/writer.py:L150-L190`。metadata 会记录 source path，但 core GUI export 当前不记录 Git commit；production run manifest 会通过 `scripts/workflows/production_outputs.py:L3793-L3809` 读取 Git 状态。
 
 ### BAT production output
 
-`scripts/production_outputs.py:L176-L455` 要求恰好两个 profile、每 profile 两通道。它写 per-channel detailed CSV 和八张图、profile summary/manifest、跨 profile comparison、event consensus、run manifest/log、simple exports 和 README。simple export 使用 `corrected_velocity_m_s`，并在 consensus 前建立明确的显示零平台；这不是测得零速度。输出目录必须是新的，run script 不覆盖已有目录。
+`scripts/workflows/production_outputs.py:L176-L455` 要求恰好两个 profile、每 profile 两通道。它写 per-channel detailed CSV 和八张图、profile summary/manifest、跨 profile comparison、event consensus、run manifest/log、simple exports 和 README。simple export 使用 `corrected_velocity_m_s`，并在 consensus 前建立明确的显示零平台；这不是测得零速度。输出目录必须是新的，run script 不覆盖已有目录。
 
 ### Documentation drift
 
 这是当前最严重的文档漂移：
 
 - `README.md:L43-L50` 和 `run_demo_pipeline.bat:L23-L24` 仍声明“no LiF correction”。
-- `scripts/production_outputs.py:L107-L114` 的 `INTERPRETATION_GUARDS` 仍写 no LiF/angle correction。
-- 但两个 TOML 都选择 `window_material='LiF'`，workflow `L529-L533` 实际调用 correction，diagnostic CSV 包含三类速度，simple export `scripts/production_outputs.py:L746-L759` 复制 final corrected velocity，manifest 也记录 correction。
+- `scripts/workflows/production_outputs.py:L107-L114` 的 `INTERPRETATION_GUARDS` 仍写 no LiF/angle correction。
+- 但两个 TOML 都选择 `window_material='LiF'`，workflow `L529-L533` 实际调用 correction，diagnostic CSV 包含三类速度，simple export `scripts/workflows/production_outputs.py:L746-L759` 复制 final corrected velocity，manifest 也记录 correction。
 
 因此当前输出必须按真实字段判断：`apparent_velocity_m_s` 是表观速度；`corrected_velocity_m_s` 是当前 LiF/angle 后结果。旧警示语不可作为运行事实。
 
@@ -622,7 +622,7 @@ metadata 是“已经运行了什么”的输出证据，不是参数输入。�
 | `core/workflow/analysis.py` | 上述相关 unit + `test_workflow_analysis.py test_task016r_staged_workflow.py`，最后全量 |
 | `core/workflow/config.py` | `pytest tests/unit/test_workflow_config.py tests/unit/gui/test_task015b_presets.py` |
 | `core/export/writer.py` | `pytest tests/unit/test_formal_result_export.py tests/unit/gui/test_task017_result_export.py` |
-| `scripts/production_outputs.py` | `pytest tests/unit/test_production_outputs.py tests/unit/test_run_demo_pipeline_modes.py` |
+| `scripts/workflows/production_outputs.py` | `pytest tests/unit/test_production_outputs.py tests/unit/test_run_demo_pipeline_modes.py` |
 | GUI adapter/session/main | `pytest tests/unit/gui` + 对应 core tests |
 
 ### 当前薄弱点
@@ -659,20 +659,20 @@ Git 历史显示项目按可理解的依赖顺序成长：2026-07-10 初始化�
 
 | 文件 | 身份 | 当前主流程 | 是否可能过时 |
 | --- | --- | --- | --- |
-| `scripts/run_demo_pipeline.py` | 正式 BAT Python 入口 | 是 | 低 |
-| `scripts/production_outputs.py` | 正式批处理输出编排 | 是 | 中：警示语 drift |
-| `scripts/plot_real_stft.py` | 旧版 STFT 预览 | 否 | 高：1024/768/2048、0.1 GHz |
-| `scripts/plot_real_velocity.py` | 旧版 candidate velocity 预览 | 否 | 高：同上且只 apparent |
-| `scripts/compare_real_ridge_refinement.py` | 开发精修/窗口诊断 | 否 | 中：常量独立且 no LiF 文案 |
-| `scripts/assess_real_ridge_quality.py` | 开发谱质量证据 | 否 | 中：调用 development helper |
-| `scripts/assess_real_ridge_diagnostics.py` | 开发连续性/相关频率证据 | 否 | 中：不代表 formal thresholds |
-| `scripts/audit_legacy_velocity_reference.py` | 旧软件审计 | 否 | 低（审计目的明确），但大脚本逻辑不复用 |
-| `tools/assess_task018a_continuity.py` | TASK 验收工具 | 否 | 会随 TASK 语义老化 |
-| `tools/assess_task018b_candidates.py` | TASK 候选 A/B | 否 | 同上 |
-| `tools/assess_task018c_production.py` | TASK production/window/export evidence | 否 | 同上 |
-| `tools/smoke_task018b_gui.py` | offscreen GUI smoke | 否 | 同上 |
-| `tools/smoke_task018c_gui.py` | offscreen GUI smoke | 否 | 同上 |
-| `tools/smoke_task019a_gui.py` | correction/time export smoke | 否 | 同上 |
+| `scripts/workflows/run_demo_pipeline.py` | 正式 BAT Python 入口 | 是 | 低 |
+| `scripts/workflows/production_outputs.py` | 正式批处理输出编排 | 是 | 中：警示语 drift |
+| `scripts/workflows/plot_real_stft.py` | 旧版 STFT 预览 | 否 | 高：1024/768/2048、0.1 GHz |
+| `scripts/workflows/plot_real_velocity.py` | 旧版 candidate velocity 预览 | 否 | 高：同上且只 apparent |
+| `scripts/workflows/compare_real_ridge_refinement.py` | 开发精修/窗口诊断 | 否 | 中：常量独立且 no LiF 文案 |
+| `scripts/workflows/assess_real_ridge_quality.py` | 开发谱质量证据 | 否 | 中：调用 development helper |
+| `scripts/workflows/assess_real_ridge_diagnostics.py` | 开发连续性/相关频率证据 | 否 | 中：不代表 formal thresholds |
+| `scripts/workflows/audit_legacy_velocity_reference.py` | 旧软件审计 | 否 | 低（审计目的明确），但大脚本逻辑不复用 |
+| `scripts/research/inherited/task018a/assess_task018a_continuity.py` | TASK 验收工具 | 否 | 会随 TASK 语义老化 |
+| `scripts/research/inherited/task018b/assess_task018b_candidates.py` | TASK 候选 A/B | 否 | 同上 |
+| `scripts/research/inherited/task018c/assess_task018c_production.py` | TASK production/window/export evidence | 否 | 同上 |
+| `scripts/research/inherited/task018b/smoke_task018b_gui.py` | offscreen GUI smoke | 否 | 同上 |
+| `scripts/research/inherited/task018c/smoke_task018c_gui.py` | offscreen GUI smoke | 否 | 同上 |
+| `scripts/research/inherited/task019a/smoke_task019a_gui.py` | correction/time export smoke | 否 | 同上 |
 
 `ridge/diagnostics.py:assess_ridge_continuity()` 的基本差分诊断进入 `ChannelAnalysis`；同文件 `assess_related_frequency_evidence()` 只由开发诊断/旧审计调用。不要因同文件中有函数就认为所有功能都在 production。
 
@@ -683,7 +683,7 @@ Git 历史显示项目按可理解的依赖顺序成长：2026-07-10 初始化�
 ### Stage 0：程序怎样启动
 
 - **目标：** 分清 CLI、GUI、BAT production 三条入口。
-- **阅读：** `pyproject.toml:L1-L39`、两个 BAT、`cli.py`、`gui/app.py`、`scripts/run_demo_pipeline.py`。
+- **阅读：** `pyproject.toml:L1-L39`、两个 BAT、`cli.py`、`gui/app.py`、`scripts/workflows/run_demo_pipeline.py`。
 - **前置：** Python module/console script 基本概念。
 - **读完能答：** 为什么 `dps-studio` 不会打开 GUI？哪个入口会写 outputs？
 - **练习：** 只用 `--version` 和 `--help` 观察 CLI；在纸上写三条调用链。
@@ -773,7 +773,7 @@ Git 历史显示项目按可理解的依赖顺序成长：2026-07-10 初始化�
 ### Stage 10：output 与 metadata
 
 - **目标：** 确认最终 CSV 每列来源和非覆盖保证。
-- **阅读：** `export/writer.py`、`scripts/production_outputs.py` 的 `L176-L878` 与 manifest 部分。
+- **阅读：** `export/writer.py`、`scripts/workflows/production_outputs.py` 的 `L176-L878` 与 manifest 部分。
 - **前置：** CSV/JSON、staging、hard link。
 - **读完能答：** simple CSV 为什么可能有零？Git commit 记录在哪里？
 - **练习：** 在 `tmp_path` 导出一次，逐列和 `ChannelAnalysis` 比对。
@@ -845,7 +845,7 @@ Git 历史显示项目按可理解的依赖顺序成长：2026-07-10 初始化�
 
 | 顺序 | 文件 | 为什么读 | 重点函数 | 难度 | 读完掌握 |
 | ---: | --- | --- | --- | --- | --- |
-| 1 | `scripts/run_demo_pipeline.py` | 找到真实 BAT Python 入口 | `run_pipeline` | 易 | 配置、raw、output 怎样连接 |
+| 1 | `scripts/workflows/run_demo_pipeline.py` | 找到真实 BAT Python 入口 | `run_pipeline` | 易 | 配置、raw、output 怎样连接 |
 | 2 | `core/workflow/config.py` | 参数总入口 | `load_workflow_config` | 中 | TOML → dataclass |
 | 3 | `core/io/delimited.py` | raw 字节入口 | `read_delimited_signals` | 中 | 列/单位/错误语义 |
 | 4 | `core/models/signal.py` | 采样真相 | `SignalRecord`, `_derive_sampling_information` | 中 | fs、Nyquist、uniformity |
@@ -927,7 +927,7 @@ TASK-015D 的 16 个 flattened 目录为：`baseline`、`baseline_clean`、`feat
 
 1. Git commit `48407dc` 曾加入 1395 个 `.pytest_tmp` 文件和 141 个 flattened TASK-016R3 basetemp 文件；`9d51a46` 又加入 1285 个 `.pytest_tmp` 文件。这些都是 pytest 生成的 config/source fixture、CSV、PNG、JSON、`.data`，不是源码。
 2. `.pytest_tmp/` 在 commit `4aeb575` 才加入 `.gitignore`；已经 tracked 的文件不会因为 ignore 自动消失，所以一直留在仓库。
-3. `docs/TASK-016R3_REPORT.md:L111-L113` 明确记录超长 flattened 目录由失败的“backslash-form pytest invocation”生成；Windows 绝对路径中的 `:\` 和反斜杠被错误压扁成目录名。
+3. `docs/tasks/inherited/TASK-016R3/TASK-016R3_REPORT.md:L111-L113` 明确记录超长 flattened 目录由失败的“backslash-form pytest invocation”生成；Windows 绝对路径中的 `:\` 和反斜杠被错误压扁成目录名。
 4. 当前 test 源码只使用 pytest `tmp_path`，没有 `task015d`、`explicit_cache`、`explicit_tmp` 或 flattened-path mkdir 逻辑。因此来源是历史运行命令/执行环境，而非当前 repository test helper。
 5. `pyproject.toml` 原 `cache_dir='.test_tmp/pytest_cache'` 会持续重建异常 `.test_tmp`。本 TASK 最小修改为标准 `.pytest_cache`。
 6. 系统 temp 的 `C:\Users\89484\AppData\Local\Temp\pytest-of-89484` 本身也有 ACL 残留；不指定 basetemp 时本次全量测试出现 143 个 setup error。使用仓库外短路径后 530 项全部通过。

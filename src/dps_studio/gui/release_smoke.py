@@ -86,7 +86,7 @@ def _csv_rows(path: Path) -> tuple[tuple[str, ...], list[dict[str, str]]]:
 def run_analysis_smoke(source: Path, output_directory: Path) -> dict[str, Any]:
     """Analyze the documented three-column s/V example, without GUI automation.
 
-    The caller supplies a copy of docs/原始数据.csv. Units and mapping are the
+    The caller supplies a copy of data/reference/legacy_docs/原始数据.csv. Units and mapping are the
     documented input selections, not inferred from converted numerical arrays.
     """
     output_directory.mkdir(parents=True, exist_ok=False)

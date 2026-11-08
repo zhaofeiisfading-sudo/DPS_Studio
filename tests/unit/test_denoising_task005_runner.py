@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def invoke(*args: str) -> subprocess.CompletedProcess[str]:
     env = dict(os.environ, PYTHONPATH=str(ROOT / "src"), PYTHONDONTWRITEBYTECODE="1")
-    return subprocess.run([sys.executable, "-B", str(ROOT / "scripts/run_denoising_task005.py"),
+    return subprocess.run([sys.executable, "-B", str(ROOT / "scripts/research/inherited/task005/run_denoising_task005.py"),
                            *args], cwd=ROOT, env=env, capture_output=True, text=True, check=False)
 
 

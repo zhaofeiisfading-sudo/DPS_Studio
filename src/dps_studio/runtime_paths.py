@@ -13,7 +13,12 @@ def application_resource_root() -> Path:
         if not isinstance(frozen_root, str):
             raise RuntimeError("Frozen runtime does not expose a valid _MEIPASS path.")
         return Path(frozen_root).resolve()
-    return Path(__file__).resolve().parents[2]
+    package_root = Path(__file__).resolve().parent
+    checkout_root = package_root.parents[1]
+    if (checkout_root / "pyproject.toml").is_file() and (checkout_root / "configs").is_dir():
+        return checkout_root
+    # Non-editable installs receive configs via Hatch's force-include mapping.
+    return package_root / "resources"
 
 
 def application_resource_path(*parts: str) -> Path:

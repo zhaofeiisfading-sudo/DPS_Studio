@@ -1,3 +1,5 @@
+> 继承的旧工作区清理记录，描述当时的审批与目录状态；当前 Research 结果见 [TASK-016](../tasks/TASK-016/CLEANUP.md)。
+
 # Artifact deep cleanup result
 
 **清理未执行。** 自动审批拒绝了删除命令；49 个待删项目仍全部存在。

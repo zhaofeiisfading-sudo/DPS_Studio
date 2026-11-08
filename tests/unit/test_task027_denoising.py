@@ -11,8 +11,8 @@ import pytest
 from dps_studio.core.models import SignalRecord
 from dps_studio.research import task027_denoising as m
 from dps_studio.research.task023e_waveform_benchmark import PROFILES, array_hash
-from scripts.evaluate_task027 import counts, rates
-from scripts.run_task027 import case_for, verify_freeze, write_json
+from scripts.research.inherited.task027.evaluate_task027 import counts, rates
+from scripts.research.inherited.task027.run_task027 import case_for, verify_freeze, write_json
 
 
 def record() -> SignalRecord:
