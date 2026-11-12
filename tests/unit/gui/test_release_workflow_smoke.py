@@ -31,9 +31,9 @@ def test_event_labels_fit_translated_sidebar(qapp: QApplication, tmp_path: Path,
                    row["height"] >= row["required_height"] for row in geometry), geometry
         if language == "en":
             assert window.analysis_range_panel.manual_event_time_radio.text() == "Manual"
-        view = window.velocity_view
+        view = window.acceleration_view
         window.science_tabs.setCurrentWidget(view)
-        view.quantity_combo.setCurrentIndex(1)
+        view.settings_toggle.click()
         view.acceleration_method_combo.setCurrentIndex(1)
         qapp.processEvents()
         spin = view.acceleration_window_spin
@@ -52,9 +52,10 @@ def test_gui_workflow_audits_real_sample_and_exports(qapp: QApplication, tmp_pat
     try:
         window.resize(1366, 768)
         window.show()
-        source = Path(__file__).resolve().parents[3] / "docs/原始数据.csv"
+        source = Path(__file__).resolve().parents[3] / "data/raw/20260607.csv"
         report = _exercise(window, source, tmp_path)
         assert report["workflow_complete"] and report["input_unchanged"]
+        assert report["dechirp_plot_and_export_match"] and report["dechirp_finite_frames"] > 0
         assert len(report["builtin_derivative_audit"]) == 2
         assert all(not audit["physical_peak_validated"]
                    for audit in report["builtin_derivative_audit"].values())

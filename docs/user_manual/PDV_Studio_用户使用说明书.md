@@ -223,7 +223,7 @@ v_{\mathrm{app}}=\frac{\lambda_0 f_b}{2}.
 | `<源文件>_ch1_auto_detail.csv` | 详细时间、频率、速度、质量状态和选择来源 |
 | `<源文件>_ch1_auto.metadata.json` | STFT、脊线、质量配置、修正参数和 provenance |
 
-实际示例目录在 [`export_example_manual/`](export_example_manual/)。简洁 CSV 的当前表头为：
+本地导出示例位于 `export_example_manual/`。简洁 CSV 的表头为：
 
 ```text
 time_from_event_s,display_velocity_m_s
@@ -304,6 +304,6 @@ time_from_event_s,display_velocity_m_s
 - 源码版本：`0.1.0`；
 - 截图数据：`docs/原始数据.csv`，80,000 行、3 列，按导入界面选择时间列 0、逗号分隔、无表头、时间单位秒，信号列以 V 导入；
 - 截图流程：Balanced profile、Hann 窗、当前默认 STFT 参数，先确认搜索区域，再分别展示自动分析和人工范围分析；
-- 导出示例：`docs/user_manual/export_example_manual/`。
+- 本地导出示例：`docs/user_manual/export_example_manual/`。
 
 本说明书没有把历史文档中与当前源码不一致的旧流程、旧质量输出规则或旧版窗口修正说明写入正文；如旧版软件界面不同，应以当前软件实际显示和导出的 metadata 为准。

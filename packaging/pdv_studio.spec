@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
+import os
 import runpy
 
 from PyInstaller.utils.win32.versioninfo import (
@@ -60,12 +61,14 @@ analysis = Analysis(
     optimize=0,
 )
 pyz = PYZ(analysis.pure)
+onefile = os.environ.get("DPS_STUDIO_ONEFILE") == "1"
 
 executable = EXE(
     pyz,
     analysis.scripts,
-    [],
-    exclude_binaries=True,
+    analysis.binaries if onefile else [],
+    analysis.datas if onefile else [],
+    exclude_binaries=not onefile,
     name="PDV Studio",
     version=VERSION_INFO,
     icon=str(APP_ICON),
@@ -80,12 +83,13 @@ executable = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
-collection = COLLECT(
-    executable,
-    analysis.binaries,
-    analysis.datas,
-    strip=False,
-    upx=False,
-    upx_exclude=[],
-    name=f"PDV_Studio_v{RELEASE_VERSION}",
-)
+if not onefile:
+    collection = COLLECT(
+        executable,
+        analysis.binaries,
+        analysis.datas,
+        strip=False,
+        upx=False,
+        upx_exclude=[],
+        name=f"PDV_Studio_v{RELEASE_VERSION}",
+    )

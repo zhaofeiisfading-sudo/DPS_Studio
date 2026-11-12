@@ -9,7 +9,10 @@ from enum import Enum
 from pathlib import Path
 from types import MappingProxyType
 
+import numpy as np
+
 from dps_studio import __version__
+from dps_studio.core.physics.dechirp import DechirpResult
 from dps_studio.core.ridge import (
     ManualFrequencyRegion,
     RidgeCorridorConstraint,
@@ -82,6 +85,7 @@ class ResultExportOptions:
     dps_studio_version: str = __version__
     include_acceleration: bool = False
     acceleration_fit_window_s: float | None = None
+    dechirp_results: Mapping[str, DechirpResult] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         output_directory = Path(self.output_directory)
@@ -124,6 +128,17 @@ class ResultExportOptions:
                 raise ResultExportValidationError(
                     "channel_analyses must contain ChannelAnalysis values."
                 )
+        dechirp = dict(self.dechirp_results)
+        for name, result in dechirp.items():
+            if (not self.include_acceleration or name not in analyses
+                    or not isinstance(result, DechirpResult)
+                    or not np.array_equal(result.time_s, analyses[name].stft_result.time_s)
+                    or result.vacuum_wavelength_m
+                    != analyses[name].discrete_velocity_result.vacuum_wavelength_m):
+                raise ResultExportValidationError(
+                    "Dechirp results must match an exported acceleration channel."
+                )
+        object.__setattr__(self, "dechirp_results", MappingProxyType(dechirp))
         try:
             ridge_constraints = dict(self.ridge_constraints)
         except (TypeError, ValueError) as exc:

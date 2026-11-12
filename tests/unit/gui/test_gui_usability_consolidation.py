@@ -309,8 +309,8 @@ def test_new_usability_controls_have_finished_english_translations(
             == "Detect Candidates"
         )
         assert window.analysis_range_panel.candidate_heading.text() == "Event candidates"
-        assert window.velocity_view.acceleration_method_combo.itemText(0) == "Raw difference"
-        assert window.velocity_view.acceleration_method_combo.itemText(1) == "Local linear fit"
+        assert window.acceleration_view.acceleration_method_combo.itemText(0) == "Raw difference"
+        assert window.acceleration_view.acceleration_method_combo.itemText(1) == "Local linear fit"
         assert window.export_acceleration_check.text() == "Acceleration CSV · raw difference"
         assert window.export_acceleration_fit_check.text() == "Add local fit columns · 50 ns"
         assert window.window_length_spin.suffix() == " samples"
@@ -320,7 +320,7 @@ def test_new_usability_controls_have_finished_english_translations(
         )
         assert window.lif_parameter_toggle.text() == "Material Parameters…"
         assert window.restore_lif_defaults_button.text() == "Restore LiF Defaults"
-        assert dialog.windowTitle() == "Data Import Settings"
+        assert dialog.windowTitle() == "Import Data"
         assert dialog.button_box.parentWidget() is dialog
     finally:
         dialog.close()

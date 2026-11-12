@@ -7,7 +7,7 @@ from typing import Any
 
 import pyqtgraph as pg  # type: ignore[import-untyped]
 from PySide6.QtCore import Signal, Qt
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from dps_studio.core.models import SignalRecord
 
@@ -31,6 +31,7 @@ class RawSignalView(QWidget):
         self._boundary_hovered = False
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(7, 6, 7, 5)
         controls = QHBoxLayout()
         controls.addWidget(QLabel(self.tr("显示通道")))
         self.channel_combo = QComboBox()
@@ -39,6 +40,9 @@ class RawSignalView(QWidget):
         self.channel_combo.setEnabled(False)
         self.channel_combo.currentIndexChanged.connect(self._update_visible_curves)
         controls.addWidget(self.channel_combo)
+        fit_button = QPushButton(self.tr("全部波形"))
+        fit_button.clicked.connect(self._fit_waveform)
+        controls.addWidget(fit_button)
         controls.addStretch(1)
         layout.addLayout(controls)
 
@@ -49,9 +53,10 @@ class RawSignalView(QWidget):
         self.plot_widget.showGrid(x=True, y=True, alpha=0.22)
         self.plot_widget.addLegend(offset=(12, 12))
         self.plot_widget.setMouseEnabled(x=True, y=True)
+        self.plot_widget.setToolTip(self.tr("滚轮缩放，拖动平移；蓝色边界限定分析范围。"))
         self.analysis_region = pg.LinearRegionItem(
             orientation=pg.LinearRegionItem.Vertical,
-            brush=pg.mkBrush(11, 111, 164, 35),
+            brush=pg.mkBrush(11, 111, 164, 15),
             pen=pg.mkPen("#0b6fa4", width=1.0),
             hoverPen=pg.mkPen("#d55e00", width=4.0),
             movable=True,
@@ -71,6 +76,9 @@ class RawSignalView(QWidget):
         self.plot_widget.addItem(self.analysis_region)
         self.plot_widget.scene().sigMouseMoved.connect(self._on_mouse_moved)
         layout.addWidget(self.plot_widget, 1)
+
+    def _fit_waveform(self) -> None:
+        self.plot_widget.autoRange()
 
     def set_records(self, records: Mapping[str, SignalRecord]) -> None:
         """Display records without mutating, smoothing, or combining them."""
@@ -155,7 +163,7 @@ class RawSignalView(QWidget):
 
     def _on_mouse_moved(self, position: object) -> None:
         self._update_boundary_hover_state(position)
-        if not self._records:
+        if not self._records or not self.plot_widget.getViewBox().sceneBoundingRect().contains(position):
             return
         point = self.plot_widget.plotItem.vb.mapSceneToView(position)
         selected = str(self.channel_combo.currentData())

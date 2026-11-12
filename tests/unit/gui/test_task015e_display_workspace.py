@@ -197,21 +197,27 @@ def test_workspace_splitter_and_bottom_dock_are_programmatically_resizable(
         qapp.processEvents()
         splitter = window.workspace_splitter
         available = sum(splitter.sizes())
-        first = [150, available - 390, 240]
+        first = [available - 340, 340]
         splitter.setSizes(first)
         qapp.processEvents()
         assert splitter.sizes() == first
-        second = [300, available - 600, 300]
+        second = [available - 440, 440]
         splitter.setSizes(second)
         qapp.processEvents()
         assert splitter.sizes() == second
         assert splitter.handleWidth() >= 7
-        assert all(not splitter.isCollapsible(index) for index in range(3))
+        assert splitter.count() == 2
+        assert splitter.widget(0) is window.science_tabs
+        assert splitter.widget(1) is window.parameter_panel
+        assert all(not splitter.isCollapsible(index) for index in range(2))
         assert window.science_tabs.width() > 0
-        for panel in (window.navigation_panel, window.parameter_panel):
+        for panel in (window.science_tabs, window.parameter_panel):
             assert panel.minimumWidth() < panel.maximumWidth()
             assert panel.sizePolicy().horizontalPolicy() is QSizePolicy.Policy.Ignored
 
+        assert not window.diagnostics_dock.isVisible()
+        window.diagnostics_dock.toggleViewAction().trigger()
+        assert window.diagnostics_dock.isVisible()
         window.resizeDocks(
             [window.diagnostics_dock],
             [170],
@@ -247,15 +253,15 @@ def test_layout_settings_restore_reset_and_survive_language_change(
         first.show()
         qapp.processEvents()
         available = sum(first.workspace_splitter.sizes())
-        first.workspace_splitter.setSizes([280, available - 570, 290])
+        first.workspace_splitter.setSizes([available - 420, 420])
+        first.diagnostics_dock.toggleViewAction().trigger()
         first.resizeDocks(
             [first.diagnostics_dock],
             [390],
             Qt.Orientation.Vertical,
         )
         qapp.processEvents()
-        saved_left = first.workspace_splitter.sizes()[0]
-        saved_right = first.workspace_splitter.sizes()[2]
+        saved_right = first.workspace_splitter.sizes()[1]
         saved_bottom = first.diagnostics_dock.height()
     finally:
         first.close()
@@ -263,7 +269,7 @@ def test_layout_settings_restore_reset_and_survive_language_change(
 
     assert settings.contains("layout/main_window_geometry")
     assert settings.contains("layout/main_window_state")
-    assert settings.contains("layout/workspace_splitter_state")
+    assert settings.contains("layout/workspace_splitter_v2")
     assert settings.contains("layout/diagnostics_dock_height")
 
     manager.install("en")
@@ -272,8 +278,7 @@ def test_layout_settings_restore_reset_and_survive_language_change(
         restored.show()
         qapp.processEvents()
         assert restored.view_menu.title() == "View"
-        assert restored.workspace_splitter.sizes()[0] == saved_left
-        assert restored.workspace_splitter.sizes()[2] == saved_right
+        assert restored.workspace_splitter.sizes()[1] == saved_right
         assert restored.diagnostics_dock.height() == saved_bottom
         assert (
             restored.spectrogram_view.color_bar.getAxis("left").labelText
@@ -283,11 +288,9 @@ def test_layout_settings_restore_reset_and_survive_language_change(
         restored.action_restore_default_layout.trigger()
         qapp.processEvents()
         reset_sizes = restored.workspace_splitter.sizes()
-        assert reset_sizes[0] == 220
-        assert reset_sizes[2] == 340
-        assert reset_sizes[1] > 0
-        assert restored.diagnostics_dock.height() == 210
-        assert restored.diagnostics_dock.isVisible()
+        assert reset_sizes[0] > reset_sizes[1]
+        assert reset_sizes[1] >= restored.parameter_panel.minimumWidth()
+        assert not restored.diagnostics_dock.isVisible()
     finally:
         restored.close()
         manager.install("zh_CN")
@@ -311,9 +314,10 @@ def test_invalid_old_layout_values_fall_back_without_crashing(
         window.show()
         qapp.processEvents()
         sizes = window.workspace_splitter.sizes()
-        assert sizes[0] >= window.navigation_panel.minimumWidth()
-        assert sizes[1] > 0
-        assert sizes[2] >= window.parameter_panel.minimumWidth()
+        assert len(sizes) == 2
+        assert sizes[0] >= window.science_tabs.minimumWidth()
+        assert sizes[1] >= window.parameter_panel.minimumWidth()
+        assert not window.diagnostics_dock.isVisible()
     finally:
         window.close()
         qapp.processEvents()

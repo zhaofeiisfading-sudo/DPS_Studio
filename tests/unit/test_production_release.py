@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 
-BUILD = runpy.run_path(str(Path(__file__).resolve().parents[2] / "tools/build_production_release.py"))
+BUILD = runpy.run_path(str(Path(__file__).resolve().parents[2] / "scripts/build/build_production_release.py"))
 
 
 def test_build_and_smoke_environments_exclude_foreign_dll_paths(monkeypatch):

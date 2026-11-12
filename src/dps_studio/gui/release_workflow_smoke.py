@@ -8,6 +8,7 @@ import hashlib
 import json
 import sys
 from pathlib import Path
+from time import monotonic
 from typing import Any
 
 import numpy as np
@@ -20,6 +21,7 @@ from dps_studio.core.workflow.acceleration import channel_acceleration
 from dps_studio.core.workflow.models import ChannelAnalysis
 from dps_studio.gui.main_window import MainWindow
 from dps_studio.gui.release_smoke import loaded_runtime_paths
+from dps_studio.runtime_paths import application_resource_path, package_resource_path
 
 
 def event_option_geometry(window: MainWindow) -> list[dict[str, Any]]:
@@ -81,6 +83,52 @@ def _dismiss_message() -> None:
         modal.accept()
 
 
+def _verify_dechirp(window: MainWindow, destination: Path) -> int:
+    view = window.acceleration_view
+    assert window.science_tabs.indexOf(view) != window.science_tabs.indexOf(window.velocity_view)
+    window.science_tabs.setCurrentWidget(view)
+    channel = view.channel_combo.currentData()
+    analysis = window.analysis_session.channel_analyses[channel]
+    record = window.analysis_session.records[channel]
+    view.method_combo.setCurrentIndex(view.method_combo.findData("dechirp"))
+    loop = QEventLoop()
+    deadline = monotonic() + 25
+    result = view.cached_dechirp(record, analysis)
+    while result is None and monotonic() < deadline:
+        QTimer.singleShot(50, loop.quit)
+        loop.exec()
+        result = view.cached_dechirp(record, analysis)
+    assert result is not None and view.acceleration_curve is not None
+    finite = int(np.isfinite(result.apparent_acceleration_m_s2).sum())
+    assert finite > 0, "Real waveform did not yield any Dechirp estimates"
+    np.testing.assert_array_equal(view.acceleration_curve.getData()[1],
+                                  result.apparent_acceleration_m_s2 * 1e-9)
+    assert window.grab().save(str(destination / "dechirp.png"))
+
+    output = destination / "dechirp_exports"
+    output.mkdir()
+    window._set_export_output_directory(output)
+    window.export_channel_combo.setCurrentIndex(window.export_channel_combo.findData(channel))
+    window.export_dechirp_check.setChecked(True)
+    QTimer.singleShot(100, _dismiss_message)
+    assert window._export_current_result()
+    document = json.loads(next(output.glob("*.metadata.json")).read_text(encoding="utf-8"))
+    metadata = document["acceleration_dechirp"]
+    assert metadata["window_samples"] == view.dechirp_settings.window_samples
+    with (output / metadata["csv_file"]).open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    np.testing.assert_array_equal([float(row["dechirp_apparent_acceleration_m_s2"]) for row in rows],
+                                  result.apparent_acceleration_m_s2)
+    assert tuple(row["dechirp_flag"] for row in rows) == result.flags
+
+    view.method_combo.setCurrentIndex(view.method_combo.findData("velocity_derivative"))
+    view.acceleration_method_combo.setCurrentIndex(0)
+    assert view.acceleration_curve is not None
+    np.testing.assert_array_equal(view.acceleration_curve.getData()[1],
+                                  channel_acceleration(analysis).acceleration_m_s2 * 1e-9)
+    return finite
+
+
 def _exercise(window: MainWindow, source: Path, destination: Path) -> dict[str, Any]:
     from dps_studio.gui.data_controller import DataImportController
     from dps_studio.gui.import_dialog import ImportSettingsDialog
@@ -111,8 +159,8 @@ def _exercise(window: MainWindow, source: Path, destination: Path) -> dict[str, 
     window.science_tabs.setCurrentWidget(window.velocity_view)
     QApplication.processEvents()
     assert window.grab().save(str(destination / "velocity.png"))
-    view = window.velocity_view
-    view.quantity_combo.setCurrentIndex(1)
+    view = window.acceleration_view
+    window.science_tabs.setCurrentWidget(view)
     audits = {name: audit_derivative(analysis)
               for name, analysis in window.analysis_session.channel_analyses.items()}
     builtin_velocity = {name: analysis.plot_velocity_m_s.copy()
@@ -132,7 +180,7 @@ def _exercise(window: MainWindow, source: Path, destination: Path) -> dict[str, 
     window.export_absolute_time_origin_radio.click()
     window.export_acceleration_check.setChecked(True)
     window._set_export_output_directory(export_dir)
-    corrected_audits = {}
+    corrected_audits: dict[str, Any] = {}
     for name, analysis in window.analysis_session.channel_analyses.items():
         assert not np.allclose(builtin_velocity[name], analysis.plot_velocity_m_s, equal_nan=True)
         view.channel_combo.setCurrentIndex(view.channel_combo.findData(name))
@@ -160,6 +208,7 @@ def _exercise(window: MainWindow, source: Path, destination: Path) -> dict[str, 
         np.testing.assert_allclose([float(row["acceleration_m_s2"]) for row in rows],
             channel_acceleration(analysis).acceleration_m_s2, equal_nan=True)
     window.select_workflow_step(2)
+    window.science_tabs.setCurrentWidget(view)
     window.velocity_parameter_scroll.verticalScrollBar().setValue(0)
     QApplication.processEvents()
     assert window.grab().save(str(destination / "acceleration.png"))
@@ -194,6 +243,7 @@ def _exercise(window: MainWindow, source: Path, destination: Path) -> dict[str, 
                 channel_acceleration(analysis, window_s=fit_window).acceleration_m_s2,
                 equal_nan=True)
     window.select_workflow_step(2)
+    window.science_tabs.setCurrentWidget(view)
     window.velocity_parameter_scroll.verticalScrollBar().setValue(0)
     QApplication.processEvents()
     assert window.grab().save(str(destination / "local_fit.png"))
@@ -202,12 +252,14 @@ def _exercise(window: MainWindow, source: Path, destination: Path) -> dict[str, 
         QApplication.processEvents()
         assert window.grab().save(str(destination / f"page_{index}.png"))
     window.science_tabs.setCurrentWidget(view)
+    dechirp_finite = _verify_dechirp(window, destination)
     assert source_hash == hashlib.sha256(source.read_bytes()).hexdigest()
     return {"input_sha256": source_hash, "input_unchanged": True,
             "raw_samples": {key: record.time_s.size for key, record in loaded.records.items()},
             "builtin_derivative_audit": audits, "custom_derivative_audit": corrected_audits,
             "workflow_complete": True, "export_directory": str(export_dir),
-            "local_fit_plot_and_export_match": True, "fit_window_s": 50e-9}
+            "local_fit_plot_and_export_match": True, "fit_window_s": 50e-9,
+            "dechirp_plot_and_export_match": True, "dechirp_finite_frames": dechirp_finite}
 
 
 def run_workflow_smoke(arguments: list[str]) -> int:
@@ -255,6 +307,14 @@ def run_workflow_smoke(arguments: list[str]) -> int:
                        row["height"] >= row["required_height"] for row in geometry), geometry
             assert window.grab().save(str(destination / (report_path.stem + ".png")))
             handle = window.windowHandle()
+            icon = application.windowIcon()
+            assert not icon.pixmap(64, 64).isNull()
+            resources = (
+                package_resource_path("gui", "icons", "pdv_studio.ico"),
+                package_resource_path("gui", "translations", "pdv_studio_en.qm"),
+                application_resource_path("configs", "pdv_studio_defaults.toml"),
+            )
+            assert all(path.is_file() for path in resources)
             report.update(status="PASS", version=__version__, gui_version=application.applicationVersion(),
                 event_loop_entered=True, window_visible=window.isVisible(),
                 window_exposed=handle is not None and handle.isExposed(),
@@ -262,7 +322,8 @@ def run_workflow_smoke(arguments: list[str]) -> int:
                 language=args.workflow_language, device_pixel_ratio=window.devicePixelRatioF(),
                 window_size=[window.width(), window.height()], executable=sys.executable,
                 frozen=bool(getattr(sys, "frozen", False)), runtime_paths=loaded_runtime_paths(),
-                settings_directory=str(destination))
+                settings_directory=str(destination), icon_loaded=True,
+                resources=[str(path) for path in resources])
         except Exception as exc:
             import traceback
             report.update(status="FAIL", error=str(exc), traceback=traceback.format_exc())

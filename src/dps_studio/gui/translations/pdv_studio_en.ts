@@ -436,6 +436,10 @@
         <translation type="vanished">The event-reference draft is not confirmed and is not currently used for the display platform.</translation>
     </message>
 <message><source>事件候选</source><translation>Event candidates</translation></message>
+    <message>
+        <source>分析终点必须晚于起点。</source>
+        <translation>The end time must be after the start.</translation>
+    </message>
 </context>
 <context>
     <name>ComparisonView</name>
@@ -744,9 +748,45 @@
         <source>毫伏 (mV)</source>
         <translation>millivolts (mV)</translation>
     </message>
+    <message>
+        <source>{count} 列（0–{maximum}） · {delimiter} · {encoding}</source>
+        <translation>{count} columns (0–{maximum}) · {delimiter} · {encoding}</translation>
+    </message>
+    <message>
+        <source>列 {index} · {header}：{sample}</source>
+        <translation>Column {index} · {header}: {sample}</translation>
+    </message>
+    <message>
+        <source>列预览</source>
+        <translation>Column Preview</translation>
+    </message>
+    <message>
+        <source>导入</source>
+        <translation>Import</translation>
+    </message>
+    <message>
+        <source>导入数据</source>
+        <translation>Import Data</translation>
+    </message>
+    <message>
+        <source>电压列</source>
+        <translation>Voltage column</translation>
+    </message>
+    <message>
+        <source>源单位</source>
+        <translation>Source unit</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>Cancel</translation>
+    </message>
 </context>
 <context>
     <name>MainWindow</name>
+    <message><source>加速度曲线</source><translation>Acceleration</translation></message>
+    <message><source>附加 Dechirp 表观加速度列</source><translation>Add Dechirp apparent acceleration</translation></message>
+    <message><source>拟合窗口在加速度页设置。</source><translation>Set the fit window on the Acceleration tab.</translation></message>
+    <message><source>使用加速度页的 Dechirp 设置。</source><translation>Uses the Dechirp settings from the Acceleration tab.</translation></message>
     <message>
         <location filename="../main_window.py" line="202"/>
         <source>PDV Studio</source>
@@ -3014,6 +3054,96 @@ Read-only ranges and public core background analysis.</translation>
     <message><source>附加局部拟合列 · {window:g} ns</source><translation>Add local fit columns · {window:g} ns</translation></message>
     <message><source>拟合窗口在速度页设置；原始差分列始终保留。</source><translation>Set the fit window in the velocity view; raw difference columns are always retained.</translation></message>
 <message><source>当前使用绝对时间；可选择事件参考。</source><translation>Absolute time; select an event reference if needed.</translation></message>
+    <message>
+        <source> · 当前通道无此结果。</source>
+        <translation> · No result for this channel.</translation>
+    </message>
+    <message>
+        <source> · 请设置事件参考，或选用绝对时间。</source>
+        <translation> · Set an event reference or use absolute time.</translation>
+    </message>
+    <message>
+        <source>PDV Studio {version}
+
+PDV 波形、时频图与速度分析。</source>
+        <translation>PDV Studio {version}
+
+PDV waveforms, spectrograms and velocity analysis.</translation>
+    </message>
+    <message>
+        <source>STFT 就绪</source>
+        <translation>STFT ready</translation>
+    </message>
+    <message>
+        <source>{name}
+{rows:,} 点 · {count} 通道 · {rate:.4g} GS/s</source>
+        <translation>{name}
+{rows:,} samples · {count} ch · {rate:.4g} GS/s</translation>
+    </message>
+    <message>
+        <source>事件参考…</source>
+        <translation>Event Reference…</translation>
+    </message>
+    <message>
+        <source>含事件前显示平台</source>
+        <translation>Include pre-event display plateau</translation>
+    </message>
+    <message>
+        <source>完成前一步后可用。</source>
+        <translation>Complete the previous step.</translation>
+    </message>
+    <message>
+        <source>就绪</source>
+        <translation>Ready</translation>
+    </message>
+    <message>
+        <source>就绪。</source>
+        <translation>Ready.</translation>
+    </message>
+    <message>
+        <source>已加载数据。</source>
+        <translation>Data loaded.</translation>
+    </message>
+    <message>
+        <source>当前任务结束后关闭…</source>
+        <translation>Closing when the current operation finishes…</translation>
+    </message>
+    <message>
+        <source>数据与分析范围</source>
+        <translation>Data and Analysis Range</translation>
+    </message>
+    <message>
+        <source>数据就绪</source>
+        <translation>Data ready</translation>
+    </message>
+    <message>
+        <source>正在读取 {name}…</source>
+        <translation>Reading {name}…</translation>
+    </message>
+    <message>
+        <source>简表仅含质量通过点</source>
+        <translation>Quality-passed points only in simple CSV</translation>
+    </message>
+    <message>
+        <source>结果就绪</source>
+        <translation>Results ready</translation>
+    </message>
+    <message>
+        <source>范围已更新，请重新计算。</source>
+        <translation>Range updated. Recompute to continue.</translation>
+    </message>
+    <message>
+        <source>计算当前分析范围。</source>
+        <translation>Compute the selected analysis range.</translation>
+    </message>
+    <message>
+        <source>运行中</source>
+        <translation>Working</translation>
+    </message>
+    <message>
+        <source>分析终点必须晚于起点。</source>
+        <translation>The end time must be after the start.</translation>
+    </message>
 </context>
 <context>
     <name>QualitySummaryWidget</name>
@@ -3132,6 +3262,14 @@ Read-only ranges and public core background analysis.</translation>
         <location filename="../raw_signal_view.py" line="66"/>
         <source>拖动以调整分析范围</source>
         <translation>Drag to adjust the analysis range</translation>
+    </message>
+    <message>
+        <source>全部波形</source>
+        <translation>Fit Waveform</translation>
+    </message>
+    <message>
+        <source>滚轮缩放，拖动平移；蓝色边界限定分析范围。</source>
+        <translation>Scroll to zoom, drag to pan. Blue handles set the analysis range.</translation>
     </message>
 </context>
 <context>
@@ -3525,6 +3663,18 @@ Read-only ranges and public core background analysis.</translation>
 <message><source>分析范围</source><translation>Analysis range</translation></message>
 <message><source>全部结果</source><translation>Full range</translation></message>
 <message><source>滚轮缩放，拖动平移；“全部结果”恢复完整数据范围。</source><translation>Scroll to zoom, drag to pan; Full range restores the complete data range.</translation></message>
+    <message>
+        <source>加速度</source>
+        <translation>Acceleration</translation>
+    </message>
+    <message>
+        <source>按当前时间范围内的加速度缩放纵轴。</source>
+        <translation>Fit the Y axis to acceleration in the visible time range.</translation>
+    </message>
+    <message>
+        <source>适合可见区</source>
+        <translation>Fit Visible Y</translation>
+    </message>
 </context>
 <context>
     <name>_ChannelView</name>
@@ -3690,5 +3840,124 @@ Output directory:
         <source>保存自定义配置</source>
         <translation>Save custom preset</translation>
     </message>
+</context>
+<context>
+    <name>_KinematicView</name>
+    <message><source>显示显示速度（非正式结果）</source><translation>Show Display Velocity (Non-formal Result)</translation></message>
+    <message><source>结果来源</source><translation>Result Source</translation></message>
+    <message><source>工作/显示速度（非正式结果）</source><translation>Working/Display Velocity (Non-formal Result)</translation></message>
+    <message><source>窗口修正尚未接入</source><translation>Window correction is not connected</translation></message>
+    <message><source>时间</source><translation>Time</translation></message>
+    <message><source>表观速度</source><translation>Apparent Velocity</translation></message>
+    <message><source>将 X 轴恢复到已配置的分析范围，并仅根据该范围内当前可见速度曲线的有限值调整 Y 轴。</source><translation>Restore X to the configured analysis range and fit Y using only finite values from currently visible velocity curves inside that range.</translation></message>
+    <message><source>适合结果范围</source><translation>Fit Result Range</translation></message>
+    <message><source>根据当前显示结果的实际有限时间—速度数据同时调整 X/Y 轴。</source><translation>Fit both X and Y to the actual finite time–velocity data in the currently displayed result.</translation></message>
+    <message><source>将视图恢复到当前设定的分析时间范围。</source><translation>Fit the view to the configured analysis time range.</translation></message>
+    <message><source>将视图适配到当前显示的有效速度结果。</source><translation>Fit the view to the currently displayed valid velocity results.</translation></message>
+    <message><source>正式显示速度（含事件前平台约定）</source><translation>Formal Display Velocity (Including Pre-event Platform Convention)</translation></message>
+    <message><source>显示诊断曲线</source><translation>Show Diagnostic Curves</translation></message>
+    <message><source>显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。</source><translation>Show formal/trusted apparent and corrected velocities; quality gates do not remove points from the default main curve.</translation></message>
+    <message><source>速度</source><translation>Velocity</translation></message>
+    <message><source>当前没有{source}分析结果。</source><translation>No {source} analysis result is currently available.</translation></message>
+    <message><source>当前预览中没有通道：{channel}</source><translation>The current preview has no channel named {channel}.</translation></message>
+    <message><source>复核页显示与两列简表相同的最终速度数组。</source><translation>The review page shows the same final velocity array as the two-column simple CSV.</translation></message>
+    <message><source>最终速度</source><translation>Final Velocity</translation></message>
+    <message><source>诊断：formal 表观速度</source><translation>Diagnostic: Formal Apparent Velocity</translation></message>
+    <message><source>诊断：formal 修正速度</source><translation>Diagnostic: Formal Corrected Velocity</translation></message>
+    <message><source>复核与导出使用 display_velocity_m_s 作为简表速度列；此处固定显示同一数组。</source><translation>Review &amp; Export uses display_velocity_m_s as the velocity column in the simple CSV; the same array is always shown here.</translation></message>
+    <message><source>自动结果</source><translation>Automatic Result</translation></message>
+    <message><source>人工范围结果</source><translation>Manual Region Result</translation></message>
+    <message><source>引导结果</source><translation>Guided Result</translation></message>
+    <message><source>当前通道尚无{source}：{channel}</source><translation>The current channel has no {source}: {channel}</translation></message>
+    <message><source>相对起跳时间</source><translation>Time from Event</translation></message>
+    <message><source>正式表观速度</source><translation>Formal Apparent Velocity</translation></message>
+    <message><source>正式修正速度</source><translation>Formal Corrected Velocity</translation></message>
+    <message><source>工作/显示速度（非正式）</source><translation>Working/Display Velocity (Non-formal)</translation></message>
+    <message><source>事件参考时刻</source><translation>Event Reference Time</translation></message>
+    <message><source>原始差分</source><translation>Raw difference</translation></message>
+    <message><source>局部线性拟合</source><translation>Local linear fit</translation></message>
+    <message><source>窗口 </source><translation>Window </translation></message>
+    <message><source>拟合窗口总宽度；至少 3 点，不跨无效区。端点使用截短窗口。帧间隔不代表时间分辨率，重叠 STFT 帧彼此相关。</source><translation>Full fit width; at least 3 points, no gap bridging. Windows truncate at edges. Frame spacing is not time resolution; overlapping STFT frames are correlated.</translation></message>
+    <message><source>滚轮缩放，拖动平移；“适合结果范围”恢复完整数据范围。</source><translation>Scroll to zoom, drag to pan; Fit result range restores the full data range.</translation></message>
+    <message><source>来源：最终速度（无符号） · {source} · 观测角 {angle:g}°</source><translation>Source: final speed (unsigned) · {source} · angle {angle:g}°</translation></message>
+    <message><source>原始差分使用实际时间坐标；局部线性拟合保留原速度，可能压低或展宽短时峰。无效区与显示平台留空。有限数值不代表质量通过；质量及修正参数见导出记录。</source><translation>Raw differences use actual times. Local fitting leaves speed unchanged and may attenuate or broaden short peaks. Invalid regions and display platforms remain blank. Finite values do not imply quality acceptance; exports retain quality and correction parameters.</translation></message>
+    <message><source>{count}/{total} 点可计算</source><translation>{count}/{total} points computed</translation></message>
+    <message><source>分析范围</source><translation>Analysis range</translation></message>
+    <message><source>全部结果</source><translation>Full range</translation></message>
+    <message><source>滚轮缩放，拖动平移；“全部结果”恢复完整数据范围。</source><translation>Scroll to zoom, drag to pan; Full range restores the complete data range.</translation></message>
+    <message><source>加速度</source><translation>Acceleration</translation></message>
+    <message><source>按当前时间范围内的加速度缩放纵轴。</source><translation>Fit the Y axis to acceleration in the visible time range.</translation></message>
+    <message><source>适合可见区</source><translation>Fit Visible Y</translation></message>
+    <message><source>加速度 dv/dt</source><translation>Acceleration dv/dt</translation></message>
+    <message><source>速度幅值时间导数</source><translation>Time derivative of speed</translation></message>
+    <message><source>最终显示速度的 dv/dt</source><translation>dv/dt of final displayed speed</translation></message>
+    <message><source>无窗口修正</source><translation>No window correction</translation></message>
+    <message><source>来源：最终显示速度（{source}，观测角 {angle:g}°）。无符号速度的数值时间导数；显示平台与已知无效区留空。求导放大噪声和跳变，时间分辨能力受速度重建窗口限制；尖峰未作物理验证。</source><translation>Source: final displayed speed ({source}, observation angle {angle:g}°). Numerical derivative of unsigned speed; display platforms and known invalid regions are blank. Differentiation amplifies noise and jumps; resolving power is limited by the velocity reconstruction window. Peaks are not physically validated.</translation></message>
+</context>
+<context>
+    <name>AccelerationView</name>
+    <message><source>显示显示速度（非正式结果）</source><translation>Show Display Velocity (Non-formal Result)</translation></message>
+    <message><source>结果来源</source><translation>Result Source</translation></message>
+    <message><source>工作/显示速度（非正式结果）</source><translation>Working/Display Velocity (Non-formal Result)</translation></message>
+    <message><source>窗口修正尚未接入</source><translation>Window correction is not connected</translation></message>
+    <message><source>时间</source><translation>Time</translation></message>
+    <message><source>表观速度</source><translation>Apparent Velocity</translation></message>
+    <message><source>将 X 轴恢复到已配置的分析范围，并仅根据该范围内当前可见速度曲线的有限值调整 Y 轴。</source><translation>Restore X to the configured analysis range and fit Y using only finite values from currently visible velocity curves inside that range.</translation></message>
+    <message><source>适合结果范围</source><translation>Fit Result Range</translation></message>
+    <message><source>根据当前显示结果的实际有限时间—速度数据同时调整 X/Y 轴。</source><translation>Fit both X and Y to the actual finite time–velocity data in the currently displayed result.</translation></message>
+    <message><source>将视图恢复到当前设定的分析时间范围。</source><translation>Fit the view to the configured analysis time range.</translation></message>
+    <message><source>将视图适配到当前显示的有效速度结果。</source><translation>Fit the view to the currently displayed valid velocity results.</translation></message>
+    <message><source>正式显示速度（含事件前平台约定）</source><translation>Formal Display Velocity (Including Pre-event Platform Convention)</translation></message>
+    <message><source>显示诊断曲线</source><translation>Show Diagnostic Curves</translation></message>
+    <message><source>显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。</source><translation>Show formal/trusted apparent and corrected velocities; quality gates do not remove points from the default main curve.</translation></message>
+    <message><source>速度</source><translation>Velocity</translation></message>
+    <message><source>当前没有{source}分析结果。</source><translation>No {source} analysis result is currently available.</translation></message>
+    <message><source>当前预览中没有通道：{channel}</source><translation>The current preview has no channel named {channel}.</translation></message>
+    <message><source>复核页显示与两列简表相同的最终速度数组。</source><translation>The review page shows the same final velocity array as the two-column simple CSV.</translation></message>
+    <message><source>最终速度</source><translation>Final Velocity</translation></message>
+    <message><source>诊断：formal 表观速度</source><translation>Diagnostic: Formal Apparent Velocity</translation></message>
+    <message><source>诊断：formal 修正速度</source><translation>Diagnostic: Formal Corrected Velocity</translation></message>
+    <message><source>复核与导出使用 display_velocity_m_s 作为简表速度列；此处固定显示同一数组。</source><translation>Review &amp; Export uses display_velocity_m_s as the velocity column in the simple CSV; the same array is always shown here.</translation></message>
+    <message><source>自动结果</source><translation>Automatic Result</translation></message>
+    <message><source>人工范围结果</source><translation>Manual Region Result</translation></message>
+    <message><source>引导结果</source><translation>Guided Result</translation></message>
+    <message><source>当前通道尚无{source}：{channel}</source><translation>The current channel has no {source}: {channel}</translation></message>
+    <message><source>相对起跳时间</source><translation>Time from Event</translation></message>
+    <message><source>正式表观速度</source><translation>Formal Apparent Velocity</translation></message>
+    <message><source>正式修正速度</source><translation>Formal Corrected Velocity</translation></message>
+    <message><source>工作/显示速度（非正式）</source><translation>Working/Display Velocity (Non-formal)</translation></message>
+    <message><source>事件参考时刻</source><translation>Event Reference Time</translation></message>
+    <message><source>原始差分</source><translation>Raw difference</translation></message>
+    <message><source>局部线性拟合</source><translation>Local linear fit</translation></message>
+    <message><source>窗口 </source><translation>Window </translation></message>
+    <message><source>拟合窗口总宽度；至少 3 点，不跨无效区。端点使用截短窗口。帧间隔不代表时间分辨率，重叠 STFT 帧彼此相关。</source><translation>Full fit width; at least 3 points, no gap bridging. Windows truncate at edges. Frame spacing is not time resolution; overlapping STFT frames are correlated.</translation></message>
+    <message><source>滚轮缩放，拖动平移；“适合结果范围”恢复完整数据范围。</source><translation>Scroll to zoom, drag to pan; Fit result range restores the full data range.</translation></message>
+    <message><source>来源：最终速度（无符号） · {source} · 观测角 {angle:g}°</source><translation>Source: final speed (unsigned) · {source} · angle {angle:g}°</translation></message>
+    <message><source>原始差分使用实际时间坐标；局部线性拟合保留原速度，可能压低或展宽短时峰。无效区与显示平台留空。有限数值不代表质量通过；质量及修正参数见导出记录。</source><translation>Raw differences use actual times. Local fitting leaves speed unchanged and may attenuate or broaden short peaks. Invalid regions and display platforms remain blank. Finite values do not imply quality acceptance; exports retain quality and correction parameters.</translation></message>
+    <message><source>{count}/{total} 点可计算</source><translation>{count}/{total} points computed</translation></message>
+    <message><source>分析范围</source><translation>Analysis range</translation></message>
+    <message><source>全部结果</source><translation>Full range</translation></message>
+    <message><source>滚轮缩放，拖动平移；“全部结果”恢复完整数据范围。</source><translation>Scroll to zoom, drag to pan; Full range restores the complete data range.</translation></message>
+    <message><source>加速度</source><translation>Acceleration</translation></message>
+    <message><source>按当前时间范围内的加速度缩放纵轴。</source><translation>Fit the Y axis to acceleration in the visible time range.</translation></message>
+    <message><source>适合可见区</source><translation>Fit Visible Y</translation></message>
+    <message><source>加速度 dv/dt</source><translation>Acceleration dv/dt</translation></message>
+    <message><source>速度幅值时间导数</source><translation>Time derivative of speed</translation></message>
+    <message><source>最终显示速度的 dv/dt</source><translation>dv/dt of final displayed speed</translation></message>
+    <message><source>无窗口修正</source><translation>No window correction</translation></message>
+    <message><source>来源：最终显示速度（{source}，观测角 {angle:g}°）。无符号速度的数值时间导数；显示平台与已知无效区留空。求导放大噪声和跳变，时间分辨能力受速度重建窗口限制；尖峰未作物理验证。</source><translation>Source: final displayed speed ({source}, observation angle {angle:g}°). Numerical derivative of unsigned speed; display platforms and known invalid regions are blank. Differentiation amplifies noise and jumps; resolving power is limited by the velocity reconstruction window. Peaks are not physically validated.</translation></message>
+    <message><source>速度差分</source><translation>Velocity difference</translation></message>
+    <message><source>Dechirp 直接估计</source><translation>Direct Dechirp</translation></message>
+    <message><source>算法设置</source><translation>Method settings</translation></message>
+    <message><source>差分方式</source><translation>Derivative</translation></message>
+    <message><source>局部拟合窗口</source><translation>Local fit window</translation></message>
+    <message><source>波形窗口采样点</source><translation>Waveform window (samples)</translation></message>
+    <message><source>斜率搜索上限</source><translation>Slope search limit</translation></message>
+    <message><source>最低拟合 R²</source><translation>Minimum fit R²</translation></message>
+    <message><source>没有可用的原始波形。</source><translation>No raw waveform available.</translation></message>
+    <message><source>正在拟合原始波形…</source><translation>Fitting raw waveform…</translation></message>
+    <message><source>表观加速度 · {count}/{total} 点通过拟合检查</source><translation>Apparent acceleration · {count}/{total} fits accepted</translation></message>
+    <message><source>无效区与显示平台留空。有限差分值不代表质量通过。</source><translation>Gaps and display plateaus stay blank. Finite differences can include low-quality speed points.</translation></message>
+    <message><source>波形拟合失败：{reason}</source><translation>Waveform fit failed: {reason}</translation></message>
 </context>
 </TS>

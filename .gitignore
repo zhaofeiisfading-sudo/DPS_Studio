@@ -39,9 +39,18 @@ coverage.xml
 # Build and packaging outputs
 # ============================================================
 
+# Only intermediates under build/; verified archives under release/.
+# Retain the dist/ ignore as a guard for accidental legacy invocations.
 /build/
 /dist/
 /release/
+/artifacts/
+*.msi
+*.msix
+*.dmg
+*.AppImage
+PDV_Studio*.zip
+PDV_Studio*.exe
 *.egg-info/
 .eggs/
 pip-wheel-metadata/
@@ -63,6 +72,13 @@ pip-wheel-metadata/
 
 # Legacy reference CSV files may contain experimental data
 /data/reference/legacy/*.csv
+
+# Local inputs and generated exports from the historical user manual.
+/docs/原始数据.csv
+/docs/旧软件速度时间数据.csv
+/docs/user_manual/export_example*/
+/docs/user_manual/PDV_Studio_用户使用说明书.html
+/docs/user_manual/PDV_Studio_用户使用说明书.pdf
 
 # Generated program outputs
 /outputs/

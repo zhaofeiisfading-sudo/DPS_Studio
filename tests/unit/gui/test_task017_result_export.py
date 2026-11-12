@@ -163,7 +163,7 @@ def test_export_controls_are_translated_in_english(qapp: QApplication) -> None:
             "Exports time–velocity data, diagnostic data, and analysis parameters."
         )
         assert window.export_include_pre_event_check.text() == (
-            "Include pre-event display-only platform"
+            "Include pre-event display plateau"
         )
     finally:
         window.close()
@@ -233,15 +233,7 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         qapp.processEvents()
         window._set_export_output_directory(export_parent)
         assert window.export_button.isEnabled()
-        success_messages: list[str] = []
         failure_messages: list[str] = []
-        monkeypatch.setattr(
-            QMessageBox,
-            "information",
-            staticmethod(
-                lambda _parent, _title, message: success_messages.append(message)
-            ),
-        )
         monkeypatch.setattr(
             QMessageBox,
             "critical",
@@ -272,8 +264,8 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         assert len(tuple(export_parent.glob("*.metadata.json"))) == 1
         assert (export_parent / "task017_dual_channel_ch1_auto.csv").is_file()
         assert (export_parent / "task017_dual_channel_ch1_auto_detail.csv").is_file()
-        assert success_messages
-        assert "task017_dual_channel_ch1_auto.csv" in success_messages[-1]
+        assert str(export_parent) in window.statusBar().currentMessage()
+        assert "task017_dual_channel_ch1_auto.csv" in window.log_view.toPlainText()
         assert str(export_parent) in window.log_view.toPlainText()
         assert window.export_button.isEnabled()
         assert window._export_current_result()

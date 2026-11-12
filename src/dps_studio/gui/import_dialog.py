@@ -56,17 +56,17 @@ class ImportSettingsDialog(QDialog):
         self._preview: DelimitedFilePreview | None = None
         self._column_count = _FALLBACK_COLUMN_COUNT
         self._slots: list[_SignalSlot] = []
-        self.setWindowTitle(self.tr("数据导入设置"))
+        self.setWindowTitle(self.tr("导入数据"))
         self.setModal(True)
         self._resize_for_available_screen()
 
         root_layout = QVBoxLayout(self)
-        path_label = QLabel(str(source_path))
+        path_label = QLabel(source_path.name)
+        path_label.setToolTip(str(source_path))
         path_label.setWordWrap(True)
         path_label.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
-        root_layout.addWidget(self._section_title(self.tr("源文件（只读）")))
         root_layout.addWidget(path_label)
 
         self.scroll_area = QScrollArea()
@@ -122,7 +122,7 @@ class ImportSettingsDialog(QDialog):
         file_form.addRow(self.tr("源时间单位"), self.time_unit_combo)
         body_layout.addWidget(file_group)
 
-        preview_group = QGroupBox(self.tr("轻量文件预览"))
+        preview_group = QGroupBox(self.tr("列预览"))
         preview_layout = QVBoxLayout(preview_group)
         self.structure_status_label = QLabel()
         self.structure_status_label.setObjectName("importStructureStatus")
@@ -135,10 +135,22 @@ class ImportSettingsDialog(QDialog):
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
         preview_layout.addWidget(self.column_preview_label)
-        body_layout.addWidget(preview_group)
 
         channel_group = QGroupBox(self.tr("信号列（最多选择 3 个）"))
         channel_layout = QVBoxLayout(channel_group)
+        channel_layout.setSpacing(6)
+        headings = QHBoxLayout()
+        enabled_heading = QLabel(self.tr("导入"))
+        enabled_heading.setMinimumWidth(110)
+        headings.addWidget(enabled_heading)
+        headings.addWidget(QLabel(self.tr("名称")), 1)
+        column_heading = QLabel(self.tr("电压列"))
+        column_heading.setMinimumWidth(76)
+        headings.addWidget(column_heading)
+        unit_heading = QLabel(self.tr("源单位"))
+        unit_heading.setMinimumWidth(98)
+        headings.addWidget(unit_heading)
+        channel_layout.addLayout(headings)
         for slot_index in range(_SIGNAL_SLOT_COUNT):
             slot_number = slot_index + 1
             enabled = QCheckBox(
@@ -150,9 +162,13 @@ class ImportSettingsDialog(QDialog):
             unit = self._voltage_unit_combo()
             editor = self._channel_editor(name, column, unit)
             enabled.toggled.connect(editor.setEnabled)
-            channel_layout.addWidget(enabled)
-            channel_layout.addWidget(editor)
+            row = QHBoxLayout()
+            enabled.setMinimumWidth(110)
+            row.addWidget(enabled)
+            row.addWidget(editor, 1)
+            channel_layout.addLayout(row)
             self._slots.append(_SignalSlot(enabled, editor, name, column, unit))
+        body_layout.addWidget(preview_group)
         body_layout.addWidget(channel_group)
 
         # Keep the established test/plugin attribute names while the UI uses slots.
@@ -172,16 +188,6 @@ class ImportSettingsDialog(QDialog):
         self.channel_3_unit = self._slots[2].unit
         self.channel_3_row = self._slots[2].editor
 
-        notice = QLabel(
-            self.tr(
-                "V / mV 表示源文件中该列数值的单位，只用于转换为内部 SI 单位；"
-                "它不是示波器 V/div 或硬件量程。未选择的源列会被忽略。"
-            )
-        )
-        notice.setWordWrap(True)
-        notice.setObjectName("plannedNotice")
-        body_layout.addWidget(notice)
-
         self.validation_error_label = QLabel()
         self.validation_error_label.setObjectName("importValidationError")
         self.validation_error_label.setWordWrap(True)
@@ -194,6 +200,9 @@ class ImportSettingsDialog(QDialog):
             QDialogButtonBox.StandardButton.Ok
             | QDialogButtonBox.StandardButton.Cancel
         )
+        import_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
+        import_button.setText(self.tr("导入"))
+        self.button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(self.tr("取消"))
         self.button_box.accepted.connect(self._validate_and_accept)
         self.button_box.rejected.connect(self.reject)
         root_layout.addWidget(self.button_box)
@@ -203,6 +212,7 @@ class ImportSettingsDialog(QDialog):
         )
         self.delimiter_custom_edit.editingFinished.connect(self._refresh_preview)
         self.encoding_combo.currentTextChanged.connect(self._refresh_preview)
+        self.header_check.toggled.connect(self._header_selection_changed)
         self._refresh_preview(initialize_slots=True, detect_delimiter=True)
 
     def _resize_for_available_screen(self) -> None:
@@ -342,21 +352,30 @@ class ImportSettingsDialog(QDialog):
     def _set_column_count(self, column_count: int, initialize_slots: bool) -> None:
         self._column_count = max(1, column_count)
         maximum = self._column_count - 1
-        self.time_column_spin.setRange(0, maximum)
+        time_max = maximum if initialize_slots else max(maximum, self.time_column_spin.value())
+        self.time_column_spin.setRange(0, time_max)
         if initialize_slots:
             self.time_column_spin.setValue(0)
         for slot_index, slot in enumerate(self._slots):
-            slot.column.setRange(0, maximum)
+            slot_max = maximum if initialize_slots else max(maximum, slot.column.value())
+            slot.column.setRange(0, slot_max)
             if initialize_slots:
                 slot.enabled.setChecked(slot_index + 1 < self._column_count)
                 slot.column.setValue(min(slot_index + 1, maximum))
             slot.editor.setEnabled(slot.enabled.isChecked())
 
+    def _header_selection_changed(self, _checked: bool) -> None:
+        if self._preview is not None:
+            self._render_preview(self._preview)
+
     def _render_preview(self, preview: DelimitedFilePreview) -> None:
+        rows = (preview.header, *preview.rows) if preview.has_header else preview.rows
+        has_header = self.header_check.isChecked()
+        selected_header = rows[0] if has_header and rows else ()
+        sample_rows = rows[1:4] if has_header else rows[:3]
         self.structure_status_label.setText(
             self.tr(
-                "检测到 {count} 列，可用列索引：0–{maximum}；分隔符：{delimiter}；"
-                "编码：{encoding}；表头判断为初步检测，可手动修改。"
+                "{count} 列（0–{maximum}） · {delimiter} · {encoding}"
             ).format(
                 count=preview.column_count,
                 maximum=preview.column_count - 1,
@@ -367,19 +386,19 @@ class ImportSettingsDialog(QDialog):
         lines: list[str] = []
         for column_index in range(preview.column_count):
             header = (
-                preview.header[column_index]
-                if column_index < len(preview.header)
-                and preview.header[column_index]
+                selected_header[column_index]
+                if column_index < len(selected_header)
+                and selected_header[column_index]
                 else self.tr("无表头")
             )
             values = [
                 row[column_index]
-                for row in preview.rows[:3]
+                for row in sample_rows
                 if column_index < len(row)
             ]
             sample = ", ".join(self._short_preview(value) for value in values)
             lines.append(
-                self.tr("列 {index}：{header}　示例：{sample}").format(
+                self.tr("列 {index} · {header}：{sample}").format(
                     index=column_index,
                     header=header,
                     sample=sample or self.tr("无数据行"),
@@ -436,16 +455,21 @@ class ImportSettingsDialog(QDialog):
         unit_combo: QComboBox,
     ) -> QWidget:
         widget = QWidget()
-        layout = QFormLayout(widget)
-        layout.setContentsMargins(22, 0, 0, 8)
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
         name_edit.setPlaceholderText(self.tr("通道名"))
         column_spin.setToolTip(self.tr("源文件列索引（从 0 开始）"))
         unit_combo.setToolTip(
             self.tr("源文件数值单位；不是 V/div 或示波器硬件量程。")
         )
-        layout.addRow(self.tr("名称"), name_edit)
-        layout.addRow(self.tr("电压列（从 0 开始）"), column_spin)
-        layout.addRow(self.tr("源文件中该列的单位"), unit_combo)
+        name_edit.setAccessibleName(self.tr("名称"))
+        column_spin.setAccessibleName(self.tr("电压列（从 0 开始）"))
+        unit_combo.setAccessibleName(self.tr("源文件中该列的单位"))
+        column_spin.setFixedWidth(76)
+        unit_combo.setFixedWidth(98)
+        layout.addWidget(name_edit, 1)
+        layout.addWidget(column_spin)
+        layout.addWidget(unit_combo)
         return widget
 
     def _voltage_unit_combo(self) -> QComboBox:

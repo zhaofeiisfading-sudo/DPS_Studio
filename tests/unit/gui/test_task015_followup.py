@@ -231,7 +231,7 @@ def test_import_mapping_semantics_are_translated_in_english(
         assert dialog.delimiter_combo.itemText(whitespace_index) == (
             "Whitespace (spaces / tabs)"
         )
-        assert "Detected 2 columns" in dialog.structure_status_label.text()
+        assert "2 columns (0–1)" in dialog.structure_status_label.text()
         for enabled in (
             dialog.channel_1_enabled,
             dialog.channel_2_enabled,
@@ -384,8 +384,10 @@ def test_workflow_navigation_changes_tabs_once_at_semantic_boundaries(
         assert not window.analysis_session.stft_valid
         _wait_for_analysis(window, window.run_stft_analysis)
         assert window.analysis_session.stft_valid
-        assert window.select_workflow_step(0)
+        assert window.workflow_navigation.currentRow() == 1
         assert window.science_tabs.currentWidget() is window.spectrogram_view
+        assert window.select_workflow_step(0)
+        assert window.science_tabs.currentWidget() is window.raw_signal_view
 
         assert window.select_workflow_step(1)
         assert window.science_tabs.currentWidget() is window.spectrogram_view

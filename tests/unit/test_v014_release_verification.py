@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import runpy
-import shutil
 import zipfile
 from pathlib import Path
 
@@ -15,7 +14,7 @@ from dps_studio.gui.release_smoke import run_analysis_smoke, smoke_options
 
 
 ROOT = Path(__file__).resolve().parents[2]
-BUILD = runpy.run_path(str(ROOT / "tools/build_production_release.py"))
+BUILD = runpy.run_path(str(ROOT / "scripts/build/build_production_release.py"))
 
 
 @pytest.mark.parametrize("arguments", [[], ["PDV Studio.exe", "-platform", "windows"]])
@@ -87,8 +86,7 @@ def test_existing_zip_is_not_overwritten(tmp_path):
 
 
 def test_real_release_analysis_preserves_both_csv_modes_and_current_version(tmp_path):
-    source = tmp_path / "example.csv"
-    shutil.copyfile(ROOT / "docs" / "原始数据.csv", source)
+    source = ROOT / "data/raw/20260607.csv"
     report = run_analysis_smoke(source, tmp_path / "exports")
     assert report["status"] == "PASS"
     assert report["input_unchanged"]

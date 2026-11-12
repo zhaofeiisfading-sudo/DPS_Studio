@@ -17,8 +17,8 @@ from dps_studio import __version__
 from dps_studio.gui import release_smoke
 from dps_studio.gui.release_smoke_macos import finish_report, match_loaded_image
 from dps_studio.release.portable_reference import capture_snapshot, compare_snapshots, lf_text_hash
-from tools import build_macos_release as mac
-from tools.build_macos_icon import ICONSET_SIZES, generate_icon
+from scripts.build import build_macos_release as mac
+from scripts.build.build_macos_icon import ICONSET_SIZES, generate_icon
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -227,7 +227,7 @@ def test_mac_entry_rejects_other_platform_before_creating_output(tmp_path, monke
 
 
 def test_icon_generator_requires_native_iconutil_without_touching_master(tmp_path, monkeypatch):
-    monkeypatch.setattr("tools.build_macos_icon.platform.system", lambda: "Windows")
+    monkeypatch.setattr("scripts.build.build_macos_icon.platform.system", lambda: "Windows")
     with pytest.raises(RuntimeError, match="iconutil"):
         generate_icon(tmp_path / "master", tmp_path / "icon.icns", tmp_path / "icon.iconset")
     assert not list(tmp_path.iterdir())
@@ -314,12 +314,12 @@ def test_portable_selection_is_explicit_and_full_suite_retains_raw_tests():
     for nodeid in contract["REAL_DATA_TESTS"]:
         assert contract["portable_exclusion"](nodeid)
     assert contract["portable_exclusion"]("tests/unit/test_stft.py::test_synthetic") is None
-    assert len(contract["REAL_DATA_TESTS"]) == 4
+    assert len(contract["REAL_DATA_TESTS"]) == 6
 
 
-def test_public_scientific_chain_matches_windows_reference(tmp_path):
+def test_local_scientific_chain_matches_windows_reference(tmp_path):
     reference = json.loads((ROOT / "tests/reference/macos_portable_reference_v014.json").read_text())
-    actual = capture_snapshot(ROOT / "docs/原始数据.csv", tmp_path / "exports")
+    actual = capture_snapshot(ROOT / "data/raw/20260607.csv", tmp_path / "exports")
     # This is a cross-version scientific regression against the immutable 0.1.4
     # fixture. Check current version independently; keep the release comparator
     # strict for real same-version cross-platform acceptance.

@@ -14,24 +14,22 @@ from dps_studio.gui.main_window import (
     _GUIDED_MODE_BUTTON_ID,
     MainWindow,
 )
-from dps_studio.gui.styles import APPLICATION_STYLE_SHEET
 
 
-def test_shared_styles_keep_button_hierarchy_and_navigation_contract() -> None:
-    """Keep action feedback centralized without restyling workflow navigation."""
-    assert "QPushButton:hover:enabled" in APPLICATION_STYLE_SHEET
-    assert "QPushButton:pressed:enabled" in APPLICATION_STYLE_SHEET
-    assert "QPushButton:focus:enabled" in APPLICATION_STYLE_SHEET
-    assert "QPushButton:disabled" in APPLICATION_STYLE_SHEET
-    assert "QPushButton:default:hover:enabled" in APPLICATION_STYLE_SHEET
-    assert "QPushButton:default:pressed:enabled" in APPLICATION_STYLE_SHEET
-    assert "background: #edf0f2;" in APPLICATION_STYLE_SHEET
-    assert "background: #07577f;" in APPLICATION_STYLE_SHEET
-    assert "QRadioButton:hover:unchecked" in APPLICATION_STYLE_SHEET
-    assert "QRadioButton:hover:checked" in APPLICATION_STYLE_SHEET
-    assert "QRadioButton::indicator:checked" in APPLICATION_STYLE_SHEET
-    assert "QListWidget::item:selected" in APPLICATION_STYLE_SHEET
-    assert "QListWidget::item:hover" not in APPLICATION_STYLE_SHEET
+def test_workflow_navigation_uses_a_single_compact_row(
+    qapp: QApplication,
+) -> None:
+    window = MainWindow(translation_manager=translation_manager())
+    try:
+        window.show()
+        qapp.processEvents()
+        nav = window.workflow_navigation
+        rects = [nav.visualItemRect(nav.item(index)) for index in range(4)]
+        assert len({rect.top() for rect in rects}) == 1
+        assert all(nav.viewport().rect().contains(rect) for rect in rects)
+        assert nav.height() < 2 * rects[0].height()
+    finally:
+        window.close()
 
 
 def test_action_cursor_tracks_enabled_state_without_changing_controls(

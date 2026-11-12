@@ -3,10 +3,7 @@
 本目录保存面向普通实验使用者的截图版说明书及其复现材料。
 
 - [`PDV_Studio_用户使用说明书.md`](PDV_Studio_用户使用说明书.md)：可编辑 Markdown 正文；
-- [`PDV_Studio_用户使用说明书.html`](PDV_Studio_用户使用说明书.html)：带相对图片路径的分发版 HTML；
-- [`PDV_Studio_用户使用说明书.pdf`](PDV_Studio_用户使用说明书.pdf)：A4 打印版；
-- [`screenshots/`](screenshots/)：当前 `main` 源码 GUI 截图；
-- [`export_example_manual/`](export_example_manual/)：截图流程实际导出的 CSV 和 metadata JSON；
+- [`screenshots/`](screenshots/)：对应说明书版本的 GUI 截图；
 - [`render_screenshots.py`](render_screenshots.py)：在 `dps-studio` 环境中复现 GUI 截图的文档辅助脚本。
 
-截图数据为 `docs/原始数据.csv`，仅作只读示例；没有使用或修改 `data/raw`。说明书对应当前源码版本 `0.1.0`、分支 `main`、提交 `b4c25e33871df95ba75c4a91b33edceb7ad4d901`。
+历史说明书对应版本 `0.1.0` 和提交 `b4c25e33871df95ba75c4a91b33edceb7ad4d901`。截图用的波形、CSV、metadata 和生成的 HTML/PDF 留作本地资料。复现截图时，脚本读取操作者本地提供的 `docs/原始数据.csv`。

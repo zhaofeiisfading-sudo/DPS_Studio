@@ -63,20 +63,19 @@ def test_run_pipeline_rejects_implicit_configuration(tmp_path: Path) -> None:
 
 
 def _temporary_output_configuration(tmp_path: Path) -> WorkflowConfiguration:
-    """Select the tracked public input explicitly for mocked output tests.
-
-    These tests verify run-pointer/export reporting, not private raw numerical
-    regression. The production default configuration remains unchanged.
-    """
+    """Supply a small synthetic input for the mocked output tests."""
     configuration = load_workflow_config(
         pipeline.DEFAULT_CONFIG_PATH,
         repository_root=PROJECT_ROOT,
     )
+    source = tmp_path / "synthetic_input.csv"
+    if not source.exists():
+        source.write_text("0,0,0\n1e-9,1,-1\n2e-9,0,0\n", encoding="utf-8")
     return replace(
         configuration,
         input=replace(
             configuration.input,
-            path=PROJECT_ROOT / "docs" / "原始数据.csv",
+            path=source,
         ),
         output=replace(
             configuration.output,
@@ -89,7 +88,7 @@ def test_temporary_output_configuration_has_an_explicit_public_input(
     tmp_path: Path,
 ) -> None:
     configuration = _temporary_output_configuration(tmp_path)
-    assert configuration.input.path == PROJECT_ROOT / "docs" / "原始数据.csv"
+    assert configuration.input.path == tmp_path / "synthetic_input.csv"
     assert configuration.input.path.is_file()
     assert configuration.input.time_column == 0
     assert dict(configuration.input.voltage_columns) == {

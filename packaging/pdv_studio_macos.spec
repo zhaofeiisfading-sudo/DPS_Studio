@@ -12,7 +12,7 @@ GUI_ROOT = SOURCE_ROOT / "dps_studio" / "gui"
 RELEASE_VERSION = runpy.run_path(str(SOURCE_ROOT / "dps_studio" / "__init__.py"))["__version__"]
 APP_ICON = Path(os.environ.get("DPS_MACOS_ICON", str(GUI_ROOT / "icons" / "pdv_studio.icns")))
 if not APP_ICON.is_file():
-    raise FileNotFoundError("Generate ICNS with tools/build_macos_icon.py on macOS first")
+    raise FileNotFoundError("Generate ICNS with scripts/build/build_macos_icon.py on macOS first")
 
 analysis = Analysis(
     [str(GUI_ROOT / "__main__.py")],

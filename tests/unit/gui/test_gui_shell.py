@@ -31,7 +31,7 @@ def test_main_window_has_required_workstation_regions(qapp: QApplication) -> Non
         assert window.parameter_stack.objectName() == "parameterStack"
         assert window.diagnostics_dock.objectName() == "diagnosticsDock"
         assert window.statusBar().objectName() == "mainStatusBar"
-        assert window.science_tabs.count() == 5
+        assert window.science_tabs.count() == 6
         assert window.parameter_stack.count() == 4
         assert window.diagnostics_tabs.count() == 3
     finally:

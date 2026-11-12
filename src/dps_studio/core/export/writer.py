@@ -36,6 +36,7 @@ from dps_studio.core.ridge import (
 from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN
 from dps_studio.core.workflow.models import ChannelAnalysis
 from dps_studio.core.workflow.acceleration import acceleration_metadata, channel_acceleration
+from dps_studio.core.physics.dechirp import DechirpResult
 
 
 EXPORT_SCHEMA_VERSION = "pdv-studio-formal-result-v6"
@@ -356,8 +357,10 @@ def _write_staged_results(
             row_count,
         )
         if plan.acceleration_csv_name is not None:
+            dechirp = options.dechirp_results.get(plan.channel_name)
             _write_acceleration_csv(
                 staging_directory / plan.acceleration_csv_name, analysis, options, row_indices,
+                dechirp=dechirp,
             )
             metadata["acceleration_export"] = {
                 **acceleration_metadata(analysis),
@@ -381,6 +384,29 @@ def _write_staged_results(
                     "row_count": len(row_indices),
                     "limits": "overlapping STFT frames correlated; frame spacing is not resolution; fit can attenuate and broaden short features",
                 }
+            if dechirp is not None:
+                metadata["acceleration_dechirp"] = {
+                    "method": "local_real_voltage_linear_chirp",
+                    "csv_file": plan.acceleration_csv_name,
+                    "time_origin": options.time_origin.value,
+                    "row_count": len(row_indices),
+                    "window_samples": dechirp.settings.window_samples,
+                    "window_nominal_s": (
+                        dechirp.settings.window_samples / analysis.stft_result.sample_rate_hz
+                    ),
+                    "requested_max_rate_hz_s": dechirp.settings.max_rate_hz_s,
+                    "rate_cap": "min(requested_max_rate_hz_s, 32 / half_window_span_s**2)",
+                    "minimum_weighted_r2": dechirp.settings.minimum_r2,
+                    "vacuum_wavelength_m": dechirp.vacuum_wavelength_m,
+                    "boundaries_absolute_s": dechirp.boundaries_s,
+                    "seed": "STFT time and working ridge; center search ±2/window span",
+                    "quality": "Dechirp fit flags and weighted voltage R²; no gap filling",
+                    "correction": "apparent only; no angle or material correction",
+                    "sign": "positive beat-frequency branch; rate sign is not motion direction",
+                    "units": dict(zip(_DECHIRP_FIELDS, (
+                        "m/s^2", "m/s", "Hz", "Hz/s", "1", "category",
+                    ), strict=True)),
+                }
         _write_json(staging_directory / plan.metadata_name, metadata)
         exported_channels.append(
             ExportedChannelResult(
@@ -398,11 +424,19 @@ def _write_staged_results(
     return exported_channels
 
 
+_DECHIRP_FIELDS = (
+    "dechirp_apparent_acceleration_m_s2", "dechirp_apparent_velocity_m_s",
+    "dechirp_center_frequency_hz", "dechirp_rate_hz_s", "dechirp_weighted_r2", "dechirp_flag",
+)
+
+
 def _write_acceleration_csv(
     path: Path,
     analysis: ChannelAnalysis,
     options: ResultExportOptions,
     indices: tuple[int, ...],
+    *,
+    dechirp: DechirpResult | None,
 ) -> None:
     derivative = channel_acceleration(analysis)
     fitted = (channel_acceleration(analysis, window_s=options.acceleration_fit_window_s)
@@ -419,6 +453,8 @@ def _write_acceleration_csv(
     )
     if fitted is not None:
         fields += ("local_linear_acceleration_m_s2", "local_linear_numerical_flag")
+    if dechirp is not None:
+        fields += _DECHIRP_FIELDS
     with path.open("x", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle, lineterminator="\n")
         writer.writerow(fields)
@@ -438,6 +474,15 @@ def _write_acceleration_csv(
             )
             if fitted is not None:
                 row += (_csv_float(fitted.acceleration_m_s2[index]), fitted.numerical_flags[index])
+            if dechirp is not None:
+                row += (
+                    _csv_float(dechirp.apparent_acceleration_m_s2[index]),
+                    _csv_float(dechirp.apparent_velocity_m_s[index]),
+                    _csv_float(dechirp.frequency_hz[index]),
+                    _csv_float(dechirp.rate_hz_s[index]),
+                    _csv_float(dechirp.r2[index]),
+                    dechirp.flags[index],
+                )
             writer.writerow(row)
 
 

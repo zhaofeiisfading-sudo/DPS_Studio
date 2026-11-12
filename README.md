@@ -10,6 +10,14 @@ The GUI entry point after installation is:
 python -m dps_studio.gui
 ```
 
+Open a CSV, DAT or TXT file and confirm the column and source unit mappings.
+Set the analysis interval on the waveform or in the parameter pane. **快速分析**
+computes the STFT and opens the ridge search region for review. The **分析** menu
+also offers a full automatic run. Use **视图 → 诊断与数据** to show sampling,
+quality and log details. The velocity page holds window and angle corrections;
+the export page shows the selected velocity result and opens the directory
+picker on the first export.
+
 The formal production pipeline is for an authorized local raw-data file, which is intentionally not included in this repository. After activating the project environment and updating the TOML input path for that local file, run:
 
 ```powershell
@@ -62,17 +70,20 @@ channel fusion, and profile fusion are not applied by this workflow.
 physical branch identity remains `unreviewed`. Event consensus changes metadata
 only and does not average or fuse voltage, frequency, or velocity.
 
-In the desktop velocity view, select **加速度 dv/dt** to see the numerical time
-derivative of the final displayed speed. Known invalid regions and display-only
-platforms remain blank. In Review/Export, select **加速度 CSV · 原始差分** for a separate
-SI derivative table and provenance in the existing metadata JSON; the original
-velocity tables keep their columns. Under **材料参数…**, edit the fixed window
+Open the **加速度曲线** tab alongside the velocity plot. **速度差分** computes the
+time derivative of the final displayed speed. **Dechirp 直接估计** fits the
+local beat frequency and its slope in the raw voltage near the selected ridge.
+It reports apparent acceleration; angle and window corrections only apply to
+the speed used by the difference method. Gaps and rejected waveform fits remain
+blank. In Review/Export, the acceleration CSV can include separately named
+Dechirp and local fit columns with quality and settings in metadata. The
+velocity tables keep their original columns. Under **材料参数…**, edit the fixed window
 formula coefficients, name the custom set, and use **保存修改** or **另存为新配置…**.
 Saved sets appear in **窗口配置** on the next launch. The built-in LiF remains intact.
 See [TASK-032](docs/TASK-032_ACCELERATION_WINDOW_PRESETS.md) for numerical rules,
 local configuration paths, compatibility and validation limits.
 
-Acceleration defaults to **原始差分**. Select **局部线性拟合** for an optional
+Acceleration defaults to **原始差分**. In **算法设置**, select **局部线性拟合** for an optional
 least-squares slope over a full-width time window (shown in ns; initial value
 50 ns). The velocity and original derivative remain unchanged. Known gaps are
 not bridged; fewer than three points produces NaN. **全部结果** restores the
@@ -81,10 +92,18 @@ checkbox adds named fit columns alongside the raw derivative, using the window
 shown on that checkbox. Metadata records both methods and their corrections.
 See [TASK-034](docs/TASK-034_UI_ACCELERATION.md) for validation and limitations.
 
-Development rules:
+See [AGENTS.md](AGENTS.md) for development rules and
+[research_TASK19](docs/tasks/research_TASK19/README.md) for the workstation change.
+Manual release entry points live in [scripts/build](scripts/build/). Build from a clean
+commit in the Production Python environment. Use a new `build/<name>/` directory for
+intermediates. The Windows onefile builder verifies startup and the GUI workflow on
+the supplied local waveform before publishing the versioned x64 EXE in `release/`.
 
-- Never overwrite raw data.
-- Keep the numerical core independent from the GUI.
-- Use SI units internally.
-- Store all parameters and manual edits.
-- Return NaN and quality flags when no reliable signal exists.
+```powershell
+python scripts/build/build_production_release.py --onefile --output-root build/windows_release --analysis-smoke-input data/raw/20260607.csv
+```
+
+The macOS build gate requires an explicit approved input and its matching Windows numerical
+reference. The hosted macOS workflow runs the portable tests without those inputs.
+Run `python scripts/maintenance/check_repo_hygiene.py --strict` to inspect the
+checkout and Git index without modifying them.

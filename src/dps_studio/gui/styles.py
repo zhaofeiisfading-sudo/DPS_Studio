@@ -8,174 +8,105 @@ from PySide6.QtWidgets import QApplication, QPushButton, QToolButton, QWidget
 
 
 APPLICATION_STYLE_SHEET = """
-QMainWindow, QWidget {
-    background: #f5f7f9;
-    color: #263746;
+QMainWindow, QDialog {
+    background: #e9eef3;
+    color: #1b2a3b;
 }
 QMenuBar, QMenu, QToolBar, QStatusBar {
-    background: #ffffff;
+    background: #f7f9fc;
+    color: #1b2a3b;
 }
-QToolBar {
-    border-bottom: 1px solid #d6dde3;
-    spacing: 4px;
+QToolBar { border: none; padding: 3px 5px; spacing: 5px; }
+QToolBar::separator { width: 1px; margin: 3px 4px; background: #cbd5e1; }
+QToolButton { padding: 4px 7px; border-radius: 3px; }
+QToolButton:hover:enabled { background: #dce8f3; }
+QToolButton:disabled { color: #7e8b9b; }
+QStatusBar { border-top: 1px solid #cbd5e1; }
+QStatusBar::item { border: none; }
+QStatusBar QLabel { padding: 0 5px; }
+QListWidget#workflowNavigation {
+    background: #22364a;
+    border: none;
+    padding: 2px 3px;
+    outline: none;
 }
-QSplitter::handle:horizontal {
-    background: #d6dde3;
-    width: 7px;
+QListWidget#workflowNavigation::item {
+    color: #e7eff7;
+    padding: 4px 13px;
     margin: 0 2px;
+    border-bottom: 2px solid transparent;
 }
-QSplitter::handle:horizontal:hover {
-    background: #0b6fa4;
+QListWidget#workflowNavigation::item:disabled { color: #a4b3c2; }
+QListWidget#workflowNavigation::item:hover:enabled { background: #304c65; }
+QListWidget#workflowNavigation::item:selected {
+    background: #304c65;
+    border-bottom: 2px solid #58c3ea;
+    color: #ffffff;
 }
-QMainWindow::separator {
-    background: #d6dde3;
-    width: 7px;
-    height: 7px;
-}
-QMainWindow::separator:hover {
-    background: #0b6fa4;
-}
-QListWidget, QTabWidget::pane, QStackedWidget, QTableWidget,
-QPlainTextEdit, QGroupBox {
+QSplitter::handle:horizontal, QMainWindow::separator { background: #cbd5e1; }
+QSplitter::handle:horizontal:hover, QMainWindow::separator:hover { background: #176993; }
+QTabWidget::pane, QTableWidget, QPlainTextEdit, QScrollArea {
+    border: 1px solid #cbd5e1;
     background: #ffffff;
-    border: 1px solid #d6dde3;
 }
+QStackedWidget#parameterStack { background: #f7f9fc; }
 QGroupBox {
-    margin-top: 8px;
-    padding-top: 6px;
+    border: 1px solid #d4dee8;
+    margin-top: 9px;
+    padding: 5px 3px 3px;
+    font-weight: 600;
 }
-QGroupBox::title {
-    subcontrol-origin: margin;
-    left: 8px;
-    padding: 0 3px;
-}
-QListWidget::item {
-    padding: 8px 6px;
-}
-QListWidget::item:selected {
-    background: #dceaf4;
-    color: #173a52;
-}
+QGroupBox::title { subcontrol-origin: margin; left: 7px; padding: 0 3px; }
 QTabBar::tab {
-    background: #e9eef2;
-    padding: 7px 12px;
-    border: 1px solid #d6dde3;
-    border-bottom: none;
+    color: #4b5e70;
+    background: #e9eef3;
+    padding: 5px 11px;
+    border: none;
+    border-bottom: 2px solid #cbd5e1;
 }
 QTabBar::tab:selected {
     background: #ffffff;
-    color: #0b6fa4;
+    color: #145c85;
+    border-bottom-color: #1776a3;
 }
+QTabBar::tab:disabled { color: #788695; }
 QPushButton {
-    min-height: 26px;
-    padding: 2px 10px;
+    min-height: 21px;
+    padding: 2px 8px;
+    border: 1px solid #bbc9d6;
+    border-radius: 3px;
     background: #ffffff;
-    border: 1px solid #d6dde3;
-    color: #263746;
+    color: #21374c;
 }
-QPushButton:hover:enabled {
-    background: #edf0f2;
-    border-color: #c5d0d7;
+QPushButton:hover:enabled { background: #e4f0f8; border-color: #5c8eac; }
+QPushButton:pressed:enabled, QPushButton:checked { background: #d2e5f3; }
+QPushButton:focus:enabled, QComboBox:focus, QAbstractSpinBox:focus, QLineEdit:focus {
+    border: 1px solid #166d9b;
 }
-QPushButton:pressed:enabled {
-    background: #dfe5e9;
-    border-color: #afbec8;
-}
-QPushButton:focus:enabled {
-    border-color: #0b6fa4;
-}
-QPushButton:disabled {
-    background: #f1f3f5;
-    border-color: #e0e5e9;
-    color: #8a98a3;
-}
-QPushButton:default {
-    background: #0b6fa4;
-    color: #ffffff;
-    border: 1px solid #07577f;
-}
-QPushButton:default:hover:enabled {
-    background: #07577f;
-    border-color: #064364;
-}
-QPushButton:default:pressed:enabled {
-    background: #064364;
-    border-color: #04364f;
-}
-QPushButton:default:focus:enabled {
-    border-color: #04364f;
-}
-QRadioButton {
-    min-height: 26px;
-    padding: 2px 12px;
-    spacing: 7px;
-    background: #ffffff;
-    border: 1px solid #d6dde3;
-    color: #263746;
-}
-QRadioButton:checked {
-    background: #dceaf4;
-    border-color: #0b6fa4;
-    color: #173a52;
+QPushButton:default:enabled {
+    color: white;
+    background: #176993;
+    border-color: #135a7f;
     font-weight: 600;
 }
-QRadioButton:focus:enabled {
-    border-color: #07577f;
-}
-QRadioButton:hover:unchecked {
-    background: #edf5fa;
-    border-color: #82b4ce;
-}
-QRadioButton:hover:checked {
-    background: #c9e2f1;
-    border-color: #07577f;
-}
-QRadioButton:pressed {
-    background: #bdd9ea;
-}
-QRadioButton:disabled {
-    background: #f1f3f5;
-    border-color: #e0e5e9;
-    color: #8a98a3;
-}
-QRadioButton::indicator {
-    width: 14px;
-    height: 14px;
-    border: 2px solid #607583;
-    border-radius: 8px;
+QPushButton:default:hover:enabled { background: #135a7f; }
+QPushButton:default:pressed:enabled { background: #0d4768; }
+QPushButton:disabled { color: #738396; background: #eaf0f5; border-color: #d8e1e9; }
+QComboBox, QAbstractSpinBox, QLineEdit {
+    min-height: 21px;
+    padding-left: 4px;
+    border: 1px solid #c5d1de;
+    border-radius: 2px;
     background: #ffffff;
 }
-QRadioButton::indicator:unchecked:hover {
-    border-color: #0b6fa4;
-    background: #edf5fa;
-}
-QRadioButton::indicator:checked {
-    border: 2px solid #07577f;
-    border-radius: 8px;
-    background: #0b6fa4;
-}
-QRadioButton::indicator:checked:hover {
-    border-color: #064364;
-    background: #07577f;
-}
-QRadioButton::indicator:checked:pressed {
-    background: #064364;
-}
-QRadioButton::indicator:disabled:unchecked {
-    border-color: #aab5bd;
-    background: #f1f3f5;
-}
-QRadioButton::indicator:disabled:checked {
-    border-color: #719ab1;
-    background: #8ab5cc;
-}
-QLabel#sectionTitle {
-    color: #173a52;
-    font-weight: 600;
-}
-QLabel#plannedNotice {
-    color: #607583;
-}
+QComboBox:disabled, QAbstractSpinBox:disabled { background: #edf2f6; color: #6d7c8d; }
+QRadioButton, QCheckBox { spacing: 6px; padding: 2px; }
+QRadioButton:hover:enabled { color: #145c85; }
+QRadioButton:checked { color: #145c85; font-weight: 600; }
+QLabel#sectionTitle { color: #173e5b; font-weight: 700; padding: 2px 0; }
+QLabel#plannedNotice { color: #526477; }
+QProgressBar { background: #dbe5ed; border: none; min-height: 5px; max-height: 5px; }
+QProgressBar::chunk { background: #1776a3; }
 """
 
 
@@ -185,6 +116,7 @@ def apply_application_style(application: QApplication) -> None:
     # Windows installations; Qt falls back to the native system font elsewhere.
     font = QFont("Microsoft YaHei UI", 9)
     font.setStyleHint(QFont.StyleHint.System)
+    application.setStyle("Fusion")
     application.setFont(font)
     application.setStyleSheet(APPLICATION_STYLE_SHEET)
 

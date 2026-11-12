@@ -14,7 +14,7 @@ part of the artwork and remains intact.
 Reproduce from the original supplied PNG in the existing development environment:
 
 ```powershell
-python tools/build_app_icon.py <source.png> --output <new-assets-directory> --diagnostics <new-preview-directory>
+python scripts/build/build_app_icon.py <source.png> --output <new-assets-directory> --diagnostics <new-preview-directory>
 ```
 
 The tool refuses existing outputs. Audit a different input before changing

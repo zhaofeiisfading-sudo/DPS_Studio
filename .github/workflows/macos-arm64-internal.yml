@@ -2,6 +2,13 @@ name: macOS arm64 internal release
 
 on:
   workflow_dispatch:
+    inputs:
+      analysis_input:
+        description: Path to an approved public validation waveform on the runner
+        type: string
+      windows_reference:
+        description: Path to its matching Windows numerical reference on the runner
+        type: string
 
 permissions:
   contents: read
@@ -54,17 +61,23 @@ jobs:
       - name: Strict mypy
         run: |
           set -o pipefail
-          python -m mypy --strict src/dps_studio tools/build_macos_release.py tools/build_macos_icon.py tools/generate_macos_portable_reference.py 2>&1 | tee build/task031_ci_checks/mypy.txt
+          python -m mypy --strict src/dps_studio scripts/build/build_macos_release.py scripts/build/build_macos_icon.py scripts/build/generate_macos_portable_reference.py 2>&1 | tee build/task031_ci_checks/mypy.txt
 
       - name: Build app and verify Mach-O, signing, science, ZIP and native Cocoa
+        if: ${{ inputs.analysis_input != '' && inputs.windows_reference != '' }}
+        env:
+          DPS_ANALYSIS_INPUT: ${{ inputs.analysis_input }}
+          DPS_WINDOWS_REFERENCE: ${{ inputs.windows_reference }}
         run: |
-          python tools/build_macos_release.py --output-root build/task031_macos_release
+          python scripts/build/build_macos_release.py --output-root build/task031_macos_release \
+            --analysis-input "$DPS_ANALYSIS_INPUT" --reference "$DPS_WINDOWS_REFERENCE"
 
       - name: Upload verified ZIP (never a bare app)
+        if: ${{ inputs.analysis_input != '' && inputs.windows_reference != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: PDV-Studio-macos-arm64-internal-zip
-          path: build/task031_macos_release/PDV_Studio_v*_macos_arm64.zip
+          path: release/PDV_Studio_v*_macos_arm64.zip
           if-no-files-found: error
           compression-level: 0
 

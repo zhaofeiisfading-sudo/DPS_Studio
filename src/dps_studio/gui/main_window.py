@@ -7,7 +7,9 @@ from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QSettings, QSignalBlocker, QSize, Qt
+from PySide6.QtCore import (
+    QByteArray, QPointF, QSettings, QSignalBlocker, QSize, Qt, QThreadPool, QTimer, Slot,
+)
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -21,7 +23,6 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
-    QListWidget,
     QListWidgetItem,
     QMainWindow,
     QMenu,
@@ -99,7 +100,7 @@ from dps_studio.gui.analysis_session import (
     RidgeSearchRegion,
 )
 from dps_studio.gui.advanced_parameters_dialog import AdvancedParametersDialog
-from dps_studio.gui.data_controller import DataImportController
+from dps_studio.gui.data_controller import DataImportController, SignalLoadRequest
 from dps_studio.gui.display_preferences import DisplayPreferences
 from dps_studio.gui.i18n import (
     LANGUAGE_EN,
@@ -107,12 +108,15 @@ from dps_studio.gui.i18n import (
     TranslationManager,
 )
 from dps_studio.gui.import_dialog import ImportSettingsDialog
+from dps_studio.gui.import_worker import ImportWorker
 from dps_studio.gui.native_icons import native_directory_icon
 from dps_studio.gui.preset_repository import (
     CUSTOM_PRESET_ID,
     PresetRepository,
 )
 from dps_studio.gui.raw_signal_view import RawSignalView
+from dps_studio.gui.acceleration_view import AccelerationView
+from dps_studio.core.workflow.acceleration import channel_dechirp
 from dps_studio.gui.result_views import (
     ComparisonView,
     QualitySummaryWidget,
@@ -123,15 +127,16 @@ from dps_studio.gui.result_views import (
 from dps_studio.gui.state import WorkflowState, state_reaches
 from dps_studio.gui.window_preset_editor import WindowPresetEditor, window_preset_path
 from dps_studio.gui.styles import configure_action_button_cursors
+from dps_studio.gui.workstation import ElidedLabel, WorkflowNavigation
 from dps_studio.runtime_paths import application_resource_root
 
 
-_LAYOUT_STATE_VERSION = 1
+_LAYOUT_STATE_VERSION = 2
 _GEOMETRY_SETTINGS_KEY = "layout/main_window_geometry"
 _WINDOW_STATE_SETTINGS_KEY = "layout/main_window_state"
-_SPLITTER_STATE_SETTINGS_KEY = "layout/workspace_splitter_state"
+_SPLITTER_STATE_SETTINGS_KEY = "layout/workspace_splitter_v2"
 _DIAGNOSTICS_HEIGHT_SETTINGS_KEY = "layout/diagnostics_dock_height"
-_DEFAULT_WORKSPACE_SIZES = (220, 830, 340)
+_DEFAULT_WORKSPACE_SIZES = (1050, 350)
 _DEFAULT_DIAGNOSTICS_HEIGHT = 210
 _AUTOMATIC_MODE_BUTTON_ID = 101
 _GUIDED_MODE_BUTTON_ID = 102
@@ -190,6 +195,10 @@ class MainWindow(QMainWindow):
             window_preset_repository or WindowPresetRepository(window_preset_path())
         )
         self._data_controller = DataImportController()
+        self._import_worker: ImportWorker | None = None
+        self._import_busy = False
+        self._import_then_stft = False
+        self._close_when_idle = False
         self._load_result: DelimitedSignalLoadResult | None = None
         self._repository_root = application_resource_root()
         self._preset_repository: PresetRepository | None = None
@@ -211,14 +220,20 @@ class MainWindow(QMainWindow):
 
         self.setObjectName("mainWindow")
         self.setWindowTitle(self.tr("PDV Studio"))
-        self.resize(1440, 900)
-        self.setMinimumSize(1024, 640)
+        self.setMinimumSize(900, 570)
+        available = self.screen().availableGeometry()
+        self.resize(min(1440, available.width() - 40), min(850, available.height() - 58))
+        self.move(available.center() - self.rect().center())
 
         self._create_actions()
         self._create_menus()
         self._create_toolbar()
         self._create_workspace()
         self._create_diagnostics_dock()
+        self.diagnostics_dock.hide()
+        self.view_menu.insertAction(
+            self.action_restore_default_layout, self.diagnostics_dock.toggleViewAction()
+        )
         self._create_status_bar()
         configure_action_button_cursors(self)
         self._default_geometry = QByteArray(self.saveGeometry())
@@ -233,7 +248,7 @@ class MainWindow(QMainWindow):
         self._restore_layout_settings()
         self._restore_default_parameters(initial=True)
         self._apply_state()
-        self._append_log(self.tr("工作台已启动；当前未加载数据。"))
+        self._append_log(self.tr("就绪。"))
 
     @property
     def workflow_state(self) -> WorkflowState:
@@ -260,6 +275,11 @@ class MainWindow(QMainWindow):
         if not isinstance(result, DelimitedSignalLoadResult):
             raise TypeError("result must be a DelimitedSignalLoadResult.")
         self._load_result = result
+        self.workflow_navigation.setCurrentRow(0)
+        self.parameter_stack.setCurrentIndex(0)
+        self.science_tabs.setCurrentWidget(self.raw_signal_view)
+        self.status_channel.setText(self.tr("通道：—"))
+        self._clear_cursor_status()
         self._current_guided_channel = None
         self._session.load_records(
             source_path=result.source_path,
@@ -274,14 +294,28 @@ class MainWindow(QMainWindow):
             )
         self._sync_export_time_origin_controls()
         self.raw_signal_view.set_records(result.records)
-        self.raw_signal_view.analysis_region.setVisible(False)
+        self.raw_signal_view.analysis_region.setVisible(True)
         range_start, range_end = self._session.data_bounds_s()
         self.analysis_range_panel.set_data_bounds(range_start, range_end)
         self._populate_data_summary(result)
+        first = result.records[result.channel_names[0]]
+        self.record_summary.setText(
+            self.tr("{name}\n{rows:,} 点 · {count} 通道 · {rate:.4g} GS/s").format(
+                name=result.source_path.name, rows=result.row_count,
+                count=len(result.channel_names), rate=first.sample_rate_hz * 1e-9,
+            )
+        )
+        self.record_summary.setToolTip(
+            "\n".join(
+                f"{name}: {record.metadata.get('original_time_unit') or '—'} / "
+                f"{record.metadata.get('original_voltage_unit') or '—'}"
+                for name, record in result.records.items()
+            )
+        )
         self._workflow_state = WorkflowState.DATA_LOADED
         self._unsaved_changes = False
         self._clear_result_presentation(
-            self.tr("数据已重新加载；正在建立默认分析范围。")
+            self.tr("已加载数据。")
         )
         self._validate_current_parameters()
         default_range = self._default_analysis_range(range_start, range_end)
@@ -592,7 +626,7 @@ class MainWindow(QMainWindow):
     def _create_toolbar(self) -> None:
         self.main_toolbar = QToolBar(self.tr("常用工具"), self)
         self.main_toolbar.setObjectName("mainToolbar")
-        self.main_toolbar.setMovable(True)
+        self.main_toolbar.setMovable(False)
         self.main_toolbar.setIconSize(QSize(20, 20))
         self.main_toolbar.setToolButtonStyle(
             Qt.ToolButtonStyle.ToolButtonTextBesideIcon
@@ -610,12 +644,7 @@ class MainWindow(QMainWindow):
         self.workspace_splitter.setChildrenCollapsible(False)
         self.workspace_splitter.setHandleWidth(7)
 
-        self.navigation_panel = QWidget()
-        self.navigation_panel.setObjectName("workflowNavigationPanel")
-        navigation_layout = QVBoxLayout(self.navigation_panel)
-        navigation_layout.addWidget(self._section_title(self.tr("处理流程")))
-        self.workflow_navigation = QListWidget()
-        self.workflow_navigation.setObjectName("workflowNavigation")
+        self.workflow_navigation = WorkflowNavigation()
         self._workflow_labels = (
             self.tr("1  数据与时频"),
             self.tr("2  脊线提取"),
@@ -625,12 +654,6 @@ class MainWindow(QMainWindow):
         for label in self._workflow_labels:
             self.workflow_navigation.addItem(QListWidgetItem(label))
         self.workflow_navigation.setCurrentRow(0)
-        navigation_layout.addWidget(self.workflow_navigation, 1)
-        self.navigation_panel.setMinimumWidth(150)
-        navigation_policy = self.navigation_panel.sizePolicy()
-        navigation_policy.setHorizontalPolicy(QSizePolicy.Policy.Ignored)
-        navigation_policy.setVerticalPolicy(QSizePolicy.Policy.Ignored)
-        self.navigation_panel.setSizePolicy(navigation_policy)
 
         self.science_tabs = QTabWidget()
         self.science_tabs.setObjectName("scienceTabs")
@@ -650,11 +673,15 @@ class MainWindow(QMainWindow):
         self.science_tabs.addTab(self.velocity_view, self.tr("速度曲线"))
         self.comparison_view = ComparisonView()
         self.science_tabs.addTab(self.comparison_view, self.tr("结果比较"))
+        self.acceleration_view = AccelerationView()
+        self.science_tabs.insertTab(4, self.acceleration_view, self.tr("加速度曲线"))
+        self._last_science_view: QWidget = self.raw_signal_view
 
         self.parameter_panel = QWidget()
         self.parameter_panel.setObjectName("analysisParameterPanel")
         parameter_layout = QVBoxLayout(self.parameter_panel)
-        parameter_layout.addWidget(self._section_title(self.tr("当前参数")))
+        parameter_layout.setContentsMargins(0, 0, 0, 0)
+        parameter_layout.setSpacing(0)
         self.common_analysis_panel = self._build_common_analysis_panel()
         self.parameter_stack = QStackedWidget()
         self.parameter_stack.setObjectName("parameterStack")
@@ -669,16 +696,20 @@ class MainWindow(QMainWindow):
         splitter_policy = self.workspace_splitter.sizePolicy()
         splitter_policy.setVerticalPolicy(QSizePolicy.Policy.Ignored)
         self.workspace_splitter.setSizePolicy(splitter_policy)
-        self.workspace_splitter.addWidget(self.navigation_panel)
         self.workspace_splitter.addWidget(self.science_tabs)
         self.workspace_splitter.addWidget(self.parameter_panel)
-        for index in range(3):
-            self.workspace_splitter.setCollapsible(index, False)
-        self.workspace_splitter.setStretchFactor(0, 0)
-        self.workspace_splitter.setStretchFactor(1, 1)
-        self.workspace_splitter.setStretchFactor(2, 0)
+        self.workspace_splitter.setCollapsible(0, False)
+        self.workspace_splitter.setCollapsible(1, False)
+        self.workspace_splitter.setStretchFactor(0, 1)
+        self.workspace_splitter.setStretchFactor(1, 0)
         self.workspace_splitter.setSizes(list(_DEFAULT_WORKSPACE_SIZES))
-        self.setCentralWidget(self.workspace_splitter)
+        workspace = QWidget()
+        layout = QVBoxLayout(workspace)
+        layout.setContentsMargins(8, 0, 8, 6)
+        layout.setSpacing(6)
+        layout.addWidget(self.workflow_navigation)
+        layout.addWidget(self.workspace_splitter, 1)
+        self.setCentralWidget(workspace)
 
     def _build_common_analysis_panel(self) -> QWidget:
         panel = QGroupBox(self.tr("分析配置"))
@@ -773,7 +804,6 @@ class MainWindow(QMainWindow):
         self.analysis_progress.setObjectName("analysisProgress")
         self.analysis_progress.setRange(0, 0)
         self.analysis_progress.setVisible(False)
-        layout.addWidget(self.analysis_progress)
         self.analysis_status_label = self._notice(
             self.tr("请先导入实验数据。")
         )
@@ -783,20 +813,27 @@ class MainWindow(QMainWindow):
     def _build_parameter_pages(self) -> None:
         data_page = QWidget()
         data_layout = QVBoxLayout(data_page)
-        open_button = QPushButton(self.tr("选择并导入数据…"))
-        open_button.setDefault(True)
-        open_button.clicked.connect(self.action_open_data.trigger)
-        data_layout.addWidget(open_button)
-        data_layout.addWidget(
-            self._notice(
-                self.tr(
-                    "时间、电压和列映射必须在导入对话框中明确指定。"
-                    "内部数据保持 s 和 V。"
-                )
-            )
-        )
+        data_layout.addWidget(self._section_title(self.tr("数据与分析范围")))
+        self.record_summary = self._notice("")
+        data_layout.addWidget(self.record_summary)
+        self.open_button = QPushButton(self.tr("选择并导入数据…"))
+        self.open_button.clicked.connect(self.action_open_data.trigger)
+        data_layout.addWidget(self.open_button)
+
         self.analysis_range_panel = AnalysisRangePanel()
-        self.analysis_range_panel.set_analysis_range_controls_visible(False)
+        data_layout.addWidget(self.analysis_range_panel.range_controls)
+        data_layout.addWidget(self.common_analysis_panel)
+        self.analysis_range_label = QLabel("—")
+        self.quality_source_label = QLabel(self.tr("内置默认质量配置"))
+        self.stft_ready_label = self._notice(self.tr("尚未计算时频图。"))
+        self.stft_ready_label.setObjectName("stftReadyStatus")
+        for label in (self.analysis_range_label, self.quality_source_label, self.stft_ready_label):
+            label.setParent(data_page)
+            label.hide()
+        self.cancel_analysis_button = QPushButton(self.tr("取消分析（不可用）"), data_page)
+        self.cancel_analysis_button.setObjectName("cancelAnalysisButton")
+        self.cancel_analysis_button.setEnabled(False)
+        self.cancel_analysis_button.hide()
         data_layout.addStretch(1)
         self.analysis_range_scroll = QScrollArea()
         self.analysis_range_scroll.setObjectName("analysisRangeScrollArea")
@@ -805,53 +842,8 @@ class MainWindow(QMainWindow):
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
         self.analysis_range_scroll.setWidget(data_page)
+        self.stft_parameter_scroll = self.analysis_range_scroll
         self.parameter_stack.addWidget(self.analysis_range_scroll)
-
-        stft_page = QWidget()
-        stft_layout = QVBoxLayout(stft_page)
-        stft_layout.addWidget(self.common_analysis_panel)
-        stft_layout.addWidget(self._section_title(self.tr("STFT 状态")))
-        stft_status_widget = QWidget()
-        stft_form = QFormLayout(stft_status_widget)
-        self.analysis_range_label = QLabel("—")
-        self.quality_source_label = QLabel(self.tr("内置默认质量配置"))
-        self.quality_source_label.setToolTip(
-            self.tr("完整配置来源可在“高级参数…”中查看。")
-        )
-        stft_form.addRow(self.tr("分析时间范围"), self.analysis_range_label)
-        stft_form.addRow(self.tr("质量配置来源"), self.quality_source_label)
-        stft_layout.addWidget(stft_status_widget)
-        self.stft_ready_label = self._notice(self.tr("尚未计算时频图。"))
-        self.stft_ready_label.setObjectName("stftReadyStatus")
-        stft_layout.addWidget(self.stft_ready_label)
-        self.cancel_analysis_button = QPushButton(
-            self.tr("取消分析（不可用）"),
-            stft_page,
-        )
-        self.cancel_analysis_button.setObjectName("cancelAnalysisButton")
-        self.cancel_analysis_button.setEnabled(False)
-        self.cancel_analysis_button.setToolTip(
-            self.tr(
-                "当前 core 没有协作取消 API；参数变化只会使迟到结果失效，"
-                "不会立即中断 NumPy/SciPy 计算。"
-            )
-        )
-        self.cancel_analysis_button.hide()
-        stft_layout.addStretch(1)
-        self.stft_parameter_scroll = QScrollArea()
-        self.stft_parameter_scroll.setObjectName("stftParameterScrollArea")
-        self.stft_parameter_scroll.setWidgetResizable(True)
-        self.stft_parameter_scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        stft_page.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        self.stft_parameter_scroll.setWidget(stft_page)
-        # Data import and STFT are one user-facing stage. Keep the legacy
-        # scroll object for source compatibility, but place its controls on the
-        # first page and do not add a fifth workflow page.
-        data_layout.insertWidget(data_layout.count() - 1, self.common_analysis_panel)
-        data_layout.insertWidget(data_layout.count() - 1, stft_status_widget)
-        data_layout.insertWidget(data_layout.count() - 1, self.cancel_analysis_button)
 
         guided_page = QWidget()
         guided_layout = QVBoxLayout(guided_page)
@@ -1012,14 +1004,6 @@ class MainWindow(QMainWindow):
         velocity_page = QWidget()
         velocity_layout = QVBoxLayout(velocity_page)
         velocity_layout.addWidget(self._section_title(self.tr("速度参数")))
-        velocity_layout.addWidget(
-            self._notice(
-                self.tr(
-                    "当前曲线已应用所选修正。"
-                )
-            )
-        )
-        velocity_layout.addWidget(self.analysis_range_panel)
         velocity_form = QFormLayout()
         velocity_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self.formal_velocity_status_label = QLabel(self.tr("尚无速度结果"))
@@ -1145,6 +1129,12 @@ class MainWindow(QMainWindow):
             "velocityCorrectionWarning"
         )
         velocity_layout.addWidget(self.velocity_correction_warning_label)
+        event_toggle = QPushButton(self.tr("事件参考…"))
+        event_toggle.setCheckable(True)
+        event_toggle.toggled.connect(self.analysis_range_panel.setVisible)
+        self.analysis_range_panel.hide()
+        velocity_layout.addWidget(event_toggle)
+        velocity_layout.addWidget(self.analysis_range_panel)
         velocity_layout.addStretch(1)
         self.velocity_parameter_scroll = QScrollArea()
         self.velocity_parameter_scroll.setObjectName("velocityParameterScrollArea")
@@ -1170,6 +1160,7 @@ class MainWindow(QMainWindow):
             self.tr("当前没有可导出的有效正式结果。")
         )
         self.export_availability_label.setObjectName("exportAvailabilityStatus")
+        self.export_availability_label.setStyleSheet("color: #526477;")
         layout.addWidget(self.export_availability_label)
         form = QFormLayout()
         self.export_mode_combo = QComboBox()
@@ -1184,6 +1175,7 @@ class MainWindow(QMainWindow):
 
         velocity_group = QGroupBox(self.tr("导出速度设置"))
         velocity_form = QFormLayout(velocity_group)
+        velocity_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         # Compatibility aliases keep integrations source-compatible while the
         # Review page presents a single read-only summary instead of a second
         # correction editor.
@@ -1227,11 +1219,10 @@ class MainWindow(QMainWindow):
         time_origin_layout.addWidget(self.export_absolute_time_origin_radio)
         velocity_form.addRow(self.tr("时间零点"), time_origin_widget)
 
-        self.export_velocity_summary_label = QLabel()
+        self.export_velocity_summary_label = ElidedLabel()
         self.export_velocity_summary_label.setObjectName(
             "exportVelocitySummary"
         )
-        self.export_velocity_summary_label.setWordWrap(True)
         velocity_form.addRow(
             self.tr("最终导出速度"),
             self.export_velocity_summary_label,
@@ -1242,11 +1233,11 @@ class MainWindow(QMainWindow):
         self.export_directory_button.setObjectName("chooseExportDirectoryButton")
         self.export_directory_button.setEnabled(False)
         layout.addWidget(self.export_directory_button)
-        self.export_directory_label = self._notice(self.tr("尚未选择导出目录。"))
+        self.export_directory_label = ElidedLabel(self.tr("尚未选择导出目录。"))
         self.export_directory_label.setObjectName("exportDirectoryStatus")
         layout.addWidget(self.export_directory_label)
         self.export_include_pre_event_check = QCheckBox(
-            self.tr("包含事件前 display-only 平台")
+            self.tr("含事件前显示平台")
         )
         self.export_include_pre_event_check.setObjectName("includePreEventDisplayRows")
         self.export_include_pre_event_check.setChecked(True)
@@ -1259,7 +1250,7 @@ class MainWindow(QMainWindow):
         self.export_include_pre_event_check.setEnabled(False)
         layout.addWidget(self.export_include_pre_event_check)
         self.export_quality_passed_check = QCheckBox(
-            self.tr("仅导出通过质量筛选的数据（两列，时间序列可能有缺口）")
+            self.tr("简表仅含质量通过点")
         )
         self.export_quality_passed_check.setObjectName("exportQualityPassedOnly")
         self.export_quality_passed_check.setToolTip(self.tr(
@@ -1273,27 +1264,45 @@ class MainWindow(QMainWindow):
             "独立文件保留 SI 时间、速度、加速度和质量来源；不改变速度简表。"
         ))
         layout.addWidget(self.export_acceleration_check)
-        self.export_acceleration_fit_check = QCheckBox(self.tr("附加局部拟合列（窗口取自速度页）"))
+        self.export_acceleration_fit_check = QCheckBox()
         self.export_acceleration_fit_check.setEnabled(False)
         self.export_acceleration_check.toggled.connect(self.export_acceleration_fit_check.setEnabled)
         layout.addWidget(self.export_acceleration_fit_check)
-        self.velocity_view.acceleration_window_spin.valueChanged.connect(
+        self.export_dechirp_check = QCheckBox(self.tr("附加 Dechirp 表观加速度列"))
+        self.export_dechirp_check.setEnabled(False)
+        self.export_acceleration_check.toggled.connect(self.export_dechirp_check.setEnabled)
+        layout.addWidget(self.export_dechirp_check)
+        self.acceleration_view.acceleration_window_spin.valueChanged.connect(
             self._update_acceleration_export_window
         )
-        self._update_acceleration_export_window(self.velocity_view.acceleration_window_spin.value())
-        self.export_acceleration_fit_check.setToolTip(self.tr("拟合窗口在速度页设置；原始差分列始终保留。"))
+        self._update_acceleration_export_window(
+            self.acceleration_view.acceleration_window_spin.value()
+        )
+        self.export_acceleration_fit_check.setToolTip(self.tr("拟合窗口在加速度页设置。"))
+        self.export_dechirp_check.setToolTip(self.tr("使用加速度页的 Dechirp 设置。"))
         self.export_description_label = self._notice(
             self.tr("将导出时间—速度数据、详细诊断数据和分析参数记录。")
         )
         self.export_description_label.setObjectName("exportDescription")
-        layout.addWidget(self.export_description_label)
+        self.export_description_label.setParent(page)
+        self.export_description_label.hide()
+        layout.addStretch(1)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        page.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        scroll.setWidget(page)
+        export_page = QWidget()
+        footer_layout = QVBoxLayout(export_page)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout.setSpacing(5)
+        footer_layout.addWidget(scroll, 1)
         self.export_button = QPushButton(self.tr("导出结果"))
         self.export_button.setObjectName("exportFormalResultsButton")
         self.export_button.setDefault(True)
         self.export_button.setEnabled(False)
-        layout.addWidget(self.export_button)
-        layout.addStretch(1)
-        return page
+        footer_layout.addWidget(self.export_button)
+        return export_page
 
     def _create_diagnostics_dock(self) -> None:
         self.diagnostics_dock = QDockWidget(self.tr("诊断与数据"), self)
@@ -1350,7 +1359,11 @@ class MainWindow(QMainWindow):
         status_bar = QStatusBar()
         status_bar.setObjectName("mainStatusBar")
         self.setStatusBar(status_bar)
-        self.status_file = QLabel(self.tr("文件：未加载"))
+        self.status_file = ElidedLabel(self.tr("文件：未加载"))
+        status_bar.addWidget(self.status_file, 1)
+        self.analysis_progress.setMaximumWidth(110)
+        self.analysis_progress.setTextVisible(False)
+        status_bar.addPermanentWidget(self.analysis_progress)
         self.status_file.setObjectName("statusFile")
         self.status_channel = QLabel(self.tr("通道：—"))
         self.status_channel.setObjectName("statusChannel")
@@ -1363,14 +1376,15 @@ class MainWindow(QMainWindow):
         self.status_unsaved = QLabel(self.tr("未保存修改：否"))
         self.status_unsaved.setObjectName("statusUnsaved")
         for label in (
-            self.status_file,
             self.status_channel,
             self.status_state,
             self.status_time,
             self.status_value,
-            self.status_unsaved,
         ):
             status_bar.addPermanentWidget(label)
+
+        self.status_unsaved.setParent(status_bar)
+        self.status_unsaved.hide()
 
     def _connect_signals(self) -> None:
         self.action_open_data.triggered.connect(self._open_data)
@@ -1423,6 +1437,7 @@ class MainWindow(QMainWindow):
         self.analysis_range_panel.range_confirmed.connect(
             self._analysis_range_confirmed
         )
+        self.analysis_range_panel.range_validity_changed.connect(self._apply_state)
         self.analysis_range_panel.candidate_detection_requested.connect(
             self.run_event_candidate_detection
         )
@@ -1568,11 +1583,27 @@ class MainWindow(QMainWindow):
         self._analysis_adapter.finished.connect(self._analysis_finished)
         self._analysis_adapter.failed.connect(self._analysis_failed)
         self._analysis_adapter.busy_changed.connect(self._busy_changed)
+        for view in (self.spectrogram_view, self.ridge_view, self.velocity_view,
+                     self.acceleration_view, self.comparison_view):
+            view.plot_widget.scene().sigMouseMoved.connect(self._result_cursor_moved)
+        self.acceleration_view.channel_selection_changed.connect(self._channel_changed)
 
     def _spectrogram_colormap_changed(self, name: str) -> None:
         self._set_spectrogram_colormap(name, persist=True)
 
     def _science_tab_changed(self, _index: int) -> None:
+        self._clear_cursor_status()
+        view = self.science_tabs.currentWidget()
+        previous = self._last_science_view
+        self._last_science_view = view
+        kinematic = (VelocityView, AccelerationView)
+        if (isinstance(previous, kinematic) and isinstance(view, kinematic)
+                and self.workflow_navigation.currentRow() != 3):
+            channel = previous.channel_combo.currentData()
+            if isinstance(channel, str) and view.select_result_target(previous.result_source, channel):
+                view.plot_widget.setXRange(*previous.plot_widget.viewRange()[0], padding=0)
+        if isinstance(view, (RawSignalView, SpectrogramView, RidgeView, *kinematic)):
+            self._channel_changed(view.channel_combo.currentText() or "—")
         controller = self.spectrogram_view.corridor_controller
         if controller.drawing and self.science_tabs.currentWidget() is not (
             self.spectrogram_view
@@ -1673,7 +1704,7 @@ class MainWindow(QMainWindow):
             Qt.DockWidgetArea.BottomDockWidgetArea,
             self.diagnostics_dock,
         )
-        self.diagnostics_dock.show()
+        self.diagnostics_dock.hide()
         self.workspace_splitter.setSizes(list(_DEFAULT_WORKSPACE_SIZES))
         self.resizeDocks(
             [self.diagnostics_dock],
@@ -1683,7 +1714,13 @@ class MainWindow(QMainWindow):
         self._save_layout_settings()
         self.statusBar().showMessage(self.tr("已恢复默认布局。"), 3000)
 
-    def _open_data(self) -> None:
+    @property
+    def _busy(self) -> bool:
+        return self._analysis_adapter.busy or self._import_busy
+
+    def _open_data(self, *, continue_to_stft: bool = False) -> bool:
+        if self._busy:
+            return False
         selected_path, _selected_filter = QFileDialog.getOpenFileName(
             self,
             self.tr("选择时间—电压数据文件"),
@@ -1691,28 +1728,52 @@ class MainWindow(QMainWindow):
             self.tr("分隔文本文件 (*.csv *.txt *.dat);;所有文件 (*)"),
         )
         if not selected_path:
-            return
+            return False
         dialog = ImportSettingsDialog(Path(selected_path), self)
-        if dialog.exec() != int(dialog.DialogCode.Accepted):
-            return
         try:
-            result = self._data_controller.load(dialog.load_request())
-        except Exception as exc:
-            self._append_log(
-                self.tr("数据加载失败：{error_type}: {message}").format(
-                    error_type=type(exc).__name__,
-                    message=exc,
-                )
-            )
-            QMessageBox.critical(
-                self,
-                self.tr("数据加载失败"),
-                self.tr("无法按当前列和单位设置读取文件。\n\n{message}").format(
-                    message=exc
-                ),
-            )
-            return
-        self.set_loaded_result(result)
+            if dialog.exec() != int(dialog.DialogCode.Accepted):
+                return False
+            return self._start_import(dialog.load_request(), continue_to_stft=continue_to_stft)
+        finally:
+            dialog.deleteLater()
+
+    def _start_import(self, request: SignalLoadRequest, *, continue_to_stft: bool = False) -> bool:
+        if self._busy:
+            return False
+        worker = ImportWorker(self._data_controller, request)
+        worker.signals.finished.connect(self._import_finished)
+        worker.signals.failed.connect(self._import_failed)
+        self._import_worker = worker
+        self._import_then_stft = continue_to_stft
+        self._import_busy = True
+        self._busy_changed(True)
+        self.statusBar().showMessage(self.tr("正在读取 {name}…").format(name=request.path.name))
+        QThreadPool.globalInstance().start(worker)
+        return True
+
+    @Slot(object)
+    def _import_finished(self, result: DelimitedSignalLoadResult) -> None:
+        continue_to_stft = self._import_then_stft
+        if not self._close_when_idle:
+            self.set_loaded_result(result)
+        self._finish_import()
+        if continue_to_stft and not self._close_when_idle:
+            self.run_quick_analysis()
+
+    @Slot(str, str)
+    def _import_failed(self, error_type: str, message: str) -> None:
+        self._finish_import()
+        title = self.tr("数据加载失败")
+        self._append_log(f"{title}: {error_type}: {message}")
+        if not self._close_when_idle:
+            QMessageBox.critical(self, title, message)
+
+    def _finish_import(self) -> None:
+        self._import_worker = None
+        self._import_busy = False
+        self._import_then_stft = False
+        self.statusBar().clearMessage()
+        self._busy_changed(False)
 
     def _choose_analysis_config(self) -> None:
         selected_path, _selected_filter = QFileDialog.getOpenFileName(
@@ -2223,27 +2284,13 @@ class MainWindow(QMainWindow):
             return
         correction = configuration.velocity_correction_config
         angle_degrees = math.degrees(correction.measurement_angle_rad)
-        if correction.window_material is WindowMaterial.LIF:
-            summary = self.tr(
-                "{material} · {angle:.6g}°；最终导出连续绘图速度。"
-            ).format(
-                material=(
-                    self.tr("自定义 · {name}").format(name=window_configuration_name(correction.lif_model))
-                    if correction.lif_model != LIF_RIGG_2014_1550NM
-                    else self.tr("LiF")
-                ),
-                angle=angle_degrees,
-            )
-        elif correction.measurement_angle_rad > 0.0:
-            summary = self.tr(
-                "最终绘图速度；连续 working 结果已应用角度修正"
-                "（无窗口修正，观测角 {angle:.6g}°）。"
-            ).format(angle=angle_degrees)
-        else:
-            summary = self.tr(
-                "最终绘图速度；连续 working 结果未应用窗口或角度修正。"
-            )
+        material = (
+            window_configuration_name(correction.lif_model)
+            if correction.window_correction_enabled else self.tr("无窗口修正")
+        )
+        summary = f"{material} · {angle_degrees:.6g}°"
         self.export_velocity_summary_label.setText(summary)
+        self.export_velocity_summary_label.setToolTip(summary)
 
     def _sync_export_time_origin_controls(self) -> None:
         if (
@@ -2270,6 +2317,7 @@ class MainWindow(QMainWindow):
             )
         )
         self.velocity_view.set_time_origin(self._session.export_time_origin)
+        self.acceleration_view.set_time_origin(self._session.export_time_origin)
 
     def _export_time_origin_changed(self, checked: bool) -> None:
         if not checked or self._updating_parameter_controls:
@@ -2480,7 +2528,7 @@ class MainWindow(QMainWindow):
             return
         self._workflow_state = WorkflowState.RANGE_DEFINED
         self._clear_result_presentation(
-            self.tr("分析范围已变化；请重新运行自动分析。")
+            self.tr("范围已更新，请重新计算。")
         )
         self._sync_event_reference_panel()
         self._apply_state()
@@ -3007,6 +3055,7 @@ class MainWindow(QMainWindow):
         if configuration is None:
             return
         self.velocity_view.set_time_origin(self._session.export_time_origin)
+        self.acceleration_view.set_time_origin(self._session.export_time_origin)
         guided = (
             self._session.valid_guided_channel_analyses
         )
@@ -3018,6 +3067,14 @@ class MainWindow(QMainWindow):
             fit_view=not preserve_view,
         )
         self.velocity_view.set_result_sets(
+            self._session.channel_analyses,
+            guided,
+            relative_db_floor=configuration.relative_db_floor,
+            fit_view=not preserve_view,
+            available_channel_names=tuple(self._session.records),
+        )
+        self.acceleration_view.set_records(self._session.records)
+        self.acceleration_view.set_result_sets(
             self._session.channel_analyses,
             guided,
             relative_db_floor=configuration.relative_db_floor,
@@ -3084,6 +3141,8 @@ class MainWindow(QMainWindow):
 
     def run_guided_analysis(self) -> bool:
         """Run the formal workflow with one channel's manual region off-thread."""
+        if self._busy:
+            return False
         self._pending_candidate_detection = False
         controller = self.spectrogram_view.corridor_controller
         if controller.drawing and not controller.finish_drawing():
@@ -3146,6 +3205,9 @@ class MainWindow(QMainWindow):
     ] | None:
         configuration = self._session.run_configuration
         analysis_range = self._session.analysis_range
+        if not self.analysis_range_panel.range_is_valid:
+            self.analysis_status_label.setText(self.tr("分析终点必须晚于起点。"))
+            return None
         if (
             not self._session.records
             or configuration is None
@@ -3159,6 +3221,8 @@ class MainWindow(QMainWindow):
 
     def run_stft_analysis(self) -> bool:
         """Compute and cache only the formal STFT intermediate results."""
+        if self._busy:
+            return False
         self._pending_candidate_detection = False
         ready = self._analysis_request_ready()
         if ready is None:
@@ -3181,10 +3245,10 @@ class MainWindow(QMainWindow):
 
     def run_quick_analysis(self) -> bool:
         """Compute STFT if needed, then stop at the region checkpoint."""
+        if self._busy:
+            return False
         if not self._session.records:
-            self._open_data()
-            if not self._session.records:
-                return False
+            return self._open_data(continue_to_stft=True)
         self._pending_candidate_detection = False
         self._continue_to_velocity_after_analysis = False
         self._quick_analysis_waiting = True
@@ -3207,6 +3271,8 @@ class MainWindow(QMainWindow):
 
     def confirm_search_region_and_continue(self) -> bool:
         """Run the shared automatic post-STFT workflow after human confirmation."""
+        if self._busy:
+            return False
         if self._session.ridge_search_region is None:
             self.automatic_ridge_status_label.setText(
                 self.tr("请先计算时频图并建立脊线搜索区域。")
@@ -3221,6 +3287,8 @@ class MainWindow(QMainWindow):
 
     def run_staged_automatic_analysis(self) -> bool:
         """Extract automatic ridge and velocity from the cached current STFT."""
+        if self._busy:
+            return False
         self._pending_candidate_detection = False
         ready = self._analysis_request_ready()
         if (
@@ -3251,6 +3319,8 @@ class MainWindow(QMainWindow):
 
     def run_automatic_analysis(self) -> bool:
         """Capture the current generation and start the public workflow off-thread."""
+        if self._busy:
+            return False
         self._pending_candidate_detection = False
         ready = self._analysis_request_ready()
         if ready is None:
@@ -3279,6 +3349,8 @@ class MainWindow(QMainWindow):
 
     def run_event_candidate_detection(self) -> bool:
         """Run the existing automatic chain but keep candidate adoption explicit."""
+        if self._busy:
+            return False
         ready = self._analysis_request_ready()
         if ready is None:
             return False
@@ -3469,21 +3541,8 @@ class MainWindow(QMainWindow):
                 channels=len(self._session.stft_results)
             )
         )
-        if self._quick_analysis_waiting:
-            self.select_workflow_step(1)
-            self.science_tabs.setCurrentWidget(self.spectrogram_view)
-            self.spectrogram_view.set_search_region_interaction(
-                visible=True,
-                editable=True,
-            )
-            self.analysis_status_label.setText(
-                self.tr("请调整脊线搜索区域，然后确认并继续分析。")
-            )
-        else:
-            self.spectrogram_view.set_search_region_interaction(
-                visible=False,
-                editable=False,
-            )
+        self.select_workflow_step(1)
+        self.science_tabs.setCurrentWidget(self.spectrogram_view)
 
     def _finish_guided_presentation(
         self,
@@ -3600,6 +3659,8 @@ class MainWindow(QMainWindow):
             not busy and self._session.run_configuration is not None
         )
         self._apply_state()
+        if not busy and self._close_when_idle:
+            QTimer.singleShot(0, self.close)
 
     def _exportable_result_sets(self) -> dict[
         ResultAnalysisMode,
@@ -3639,8 +3700,7 @@ class MainWindow(QMainWindow):
         self._refresh_export_channels()
 
         result_available = bool(available)
-        busy = self._analysis_adapter.busy
-        directory_selected = self._export_output_directory is not None
+        busy = self._busy
         current_mode = self._selected_export_mode()
         current_channel = self.export_channel_combo.currentData()
         selection_valid = (
@@ -3657,17 +3717,15 @@ class MainWindow(QMainWindow):
             action_tooltip = self.tr("请先获得当前有效的 Automatic 或 Guided 结果。")
         else:
             modes = " / ".join(labels[mode] for mode in available)
-            availability_text = self.tr("可导出的当前有效结果：{modes}。").format(
-                modes=modes
-            ) + self.tr("Automatic 与 Guided 将保持独立导出。")
+            availability_text = modes
             action_tooltip = self.tr("打开复核与导出页面，检查当前结果和导出参数。")
             if not event_origin_ready:
                 availability_text += self.tr(
-                    " 当前选择起跳点为 0；请先正式采用事件参考，或改用实验绝对时间。"
+                    " · 请设置事件参考，或选用绝对时间。"
                 )
             if not selection_valid:
                 availability_text += self.tr(
-                    " 当前通道尚无所选分析模式的结果，预览已清空且不可导出。"
+                    " · 当前通道无此结果。"
                 )
         self.export_availability_label.setText(availability_text)
         self.export_mode_combo.setEnabled(result_available and not busy)
@@ -3678,9 +3736,11 @@ class MainWindow(QMainWindow):
         self.export_acceleration_fit_check.setEnabled(
             result_available and not busy and self.export_acceleration_check.isChecked()
         )
+        self.export_dechirp_check.setEnabled(
+            result_available and not busy and self.export_acceleration_check.isChecked()
+        )
         self.export_button.setEnabled(
             selection_valid
-            and directory_selected
             and event_origin_ready
             and not busy
         )
@@ -3744,9 +3804,8 @@ class MainWindow(QMainWindow):
     def _set_export_output_directory(self, directory: Path) -> None:
         """Store a user-selected output parent without creating any files."""
         self._export_output_directory = Path(directory)
-        self.export_directory_label.setText(
-            self.tr("导出目录：{path}").format(path=self._export_output_directory)
-        )
+        self.export_directory_label.setText(str(self._export_output_directory))
+        self.export_directory_label.setToolTip(str(self._export_output_directory))
         self._refresh_export_controls()
 
     def _show_review_and_export(self) -> None:
@@ -3765,6 +3824,8 @@ class MainWindow(QMainWindow):
 
     def _export_current_result(self) -> bool:
         """Select a directory if needed, then call the public core export API."""
+        if self._busy:
+            return False
         available = self._exportable_result_sets()
         mode = self._selected_export_mode()
         channel_name = self.export_channel_combo.currentData()
@@ -3795,6 +3856,15 @@ class MainWindow(QMainWindow):
             else None
         )
         try:
+            dechirp_results = {}
+            if self.export_acceleration_check.isChecked() and self.export_dechirp_check.isChecked():
+                record = self._session.records[channel_name]
+                fitted = self.acceleration_view.cached_dechirp(record, selected_analysis)
+                if fitted is None:
+                    fitted = channel_dechirp(
+                        record, selected_analysis, settings=self.acceleration_view.dechirp_settings,
+                    )
+                dechirp_results[channel_name] = fitted
             report = export_formal_results(
                 ResultExportOptions(
                     output_directory=self._export_output_directory,
@@ -3807,10 +3877,11 @@ class MainWindow(QMainWindow):
                     quality_passed_only=self.export_quality_passed_check.isChecked(),
                     include_acceleration=self.export_acceleration_check.isChecked(),
                     acceleration_fit_window_s=(
-                        self.velocity_view.acceleration_window_spin.value() * 1e-9
+                        self.acceleration_view.acceleration_window_spin.value() * 1e-9
                         if self.export_acceleration_check.isChecked()
                         and self.export_acceleration_fit_check.isChecked() else None
                     ),
+                    dechirp_results=dechirp_results,
                     source_path=self._session.source_path,
                     analysis_profile_name=configuration.parameters.provenance_name,
                     pre_event_display_enabled=(
@@ -3836,17 +3907,13 @@ class MainWindow(QMainWindow):
                     ),
                 )
             )
-        except ResultExportError as exc:
+        except (ResultExportError, ValueError) as exc:
             message = self.tr("结果导出失败：{message}").format(message=exc)
             self.analysis_status_label.setText(message)
             self._append_log(message)
             QMessageBox.critical(self, self.tr("结果导出失败"), message)
             return False
         exported = report.exported_channels[0]
-        acceleration_file = (
-            "\n" + exported.acceleration_csv_path.name
-            if exported.acceleration_csv_path is not None else ""
-        )
         message = self.tr("结果导出完成：{path}").format(
             path=report.output_directory
         )
@@ -3864,25 +3931,13 @@ class MainWindow(QMainWindow):
                 metadata=exported.metadata_path.name,
             )
         )
-        QMessageBox.information(
-            self,
-            self.tr("导出完成"),
-            self.tr(
-                "已生成：\n{csv}\n{detail}\n{metadata}{acceleration}\n\n输出位置：\n{directory}"
-            ).format(
-                csv=exported.csv_path.name,
-                detail=exported.detail_csv_path.name,
-                metadata=exported.metadata_path.name,
-                directory=report.output_directory,
-                acceleration=acceleration_file,
-            ),
-        )
         return True
 
     def _clear_result_presentation(self, reason: str) -> None:
         self.spectrogram_view.clear_results()
         self.ridge_view.clear_results()
         self.velocity_view.clear_results()
+        self.acceleration_view.clear_results()
         self.comparison_view.clear_results()
         self.analysis_range_panel.clear_detected_candidates()
         self.quality_summary.clear_results(reason)
@@ -3898,6 +3953,7 @@ class MainWindow(QMainWindow):
         """Clear ridge/velocity views while retaining the cached STFT display."""
         self.ridge_view.clear_results()
         self.velocity_view.clear_results()
+        self.acceleration_view.clear_results()
         self.comparison_view.clear_results()
         self.analysis_range_panel.clear_detected_candidates()
         self.quality_summary.clear_results(reason)
@@ -3999,6 +4055,14 @@ class MainWindow(QMainWindow):
 
     def _apply_state(self) -> None:
         loaded = self._workflow_state is not WorkflowState.EMPTY
+        busy = self._busy
+        self.action_open_data.setEnabled(not busy)
+        self.open_button.setEnabled(not busy)
+        self.open_button.setVisible(not loaded)
+        self.analysis_range_panel.range_controls.setVisible(loaded)
+        self.analysis_range_panel.range_controls.setEnabled(not busy)
+        self.raw_signal_view.analysis_region.setMovable(not busy)
+        self.record_summary.setVisible(loaded)
         range_defined = state_reaches(
             self._workflow_state,
             WorkflowState.RANGE_DEFINED,
@@ -4007,7 +4071,7 @@ class MainWindow(QMainWindow):
         result_ready = self._session.any_formal_results_available
         availability = (True, stft_ready, result_ready, result_ready)
         unavailable_tooltip = self.tr(
-            "当前状态不可用，或该功能尚未接入本版 GUI。"
+            "完成前一步后可用。"
         )
         for index, enabled in enumerate(availability):
             item = self.workflow_navigation.item(index)
@@ -4020,7 +4084,7 @@ class MainWindow(QMainWindow):
             else:
                 item.setFlags(flags & ~Qt.ItemFlag.ItemIsEnabled)
                 item.setToolTip(unavailable_tooltip)
-        tab_availability = (loaded, result_ready, result_ready, result_ready)
+        tab_availability = (loaded, result_ready, result_ready, result_ready, result_ready)
         for tab_index, enabled in enumerate(tab_availability, start=1):
             self.science_tabs.setTabEnabled(tab_index, enabled)
             self.science_tabs.setTabToolTip(
@@ -4031,21 +4095,24 @@ class MainWindow(QMainWindow):
             range_defined
             and self._session.run_configuration is not None
             and self._parameters_valid
-            and not self._analysis_adapter.busy
+            and self.analysis_range_panel.range_is_valid
+            and not busy
         )
         if can_run:
-            run_tooltip = self.tr("运行 public core 完整自动分析。")
-        elif self._analysis_adapter.busy:
+            run_tooltip = self.tr("计算当前分析范围。")
+        elif busy:
             run_tooltip = self.tr("自动分析正在运行。")
         elif not self._session.records:
             run_tooltip = self.tr("请先导入实验数据。")
         elif not range_defined:
             run_tooltip = self.tr("请先建立合法分析范围。")
+        elif not self.analysis_range_panel.range_is_valid:
+            run_tooltip = self.tr("分析终点必须晚于起点。")
         else:
             run_tooltip = self._parameter_error
         self.action_automatic.setEnabled(can_run)
         self.action_automatic.setToolTip(run_tooltip)
-        self.action_quick_analysis.setEnabled(not self._analysis_adapter.busy)
+        self.action_quick_analysis.setEnabled(not busy)
         self.action_quick_analysis.setToolTip(
             run_tooltip
             if loaded
@@ -4061,7 +4128,7 @@ class MainWindow(QMainWindow):
         can_use_guided = (
             self._session.stft_valid
             and bool(self._session.stft_results)
-            and not self._analysis_adapter.busy
+            and not busy
         )
         guided_tooltip = (
             self.tr("在当前 STFT 上创建或编辑人工频率范围。")
@@ -4094,22 +4161,22 @@ class MainWindow(QMainWindow):
         self.action_run_ridge.setEnabled(can_use_guided)
         has_configuration = self._session.run_configuration is not None
         self.advanced_parameters_button.setEnabled(
-            has_configuration and not self._analysis_adapter.busy
+            has_configuration and not busy
         )
         self.profile_combo.setEnabled(
-            has_configuration and not self._analysis_adapter.busy
+            has_configuration and not busy
         )
         self.vacuum_wavelength_spin.setEnabled(
-            has_configuration and not self._analysis_adapter.busy
+            has_configuration and not busy
         )
         self.restore_preset_button.setEnabled(
-            has_configuration and not self._analysis_adapter.busy
+            has_configuration and not busy
         )
         self._set_parameter_editability(
-            has_configuration and not self._analysis_adapter.busy
+            has_configuration and not busy
         )
         region_editable = (
-            has_configuration and stft_ready and not self._analysis_adapter.busy
+            has_configuration and stft_ready and not busy
         )
         for region_control in (
             self.ridge_time_start_spin,
@@ -4120,11 +4187,14 @@ class MainWindow(QMainWindow):
             region_control.setReadOnly(not region_editable)
         self.confirm_search_region_button.setEnabled(region_editable)
         self._refresh_export_controls()
-        if not loaded:
-            self.workflow_navigation.setCurrentRow(0)
-            self.parameter_stack.setCurrentIndex(0)
+        row = self.workflow_navigation.currentRow()
+        if row < 0 or not availability[row]:
+            self.workflow_navigation.setCurrentRow(1 if stft_ready else 0)
         self.status_state.setText(
-            self.tr("状态：{state}").format(state=self._workflow_state.name)
+            self.tr("运行中") if busy else
+            self.tr("结果就绪") if result_ready else
+            self.tr("STFT 就绪") if stft_ready else
+            self.tr("数据就绪") if loaded else self.tr("就绪")
         )
         self.status_unsaved.setText(
             self.tr("未保存修改：{value}").format(
@@ -4134,6 +4204,7 @@ class MainWindow(QMainWindow):
         if self._load_result is None:
             self.status_file.setText(self.tr("文件：未加载"))
         else:
+            self.status_file.setToolTip(str(self._load_result.source_path))
             self.status_file.setText(
                 self.tr("文件：{name}").format(
                     name=self._load_result.source_path.name
@@ -4182,6 +4253,30 @@ class MainWindow(QMainWindow):
             self.science_tabs.setCurrentIndex(self._pending_navigation_tab)
         self._pending_navigation_tab = None
 
+    def _result_cursor_moved(self, position: QPointF) -> None:
+        view = self.science_tabs.currentWidget()
+        if not isinstance(
+            view, (SpectrogramView, RidgeView, VelocityView, AccelerationView, ComparisonView),
+        ):
+            return
+        if not self.science_tabs.isTabEnabled(self.science_tabs.currentIndex()):
+            return
+        box = view.plot_widget.getViewBox()
+        if not box.sceneBoundingRect().contains(position):
+            self._clear_cursor_status()
+            return
+        point = box.mapSceneToView(position)
+        unit = (
+            "GHz" if isinstance(view, (SpectrogramView, RidgeView))
+            else "10⁹ m/s²" if isinstance(view, AccelerationView) else "m/s"
+        )
+        self.status_time.setText(f"{point.x():.6f} μs")
+        self.status_value.setText(f"{point.y():.5g} {unit}")
+
+    def _clear_cursor_status(self) -> None:
+        self.status_time.setText(self.tr("时间：—"))
+        self.status_value.setText(self.tr("数值：—"))
+
     def _channel_changed(self, channel_name: str) -> None:
         self.status_channel.setText(
             self.tr("通道：{channel}").format(channel=channel_name)
@@ -4220,8 +4315,7 @@ class MainWindow(QMainWindow):
             self.tr("关于 PDV Studio"),
             self.tr(
                 "PDV Studio {version}\n\n"
-                "用于 PDV 时间—电压数据的可追溯桌面工作台。\n"
-                "TASK-015A 接入只读范围与 public core 后台自动分析。"
+                "PDV 波形、时频图与速度分析。"
             ).format(version=__version__),
         )
 
@@ -4235,6 +4329,12 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Close without claiming to interrupt an active numerical worker."""
+        if self._busy:
+            self._close_when_idle = True
+            self.statusBar().showMessage(self.tr("当前任务结束后关闭…"))
+            event.ignore()
+            return
+        self._close_when_idle = False
         self._save_layout_settings()
         self.spectrogram_view.dispose_search_region_interactions()
         self.spectrogram_view.corridor_controller.detach_context()

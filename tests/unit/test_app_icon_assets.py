@@ -13,7 +13,7 @@ from dps_studio.runtime_paths import package_resource_path
 
 
 SPEC = importlib.util.spec_from_file_location(
-    "build_app_icon", Path(__file__).resolve().parents[2] / "tools" / "build_app_icon.py"
+    "build_app_icon", Path(__file__).resolve().parents[2] / "scripts" / "build" / "build_app_icon.py"
 )
 assert SPEC is not None and SPEC.loader is not None
 builder = importlib.util.module_from_spec(SPEC)

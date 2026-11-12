@@ -25,6 +25,7 @@ class AnalysisRangePanel(QWidget):
     """Synchronize a draft range in μs and emit only confirmed SI endpoints."""
 
     draft_range_changed = Signal(float, float)
+    range_validity_changed = Signal()
     range_confirmed = Signal(float, float)
     current_view_requested = Signal()
     event_reference_confirmed = Signal(float)
@@ -36,15 +37,21 @@ class AnalysisRangePanel(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._bounds_s: tuple[float, float] | None = None
+        self.range_is_valid = True
         self._confirmed_event_reference_s: float | None = None
         self._event_reference_draft_set = False
         self.candidate_buttons: dict[str, QPushButton] = {}
         self.candidate_labels: dict[str, QLabel] = {}
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.range_controls = QWidget(self)
+        range_form = QFormLayout(self.range_controls)
+        range_form.setContentsMargins(0, 0, 0, 0)
+        range_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         form = QFormLayout()
         form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
-        self.form = form
+        self.form = range_form
         self.full_range_label = QLabel(self.tr("未加载数据"))
         self.full_range_label.setObjectName("fullRangeLabel")
         self.start_spin = self._time_spin("analysisStartTimeUs")
@@ -56,8 +63,8 @@ class AnalysisRangePanel(QWidget):
                 "事件参考完全可选。"
             )
         )
-        form.addRow(self.tr("完整时间范围"), self.full_range_label)
-        form.addRow(self.tr("分析起点"), self.start_spin)
+        range_form.addRow(self.tr("完整时间范围"), self.full_range_label)
+        range_form.addRow(self.tr("分析起点"), self.start_spin)
         end_editor = QWidget()
         self.end_editor = end_editor
         end_layout = QHBoxLayout(end_editor)
@@ -71,7 +78,8 @@ class AnalysisRangePanel(QWidget):
             QSizePolicy.Policy.Fixed,
         )
         end_layout.addWidget(self.full_range_button)
-        form.addRow(self.tr("分析终点"), end_editor)
+        range_form.addRow(self.tr("分析终点"), end_editor)
+        layout.addWidget(self.range_controls)
         source_widget = QWidget()
         # Stack complete labels in the narrow parameter sidebar, including
         # English and high-DPI layouts; do not squeeze three radios into a field.
@@ -145,11 +153,12 @@ class AnalysisRangePanel(QWidget):
         self.apply_button.hide()
 
         self.status_label = QLabel(
-            self.tr("图上范围与数值框双向同步；拖动释放或数值编辑即生效。")
+            ""
         )
         self.status_label.setObjectName("plannedNotice")
         self.status_label.setWordWrap(True)
-        layout.addWidget(self.status_label)
+        range_form.addRow(self.status_label)
+        self.status_label.hide()
         layout.addStretch(1)
 
         self.start_spin.valueChanged.connect(self._draft_changed)
@@ -177,18 +186,7 @@ class AnalysisRangePanel(QWidget):
 
     def set_analysis_range_controls_visible(self, visible: bool) -> None:
         """Hide legacy time-crop controls while retaining event review controls."""
-        range_widgets = (
-            self.full_range_label,
-            self.start_spin,
-            self.end_editor,
-            self.apply_button,
-            self.status_label,
-        )
-        for widget in range_widgets:
-            widget.setVisible(visible)
-            label = self.form.labelForField(widget)
-            if label is not None:
-                label.setVisible(visible)
+        self.range_controls.setVisible(visible)
 
     @property
     def bounds_s(self) -> tuple[float, float] | None:
@@ -399,6 +397,7 @@ class AnalysisRangePanel(QWidget):
             self._set_valid(False)
             return False
         self.set_draft_range_s(start, end)
+        self.status_label.hide()
         self.range_confirmed.emit(start, end)
         self.status_label.setText(
             self.tr("分析范围已确认：{start:.9f} – {end:.9f} μs").format(
@@ -426,6 +425,9 @@ class AnalysisRangePanel(QWidget):
         start, end = draft
         valid = start < end
         self._set_valid(valid)
+        self.status_label.setVisible(not valid)
+        if not valid:
+            self.status_label.setText(self.tr("分析终点必须晚于起点。"))
         if valid:
             self.draft_range_changed.emit(start, end)
             self.range_confirmed.emit(start, end)
@@ -478,6 +480,9 @@ class AnalysisRangePanel(QWidget):
         style = "" if valid else "border: 1px solid #b94040;"
         self.start_spin.setStyleSheet(style)
         self.end_spin.setStyleSheet(style)
+        if self.range_is_valid != valid:
+            self.range_is_valid = valid
+            self.range_validity_changed.emit()
 
     def _set_enabled(self, enabled: bool) -> None:
         self.start_spin.setEnabled(enabled)

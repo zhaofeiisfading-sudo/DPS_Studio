@@ -14,7 +14,7 @@ from dps_studio.core.physics import LIF_RIGG_2014_1550NM
 from dps_studio.core.workflow.acceleration import channel_acceleration
 from dps_studio.core.workflow import load_workflow_config
 from dps_studio.gui.main_window import MainWindow
-from dps_studio.gui.result_views import VelocityView
+from dps_studio.gui.acceleration_view import AccelerationView
 from dps_studio.core.physics.window_presets import WindowPresetRepository
 
 
@@ -24,7 +24,7 @@ def _isolated_window(qapp: QApplication, tmp_path: Path, monkeypatch: Any) -> Ma
     return _window(qapp, tmp_path)[0]
 
 
-def _assert_curve(view: VelocityView, analysis: Any) -> None:
+def _assert_curve(view: AccelerationView, analysis: Any) -> None:
     assert view.acceleration_curve is not None
     np.testing.assert_allclose(view.acceleration_curve.getData()[1],
                               channel_acceleration(analysis).acceleration_m_s2 * 1e-9,
@@ -36,11 +36,10 @@ def test_local_fit_refresh_preserves_zoom_and_velocity(qapp: QApplication, tmp_p
     window = _isolated_window(qapp, tmp_path, monkeypatch)
     try:
         _wait(window, window.run_automatic_analysis)
-        view = window.velocity_view
+        view = window.acceleration_view
         view.select_result_target("automatic", "pdv_channel_1")
         analysis = window.analysis_session.channel_analyses["pdv_channel_1"]
         before = analysis.plot_velocity_m_s.copy()
-        view.quantity_combo.setCurrentIndex(1)
         view.acceleration_method_combo.setCurrentIndex(1)
         view.acceleration_window_spin.setValue(80)
         np.testing.assert_allclose(view.acceleration_curve.getData()[1],
@@ -72,8 +71,7 @@ def test_acceleration_tracks_channel_corrections_rename_export_and_clear(
 ) -> None:
     window = _isolated_window(qapp, tmp_path, monkeypatch)
     try:
-        view = window.velocity_view
-        view.quantity_combo.setCurrentIndex(1)
+        view = window.acceleration_view
         assert view.acceleration_curve is None
         _wait(window, window.run_automatic_analysis)
         view.select_result_target("automatic", "pdv_channel_1")
@@ -97,10 +95,7 @@ def test_acceleration_tracks_channel_corrections_rename_export_and_clear(
         assert "测试窗口甲" in view.acceleration_notice.text()
         assert not view.plot_widget.getAxis("left").autoSIPrefix
         assert view.plot_widget.getAxis("left").autoSIPrefixScale == 1.
-        view.quantity_combo.setCurrentIndex(0)
-        assert view.acceleration_curve is None
-        assert view.plot_widget.getAxis("left").autoSIPrefix
-        view.quantity_combo.setCurrentIndex(1)
+        assert window.velocity_view.plot_widget.getAxis('left') is not view.plot_widget.getAxis('left')
         assert editor.save_current()
         view.channel_combo.setCurrentIndex(view.channel_combo.findData("pdv_channel_2"))
         _assert_curve(view, session.channel_analyses["pdv_channel_2"])
@@ -189,8 +184,7 @@ def test_switch_to_missing_source_clears_derivative(
     try:
         _wait(window, window.run_automatic_analysis)
         analyses = window.analysis_session.channel_analyses
-        view = window.velocity_view
-        view.quantity_combo.setCurrentIndex(1)
+        view = window.acceleration_view
         view.set_result_sets(analyses, {"pdv_channel_1": analyses["pdv_channel_1"]},
                              relative_db_floor=-60, available_channel_names=tuple(analyses))
         view.select_result_target("guided", "pdv_channel_1")
@@ -225,8 +219,7 @@ def test_upstream_parameter_change_invalidates_acceleration_and_editor_is_locked
     window = _isolated_window(qapp, tmp_path, monkeypatch)
     try:
         _wait(window, window.run_automatic_analysis)
-        view = window.velocity_view
-        view.quantity_combo.setCurrentIndex(1)
+        view = window.acceleration_view
         assert view.acceleration_curve is not None
         def launch() -> bool:
             started = window.run_automatic_analysis()
