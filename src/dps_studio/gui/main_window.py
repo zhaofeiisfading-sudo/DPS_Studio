@@ -2432,7 +2432,11 @@ class MainWindow(QMainWindow):
     def _set_parameter_validation_state(self, valid: bool, message: str) -> None:
         self.parameter_error_label.setText(message)
         self.parameter_error_label.setVisible(not valid)
-        style = "" if valid else "border: 1px solid #c62828;"
+        style = (
+            ""
+            if valid
+            else "QComboBox, QAbstractSpinBox { border: 1px solid #c62828; }"
+        )
         for control in (
             self.vacuum_wavelength_spin,
             self.window_name_combo,

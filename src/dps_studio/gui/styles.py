@@ -2,9 +2,20 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QObject, Qt
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QApplication, QPushButton, QToolButton, QWidget
+from typing import overload
+
+from PySide6.QtCore import QEvent, QModelIndex, QObject, QPersistentModelIndex, QSize, Qt
+from PySide6.QtGui import QColor, QFont, QPalette
+from PySide6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QProxyStyle,
+    QPushButton,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
+    QToolButton,
+    QWidget,
+)
 
 
 APPLICATION_STYLE_SHEET = """
@@ -12,9 +23,49 @@ QMainWindow, QDialog {
     background: #e9eef3;
     color: #1b2a3b;
 }
-QMenuBar, QMenu, QToolBar, QStatusBar {
+QMenuBar, QToolBar, QStatusBar {
     background: #f7f9fc;
     color: #1b2a3b;
+}
+QMenuBar::item {
+    padding: 4px 8px;
+    background: transparent;
+    border-radius: 2px;
+}
+QMenuBar::item:selected {
+    background: #dce8f3;
+    color: #102a43;
+}
+QMenuBar::item:pressed {
+    background: #d2e5f3;
+    color: #0d2338;
+}
+QMenu {
+    background: #ffffff;
+    color: #1b2a3b;
+    border: 1px solid #b5c4d4;
+    padding: 3px 2px;
+}
+QMenu::item {
+    padding: 5px 26px 5px 22px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    color: #1b2a3b;
+}
+QMenu::item:selected {
+    background: #d2e5f3;
+    color: #0d2338;
+    border-color: #79a7c7;
+}
+QMenu::item:disabled {
+    color: #8a99a8;
+    background: transparent;
+    border-color: transparent;
+}
+QMenu::separator {
+    height: 1px;
+    background: #dce4ec;
+    margin: 3px 6px;
 }
 QToolBar { border: none; padding: 3px 5px; spacing: 5px; }
 QToolBar::separator { width: 1px; margin: 3px 4px; background: #cbd5e1; }
@@ -49,6 +100,10 @@ QTabWidget::pane, QTableWidget, QPlainTextEdit, QScrollArea {
     border: 1px solid #cbd5e1;
     background: #ffffff;
 }
+QTableWidget {
+    selection-background-color: #d2e5f3;
+    selection-color: #0d2338;
+}
 QStackedWidget#parameterStack { background: #f7f9fc; }
 QGroupBox {
     border: 1px solid #d4dee8;
@@ -80,9 +135,6 @@ QPushButton {
 }
 QPushButton:hover:enabled { background: #e4f0f8; border-color: #5c8eac; }
 QPushButton:pressed:enabled, QPushButton:checked { background: #d2e5f3; }
-QPushButton:focus:enabled, QComboBox:focus, QAbstractSpinBox:focus, QLineEdit:focus {
-    border: 1px solid #166d9b;
-}
 QPushButton:default:enabled {
     color: white;
     background: #176993;
@@ -98,8 +150,64 @@ QComboBox, QAbstractSpinBox, QLineEdit {
     border: 1px solid #c5d1de;
     border-radius: 2px;
     background: #ffffff;
+    color: #1b2a3b;
 }
-QComboBox:disabled, QAbstractSpinBox:disabled { background: #edf2f6; color: #6d7c8d; }
+QComboBox:hover:enabled {
+    background: #f5f9fc;
+    border-color: #5c8eac;
+}
+QPushButton:focus:enabled, QComboBox:focus, QAbstractSpinBox:focus, QLineEdit:focus {
+    border: 1px solid #166d9b;
+}
+QComboBox:on:enabled {
+    background: #eaf3fa;
+    border: 1px solid #166d9b;
+}
+QComboBox:disabled, QAbstractSpinBox:disabled, QLineEdit:disabled {
+    background: #edf2f6;
+    color: #6d7c8d;
+    border-color: #d8e1e9;
+}
+QComboBox QAbstractItemView {
+    background: #ffffff;
+    color: #1b2a3b;
+    border: 1px solid #b5c4d4;
+    padding: 2px;
+    outline: none;
+    selection-background-color: #e4f0f8;
+    selection-color: #102a43;
+}
+QComboBox QAbstractItemView::item {
+    min-height: 22px;
+    padding: 2px 6px;
+    color: #1b2a3b;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 2px;
+}
+QComboBox QAbstractItemView::item:selected {
+    background: #e4f0f8;
+    color: #102a43;
+    border-color: #b7d2e6;
+}
+QComboBox QAbstractItemView::item:hover:enabled,
+QComboBox QAbstractItemView::item:selected:hover:enabled {
+    background: #d2e5f3;
+    color: #0d2338;
+    border-color: #79a7c7;
+}
+QComboBox QAbstractItemView::item:pressed:enabled,
+QComboBox QAbstractItemView::item:selected:pressed:enabled {
+    background: #c1dcf0;
+    color: #091d30;
+    border-color: #5c8eac;
+}
+QComboBox QAbstractItemView::item:disabled,
+QComboBox QAbstractItemView::item:disabled:hover {
+    color: #8a99a8;
+    background: transparent;
+    border-color: transparent;
+}
 QRadioButton, QCheckBox { spacing: 6px; padding: 2px; }
 QRadioButton:hover:enabled { color: #145c85; }
 QRadioButton:checked { color: #145c85; font-weight: 600; }
@@ -110,15 +218,114 @@ QProgressBar::chunk { background: #1776a3; }
 """
 
 
+class _ComboBoxItemDelegate(QStyledItemDelegate):
+    """Styled item delegate so QComboBox popup items honor QSS hover and selection."""
+
+    def sizeHint(
+        self,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> QSize:
+        size = super().sizeHint(option, index)
+        return QSize(size.width() + 4, max(size.height(), 24))
+
+
+class _ComboBoxPopupSizer(QObject):
+    """Ensure QComboBox popups stay wide enough for option labels without clipping."""
+
+    def __init__(self, combo: QComboBox) -> None:
+        super().__init__(combo)
+        self._combo = combo
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if event.type() is QEvent.Type.Show:
+            view = self._combo.view()
+            content_width = max(0, view.sizeHintForColumn(0))
+            scrollbar_width = (
+                view.verticalScrollBar().sizeHint().width()
+                if self._combo.count() > self._combo.maxVisibleItems()
+                else 0
+            )
+            needed_width = max(self._combo.width(), content_width + scrollbar_width + 12)
+            screen = self._combo.screen()
+            available = screen.availableGeometry() if screen is not None else None
+            if available is not None and available.isValid():
+                needed_width = min(needed_width, int(available.width() * 0.9))
+            view.setMinimumWidth(needed_width)
+            container = view.window()
+            if container is not view and container.width() < needed_width:
+                container.resize(needed_width, container.height())
+            if (
+                available is not None
+                and available.isValid()
+                and container.x() + container.width() > available.right()
+            ):
+                clamped_x = max(
+                    available.left(),
+                    available.right() - container.width() + 1,
+                )
+                container.move(clamped_x, container.y())
+        return super().eventFilter(watched, event)
+
+
+def configure_combo_box_popup(combo: QComboBox) -> None:
+    """Install styled popup rendering and contrast-safe palette on a QComboBox."""
+    if bool(combo.property("comboBoxPopupConfigured")):
+        return
+    combo.setProperty("comboBoxPopupConfigured", True)
+    if not isinstance(combo.itemDelegate(), QStyledItemDelegate):
+        combo.setItemDelegate(_ComboBoxItemDelegate(combo))
+    view = combo.view()
+    view.setTextElideMode(Qt.TextElideMode.ElideRight)
+    palette = view.palette()
+    palette.setColor(QPalette.ColorRole.Base, QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.Text, QColor("#1b2a3b"))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#e4f0f8"))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#102a43"))
+    view.setPalette(palette)
+    view.window().installEventFilter(_ComboBoxPopupSizer(combo))
+
+
+class _DesktopProxyStyle(QProxyStyle):
+    """Fusion base style that ensures every QComboBox popup uses styled items."""
+
+    def __init__(self) -> None:
+        super().__init__("Fusion")
+
+    @overload
+    def polish(self, application: QApplication, /) -> None: ...
+
+    @overload
+    def polish(self, widget: QWidget, /) -> None: ...
+
+    @overload
+    def polish(
+        self,
+        palette: QPalette | Qt.GlobalColor | QColor,
+        /,
+    ) -> None: ...
+
+    def polish(
+        self,
+        target: QApplication | QWidget | QPalette | Qt.GlobalColor | QColor,
+    ) -> None:
+        if isinstance(target, QComboBox):
+            configure_combo_box_popup(target)
+        super().polish(target)
+
+
 def apply_application_style(application: QApplication) -> None:
     """Apply a native-looking light theme without fixed widget geometry."""
     # Microsoft YaHei UI contains both Chinese and Latin glyphs on supported
     # Windows installations; Qt falls back to the native system font elsewhere.
     font = QFont("Microsoft YaHei UI", 9)
     font.setStyleHint(QFont.StyleHint.System)
-    application.setStyle("Fusion")
+    application.setStyle(_DesktopProxyStyle())
     application.setFont(font)
     application.setStyleSheet(APPLICATION_STYLE_SHEET)
+    for widget in application.allWidgets():
+        if isinstance(widget, QComboBox):
+            configure_combo_box_popup(widget)
 
 
 def _set_action_button_cursor(button: QPushButton | QToolButton) -> None:
@@ -160,4 +367,8 @@ def configure_action_button_cursors(root: QWidget) -> None:
         _set_action_button_cursor(button)
 
 
-__all__ = ["apply_application_style", "configure_action_button_cursors"]
+__all__ = [
+    "apply_application_style",
+    "configure_action_button_cursors",
+    "configure_combo_box_popup",
+]
