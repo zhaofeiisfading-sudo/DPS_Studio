@@ -33,3 +33,37 @@
 - Do not automatically commit, push, merge, rebase, rewrite Git history, or build releases.
   Keep raw data, artifacts, caches, build intermediates and packages out of Git. Avoid unrelated
   changes and stop once the requested task is complete.
+
+## Multi-Agent Coordination
+
+- Single-writer rule: At most one write-acting agent may operate on this repository at a time.
+  Gemini and Codex CLI (or multiple agent sessions) must never concurrently edit files, run tests
+  or builds, or perform cleanup in the same repository.
+- Cross-repository boundary: Gemini may perform read-only cross-repository reference (including
+  inspecting the Research checkout), but any cross-repository write or Research → Production
+  promotion requires separate explicit authorization and validation.
+- Pre-flight inspection: Before modifying files or starting write/test/build/cleanup actions,
+  check the active branch, Git status (`git --no-optional-locks status -sb`), staged/unstaged
+  uncommitted changes, registered worktrees (`git worktree list --porcelain`), `git-common-dir`,
+  and active agent sessions/processes (`codex`, `Antigravity`). Preserve peer or user changes.
+- Protect worktree metadata and junctions: Preserve historical `.git/worktrees/*` registrations in
+  Production and NTFS junctions (`artifacts/*` reparse points) in Research. Never run
+  `git worktree prune`, recursively delete/traverse across junctions or linked directories, or
+  modify sibling worktrees without explicit user approval.
+- Root cleanliness and directory discipline: Never create caches, test outputs, build packages,
+  or temporary task files at the repository root. Keep maintained scripts in `scripts/`
+  (`scripts/build/`, `scripts/dev/`, `scripts/maintenance/`), verified release archives in
+  `release/`, research/task outputs and caches in `artifacts/` (`artifacts/<task-id>/`), build
+  intermediates in `build/<task-id>/`, and task reports in `docs/` (`docs/tasks/<task-id>/`),
+  strictly honoring `.gitignore`.
+- Explicit Python environment: Run maintenance scripts, hygiene checks, tests, and builds using
+  the project Python 3.12 environment (`D:\miniconda3\envs\dps-studio\python.exe`, with `-B` to
+  avoid bytecode scatter); do not rely on an older default `python` on `PATH` (e.g., Python 3.9.1
+  fails `check_repo_hygiene.py`).
+- Ground-truth closeout: At task completion (unless explicitly restricted to scoped governance-only
+  edits), update the required verification reports (`docs/tasks/<task-id>/`) and lightweight
+  Obsidian log (`D:\Research\Notes\05项目\dps`). Live Git state, actual test results, and real
+  filesystem/hash state always take precedence over historical docs or logs.
+- Strict authorization gates: Never commit, push, clean history or historical artifacts, alter
+  scientific default configurations (`configs/` or core defaults), build releases, or launch new
+  Codex CLI tasks without explicit user authorization.
