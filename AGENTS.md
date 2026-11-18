@@ -36,3 +36,14 @@
 - 新增文件类型、缓存目录、实验输出或构建产物时检查忽略规则；改变结构、流程、构建方式或长期约束时检查本文件。已有规则足够时不改文件，不重复追加规则，不新增 TASK 专属白名单。
 - 增加与改动风险相称的测试，运行 pytest、Ruff 和适当的 mypy/回归检查，如实记录失败。检查新根目录文件、Git 状态/暂存区、构建依赖及必要资源，防止大型误提交或运行必需文件被忽略；核对 raw/Production 边界。
 - 在 `docs/tasks/TASK-NNN/` 写简洁结论；在 `D:\Research\Notes\05项目\dps` 留轻量 Obsidian 日志，含任务、日期、分支、状态、结论、改动文件、artifact、核心结果、测试、Git/raw/Production 边界和下一步。完成请求后停止。
+
+## Multi-Agent Coordination（多 Agent 协作）
+
+- **单仓单写入者锁定：** 同一时刻本仓库最多只允许一个执行写操作的 Agent；Gemini 与 Codex CLI（或其他 Agent）不得同时修改文件、运行测试、执行构建或清理同一仓库。
+- **跨仓只读与晋升授权：** Agent 可跨仓只读参考 Production 等外部仓库以核对接口与边界，但严禁跨仓写入；任何跨仓修改或 Research → Production 晋升必须经过用户单独授权与回归验证。
+- **开工前现状与会话检查：** 执行任何修改前，先检查当前分支、`git status --short`、`git rev-parse --git-common-dir`、`git worktree list --porcelain`、活跃 Agent/Codex/Python 会话及既有未提交改动；妥善保留他人的未提交工作，禁止覆盖或顺手清理。
+- **NTFS Junction 与历史 Worktree 保护：** 本仓 `artifacts/` 内存在指向外部目录的 NTFS Junction，Production 仓库也留存历史 worktree 元数据。严禁自动执行 `git worktree prune`、跨目录递归清理或经由联接修改关联目录；操作任何链接时仅限先核查且仅按链接本身安全处理。
+- **目录放置与 `.gitignore` 纪律：** 严禁在根目录随意创建缓存、测试输出、构建包和临时任务文件；保持构建脚本位于 `scripts/`、正式发布包位于 `release/`、研究产物位于 `artifacts/`、报告位于 `docs/`，并严格遵守现有 `.gitignore`。
+- **统一使用项目 Python 3.12 环境：** 运行脚本、测试、类型检查或通过 `scripts/dev/run.ps1 -Task TASK-NNN -Python <python3.12> ...` 执行任务时，必须显式使用项目 Python 3.12 环境（如 `dps-studio-research` Conda 环境或仓库外 Python 3.12 venv，配合 `-B`），避免误用默认系统 Python 引发版本错误。
+- **未授权禁止关键变更与启动 Codex：** 未经用户明确授权，不得执行 `commit`、`push`、清理 Git 历史、修改科学计算默认配置（如 `core/physics/`、`core/analysis_profiles.py`、`configs/`）或启动新的 Codex CLI 任务。仅在获授权调用 Codex CLI 时，默认使用当前最新的 `sol` 模型与 `xhigh` 模式（例如 `6.1sol xhigh`，后续随新版本升级），除非用户另有指定。
+- **收尾核验与事实优先级：** 任务结束必须按实际改动更新必要的 `docs/tasks/TASK-NNN/` 验证报告与 `D:\Research\Notes\05项目\dps` Obsidian 轻量日志（补充标注执行 Agent、仓库路径、分支及 `HEAD`）。核对状态时，**真实 Git、源码、测试输出和文件实况优先于历史报告与历史日志**；如存在冲突须如实报告。

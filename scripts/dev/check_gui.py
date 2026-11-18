@@ -1,4 +1,4 @@
-"""Run Qt test modules in separate processes to isolate application lifecycles."""
+"""Isolate Qt modules, retrying timed-out modules one case per process."""
 from __future__ import annotations
 
 import argparse
@@ -23,11 +23,12 @@ def main() -> int:
     if not args.task.replace("-", "").isalnum():
         parser.error("Invalid task directory")
     output = ROOT / "artifacts" / args.task
-    reports = output / "validation"
+    reports = output / "tmp/validation"
     reports.mkdir(parents=True, exist_ok=True)
     temporary = output / "tmp/gui"
     temporary.mkdir(parents=True, exist_ok=True)
     results = []
+    attempts = []
     combined = ET.Element("testsuites")
     jobs = []
     for module in sorted((ROOT / "tests/unit/gui").glob("test_*.py")):
@@ -42,7 +43,7 @@ def main() -> int:
         else:
             jobs.append((module, str(module)))
     for index, (module, selection) in enumerate(jobs):
-        identifier = f"{module.stem}-{index}" if args.isolate_cases else module.stem
+        identifier = f"{module.stem}-{index}" if selection != str(module) else module.stem
         report = temporary / f"{identifier}.xml"
         started = time.monotonic()
         environment = dict(os.environ, QT_QPA_PLATFORM="offscreen")
@@ -56,6 +57,28 @@ def main() -> int:
             def decoded(value: str | bytes | None) -> str:
                 return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value or ""
             code, log = 124, f"Qt test timed out after {args.timeout_seconds} s: {exc}\n" + decoded(exc.stdout) + decoded(exc.stderr)
+        if code == 124 and not args.isolate_cases and selection == str(module):
+            # Preserve the failed module attempt. A fresh Qt application per
+            # case can recover native-resource/lifecycle stalls, but assertion
+            # failures must never be turned into retries or hidden as passes.
+            failure_log = reports / f"gui-{identifier}-timeout.log"
+            failure_log.write_text(log, encoding="utf-8")
+            collected = subprocess.run(
+                [sys.executable, "-B", "-m", "pytest", "--collect-only", "-q", str(module)],
+                cwd=ROOT, env=environment, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=30, check=False,
+            )
+            cases = [line.strip() for line in collected.stdout.splitlines()
+                     if "::" in line and not line.startswith(" ")]
+            if collected.returncode == 0 and cases:
+                attempts.append({"module": module.relative_to(ROOT).as_posix(),
+                                 "exit_code": code, "log": str(failure_log),
+                                 "seconds": round(time.monotonic() - started, 2),
+                                 "retry_cases": len(cases)})
+                jobs.extend((module, case) for case in cases)
+                print(f"{selection}: timeout, retrying {len(cases)} isolated cases; "
+                      f"original attempt: {failure_log}", flush=True)
+                continue
         row = {"module": module.relative_to(ROOT).as_posix(), "selection": selection, "exit_code": code,
                "seconds": round(time.monotonic() - started, 2), "tests": 0,
                "failures": 0, "errors": 0, "skipped": 0}
@@ -77,6 +100,7 @@ def main() -> int:
     prefix = "gui-cases-regression" if args.isolate_cases else "gui-regression"
     ET.ElementTree(combined).write(reports / f"{prefix}.xml", encoding="utf-8", xml_declaration=True)
     (reports / f"{prefix}.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
+    (reports / f"{prefix}-attempts.json").write_text(json.dumps(attempts, indent=2), encoding="utf-8")
     return int(any(row["exit_code"] for row in results))
 
 

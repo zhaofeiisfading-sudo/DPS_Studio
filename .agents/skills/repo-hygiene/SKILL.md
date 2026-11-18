@@ -5,18 +5,18 @@ description: Audit this DPS Studio Research repository's layout, caches, Git ign
 
 # Repository hygiene
 
-Read the repository-root `AGENTS.md` for directory ownership and protected boundaries. Work from this checkout; an artifact directory link does not authorize changes to its external target.
+Read the repository-root `AGENTS.md` for directory ownership, multi-agent locks, and protected boundaries. Work strictly inside this checkout under the single-writer rule (never overlap edits, builds, tests, or cleanups with another active agent or Codex CLI session); cross-repo reads are allowed for verification, but never write across repositories or alter external targets linked by artifact junctions without separate authorization.
 
 ## Inspect and classify
 
-1. Read Git status and the staged diff with optional locks disabled. Preserve pre-existing staged/unstaged work and record its identity before moving it. Inspect the first two directory levels and, when storage matters, physical sizes without following symlinks/junctions.
-2. Classify new files using `AGENTS.md`: source, scripts, tests, configs, documents, generated artifacts, release or read-only data. Inspect contents and callers before treating a root entry as garbage.
-3. Run the dependency-free, read-only checker from the repository root:
+1. Before changing anything, check the current branch, `git rev-parse --git-common-dir`, `git worktree list --porcelain`, active Agent/Codex/Python sessions, and read `git status` and the staged diff with optional locks disabled. Preserve pre-existing staged/unstaged work and record its identity before moving it. Inspect the first two directory levels and, when storage matters, physical sizes without following symlinks/junctions.
+2. Classify new files using `AGENTS.md`: source, scripts, tests, configs, documents, generated artifacts, release or read-only data. Keep build scripts in `scripts/`, formal releases in `release/`, research outputs in `artifacts/`, reports in `docs/`, and obey `.gitignore`; never create root caches, test outputs, build bundles, or temporary task files. Inspect contents and callers before treating a root entry as garbage.
+3. Run the dependency-free, read-only checker from the repository root using the project Python 3.12 interpreter (to avoid system Python version mismatches):
 
    ```powershell
-   python -B scripts/maintenance/check_repo_hygiene.py
-   python -B scripts/maintenance/check_repo_hygiene.py --json
-   python -B scripts/maintenance/check_repo_hygiene.py --staged-only
+   <python3.12> -B scripts/maintenance/check_repo_hygiene.py
+   <python3.12> -B scripts/maintenance/check_repo_hygiene.py --json
+   <python3.12> -B scripts/maintenance/check_repo_hygiene.py --staged-only
    ```
 
    Exit 0 = clean, 1 = findings, 2 = audit error. Indexed blob sizes are checked even when local files differ or outputs were force-added. The script does not inspect Git history or prove scientific uniqueness.
@@ -26,12 +26,12 @@ Read the repository-root `AGENTS.md` for directory ownership and protected bound
 
 - Inspect root scratch, test environments, pip caches and repeated build trees. Establish reproducibility from tool metadata/callers, or establish byte identity with hashes and archive-member comparison. Names alone are insufficient.
 - Use existing task authorization. Without cleanup authorization, report concrete candidates and obtain permission before deletion. With authorization, remove only confirmed regenerable junk; no backup copy is needed unless requested. List uncertain objects for manual review.
-- Protect `data/raw`, effective uncommitted source, unique research results, frozen protocols/results and `.git`/history. Untracking generated files must preserve their local unique content. Never use destructive workspace resets.
+- Protect `data/raw`, effective uncommitted source, unique research results, frozen protocols/results, `.git`/history, Research NTFS junctions, and Production's legacy worktree metadata. Never run `git worktree prune`, cross-directory recursive cleanups, destructive workspace resets, or unrequested commits, pushes, scientific default edits, cross-repo promotions, or new Codex tasks. Untracking generated files must preserve their local unique content.
 - Before recursive moves/deletes, resolve exact absolute paths and verify they remain inside this checkout and outside protected paths. Reject nested symlinks/junctions. Use native PowerShell 7 operations end to end; remove a reviewed directory link only as a link, never recurse through it.
 - Record important old/new paths and reasons. Repair Python/dynamic imports, relative roots, resources/configs, tests, launchers, PyInstaller specs and GitHub Actions. Verify core remains GUI-independent and installed software needs no artifacts or Production code. Keep formulas and parameters unchanged during structural work.
 
 ## Close out
 
-Use `scripts/dev/run.ps1 -Task TASK-NNN -Python <python> ...` so configurable caches stay in the task's `artifacts/.../tmp/`. Run relevant pytest/Ruff/mypy and import/startup/build-path checks. Inspect the index, new root entries and required build resources; rerun the hygiene checker. Remove confirmed regenerable temporary files and compare protected-boundary evidence where relevant.
+Use `scripts/dev/run.ps1 -Task TASK-NNN -Python <python3.12> ...` with the project's Python 3.12 environment so configurable caches stay in the task's `artifacts/.../tmp/` and system Python mismatches are avoided. Run relevant pytest/Ruff/mypy and import/startup/build-path checks (never concurrently with another active agent). Inspect the index, new root entries and required build resources; rerun the hygiene checker. Remove confirmed regenerable temporary files and compare protected-boundary evidence where relevant.
 
-Report a short outcome: findings/actual changes, checks, preserved pre-existing work and unresolved manual-review items. Propose edits only for discovered problems. Follow task-document and Obsidian requirements without adding repeated rules to `AGENTS.md`.
+Report a short outcome: findings/actual changes, checks, preserved pre-existing work and unresolved manual-review items. Propose edits only for discovered problems. Follow task-document and Obsidian requirements (recording agent, repo path, branch, and `HEAD`), preferring actual Git, test, and filesystem state over historical logs whenever they conflict, without adding repeated rules to `AGENTS.md`.

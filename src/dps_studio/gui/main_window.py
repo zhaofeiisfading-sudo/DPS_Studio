@@ -2342,7 +2342,9 @@ class MainWindow(QMainWindow):
             self.minimum_frequency_spin,
             self.maximum_frequency_spin,
         ):
-            control.setStyleSheet(style)
+            control.setStyleSheet(
+                f"QComboBox {{ {style} }}" if style and isinstance(control, QComboBox) else style
+            )
 
     def _show_custom_profile_state(self, base_profile: AnalysisProfile) -> None:
         blocker = QSignalBlocker(self.profile_combo)
