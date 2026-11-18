@@ -4,8 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import pytest
-from PySide6.QtCore import QEventLoop, QTimer
+from PySide6.QtCore import QSettings, QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 
 from dps_studio.core.ridge import RidgeCorridorConstraint
@@ -57,7 +56,8 @@ def _window(qapp: QApplication, tmp_path: Path) -> MainWindow:
             time_scale=1.0,
         )
     )
-    window = MainWindow(translation_manager=translation_manager())
+    window = MainWindow(translation_manager=translation_manager(),
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     window.set_loaded_result(loaded)
     window.set_analysis_configuration(
         load_workflow_config(CONFIG_PATH, repository_root=REPOSITORY_ROOT)
@@ -205,6 +205,7 @@ def test_guided_channels_are_independent_and_runs_target_displayed_channel(
         assert session.stft_results["pdv_channel_2"] is channel_2_stft
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
@@ -234,6 +235,7 @@ def test_guided_only_velocity_source_keeps_missing_channel_selectable(
         assert view.formal_curve is None
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
@@ -319,6 +321,7 @@ def test_extraction_mode_controls_keep_widget_group_model_and_run_path_aligned(
         assert window.analysis_session.results_valid
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
@@ -358,25 +361,10 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
         window.velocity_view.display_velocity_check.setChecked(True)
         qapp.processEvents()
         connector = window.velocity_view.display_connector
-        assert connector is not None
-        connector_time_us, connector_velocity_m_s = connector.getData()
-        finite_indices = np.flatnonzero(
-            np.isfinite(analysis.working_corrected_velocity_m_s)
-            & (analysis.stft_result.time_s >= session.event_reference_time_s)
-        )
-        assert finite_indices.size > 0
-        first = int(finite_indices[0])
-        assert connector_time_us[0] == pytest.approx(0.0)
-        assert connector_time_us[1] == pytest.approx(
-            (
-                analysis.stft_result.time_s[first]
-                - session.event_reference_time_s
-            )
-            * 1.0e6
-        )
-        assert connector_velocity_m_s[1] == pytest.approx(
-            analysis.working_corrected_velocity_m_s[first]
-        )
+        # The 630 MHz tone is already moving before the chosen reference.
+        assert connector is None
+        assert window.velocity_view.pre_event_platform_curve is None
+        assert np.isfinite(analysis.corrected_velocity_m_s[3:12]).all()
         np.testing.assert_array_equal(
             analysis.signal_detection_result.apparent_velocity_m_s,
             formal_before,
@@ -386,11 +374,12 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
         qapp.processEvents()
         assert window.velocity_view.display_curve is not None
         assert window.velocity_view.formal_curve is None
-        assert window.velocity_view.display_connector is not None
+        assert window.velocity_view.display_connector is None
         np.testing.assert_array_equal(
             analysis.signal_detection_result.apparent_velocity_m_s,
             formal_before,
         )
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()

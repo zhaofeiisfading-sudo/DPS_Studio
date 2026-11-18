@@ -26,6 +26,7 @@ class SignalState(str, Enum):
     rules. It does not confirm the physical identity of the selected branch.
     """
 
+    UNASSESSED = "unassessed"
     MEASURED = "measured"
     NO_DETECTABLE_BEAT = "no_detectable_beat"
     AMBIGUOUS_PEAK = "ambiguous_peak"

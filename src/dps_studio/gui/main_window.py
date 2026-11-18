@@ -6,14 +6,20 @@ import math
 from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
+from stat import S_ISREG
 
 from PySide6.QtCore import (
-    QByteArray, QPointF, QSettings, QSignalBlocker, QSize, Qt, QThreadPool, QTimer, QUrl, Slot,
+    QByteArray, QMimeData, QPointF, QSettings, QSignalBlocker, QSize, Qt, QThreadPool,
+    QTimer, QUrl, Slot,
 )
-from PySide6.QtGui import QAction, QCloseEvent, QDesktopServices, QDragEnterEvent, QDropEvent, QKeySequence
+from PySide6.QtGui import (
+    QAction, QCloseEvent, QDesktopServices, QDragEnterEvent, QDragMoveEvent, QDropEvent,
+    QKeySequence,
+)
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QAbstractSpinBox,
+    QApplication,
     QButtonGroup,
     QCheckBox,
     QDockWidget,
@@ -202,6 +208,7 @@ class MainWindow(QMainWindow):
         self._import_worker: ImportWorker | None = None
         self._import_busy = False
         self._import_then_stft = False
+        self._pending_drop: str | None = None
         self._close_when_idle = False
         self._load_result: DelimitedSignalLoadResult | None = None
         self._repository_root = application_resource_root()
@@ -1043,7 +1050,7 @@ class MainWindow(QMainWindow):
         self.pre_event_display_check = QCheckBox(self.tr("启用"))
         self.pre_event_display_check.setObjectName("preEventDisplayCheck")
         self.pre_event_display_check.setToolTip(
-            self.tr("仅在已设置事件参考时，用指定速度显示事件前平台。")
+            self.tr("设置事件参考后，仅对有静止依据的未测速帧显示平台。")
         )
         event_form.addRow(
             self.tr("事件前平台"), self.pre_event_display_check
@@ -1303,7 +1310,7 @@ class MainWindow(QMainWindow):
         )
         self.export_quality_passed_check.setObjectName("exportQualityPassedOnly")
         self.export_quality_passed_check.setToolTip(self.tr(
-            "默认导出连续显示曲线。勾选后简表仅含 measured 且有限的正式修正速度，"
+            "默认导出显示速度，未确定帧保留 NaN。勾选后简表仅含 measured 且有限的正式修正速度，"
             "排除显示平台；文件名包含 quality_passed。详细表保留全部诊断行。"
         ))
         formats.body_layout.addWidget(self.export_quality_passed_check)
@@ -1796,30 +1803,61 @@ class MainWindow(QMainWindow):
             return False
         return self._import_file(Path(selected_path), continue_to_stft=continue_to_stft)
 
-    def _dropped_file(self, event: QDropEvent) -> Path | None:
-        urls = event.mimeData().urls()
-        if self._busy or len(urls) != 1 or not urls[0].isLocalFile():
-            return None
-        path = Path(urls[0].toLocalFile())
-        if path.suffix.lower() in {".csv", ".dat", ".txt"} and path.is_file():
-            return path
+    @staticmethod
+    def _dropped_file(mime_data: QMimeData) -> str | None:
+        for url in mime_data.urls():
+            if url.isLocalFile() and (path := url.toLocalFile()):
+                return path
         return None
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
-        if self._dropped_file(event) is None:
-            event.ignore()
+    @staticmethod
+    def _accept_file_drop(event: QDropEvent) -> None:
+        if event.possibleActions() & Qt.DropAction.CopyAction:
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
         else:
             event.acceptProposedAction()
 
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
+        self.dragMoveEvent(event)
+
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:  # noqa: N802
+        if self._dropped_file(event.mimeData()) is None:
+            event.ignore()
+        else:
+            self._accept_file_drop(event)
+
     def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
-        path = self._dropped_file(event)
+        path = self._dropped_file(event.mimeData())
         if path is None:
             event.ignore()
             return
-        event.acceptProposedAction()
-        self._import_file(path)
+        self._accept_file_drop(event)
+        already_scheduled = self._pending_drop is not None
+        self._pending_drop = path
+        if not already_scheduled:
+            # Return to Explorer's drop handler before entering any modal event loop.
+            QTimer.singleShot(0, self, self._process_pending_drop)
+
+    def _process_pending_drop(self) -> None:
+        path = self._pending_drop
+        self._pending_drop = None
+        if (path is None or self._close_when_idle or self._busy
+                or QApplication.activeModalWidget() is not None):
+            return
+        self._import_file(Path(path))
 
     def _import_file(self, path: Path, *, continue_to_stft: bool = False) -> bool:
+        try:
+            regular_file = S_ISREG(path.stat().st_mode)
+        except OSError:
+            regular_file = False
+        if not regular_file:
+            QMessageBox.warning(
+                self, self.tr("数据加载失败"),
+                self.tr("无法读取所选文件：{path}").format(path=path),
+            )
+            return False
         dialog = ImportSettingsDialog(path, self)
         try:
             if dialog.exec() != int(dialog.DialogCode.Accepted):
@@ -4468,6 +4506,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Cancel the view fit and defer closure while a workflow worker is active."""
+        self._pending_drop = None
         self.acceleration_view.cancel_dechirp()
         if self._busy:
             self._close_when_idle = True

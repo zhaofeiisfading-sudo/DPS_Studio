@@ -14,6 +14,7 @@ from dps_studio.core.quality import (
 )
 from dps_studio.core.ridge import (
     RidgeRefinementStatus,
+    RidgeSelectionOrigin,
     assess_ridge_spectral_quality,
     extract_peak_ridge,
     refine_peak_ridge_subbin,
@@ -96,6 +97,7 @@ def _manual_detection(
     minimum_frequency_hz: float = 50.0,
     maximum_frequency_hz: float = 400.0,
     config: SignalDetectionConfig | None = None,
+    selection_origins: tuple[RidgeSelectionOrigin, ...] | None = None,
 ) -> object:
     frame_count = spectrum.shape[1]
     stft = STFTResult(
@@ -139,6 +141,8 @@ def _manual_detection(
             minimum_cycles_in_window=1.0,
         ),
         vacuum_wavelength_m=WAVELENGTH_M,
+        ridge_selection_origins=selection_origins,
+        minimum_continuity_candidate_relative_to_strongest_db=-6.0,
     )
 
 
@@ -373,7 +377,7 @@ def test_manual_reference_changes_no_formal_detection_values() -> None:
     )
 
 
-def test_explicit_pre_event_platform_overrides_measured_display_only() -> None:
+def test_explicit_pre_event_platform_preserves_measured_display() -> None:
     time_s = np.arange(4096, dtype=np.float64) / SAMPLE_RATE_HZ
     voltage = np.sin(2.0 * np.pi * 200.0e6 * time_s)
     reference_s = 0.5e-6
@@ -393,13 +397,13 @@ def test_explicit_pre_event_platform_overrides_measured_display_only() -> None:
     assert measured[before].all()
     np.testing.assert_array_equal(
         analysis.display_velocity_m_s[before],
-        0.0,
+        analysis.corrected_velocity_m_s[before],
     )
     assert np.isfinite(analysis.corrected_velocity_m_s[before]).all()
     assert set(
         np.asarray(analysis.velocity_origins, dtype=object)[before]
     ) == {
-        "configured_pre_event_display_velocity_only"
+        "measured"
     }
 
 
@@ -423,3 +427,13 @@ def test_explicit_pre_event_platform_overrides_measured_display_only() -> None:
 def test_detection_config_rejects_invalid_values(kwargs: dict[str, object]) -> None:
     with pytest.raises((TypeError, ValueError)):
         SignalDetectionConfig(**kwargs)  # type: ignore[arg-type]
+
+@pytest.mark.parametrize("length", [1, 2])
+def test_isolated_continuity_alternatives_cannot_establish_motion(length: int) -> None:
+    spectrum = np.ones((11, 7), dtype=np.complex128)
+    spectrum[4, 2:2 + length] = 100.0
+    origins = [RidgeSelectionOrigin.STRONGEST_PEAK] * 7
+    origins[2:2 + length] = [RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE] * length
+    result = _manual_detection(spectrum, config=_detection_config(), selection_origins=tuple(origins))
+    assert np.isnan(result.apparent_velocity_m_s).all()
+    assert result.signal_states[2:2 + length] == (SignalState.UNSTABLE_DETECTION,) * length

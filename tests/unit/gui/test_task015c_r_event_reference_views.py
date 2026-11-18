@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from PySide6.QtCore import QEventLoop, QTimer
+from PySide6.QtCore import QSettings, QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication, QLabel
 
 from dps_studio.core import EventCandidateConfig
@@ -125,7 +125,8 @@ def test_gui_reference_candidates_and_result_view_fit(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
-    window = MainWindow(translation_manager=translation_manager())
+    window = MainWindow(translation_manager=translation_manager(),
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     try:
         result = _shifted_event_result(tmp_path)
         window.set_loaded_result(result)
@@ -258,7 +259,11 @@ def test_gui_reference_candidates_and_result_view_fit(
                 (analysis.stft_result.time_s >= candidate_s) & ~measured
             )
             assert pre_event.any()
-            assert np.equal(analysis.display_velocity_m_s[pre_event], 0.0).all()
+            platform = np.asarray(analysis.velocity_origins) == "pre_event_display_platform"
+            assert platform.any()
+            assert pre_event[platform].all()
+            assert np.equal(analysis.display_velocity_m_s[platform], 0.0).all()
+            assert np.isnan(analysis.display_velocity_m_s[pre_event & ~platform & ~measured]).all()
             assert np.isnan(
                 analysis.display_velocity_m_s[before_analysis]
             ).all()
@@ -306,6 +311,7 @@ def test_gui_reference_candidates_and_result_view_fit(
         )
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
@@ -313,7 +319,8 @@ def test_one_click_keeps_ch1_candidate_optional_and_working_curves(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
-    window = MainWindow(translation_manager=translation_manager())
+    window = MainWindow(translation_manager=translation_manager(),
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     try:
         window.set_loaded_result(_shifted_event_result(tmp_path))
         window.analysis_range_panel.use_full_range()
@@ -346,7 +353,10 @@ def test_one_click_keeps_ch1_candidate_optional_and_working_curves(
                 analysis.display_velocity_m_s[pre_event],
                 analysis.continuous_corrected_velocity_m_s[pre_event],
             )
-            assert np.isfinite(analysis.working_frequency_hz[pre_event]).all()
+            np.testing.assert_array_equal(
+                analysis.working_frequency_hz[pre_event],
+                analysis.signal_detection_result.refined_frequency_hz[pre_event],
+            )
 
         np.testing.assert_array_equal(
             window.ridge_view.refined_curve.yData,
@@ -376,6 +386,7 @@ def test_one_click_keeps_ch1_candidate_optional_and_working_curves(
         )
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
@@ -383,7 +394,8 @@ def test_one_click_keeps_existing_ch1_detector_candidate_as_suggestion(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
-    window = MainWindow(translation_manager=translation_manager())
+    window = MainWindow(translation_manager=translation_manager(),
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     try:
         window.set_loaded_result(_shifted_event_result(tmp_path))
         session = window.analysis_session
@@ -420,13 +432,15 @@ def test_one_click_keeps_existing_ch1_detector_candidate_as_suggestion(
             )
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
-def test_english_reference_and_fit_terms(qapp: QApplication) -> None:
+def test_english_reference_and_fit_terms(qapp: QApplication, tmp_path: Path) -> None:
     manager = translation_manager()
     manager.install("en")
-    window = MainWindow(translation_manager=manager)
+    window = MainWindow(translation_manager=manager,
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     try:
         labels = {label.text() for label in window.findChildren(QLabel)}
         assert "Event Reference (Optional)" in labels
@@ -436,6 +450,7 @@ def test_english_reference_and_fit_terms(qapp: QApplication) -> None:
         )
     finally:
         window.close()
+        window.deleteLater()
         manager.install("zh_CN")
         qapp.processEvents()
 

@@ -13,8 +13,30 @@ from dps_studio.core.physics import velocity_correction_metadata
 from dps_studio.core.models import SignalRecord
 from dps_studio.core.physics.dechirp import DechirpResult, DechirpSettings, estimate_dechirp
 from dps_studio.core.quality import SignalState
-from dps_studio.core.workflow.display import PRE_EVENT_DISPLAY_ORIGIN
-from dps_studio.core.workflow.models import ChannelAnalysis, WorkingRidgeSource
+from dps_studio.core.workflow.display import pre_event_interval
+from dps_studio.core.workflow.models import ChannelAnalysis, FloatArray, WorkingRidgeSource
+
+
+def dechirp_seed_frequencies(analysis: ChannelAnalysis) -> FloatArray:
+    """Original diagnostic peak seeds and pre-reference exclusion for raw chirp fits."""
+    detection = analysis.signal_detection_result
+    excluded = np.array([
+        state in (SignalState.OUTSIDE_ANALYSIS_WINDOW, SignalState.UNASSESSED,
+                  SignalState.NO_DETECTABLE_BEAT)
+        or source is WorkingRidgeSource.INTERPOLATED
+        for state, source in zip(detection.signal_states, analysis.working_source, strict=True)
+    ])
+    if analysis.pre_event_display_enabled:
+        excluded |= pre_event_interval(
+            detection.time_s, detection.manual_event_reference_time_s,
+            detection.analysis_start_time_s, detection.analysis_end_time_s,
+        )
+    # These are initial guesses for a raw-voltage fit, including diagnostic
+    # peaks at frames without a measured velocity. Keep the original
+    # refined-then-coarse seeding independent of the measured working ridge.
+    refined = analysis.refined_result.refined_frequency_hz
+    seed = np.where(np.isfinite(refined), refined, analysis.ridge_result.frequency_hz)
+    return np.where(excluded, np.nan, seed)
 
 
 def channel_dechirp(
@@ -24,15 +46,6 @@ def channel_dechirp(
 ) -> DechirpResult:
     """Fit raw windows at the selected ridge's frame centers without differentiating it."""
     detection = analysis.signal_detection_result
-    excluded = np.array([
-        state in {SignalState.OUTSIDE_ANALYSIS_WINDOW, SignalState.NO_DETECTABLE_BEAT}
-        or source == WorkingRidgeSource.INTERPOLATED
-        or origin == PRE_EVENT_DISPLAY_ORIGIN
-        for state, source, origin in zip(
-            detection.signal_states, analysis.working_source, analysis.velocity_origins,
-            strict=True,
-        )
-    ], dtype=np.bool_)
     event_boundaries = tuple(x for x in (
         detection.manual_event_reference_time_s,
         detection.detected_event_candidate_time_s,
@@ -40,7 +53,7 @@ def channel_dechirp(
     ) if x is not None)
     return estimate_dechirp(
         record, analysis.stft_result.time_s,
-        np.where(excluded, np.nan, analysis.working_frequency_hz),
+        dechirp_seed_frequencies(analysis),
         vacuum_wavelength_m=analysis.discrete_velocity_result.vacuum_wavelength_m,
         settings=settings, boundaries_s=event_boundaries,
         analysis_range_s=(
@@ -56,28 +69,11 @@ def channel_dechirp(
 def channel_acceleration(
     analysis: ChannelAnalysis, *, window_s: float | None = None,
 ) -> VelocityDerivative:
-    """Derivative of the final displayed speed; exclude known nonphysical gaps.
-
-    Low quality finite working values remain eligible with their original
-    provenance. Known no-beat/masked/interpolated values and display-only
-    platforms are excluded. No confidence or uncertainty is manufactured.
-    """
-    invalid_states = {SignalState.OUTSIDE_ANALYSIS_WINDOW, SignalState.NO_DETECTABLE_BEAT}
-    invalid_sources = {
-        WorkingRidgeSource.OUTSIDE_ANALYSIS_WINDOW,
-        WorkingRidgeSource.NO_ALLOWED_FINITE_BIN,
-        WorkingRidgeSource.INTERPOLATED,
-    }
+    """Differentiate contiguous measured corrected velocities without bridging gaps."""
     mask = np.asarray([
-        state not in invalid_states
-        and source not in invalid_sources
-        and origin != PRE_EVENT_DISPLAY_ORIGIN
-        for state, source, origin in zip(
-            analysis.signal_detection_result.signal_states,
-            analysis.working_source,
-            analysis.velocity_origins,
-            strict=True,
-        )
+        state is SignalState.MEASURED and source is not WorkingRidgeSource.INTERPOLATED
+        for state, source in zip(analysis.signal_detection_result.signal_states,
+                                 analysis.working_source, strict=True)
     ], dtype=np.bool_)
     if window_s is not None:
         return local_linear_acceleration(analysis.stft_result.time_s, analysis.plot_velocity_m_s,
@@ -89,14 +85,14 @@ def acceleration_metadata(analysis: ChannelAnalysis) -> dict[str, object]:
     """Snapshot the actual input and numerical conventions without inference."""
     return {
         "input_velocity_type": "display_velocity_m_s",
-        "input_velocity_chain": "working apparent -> angle -> window -> display convention",
+        "input_velocity_chain": "measured apparent -> angle -> window",
         "input_is_signed": analysis.discrete_velocity_result.is_signed,
         "interpretation": "numerical time derivative of reconstructed unsigned speed; not a direction-resolved vector acceleration",
         "method": "finite_difference_nonuniform_central_3point",
         "units": {"time": "s", "velocity": "m/s", "acceleration": "m/s^2"},
         "endpoints": "first-order one-sided secant; two-point runs share secant; singleton NaN",
-        "invalid_segments": "NaN/Inf, no_detectable_beat, outside, interpolated, unavailable bin and display-only platform excluded; no bridging",
-        "quality": "original input-point signal_state, ridge_quality_flag, working_source and velocity_origin retained; stencil may include low-quality neighbors; finite derivative is not confidence",
+        "invalid_segments": "all non-measured frames and nonfinite velocities excluded; no bridging",
+        "quality": "original input-point signal_state, ridge_quality_flag, working_source and velocity_origin retained; stencil restricted to contiguous measured frames; finite derivative is not confidence",
         "preprocessing": "none; no smoothing, interpolation, fitting or resampling",
         "limits": "noise and speed jumps amplified; temporal resolving power limited by velocity reconstruction window; peaks unvalidated",
         "velocity_reconstruction_window_samples": analysis.stft_result.window_length_samples,

@@ -751,7 +751,7 @@ def _metadata_document(
                 if options.quality_passed_only else "ChannelAnalysis.plot_velocity_m_s"
             ),
             "velocity_column": _simple_velocity_column(options),
-            "time_series_may_have_gaps": options.quality_passed_only,
+            "time_series_may_have_gaps": True,
             "excluded_by_quality_filter_count": len(detail_row_indices) - exported_row_count,
             "detailed_csv_quality_filtering_applied": False,
             "physical_branch_identity_confirmed": False,
@@ -801,7 +801,8 @@ def _metadata_document(
                 "SignalDetectionResult.refined_frequency_hz"
             ),
             "formal_quality_gates_modified": False,
-            "same_frame_fallback_only": True,
+            "same_frame_fallback_only": False,
+            "requires_measured_refinement": True,
             "interpolation_or_smoothing_applied": False,
             "continuous_apparent_velocity_field": (
                 "ChannelAnalysis.continuous_apparent_velocity_m_s"
@@ -859,18 +860,25 @@ def _metadata_document(
         "event_time_source": options.event_time_source,
         "event_time_s": detection.manual_event_reference_time_s,
         "pre_event_display": {
-            "enabled": options.pre_event_display_enabled,
+            "enabled": analysis.pre_event_display_enabled,
             "configured_velocity_m_s": options.pre_event_display_velocity_m_s,
             "included_in_csv": options.include_pre_event_display_rows and not options.quality_passed_only,
             "included_in_detail_csv": options.include_pre_event_display_rows,
             "formal_measurement_modified": False,
             "display_only_origin": PRE_EVENT_DISPLAY_ORIGIN,
+            "stationary_evidence": (
+                "Before the resolved reference and first sustained measured run: "
+                "windowed DC removed; ENBW-scaled peak-bin power <= 25% of AC power; "
+                "AC power <= 4 times the lower quartile among diffuse prefix frames."
+            ),
         },
         "result_counts": {
             "stft_frame_count": int(stft.time_s.size),
             "exported_row_count": exported_row_count,
             "detail_exported_row_count": len(detail_row_indices),
             "measured_frame_count": measured_count,
+            "undetermined_velocity_frame_count": stft.time_s.size - measured_count - display_only_count,
+            "pre_event_display_platform_count": display_only_count,
             "working_finite_frame_count": int(
                 np.count_nonzero(np.isfinite(analysis.working_frequency_hz))
             ),
@@ -917,7 +925,8 @@ def _metadata_document(
             "final_corrected_measurement_column": "corrected_velocity_m_s",
             "display_column": "display_velocity_m_s",
             "display_semantics": (
-                "continuous corrected velocity plus optional pre-event platform"
+                "measured: corrected velocity; pre_event_display_platform: display-only configured "
+                "level on quiet pre-reference frames; all other origins: undetermined (NaN)"
             ),
             "formal_measurement_preserved": True,
             "unreliable_formal_values_preserved_as_nan": True,

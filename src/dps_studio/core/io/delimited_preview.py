@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import re
 from dataclasses import dataclass
 from io import StringIO
 from itertools import islice
@@ -16,6 +17,7 @@ from dps_studio.core.io.delimiter import (
 
 _PREVIEW_SAMPLE_CHARACTERS = 32_768
 _CANDIDATE_EXPLICIT_DELIMITERS = ",;|"
+_BINARY_CONTROL_CHARACTERS = re.compile(r"[\x00-\x08\x0e-\x1f\x7f]")
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,19 +54,25 @@ def preview_delimited_file(
 
     try:
         with Path(path).open("r", encoding=encoding, newline="") as handle:
-            sample = handle.read(_PREVIEW_SAMPLE_CHARACTERS)
-            if not sample:
-                raise DelimitedPreviewError("The selected file is empty.")
-            selected_delimiter = delimiter or detect_delimiter(sample)
-            handle.seek(0)
-            reader = create_delimited_row_reader(
-                handle,
-                delimiter=selected_delimiter,
-            )
-            records = tuple(
-                tuple(field.strip() for field in record)
-                for record in islice(reader, max_data_rows + 1)
-            )
+            sample = handle.read(_PREVIEW_SAMPLE_CHARACTERS + 1)
+        if not sample:
+            raise DelimitedPreviewError("The selected file is empty.")
+        if _BINARY_CONTROL_CHARACTERS.search(sample):
+            raise DelimitedPreviewError("The file preview contains binary control characters.")
+        if len(sample) > _PREVIEW_SAMPLE_CHARACTERS:
+            # Discard a partial physical line without reading beyond the sample.
+            end = max(sample.rfind("\n"), sample.rfind("\r"))
+            if end < 0:
+                raise DelimitedPreviewError("The first line exceeds the file preview limit.")
+            sample = sample[:end + 1]
+        selected_delimiter = delimiter or detect_delimiter(sample)
+        reader = create_delimited_row_reader(
+            StringIO(sample, newline=""), delimiter=selected_delimiter,
+        )
+        records = tuple(
+            tuple(field.strip() for field in record)
+            for record in islice(reader, max_data_rows + 1)
+        )
     except (OSError, UnicodeError, csv.Error) as exc:
         raise DelimitedPreviewError(str(exc)) from exc
 

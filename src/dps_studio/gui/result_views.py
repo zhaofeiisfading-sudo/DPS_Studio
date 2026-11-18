@@ -27,7 +27,7 @@ from dps_studio.core.export import ExportTimeOrigin
 from dps_studio.core.quality import SignalState
 from dps_studio.core.ridge import ManualFrequencyRegion, RidgeSearchConstraint
 from dps_studio.core.time_frequency import STFTResult
-from dps_studio.core.workflow import ChannelAnalysis
+from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN, ChannelAnalysis
 from dps_studio.gui.display_preferences import (
     DEFAULT_SPECTROGRAM_COLORMAP,
     normalize_spectrogram_colormap,
@@ -45,6 +45,7 @@ from dps_studio.gui.ridge_corridor import (
 
 FloatArray = NDArray[np.float64]
 _COLORS = ("#0072B2", "#D55E00", "#009E73", "#CC79A7")
+_VELOCITY_Y_PADDING_FRACTION = 0.075
 
 
 def analysis_view_range_us(analysis: ChannelAnalysis) -> tuple[float, float]:
@@ -64,7 +65,7 @@ def analysis_view_range_us(analysis: ChannelAnalysis) -> tuple[float, float]:
 def finite_velocity_view_range(
     arrays: tuple[FloatArray, ...],
     *,
-    padding_fraction: float = 0.075,
+    padding_fraction: float = _VELOCITY_Y_PADDING_FRACTION,
 ) -> tuple[float, float] | None:
     """Return a padded range from finite plotted values only."""
     finite_min = math.inf
@@ -90,7 +91,7 @@ def finite_velocity_xy_view_range(
     series: tuple[tuple[FloatArray, FloatArray], ...],
     *,
     x_limits: tuple[float, float] | None = None,
-    y_padding_fraction: float = 0.075,
+    y_padding_fraction: float = _VELOCITY_Y_PADDING_FRACTION,
 ) -> tuple[tuple[float, float], tuple[float, float]] | None:
     """Return finite X bounds and padded Y bounds from visible plotted series."""
     finite_x: list[FloatArray] = []
@@ -129,41 +130,28 @@ def finite_velocity_xy_view_range(
 def display_velocity_connector_points(
     analysis: ChannelAnalysis,
 ) -> tuple[FloatArray, FloatArray] | None:
-    """Return a pre-event-to-first-continuous display-only connector.
+    """Join adjacent stationary and measured samples straddling the reference."""
+    reference = analysis.signal_detection_result.manual_event_reference_time_s
+    if reference is None:
+        return None
+    time = analysis.stft_result.time_s
+    right = int(np.searchsorted(time, reference))
+    if right == 0 or right == time.size:
+        return None
+    if analysis.velocity_origins[right - 1:right + 1] != (PRE_EVENT_DISPLAY_ORIGIN, "measured"):
+        return None
+    return time[right - 1:right + 1] * 1e6, analysis.plot_velocity_m_s[right - 1:right + 1]
 
-    No NaN is filled and no intermediate sample is synthesized for scientific
-    data; this only joins two already available display endpoints.
-    """
-    reference_s = analysis.signal_detection_result.manual_event_reference_time_s
-    if reference_s is None:
-        return None
-    time_s = analysis.stft_result.time_s
-    display_velocity = analysis.display_velocity_m_s
-    continuous_velocity = analysis.continuous_corrected_velocity_m_s
-    platform_indices = np.flatnonzero(
-        (time_s < reference_s) & np.isfinite(display_velocity)
-    )
-    continuous_indices = np.flatnonzero(
-        (time_s >= reference_s) & np.isfinite(continuous_velocity)
-    )
-    if platform_indices.size == 0 or continuous_indices.size == 0:
-        return None
-    platform_index = int(platform_indices[-1])
-    continuous_index = int(continuous_indices[0])
-    return (
-        np.asarray(
-            [reference_s, time_s[continuous_index]],
-            dtype=np.float64,
+
+def _mark_isolated_points(curve: Any, time: FloatArray, values: FloatArray, color: str) -> None:
+    """A finite singleton has no line segment; keep its marker attached to its series."""
+    finite = np.isfinite(values)
+    singleton = finite & ~np.r_[False, finite[:-1]] & ~np.r_[finite[1:], False]
+    if singleton.any():
+        points = pg.ScatterPlotItem(
+            time[singleton], values[singleton], symbol="o", size=4, pen=None, brush=color,
         )
-        * 1.0e6,
-        np.asarray(
-            [
-                display_velocity[platform_index],
-                continuous_velocity[continuous_index],
-            ],
-            dtype=np.float64,
-        ),
-    )
+        points.setParentItem(curve)
 
 
 def _fit_analysis_x(plot_widget: Any, analysis: ChannelAnalysis) -> None:
@@ -1132,7 +1120,7 @@ class RidgeView(_ChannelView):
 
 
 class _KinematicView(_ChannelView):
-    """Show one continuous final curve with optional diagnostic overlays."""
+    """Show measured velocities, display constraints, and optional diagnostics."""
 
     _hud_quantity = ("v", "m/s")
 
@@ -1163,7 +1151,7 @@ class _KinematicView(_ChannelView):
         self.diagnostic_velocity_check.setObjectName("diagnosticVelocityCheck")
         self.diagnostic_velocity_check.setChecked(False)
         self.diagnostic_velocity_check.setToolTip(
-            self.tr("显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。")
+            self.tr("显示有效测量的表观速度和修正速度。")
         )
         self.diagnostic_velocity_check.toggled.connect(self._rerender)
         # Compatibility alias for existing integrations.
@@ -1187,6 +1175,7 @@ class _KinematicView(_ChannelView):
         self.apparent_curve: Any | None = None
         self.corrected_curve: Any | None = None
         self.display_curve: Any | None = None
+        self.pre_event_platform_curve: Any | None = None
         self.display_connector: Any | None = None
         self.event_reference_line: Any | None = None
         self._time_origin = ExportTimeOrigin.EVENT
@@ -1257,7 +1246,7 @@ class _KinematicView(_ChannelView):
             return
         self.diagnostic_velocity_check.setEnabled(True)
         self.diagnostic_velocity_check.setToolTip(
-            self.tr("显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。")
+            self.tr("显示有效测量的表观速度和修正速度。")
         )
         self.diagnostic_velocity_check.setChecked(
             self._display_velocity_before_export_preview
@@ -1336,7 +1325,6 @@ class _KinematicView(_ChannelView):
         relative_db_floor: float,
         fit_view: bool,
     ) -> None:
-        previous_range = self.plot_widget.plotItem.vb.viewRange()
         analyses = (
             self._guided_analyses
             if self.result_source == "guided"
@@ -1347,9 +1335,6 @@ class _KinematicView(_ChannelView):
             relative_db_floor=relative_db_floor,
             fit_view=fit_view,
         )
-        if analyses and not fit_view:
-            self.plot_widget.setXRange(*previous_range[0], padding=0.0)
-            self.plot_widget.setYRange(*previous_range[1], padding=0.0)
 
     def _set_source_channels(
         self,
@@ -1406,7 +1391,7 @@ class _KinematicView(_ChannelView):
         self,
         analyses: Mapping[str, ChannelAnalysis],
     ) -> None:
-        """Replace display-only arrays while preserving channel selection."""
+        """Replace display-only arrays while preserving channel selection and time zoom."""
         if self.result_source == "guided":
             self._guided_analyses = analyses
         else:
@@ -1425,7 +1410,9 @@ class _KinematicView(_ChannelView):
         analysis = self._analyses[channel_name]
         self.source_notice.clear()
         self.source_notice.hide()
-        previous_range = self.plot_widget.plotItem.vb.viewRange()
+        (x_min, x_max), (y_min, y_max) = self.plot_widget.plotItem.vb.viewRange()
+        x_bounds = (x_min, x_max)
+        previous_platform = None if fit_view else self._pre_event_platform_level(x_bounds)
         self.plot_widget.clear()
         self.hud.reinstall()
         self.plot_widget.addLegend(offset=(12, 12))
@@ -1451,19 +1438,56 @@ class _KinematicView(_ChannelView):
             self.plot_widget.autoRange()
             self._fit_current_view(analysis)
         else:
-            self.plot_widget.setXRange(*previous_range[0], padding=0.0)
-            self.plot_widget.setYRange(*previous_range[1], padding=0.0)
+            platform = self._pre_event_platform_level(x_bounds)
+            if platform is not None and platform != previous_platform:
+                span = max(y_max, platform) - min(y_min, platform)
+                padding = span * _VELOCITY_Y_PADDING_FRACTION
+                y_min = min(y_min, platform - padding)
+                y_max = max(y_max, platform + padding)
+            self.plot_widget.setXRange(*x_bounds, padding=0.0)
+            self.plot_widget.setYRange(y_min, y_max, padding=0.0)
+
+    def _pre_event_platform_level(self, x_bounds: tuple[float, float]) -> float | None:
+        curve = self.pre_event_platform_curve
+        if curve is None or not curve.isVisible():
+            return None
+        time_us, velocity_m_s = curve.getData()
+        if time_us is None or velocity_m_s is None:
+            return None
+        in_view = (time_us >= x_bounds[0]) & (time_us <= x_bounds[1])
+        levels = velocity_m_s[in_view & np.isfinite(velocity_m_s)]
+        return float(levels[0]) if levels.size else None
 
     def _plot_quantity(self, analysis: ChannelAnalysis, time_us: FloatArray) -> None:
         reference_s = analysis.signal_detection_result.manual_event_reference_time_s
         event_relative = self._time_origin is ExportTimeOrigin.EVENT and reference_s is not None
+        platform = np.asarray(analysis.velocity_origins) == PRE_EVENT_DISPLAY_ORIGIN
+        measured_count = analysis.velocity_origins.count(SignalState.MEASURED.value)
+        platform_count = int(platform.sum())
+        self.source_notice.setText(
+            self.tr("有效测速 {measured} 帧 · 未确定 {unknown} 帧 · 事件前静止约束 {stationary} 帧").format(
+                measured=measured_count, unknown=time_us.size - measured_count - platform_count,
+                stationary=platform_count,
+            )
+        )
+        self.source_notice.show()
+        self.pre_event_platform_curve = None
+        if platform_count:
+            platform_values = np.where(platform, analysis.plot_velocity_m_s, np.nan)
+            self.pre_event_platform_curve = self.plot_widget.plot(
+                time_us, platform_values,
+                pen=pg.mkPen("#64748b", width=1.6, style=Qt.PenStyle.DashLine),
+                connect="finite", name=self.tr("事件前静止约束（仅显示）"),
+            )
+            _mark_isolated_points(self.pre_event_platform_curve, time_us, platform_values, "#64748b")
         self.display_curve = self.plot_widget.plot(
             time_us,
-            analysis.plot_velocity_m_s,
+            analysis.corrected_velocity_m_s,
             pen=pg.mkPen("#6C5CE7", width=2.2),
             connect="finite",
-            name=self.tr("最终速度"),
+            name=self.tr("有效测速"),
         )
+        _mark_isolated_points(self.display_curve, time_us, analysis.corrected_velocity_m_s, "#6C5CE7")
         self.apparent_curve = None
         self.corrected_curve = None
         self.formal_curve = None
@@ -1495,13 +1519,13 @@ class _KinematicView(_ChannelView):
                 connector_time_us,
                 connector_velocity_m_s,
                 pen=pg.mkPen(
-                    "#6C5CE7",
+                    "#64748b",
                     width=1.0,
                     style=pg.QtCore.Qt.DashLine,
                 ),
                 connect="all",
             )
-            self.display_connector.setToolTip(self.tr("最终速度"))
+            self.display_connector.setToolTip(self.tr("事件前静止约束（仅显示）"))
 
     def _fit_current_view(self, analysis: ChannelAnalysis) -> None:
         x_bounds = self._analysis_view_range_us(analysis)
@@ -1539,7 +1563,7 @@ class _KinematicView(_ChannelView):
     def _visible_velocity_series(
         self,
     ) -> tuple[tuple[FloatArray, FloatArray], ...]:
-        curves = (self.apparent_curve, self.corrected_curve, self.display_curve)
+        curves = (self.apparent_curve, self.corrected_curve, self.display_curve, self.pre_event_platform_curve)
         series: list[tuple[FloatArray, FloatArray]] = []
         for curve in curves:
             if curve is None or not curve.isVisible():
@@ -1562,6 +1586,7 @@ class _KinematicView(_ChannelView):
         self.apparent_curve = None
         self.corrected_curve = None
         self.display_curve = None
+        self.pre_event_platform_curve = None
         self.display_connector = None
         self.event_reference_line = None
 
@@ -1732,7 +1757,7 @@ class QualitySummaryWidget(QWidget):
                 self.tr("信号状态计数"),
                 self.tr("可信帧"),
                 self.tr("低可信/候选帧"),
-                self.tr("连续结果回退"),
+                self.tr("工作脊线来源"),
                 self.tr("连续性诊断"),
                 self.tr("通道警告"),
             ]
@@ -1756,11 +1781,7 @@ class QualitySummaryWidget(QWidget):
                 0,
             )
             low_confidence_count = len(detection.signal_states) - measured_count - outside_count
-            fallback_counts = Counter(
-                source.name
-                for source in analysis.working_source
-                if source.name != "REFINED"
-            )
+            source_counts = Counter(source.name for source in analysis.working_source)
             continuity_counts = Counter(
                 status.name for status in analysis.continuity_result.continuity_statuses
             )
@@ -1772,7 +1793,7 @@ class QualitySummaryWidget(QWidget):
             )
             if formal_nan_count:
                 warnings.append(
-                    self.tr("{count} 帧仅缺少 formal/trusted 值").format(
+                    self.tr("{count} 帧无有效测速").format(
                         count=formal_nan_count
                     )
                 )
@@ -1781,14 +1802,14 @@ class QualitySummaryWidget(QWidget):
                 self._format_counts(state_counts),
                 str(measured_count),
                 str(low_confidence_count),
-                self._format_counts(fallback_counts) or self.tr("无"),
+                self._format_counts(source_counts) or self.tr("无"),
                 self._format_counts(continuity_counts),
                 "; ".join(warnings) if warnings else self.tr("无额外警告"),
             )
             for column, value in enumerate(values):
                 self.table.setItem(row, column, QTableWidgetItem(value))
         self.notice.setText(
-            self.tr("质量仅描述连续速度的可信程度；展开此诊断可查看 formal/trusted 子集。")
+            self.tr("仅有效测速帧具有正式速度。事件前静止约束单独显示。")
         )
 
     def clear_results(self, message: str | None = None) -> None:

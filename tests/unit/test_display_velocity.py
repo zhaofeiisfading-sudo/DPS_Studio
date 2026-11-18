@@ -20,12 +20,13 @@ def test_default_pre_event_display_velocity_is_zero_m_s() -> None:
         formal,
         manual_event_reference_time_s=3.0,
         enable_pre_event_display=True,
+        stationary_pre_event_mask=np.ones(time_s.size, dtype=bool),
     )
     np.testing.assert_array_equal(display[:2], [0.0, 0.0])
     assert origins[:2] == (PRE_EVENT_DISPLAY_ORIGIN,) * 2
 
 
-def test_nonzero_platform_changes_every_pre_event_frame() -> None:
+def test_nonzero_platform_preserves_measured_pre_event_frame() -> None:
     time_s, states, formal = _mixed_states()
     formal_bytes = formal.tobytes()
     display, origins = build_display_velocity(
@@ -34,16 +35,17 @@ def test_nonzero_platform_changes_every_pre_event_frame() -> None:
         formal,
         manual_event_reference_time_s=3.0,
         enable_pre_event_display=True,
+        stationary_pre_event_mask=np.ones(time_s.size, dtype=bool),
         pre_event_display_velocity_m_s=12.5,
     )
-    np.testing.assert_array_equal(display[:3], [12.5, 12.5, 12.5])
+    np.testing.assert_array_equal(display[:3], [12.5, 12.5, 20.0])
     assert display[3] == formal[3]
     assert np.isnan(display[4:]).all()
     assert formal.tobytes() == formal_bytes
     assert np.isnan(formal[[0, 1, 4, 5]]).all()
     assert origins[0] == PRE_EVENT_DISPLAY_ORIGIN
     assert origins[1] == PRE_EVENT_DISPLAY_ORIGIN
-    assert origins[2] == PRE_EVENT_DISPLAY_ORIGIN
+    assert origins[2] == "measured"
     assert origins[4] == SignalState.NO_DETECTABLE_BEAT.value
     assert origins[5] == SignalState.REFINEMENT_FAILED.value
 
@@ -58,6 +60,7 @@ def test_nonzero_platform_changes_every_pre_event_frame() -> None:
         SignalState.INSUFFICIENT_CYCLES,
         SignalState.PEAK_AT_BAND_BOUNDARY,
         SignalState.OUTSIDE_ANALYSIS_WINDOW,
+        SignalState.UNASSESSED,
     ],
 )
 def test_every_post_event_invalid_state_stays_nan(
@@ -69,6 +72,7 @@ def test_every_post_event_invalid_state_stays_nan(
         np.asarray([np.nan, np.nan]),
         manual_event_reference_time_s=1.0,
         enable_pre_event_display=True,
+        stationary_pre_event_mask=np.ones(2, dtype=bool),
         pre_event_display_velocity_m_s=12.5,
     )
     assert display[0] == 12.5
@@ -87,6 +91,7 @@ def test_channels_apply_their_own_state_masks_without_fusion() -> None:
         np.asarray([np.nan, 30.0, np.nan]),
         manual_event_reference_time_s=2.0,
         enable_pre_event_display=True,
+        stationary_pre_event_mask=np.ones(time_s.size, dtype=bool),
         pre_event_display_velocity_m_s=12.5,
     )
     second, _ = build_display_velocity(
@@ -99,10 +104,11 @@ def test_channels_apply_their_own_state_masks_without_fusion() -> None:
         np.asarray([20.0, np.nan, np.nan]),
         manual_event_reference_time_s=2.0,
         enable_pre_event_display=True,
+        stationary_pre_event_mask=np.ones(time_s.size, dtype=bool),
         pre_event_display_velocity_m_s=12.5,
     )
-    np.testing.assert_array_equal(first, [12.5, 12.5, np.nan])
-    np.testing.assert_array_equal(second, [12.5, 12.5, np.nan])
+    np.testing.assert_array_equal(first, [12.5, 30.0, np.nan])
+    np.testing.assert_array_equal(second, [20.0, 12.5, np.nan])
 
 
 def test_platform_is_limited_to_analysis_start_and_valid_reference() -> None:
@@ -123,6 +129,7 @@ def test_platform_is_limited_to_analysis_start_and_valid_reference() -> None:
         analysis_start_time_s=1.0,
         analysis_end_time_s=4.0,
         enable_pre_event_display=True,
+        stationary_pre_event_mask=np.ones(time_s.size, dtype=bool),
         pre_event_display_velocity_m_s=12.5,
     )
     assert np.isnan(display[0])
@@ -138,6 +145,7 @@ def test_platform_is_limited_to_analysis_start_and_valid_reference() -> None:
         analysis_start_time_s=1.0,
         analysis_end_time_s=4.0,
         enable_pre_event_display=True,
+        stationary_pre_event_mask=np.ones(time_s.size, dtype=bool),
         pre_event_display_velocity_m_s=12.5,
     )
     assert np.isnan(invalid_reference).all()
@@ -211,3 +219,31 @@ def _mixed_states() -> tuple[
         ),
         np.asarray([np.nan, np.nan, 20.0, 30.0, np.nan, np.nan]),
     )
+
+
+def test_unreliable_values_require_stationary_evidence_even_with_reference() -> None:
+    time = np.arange(4, dtype=float)
+    states = (SignalState.AMBIGUOUS_PEAK, SignalState.MEASURED,
+              SignalState.UNASSESSED, SignalState.NO_DETECTABLE_BEAT)
+    values = np.array([42.0, 99.0, 50.0, 12.0])
+    for mask in (None, np.array([False, True, True, True])):
+        display, origins = build_display_velocity(
+            time, states, values, manual_event_reference_time_s=3.0,
+            enable_pre_event_display=True, stationary_pre_event_mask=mask,
+        )
+        np.testing.assert_array_equal(display, [np.nan, 99.0, np.nan, np.nan])
+        assert origins == tuple(state.value for state in states)
+
+
+def test_unresolved_tone_cannot_calibrate_itself_as_quiet() -> None:
+    time = np.arange(4096, dtype=float) / 4e9
+    record = SignalRecord(time, np.sin(2 * np.pi * 200e6 * time))
+    analysis = analyze_configuration(
+        {"pdv": record}, window_length_samples=256, overlap_samples=128,
+        nfft=1024, window_name="hann", minimum_frequency_hz=20e6,
+        maximum_frequency_hz=800e6, vacuum_wavelength_m=1.55e-6,
+        manual_event_reference_time_s=0.8e-6, assume_pre_event_zero_for_display=True,
+        detection_config=SignalDetectionConfig(minimum_cycles_in_window=100),
+    )["pdv"]
+    assert set(analysis.signal_detection_result.signal_states) == {SignalState.INSUFFICIENT_CYCLES}
+    assert np.isnan(analysis.plot_velocity_m_s).all()

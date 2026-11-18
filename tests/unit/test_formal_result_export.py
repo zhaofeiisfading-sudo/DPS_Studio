@@ -363,7 +363,8 @@ def test_export_writes_simple_csv_detail_csv_and_traceable_metadata(
             "SignalDetectionResult.refined_frequency_hz"
         ),
         "formal_quality_gates_modified": False,
-        "same_frame_fallback_only": True,
+        "same_frame_fallback_only": False,
+        "requires_measured_refinement": True,
         "interpolation_or_smoothing_applied": False,
     }
     assert metadata["result_counts"]["working_finite_frame_count"] == int(

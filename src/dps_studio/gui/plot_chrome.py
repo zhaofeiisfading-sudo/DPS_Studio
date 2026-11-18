@@ -18,6 +18,10 @@ from dps_studio.gui.icons import vector_icon
 
 
 def style_plot_widget(plot_widget: Any, *, grid_alpha: float = 0.16) -> None:
+    plot_widget.setAcceptDrops(False)
+    viewport = plot_widget.viewport()
+    if viewport is not None:
+        viewport.setAcceptDrops(False)
     plot_widget.setBackground("#ffffff")
     font = QFont(plot_widget.font())
     font.setPointSize(9)

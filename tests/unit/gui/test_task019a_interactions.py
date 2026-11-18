@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox
 
 from dps_studio.core.export import ExportTimeOrigin
@@ -93,7 +94,8 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
-    window = MainWindow(translation_manager=translation_manager())
+    window = MainWindow(translation_manager=translation_manager(),
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     try:
         _prepare_result(window, tmp_path)
         view = window.velocity_view
@@ -114,6 +116,8 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
         )
         assert view.apparent_curve is not None
         assert view.corrected_curve is not None
+        assert view.pre_event_platform_curve is not None
+        view.pre_event_platform_curve.hide()
         view.apparent_curve.setData(
             np.asarray([-0.1, 0.0, 0.2]),
             np.asarray([10.0, 20.0, 1000.0]),
@@ -152,13 +156,16 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
         assert plot_range[1] == pytest.approx([49.25, 60.75])
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
 def test_velocity_hides_only_its_builtin_auto_button_and_has_top_controls(
     qapp: QApplication,
+    tmp_path: Path,
 ) -> None:
-    window = MainWindow(translation_manager=translation_manager())
+    window = MainWindow(translation_manager=translation_manager(),
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     try:
         assert window.velocity_view.plot_widget.plotItem.buttonsHidden
         assert not window.ridge_view.plot_widget.plotItem.buttonsHidden
@@ -173,6 +180,7 @@ def test_velocity_hides_only_its_builtin_auto_button_and_has_top_controls(
         assert window.velocity_view.fit_result_range_button.toolTip()
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
@@ -180,7 +188,8 @@ def test_step5_step6_share_correction_and_preserve_ready_state_and_upstream(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
-    window = MainWindow(translation_manager=translation_manager())
+    window = MainWindow(translation_manager=translation_manager(),
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     try:
         _prepare_result(window, tmp_path)
         session = window.analysis_session
@@ -253,6 +262,7 @@ def test_step5_step6_share_correction_and_preserve_ready_state_and_upstream(
         assert "LiF" in window.export_velocity_summary_label.text()
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
@@ -261,7 +271,8 @@ def test_gui_export_uses_the_visible_shared_correction_and_time_origin(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    window = MainWindow(translation_manager=translation_manager())
+    window = MainWindow(translation_manager=translation_manager(),
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     try:
         _prepare_result(window, tmp_path)
         none_index = window.export_window_material_combo.findData(
@@ -301,6 +312,7 @@ def test_gui_export_uses_the_visible_shared_correction_and_time_origin(
         )
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
@@ -308,7 +320,8 @@ def test_time_origin_defaults_to_absolute_and_controls_velocity_axis(
     qapp: QApplication,
     tmp_path: Path,
 ) -> None:
-    window = MainWindow(translation_manager=translation_manager())
+    window = MainWindow(translation_manager=translation_manager(),
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     try:
         _prepare_result(window, tmp_path)
         session = window.analysis_session
@@ -328,15 +341,18 @@ def test_time_origin_defaults_to_absolute_and_controls_velocity_axis(
         assert window.velocity_view.event_reference_line is None
     finally:
         window.close()
+        window.deleteLater()
         qapp.processEvents()
 
 
 def test_task019a_controls_have_complete_english_translations(
     qapp: QApplication,
+    tmp_path: Path,
 ) -> None:
     manager = translation_manager()
     manager.install("en")
-    window = MainWindow(translation_manager=manager)
+    window = MainWindow(translation_manager=manager,
+                        settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
     try:
         labels = {label.text() for label in window.findChildren(QLabel)}
         assert "Time Origin" in labels
@@ -359,5 +375,6 @@ def test_task019a_controls_have_complete_english_translations(
         )
     finally:
         window.close()
+        window.deleteLater()
         manager.install("zh_CN")
         qapp.processEvents()

@@ -1,4 +1,4 @@
-"""Resolution-independent line icons for the workstation."""
+"""Resolution-independent icons for the workstation."""
 
 from __future__ import annotations
 
@@ -10,8 +10,6 @@ from PySide6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
 _STROKES: dict[str, tuple[tuple[tuple[int, int], ...], ...]] = {
     "open_data": (((12, 3), (5, 3), (5, 21), (19, 21), (19, 14)),
                   ((12, 6), (12, 12), (18, 12)), ((21, 3), (12, 12))),
-    "quick_analysis": (((4, 4), (13, 10), (4, 16), (4, 4)),
-                       ((9, 20), (12, 17), (15, 19), (20, 11))),
     "full_automatic": (((13, 2), (5, 14), (11, 14), (10, 22), (19, 9), (13, 9), (13, 2)),),
     "export": (((4, 14), (4, 20), (20, 20), (20, 14)),
                ((12, 15), (12, 3)), ((7, 8), (12, 3), (17, 8))),
@@ -40,10 +38,17 @@ _STROKES: dict[str, tuple[tuple[tuple[int, int], ...], ...]] = {
 def vector_icon(name: str, color: str = "#1e293b") -> QIcon:
     """Rasterize each requested logical size directly at 1x and 2x density."""
     path = QPainterPath()
-    for first, *rest in _STROKES[name]:
-        path.moveTo(*first)
-        for point in rest:
-            path.lineTo(*point)
+    filled = name == "quick_analysis"
+    if filled:
+        path.moveTo(7, 5)
+        path.lineTo(19, 12)
+        path.lineTo(7, 19)
+        path.closeSubpath()
+    else:
+        for first, *rest in _STROKES[name]:
+            path.moveTo(*first)
+            for point in rest:
+                path.lineTo(*point)
     if name == "reset":
         path.arcMoveTo(4, 4, 16, 16, 160)
         path.arcTo(4, 4, 16, 16, 160, -300)
@@ -58,7 +63,11 @@ def vector_icon(name: str, color: str = "#1e293b") -> QIcon:
             painter = QPainter(pixmap)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             painter.scale(size / 24, size / 24)
-            painter.setPen(pen)
+            if filled:
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QColor(color))
+            else:
+                painter.setPen(pen)
             painter.drawPath(path)
             painter.end()
             icon.addPixmap(pixmap)

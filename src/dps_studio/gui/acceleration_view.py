@@ -23,9 +23,7 @@ from dps_studio.core.physics.window_presets import window_configuration_name
 from dps_studio.core.quality import SignalDetectionResult
 from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import ChannelAnalysis
-from dps_studio.core.workflow.acceleration import channel_acceleration, channel_dechirp
-from dps_studio.core.workflow.display import PRE_EVENT_DISPLAY_ORIGIN
-from dps_studio.core.workflow.models import WorkingRidgeSource
+from dps_studio.core.workflow.acceleration import channel_acceleration, channel_dechirp, dechirp_seed_frequencies
 from dps_studio.gui.plot_chrome import PlotActionButton, PlotSelector
 from dps_studio.gui.result_views import (
     FloatArray, _KinematicView, finite_velocity_xy_view_range,
@@ -42,8 +40,6 @@ class _Request(NamedTuple):
     settings: DechirpSettings
     # channel_dechirp also gates frames and excludes windows crossing event boundaries.
     detection: SignalDetectionResult
-    working_source: tuple[WorkingRidgeSource, ...]
-    pre_event_mask: bytes
     ridge_event_start_s: float | None
 
 
@@ -153,9 +149,8 @@ class AccelerationView(_KinematicView):
     def _dechirp_key(self, record: SignalRecord, analysis: ChannelAnalysis) -> _Request:
         return _Request(
             record, analysis.stft_result, analysis.discrete_velocity_result.vacuum_wavelength_m,
-            analysis.working_frequency_hz.tobytes(), self.dechirp_settings,
-            analysis.signal_detection_result, analysis.working_source,
-            bytes(origin == PRE_EVENT_DISPLAY_ORIGIN for origin in analysis.velocity_origins),
+            dechirp_seed_frequencies(analysis).tobytes(), self.dechirp_settings,
+            analysis.signal_detection_result,
             analysis.ridge_result.event_start_time_s,
         )
 

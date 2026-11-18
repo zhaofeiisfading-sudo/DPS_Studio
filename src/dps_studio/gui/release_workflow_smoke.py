@@ -39,9 +39,9 @@ def audit_derivative(analysis: ChannelAnalysis) -> dict[str, Any]:
     time = analysis.stft_result.time_s
     velocity = analysis.plot_velocity_m_s
     eligible = [
-        np.isfinite(value) and state.value not in {"no_detectable_beat", "outside_analysis_window"}
-        and source.value not in {"interpolated", "outside_analysis_window", "no_allowed_finite_bin"}
-        and origin != "configured_pre_event_display_velocity_only"
+        np.isfinite(value) and state.value == "measured"
+        and source.value != "interpolated"
+        and origin == "measured"
         for value, state, source, origin in zip(velocity,
             analysis.signal_detection_result.signal_states, analysis.working_source,
             analysis.velocity_origins, strict=True)

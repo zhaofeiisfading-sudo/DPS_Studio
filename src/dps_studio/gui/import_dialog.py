@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -81,8 +82,11 @@ class ImportSettingsDialog(QDialog):
         path_label.setToolTip(str(source_path.absolute()))
         path_label.setProperty("role", "cardTitle")
         header.addWidget(path_label)
-        if source_path.is_file():
+        try:
             size = source_path.stat().st_size
+        except OSError:
+            pass
+        else:
             size_badge = QLabel(f"{size / 1e6:.1f} MB" if size >= 1e6 else f"{size / 1e3:.1f} kB")
             size_badge.setProperty("role", "badge")
             header.addWidget(size_badge)
@@ -155,6 +159,7 @@ class ImportSettingsDialog(QDialog):
         preview_layout = preview_group.body_layout
         self.structure_status_label = QLabel()
         self.structure_status_label.setObjectName("importStructureStatus")
+        self.structure_status_label.setTextFormat(Qt.TextFormat.PlainText)
         self.structure_status_label.setWordWrap(True)
         preview_layout.addWidget(self.structure_status_label)
         self.preview_table = QTableWidget()
@@ -328,6 +333,8 @@ class ImportSettingsDialog(QDialog):
 
     def validation_error(self) -> str | None:
         """Return a user-readable validation error, or ``None`` when valid."""
+        if self._preview is None:
+            return self.structure_status_label.text()
         delimiter = self._selected_delimiter()
         if delimiter is None:
             return self.tr("请先完成分隔符检测。")
@@ -351,6 +358,16 @@ class ImportSettingsDialog(QDialog):
             return self.tr("时间列不能同时作为电压列。")
         if len(set(columns)) != len(columns):
             return self.tr("启用信号的电压列不能重复。")
+        data_rows = self._preview_rows(self._preview)[int(self.header_check.isChecked()):]
+        if len(data_rows) < 2:
+            return self.tr("预览中至少需要两行数据。")
+        for column in (time_column, *columns):
+            try:
+                finite = all(math.isfinite(float(row[column])) for row in data_rows)
+            except (ValueError, OverflowError):
+                finite = False
+            if not finite:
+                return self.tr("预览中的列 {index} 含有无效数值。").format(index=column)
         return None
 
     def _validate_and_accept(self) -> None:
@@ -418,16 +435,11 @@ class ImportSettingsDialog(QDialog):
             self.preview_table.setRowCount(0)
             self.preview_table.setColumnCount(0)
             self.column_preview_label.clear()
-            if self._source_path.exists():
-                self.structure_status_label.setText(
-                    self.tr("文件结构预览失败：{message}").format(message=exc)
-                )
-            else:
-                self.structure_status_label.setText(
-                    self.tr("文件尚不可读取；将在确认时由严格读取器校验。")
-                )
-                if self._selected_delimiter() is None:
-                    self._set_delimiter_control(",")
+            self.structure_status_label.setText(
+                self.tr("文件结构预览失败：{message}").format(message=exc)
+            )
+            if isinstance(exc.__cause__, FileNotFoundError) and delimiter is None:
+                self._set_delimiter_control(",")
             self._set_column_count(self._column_count, initialize_slots)
             self._mapping_changed()
             return
@@ -462,8 +474,12 @@ class ImportSettingsDialog(QDialog):
         if self._preview is not None:
             self._render_preview(self._preview)
 
+    @staticmethod
+    def _preview_rows(preview: DelimitedFilePreview) -> tuple[tuple[str, ...], ...]:
+        return (preview.header, *preview.rows) if preview.has_header else preview.rows
+
     def _render_preview(self, preview: DelimitedFilePreview) -> None:
-        rows = (preview.header, *preview.rows) if preview.has_header else preview.rows
+        rows = self._preview_rows(preview)
         has_header = self.header_check.isChecked()
         selected_header = rows[0] if has_header and rows else ()
         table_rows = rows[1:5] if has_header else rows[:4]

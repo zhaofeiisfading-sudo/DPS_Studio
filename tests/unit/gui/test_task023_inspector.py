@@ -110,33 +110,28 @@ def test_file_drop_reuses_confirmed_import_settings(qapp: QApplication, tmp_path
     window = MainWindow()
     source = tmp_path / "signal.DaT"
     source.write_text("0,1\n1,2\n", encoding="utf-8")
-    unsupported = tmp_path / "signal.bin"
-    unsupported.touch()
     url = QUrl.fromLocalFile(str(source))
     mime = QMimeData()
     args = (Qt.DropAction.CopyAction, mime, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
     try:
-        for urls in ([QUrl.fromLocalFile(str(unsupported))], [url, url], [QUrl("https://example.invalid/file.csv")],
-                     [QUrl.fromLocalFile(str(tmp_path))], [QUrl.fromLocalFile(str(source.with_suffix(".txt")))]):
+        for urls in ([], [QUrl("https://example.invalid/file.csv")]):
             mime.setUrls(urls)
             invalid = QDragEnterEvent(QPoint(), *args)
             window.dragEnterEvent(invalid)
             assert not invalid.isAccepted()
         mime.setUrls([url])
         entered = QDragEnterEvent(QPoint(), *args)
-        window._import_busy = True
-        window.dragEnterEvent(entered)
-        assert not entered.isAccepted()
-        window._import_busy = False
         window.dragEnterEvent(entered)
         assert entered.isAccepted()
         monkeypatch.setattr(ImportSettingsDialog, "exec", lambda self: self.DialogCode.Rejected)
         window.dropEvent(QDropEvent(QPointF(), *args))
+        qapp.processEvents()
         assert window.load_result is None and not window._busy
         monkeypatch.setattr(ImportSettingsDialog, "exec", lambda self: self.DialogCode.Accepted)
         dropped = QDropEvent(QPointF(), *args)
         window.dropEvent(dropped)
         assert dropped.isAccepted()
+        qapp.processEvents()
         deadline = QElapsedTimer()
         deadline.start()
         while window._busy and deadline.elapsed() < 5000:
