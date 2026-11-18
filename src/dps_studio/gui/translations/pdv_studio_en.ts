@@ -477,6 +477,7 @@
         <source>当前只有一个可比较结果。</source>
         <translation>Only one comparable result is currently available.</translation>
     </message>
+    <message><source>修正速度</source><translation>Corrected velocity</translation></message>
 </context>
 <context>
     <name>ImportSettingsDialog</name>
@@ -780,9 +781,28 @@
         <source>取消</source>
         <translation>Cancel</translation>
     </message>
+    <message><source>列 {index}</source><translation>Column {index}</translation></message>
+    <message><source>列摘要</source><translation>Column summary</translation></message>
+    <message><source>时间</source><translation>Time</translation></message>
 </context>
 <context>
     <name>MainWindow</name>
+    <message><source>STFT 分析配置</source><translation>STFT Settings</translation></message>
+    <message><source>数据概览</source><translation>Data Overview</translation></message>
+    <message><source>更换数据…</source><translation>Change Data…</translation></message>
+    <message><source>分析范围</source><translation>Analysis Range</translation></message>
+    <message><source>在时频图上编辑上、下边界。</source><translation>Edit the boundaries on the spectrogram.</translation></message>
+    <message><source>光学与修正参数</source><translation>Optics and Corrections</translation></message>
+    <message><source>事件参考与显示平台</source><translation>Event Reference and Display Plateau</translation></message>
+    <message><source>材料参数与自定义预设</source><translation>Material Parameters and Custom Presets</translation></message>
+    <message><source>前往复核与导出</source><translation>Review and Export</translation></message>
+    <message><source>导出目标与时间零点</source><translation>Export Target and Time Origin</translation></message>
+    <message><source>导出内容与格式</source><translation>Export Contents and Format</translation></message>
+    <message><source>输出目录</source><translation>Output Directory</translation></message>
+    <message><source>打开目录</source><translation>Open Folder</translation></message>
+    <message><source>已导出文件：
+{files}</source><translation>Exported files:
+{files}</translation></message>
     <message><source>加速度曲线</source><translation>Acceleration</translation></message>
     <message><source>附加 Dechirp 表观加速度列</source><translation>Add Dechirp apparent acceleration</translation></message>
     <message><source>拟合窗口在加速度页设置。</source><translation>Set the fit window on the Acceleration tab.</translation></message>
@@ -3271,6 +3291,14 @@ PDV waveforms, spectrograms and velocity analysis.</translation>
         <source>滚轮缩放，拖动平移；蓝色边界限定分析范围。</source>
         <translation>Scroll to zoom, drag to pan. Blue handles set the analysis range.</translation>
     </message>
+    <message><source>{count:,} 点 · {rate:g} GS/s</source><translation>{count:,} samples · {rate:g} GS/s</translation></message>
+    <message><source>① 列与单位</source><translation>① Columns &amp; units</translation></message>
+    <message><source>② 时频与频带</source><translation>② Spectrum &amp; band</translation></message>
+    <message><source>③ 脊线与速度/加速度</source><translation>③ Ridge &amp; kinematics</translation></message>
+    <message><source>④ 复核与导出</source><translation>④ Review &amp; export</translation></message>
+    <message><source>导入 PDV 原始波形</source><translation>Import raw PDV waveforms</translation></message>
+    <message><source>支持 CSV / DAT / TXT 分隔文本 · 可将文件直接拖拽到窗口</source><translation>Drag a delimited CSV, DAT or TXT file into the window.</translation></message>
+    <message><source>选择并导入数据…</source><translation>Choose a data file…</translation></message>
 </context>
 <context>
     <name>RidgeCorridorController</name>
@@ -3438,6 +3466,8 @@ PDV waveforms, spectrograms and velocity analysis.</translation>
         <source>逐帧质量状态：{summary}；工作点来源：{working}</source>
         <translation>Per-frame quality states: {summary}; working-point sources: {working}</translation>
     </message>
+    <message><source>人工范围</source><translation>Guided</translation></message>
+    <message><source>自动</source><translation>Auto</translation></message>
 </context>
 <context>
     <name>SpectrogramView</name>
@@ -3893,6 +3923,8 @@ Output directory:
     <message><source>最终显示速度的 dv/dt</source><translation>dv/dt of final displayed speed</translation></message>
     <message><source>无窗口修正</source><translation>No window correction</translation></message>
     <message><source>来源：最终显示速度（{source}，观测角 {angle:g}°）。无符号速度的数值时间导数；显示平台与已知无效区留空。求导放大噪声和跳变，时间分辨能力受速度重建窗口限制；尖峰未作物理验证。</source><translation>Source: final displayed speed ({source}, observation angle {angle:g}°). Numerical derivative of unsigned speed; display platforms and known invalid regions are blank. Differentiation amplifies noise and jumps; resolving power is limited by the velocity reconstruction window. Peaks are not physically validated.</translation></message>
+    <message><source>人工范围</source><translation>Guided</translation></message>
+    <message><source>自动</source><translation>Auto</translation></message>
 </context>
 <context>
     <name>AccelerationView</name>
@@ -3940,7 +3972,7 @@ Output directory:
     <message><source>滚轮缩放，拖动平移；“全部结果”恢复完整数据范围。</source><translation>Scroll to zoom, drag to pan; Full range restores the complete data range.</translation></message>
     <message><source>加速度</source><translation>Acceleration</translation></message>
     <message><source>按当前时间范围内的加速度缩放纵轴。</source><translation>Fit the Y axis to acceleration in the visible time range.</translation></message>
-    <message><source>适合可见区</source><translation>Fit Visible Y</translation></message>
+    <message><source>适合可见区</source><translation>Fit Y</translation></message>
     <message><source>加速度 dv/dt</source><translation>Acceleration dv/dt</translation></message>
     <message><source>速度幅值时间导数</source><translation>Time derivative of speed</translation></message>
     <message><source>最终显示速度的 dv/dt</source><translation>dv/dt of final displayed speed</translation></message>
@@ -3948,7 +3980,7 @@ Output directory:
     <message><source>来源：最终显示速度（{source}，观测角 {angle:g}°）。无符号速度的数值时间导数；显示平台与已知无效区留空。求导放大噪声和跳变，时间分辨能力受速度重建窗口限制；尖峰未作物理验证。</source><translation>Source: final displayed speed ({source}, observation angle {angle:g}°). Numerical derivative of unsigned speed; display platforms and known invalid regions are blank. Differentiation amplifies noise and jumps; resolving power is limited by the velocity reconstruction window. Peaks are not physically validated.</translation></message>
     <message><source>速度差分</source><translation>Velocity difference</translation></message>
     <message><source>Dechirp 直接估计</source><translation>Direct Dechirp</translation></message>
-    <message><source>算法设置</source><translation>Method settings</translation></message>
+    <message><source>算法设置</source><translation>Settings</translation></message>
     <message><source>差分方式</source><translation>Derivative</translation></message>
     <message><source>局部拟合窗口</source><translation>Local fit window</translation></message>
     <message><source>波形窗口采样点</source><translation>Waveform window (samples)</translation></message>
@@ -3959,5 +3991,7 @@ Output directory:
     <message><source>表观加速度 · {count}/{total} 点通过拟合检查</source><translation>Apparent acceleration · {count}/{total} fits accepted</translation></message>
     <message><source>无效区与显示平台留空。有限差分值不代表质量通过。</source><translation>Gaps and display plateaus stay blank. Finite differences can include low-quality speed points.</translation></message>
     <message><source>波形拟合失败：{reason}</source><translation>Waveform fit failed: {reason}</translation></message>
+    <message><source>不应用角度或窗口修正。</source><translation>No angle or window correction is applied.</translation></message>
+    <message><source>差分</source><translation>Derivative</translation></message>
 </context>
 </TS>

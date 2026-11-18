@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 import numpy as np
 import pyqtgraph as pg  # type: ignore[import-untyped]
-from PySide6.QtCore import QObject, QPointF, QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QMetaObject, QObject, QPointF, QRectF, Qt, QTimer, Signal
 
 from dps_studio.core.ridge import (
     ManualFrequencyBoundary,
@@ -59,12 +59,15 @@ class RidgeCorridorController(QObject):
         self._invalid_draft = False
         self._draft_curve: Any | None = None
         self._boundary_rois: dict[BoundaryKind, Any] = {}
+        self._boundary_connections: dict[BoundaryKind, QMetaObject.Connection] = {}
         self._roi: Any | None = None  # compatibility alias for earlier tests
         self._upper_curve: Any | None = None
         self._lower_curve: Any | None = None
         self._fill_item: Any | None = None
-        self._updating_roi = False
         self._manual_region_visible = True
+        self._overlay_timer = QTimer(self)
+        self._overlay_timer.setSingleShot(True)
+        self._overlay_timer.timeout.connect(self._restore_constraint_overlay)
         self._plot_widget.scene().sigMouseClicked.connect(self._scene_clicked)
 
     @property
@@ -113,7 +116,7 @@ class RidgeCorridorController(QObject):
         maximum_frequency_hz: float | None = None,
     ) -> None:
         """Attach physical axes and reconstruct the selected channel overlay."""
-        self.cancel_drawing()
+        self.cancel_drawing(reinstall_overlay=False)
         self._remove_overlay()
         self._channel_name = channel_name
         self._stft_result = stft_result
@@ -134,7 +137,7 @@ class RidgeCorridorController(QObject):
 
     def detach_context(self) -> None:
         """Detach a cleared plot without emitting a scientific state change."""
-        self.cancel_drawing()
+        self.cancel_drawing(reinstall_overlay=False)
         self._remove_overlay()
         self._stft_result = None
         self._analysis_start_time_s = None
@@ -215,13 +218,13 @@ class RidgeCorridorController(QObject):
         self.message.emit(self.tr("人工边界已保存。"))
         return True
 
-    def cancel_drawing(self) -> None:
+    def cancel_drawing(self, *, reinstall_overlay: bool = True) -> None:
         """Exit edit mode and restore the last confirmed constraint."""
         if not self._drawing:
             self._plot_widget.unsetCursor()
             return
         self._restore_pre_edit_constraint()
-        self._end_drawing_state()
+        self._end_drawing_state(reinstall_overlay=reinstall_overlay)
         self.message.emit(self.tr("已退出编辑；此前确认的人工边界已保留。"))
 
     def undo_last_point(self) -> bool:
@@ -267,7 +270,7 @@ class RidgeCorridorController(QObject):
         """Clear upper and lower boundaries without touching data or results."""
         had_constraint = self._constraint is not None
         channel_name = self._channel_name
-        self._discard_drawing_state()
+        self._end_drawing_state(reinstall_overlay=False)
         self._constraint = None
         self._remove_overlay()
         self._install_overlay()
@@ -370,38 +373,20 @@ class RidgeCorridorController(QObject):
 
     def _restore_pre_edit_constraint(self) -> None:
         prior = self._constraint_before_drawing
-        current = self._constraint
-        if prior is current:
+        if prior is self._constraint:
             return
-        if prior is None:
-            channel_name = self._channel_name
-            self._constraint = None
-            self._remove_overlay()
-            self._install_overlay()
-            if channel_name is not None:
+        self._constraint = prior
+        channel_name = self._channel_name
+        if channel_name is not None:
+            if prior is None:
                 self.constraint_cleared.emit(channel_name)
-        else:
-            self._replace_constraint(prior, emit_change=True)
+            else:
+                self.constraint_changed.emit(channel_name, prior)
 
-    def _end_drawing_state(self) -> None:
-        was_drawing = self._drawing
+    def _end_drawing_state(self, *, reinstall_overlay: bool = True) -> None:
         if self._draft_curve is not None:
             self._plot_widget.removeItem(self._draft_curve)
-        self._draft_curve = None
-        self._draft_points = []
-        self._invalid_draft = False
-        self._drawing = False
-        self._active_boundary = None
-        self._constraint_before_drawing = None
-        self._plot_widget.unsetCursor()
-        self._remove_overlay()
-        self._install_overlay()
-        if was_drawing:
-            self.drawing_state_changed.emit(False)
-
-    def _discard_drawing_state(self) -> None:
-        if self._draft_curve is not None:
-            self._plot_widget.removeItem(self._draft_curve)
+            self._draft_curve.deleteLater()
         was_drawing = self._drawing
         self._draft_curve = None
         self._draft_points = []
@@ -410,6 +395,8 @@ class RidgeCorridorController(QObject):
         self._active_boundary = None
         self._constraint_before_drawing = None
         self._plot_widget.unsetCursor()
+        if reinstall_overlay:
+            self._restore_constraint_overlay()
         if was_drawing:
             self.drawing_state_changed.emit(False)
 
@@ -496,7 +483,7 @@ class RidgeCorridorController(QObject):
         roi.setToolTip(
             self.tr("人工上边界") if kind == "upper" else self.tr("人工下边界")
         )
-        roi.sigRegionChangeFinished.connect(
+        self._boundary_connections[kind] = roi.sigRegionChangeFinished.connect(
             lambda *_args, kind=kind: self._roi_changed(kind)
         )
         self._boundary_rois[kind] = roi
@@ -505,7 +492,7 @@ class RidgeCorridorController(QObject):
         self._plot_widget.addItem(roi)
 
     def _roi_changed(self, kind: BoundaryKind) -> None:
-        if self._updating_roi or self._channel_name is None:
+        if self._channel_name is None:
             return
         roi = self._boundary_rois.get(kind)
         if roi is None:
@@ -531,32 +518,50 @@ class RidgeCorridorController(QObject):
             self.message.emit(
                 self.tr("移动被拒绝：请保持时间顺序且不要让上下边界交叉。")
             )
-            QTimer.singleShot(0, self._restore_constraint_overlay)
+            self._overlay_timer.start(0)
             return
         self._last_edited_boundary = kind
-        self._replace_constraint(updated, emit_change=True)
+        self._constraint = updated
+        # A handle or segment can still be processing the Qt mouse event.
+        self._overlay_timer.start(0)
+        self.constraint_changed.emit(self._channel_name, updated)
 
     def _restore_constraint_overlay(self) -> None:
-        self._updating_roi = True
-        try:
-            self._remove_overlay()
-            self._install_overlay()
-        finally:
-            self._updating_roi = False
+        self._remove_overlay()
+        self._install_overlay()
 
     def _remove_overlay(self) -> None:
-        for item in (
-            self._fill_item,
-            self._upper_curve,
-            self._lower_curve,
-            *self._boundary_rois.values(),
-        ):
-            if item is not None:
-                try:
-                    self._plot_widget.removeItem(item)
-                except (RuntimeError, ValueError):
-                    pass
-        self._boundary_rois = {}
+        self._overlay_timer.stop()
+        for connection in self._boundary_connections.values():
+            QObject.disconnect(connection)
+        self._boundary_connections.clear()
+        if self._fill_item is not None:
+            for curve in self._fill_item.curves:
+                curve.sigPlotChanged.disconnect(self._fill_item.curveChanged)
+            self._plot_widget.removeItem(self._fill_item)
+        scene = self._plot_widget.scene()
+        for roi in self._boundary_rois.values():
+            # PyQtGraph keeps its own hover and drag targets outside Qt's scene registry.
+            targets = {roi, *roi.childItems()}
+            for target in targets:
+                scene.hoverItems.pop(target, None)
+            hover = scene.lastHoverEvent
+            if hover is not None:
+                for claims in (hover.clickItems(), hover.dragItems()):
+                    for button, target in list(claims.items()):
+                        if target in targets:
+                            claims.pop(button)
+                if hover.currentItem in targets:
+                    hover.currentItem = None
+            if scene.dragItem in targets:
+                scene.dragItem = None
+            self._plot_widget.removeItem(roi)
+            roi.deleteLater()
+        self._boundary_rois.clear()
+        for curve in (self._upper_curve, self._lower_curve):
+            if curve is not None:
+                self._plot_widget.removeItem(curve)
+                curve.deleteLater()
         self._roi = None
         self._upper_curve = None
         self._lower_curve = None

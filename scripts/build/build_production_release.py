@@ -1,4 +1,4 @@
-"""Build and smoke-test a fresh Production Windows EXE or onedir ZIP.
+"""Build and smoke-test a Production Windows EXE, onedir ZIP, or onedir folder.
 
 Never reuses or removes an existing build directory. Runtime collection remains
 the PyInstaller hooks' responsibility; no manual DLL copies are performed.
@@ -79,6 +79,10 @@ def tree_hashes(directory: Path) -> dict[str, str]:
         path.relative_to(directory).as_posix(): file_hash(path)
         for path in sorted(directory.rglob("*")) if path.is_file()
     }
+
+
+def onedir_release_directory(release_root: Path, version: str) -> Path:
+    return release_root / f"PDV_Studio_v{version}_Windows_x64"
 
 
 def committed_source() -> str:
@@ -167,6 +171,32 @@ def validate_startup_report(
             raise RuntimeError("Release-side analysis imported core outside the release")
 
 
+def copy_smoke_input(source: Path, root: Path) -> Path:
+    copied = root / "example.csv"
+    shutil.copyfile(source, copied)
+    if file_hash(copied) != file_hash(source):
+        raise RuntimeError("Analysis smoke input copy differs from its source")
+    return copied
+
+
+def run_startup_smoke(
+    directory: Path, root: Path, environment: dict[str, str], analysis_input: Path | None,
+) -> dict[str, Any]:
+    report_path = root / "startup.json"
+    command = [str(directory / "PDV Studio.exe"), "--startup-smoke-test", str(report_path)]
+    if analysis_input is not None:
+        command.extend(("--analysis-smoke-input", str(analysis_input)))
+    completed = subprocess.run(command, cwd=root, env=environment, timeout=90,
+                               capture_output=True, text=True)
+    if not report_path.is_file():
+        raise RuntimeError(f"Isolated startup did not produce a report: {completed.returncode}; {completed.stderr}")
+    startup = json.loads(report_path.read_text(encoding="utf-8"))
+    if completed.returncode != 0:
+        raise RuntimeError(f"Isolated startup failed: {completed.returncode}; {startup}")
+    validate_startup_report(startup, directory, require_analysis=analysis_input is not None)
+    return {"startup": startup, "exit_code": completed.returncode}
+
+
 def verify_release_zip(
     directory: Path, archive_path: Path, *, analysis_input: Path | None = None,
     workflow_smoke: bool = False,
@@ -180,26 +210,12 @@ def verify_release_zip(
     hashes = tree_hashes(directory)
     if hashes != tree_hashes(extracted):
         raise RuntimeError("ZIP extraction file set or SHA-256 differs from the release directory")
-    report_path = extraction_root / "startup.json"
-    command = [str(extracted / "PDV Studio.exe"), "--startup-smoke-test", str(report_path)]
-    if analysis_input is not None:
-        copied_input = extraction_root / "example.csv"
-        shutil.copyfile(analysis_input, copied_input)
-        if file_hash(copied_input) != file_hash(analysis_input):
-            raise RuntimeError("Analysis smoke input copy differs from its source")
-        command.extend(("--analysis-smoke-input", str(copied_input)))
+    copied_input = copy_smoke_input(analysis_input, extraction_root) if analysis_input is not None else None
     environment = isolated_environment()
-    completed = subprocess.run(command, cwd=extraction_root, env=environment, timeout=90,
-                               capture_output=True, text=True)
-    if not report_path.is_file():
-        raise RuntimeError(f"Isolated startup did not produce a report: {completed.returncode}; {completed.stderr}")
-    startup = json.loads(report_path.read_text(encoding="utf-8"))
-    if completed.returncode != 0:
-        raise RuntimeError(f"Isolated startup failed: {completed.returncode}; {startup}")
-    validate_startup_report(startup, extracted, require_analysis=analysis_input is not None)
+    startup = run_startup_smoke(extracted, extraction_root, environment, copied_input)
     workflows = []
     if workflow_smoke:
-        if analysis_input is None:
+        if copied_input is None:
             raise ValueError("Workflow smoke requires an analysis input")
         workflows = verify_gui_workflow(
             extracted / "PDV Studio.exe", extracted, extraction_root, copied_input, environment,
@@ -208,11 +224,43 @@ def verify_release_zip(
         raise RuntimeError("Running the release changed its packaged files")
     return {
         "zip_path": str(archive_path), "zip_sha256": file_hash(archive_path),
-        "extraction_root": str(extraction_root), "startup": startup, "exit_code": completed.returncode,
+        "extraction_root": str(extraction_root), **startup,
         "runtime_environment_path": environment["PATH"],
         "zip_extraction_hashes_match": True, "zip_extraction_file_set_match": True,
         "packaged_files_unchanged_after_execution": True,
         "gui_workflows": workflows,
+    }
+
+
+def verify_onedir_directory(
+    directory: Path, *, analysis_input: Path, workflow_smoke: bool = True,
+) -> dict[str, Any]:
+    """Verify the unpackaged folder before publishing it."""
+    directory = directory.resolve()
+    hashes = tree_hashes(directory)
+    temp_parent = Path(tempfile.gettempdir()).resolve()
+    if any(temp_parent.is_relative_to(root.resolve()) for root in (PROJECT_ROOT, Path(sys.prefix))):
+        raise RuntimeError("Onedir smoke must run outside the repository and Python environment")
+    with tempfile.TemporaryDirectory(prefix="dps_production_onedir_", dir=temp_parent) as temporary:
+        root = Path(temporary)
+        copied_input = copy_smoke_input(analysis_input, root)
+        environment = isolated_environment()
+        environment.update(TEMP=str(root), TMP=str(root))
+        startup = run_startup_smoke(directory, root, environment, copied_input)
+        workflows = []
+        if workflow_smoke:
+            workflows = verify_gui_workflow(
+                directory / "PDV Studio.exe", directory, root, copied_input, environment,
+            )
+            if not workflows or not all(
+                workflows[0].get(check) is True for check in ("dechirp_plot_and_export_match", "icon_loaded")
+            ):
+                raise RuntimeError("Onedir Dechirp or application icon verification did not complete.")
+        if hashes != tree_hashes(directory):
+            raise RuntimeError("Running the release changed its packaged files")
+    return {
+        **startup, "gui_workflows": workflows, "runtime_environment_path": environment["PATH"],
+        "packaged_files_unchanged_after_execution": True,
     }
 
 
@@ -258,25 +306,32 @@ def main() -> int:
     parser.add_argument("--release-root", type=Path, default=PROJECT_ROOT / "release")
     parser.add_argument("--analysis-smoke-input", type=Path)
     parser.add_argument("--workflow-smoke", action="store_true")
-    parser.add_argument("--onefile", action="store_true",
-                        help="Build and verify a single Windows x64 executable.")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--onefile", action="store_true",
+                      help="Build and verify a single Windows x64 executable.")
+    mode.add_argument("--onedir-folder", action="store_true",
+                      help="Build and verify a portable Windows x64 folder with GUI workflow smoke.")
     args = parser.parse_args()
-    commit_sha = committed_source()
-    built_at = datetime.now(UTC).isoformat()
-    if (args.workflow_smoke or args.onefile) and args.analysis_smoke_input is None:
-        raise ValueError("Workflow and onefile builds require --analysis-smoke-input")
+    if (args.workflow_smoke or args.onefile or args.onedir_folder) and args.analysis_smoke_input is None:
+        raise ValueError("Workflow, onefile, and onedir folder builds require --analysis-smoke-input")
     analysis_input = (args.analysis_smoke_input.resolve(strict=True)
                       if args.analysis_smoke_input is not None else None)
     output_root, release_root = release_paths(PROJECT_ROOT, args.output_root, args.release_root)
-    if args.onefile and (
+    if (args.onefile or args.onedir_folder) and (
         sys.platform != "win32" or sys.maxsize <= 2**32
         or platform.machine().upper() not in {"AMD64", "X86_64"}
     ):
-        raise RuntimeError("Onefile builds require a native Windows x64 environment.")
+        format_name = "Onedir folder" if args.onedir_folder else "Onefile"
+        raise RuntimeError(f"{format_name} builds require a native Windows x64 environment.")
     name = f"PDV_Studio_v{__version__}"
-    archive_path = release_root / (f"{name}_Windows_x64.exe" if args.onefile else f"{name}.zip")
-    if archive_path.exists():
-        raise FileExistsError(f"Will not overwrite existing release: {archive_path}")
+    if args.onedir_folder:
+        target = onedir_release_directory(release_root, __version__)
+    else:
+        target = release_root / (f"{name}_Windows_x64.exe" if args.onefile else f"{name}.zip")
+    if os.path.lexists(target):
+        raise FileExistsError(f"Will not overwrite existing release: {target}")
+    commit_sha = committed_source()
+    built_at = datetime.now(UTC).isoformat()
     output_root.mkdir(parents=True, exist_ok=False)
     command = [
         sys.executable, "-m", "PyInstaller", "--clean", "--noconfirm",
@@ -302,25 +357,28 @@ def main() -> int:
             raise RuntimeError("Source changed during release build")
         release_root.mkdir(parents=True, exist_ok=True)
         # Windows rename fails if the destination exists, including a competing release.
-        executable.rename(archive_path)
+        executable.rename(target)
         manifest: dict[str, Any] = {
             "release_version": __version__, "platform": "Windows", "architecture": "x64",
-            "format": "PyInstaller onefile", "exe": str(archive_path), "commit_sha": commit_sha,
+            "format": "PyInstaller onefile", "exe": str(target), "commit_sha": commit_sha,
             "built_at_utc": built_at, "python_version": platform.python_version(),
             "dependency_versions": versions, "build_command": command,
             "verification": verification,
         }
         with (output_root / "release_manifest.json").open("x", encoding="utf-8") as handle:
             json.dump(manifest, handle, ensure_ascii=False, indent=2)
-        print(json.dumps({"release": str(archive_path), "sha256": verification["sha256"]}))
+        print(json.dumps({"release": str(target), "sha256": verification["sha256"]}))
         return 0
 
     directory = output_root / "dist" / name
     components = runtime_files(directory)
+    title = f"PDV Studio v{__version__}"
+    if args.onedir_folder:
+        title += " · Windows x64"
     with (directory / "README.txt").open("x", encoding="utf-8") as handle:
         handle.write(
-            f"PDV Studio v{__version__}\n\n"
-            "双击 PDV Studio.exe 启动。请保持 _internal 与 EXE 一起移动。\n"
+            f"{title}\n\n"
+            "双击 PDV Studio.exe 启动。复制或压缩分发时，请将 PDV Studio.exe 和 _internal/ 保留在同一目录。\n"
             "本发布包无需安装 Python 或 Conda。\n"
             "默认两列 CSV 导出连续显示曲线；质量筛选需显式勾选，文件名含 quality_passed，时间序列可能有缺口。\n"
             "加速度页可切换速度差分和 Dechirp；复核页可额外导出加速度 CSV。\n"
@@ -334,6 +392,32 @@ def main() -> int:
                    "dependency_versions": versions, "commit_sha": commit_sha,
                    "built_at_utc": built_at, "signing": "NOT_SIGNED",
                    "remote_version_verified": False}, handle, indent=2)
+    if args.onedir_folder:
+        assert analysis_input is not None
+        verification = verify_onedir_directory(directory, analysis_input=analysis_input)
+        hashes = tree_hashes(directory)
+        if committed_source() != commit_sha:
+            raise RuntimeError("Source changed during release build")
+        release_root.mkdir(parents=True, exist_ok=True)
+        # A same-volume Windows rename publishes the complete folder and fails if the target exists.
+        with tempfile.TemporaryDirectory(prefix=".candidate-", dir=release_root) as staging:
+            candidate = Path(staging) / target.name
+            shutil.move(directory, candidate)
+            candidate.rename(target)
+        manifest = {
+            "release_version": __version__, "platform": "Windows", "architecture": "x64",
+            "format": "PyInstaller onedir folder", "release_directory": str(target),
+            "exe_path": str(target / "PDV Studio.exe"), "commit_sha": commit_sha,
+            "built_at_utc": built_at, "python_version": platform.python_version(),
+            "dependency_versions": versions, "build_command": command,
+            "runtime_files": components, "file_sha256": hashes, "verification": verification,
+        }
+        with (output_root / "release_manifest.json").open("x", encoding="utf-8") as handle:
+            json.dump(manifest, handle, ensure_ascii=False, indent=2)
+        print(json.dumps({"release": str(target), "verification": verification}, indent=2))
+        return 0
+
+    archive_path = target
     hashes = tree_hashes(directory)
     release_root.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".candidate-", dir=release_root) as staging:

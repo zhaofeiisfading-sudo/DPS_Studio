@@ -58,7 +58,11 @@ def test_smoke_acceptance_requires_exposed_window_and_loaded_native_runtime(tmp_
 
 
 @pytest.mark.parametrize("change", ["extra", "missing", "changed"])
-def test_zip_verification_rejects_different_file_sets_or_bytes(tmp_path, change):
+def test_zip_verification_rejects_different_file_sets_or_bytes(tmp_path, change, monkeypatch):
+    verify = BUILD["verify_release_zip"]
+    # Model a project distinct from its extraction area inside pytest's temp tree.
+    monkeypatch.setitem(verify.__globals__, "PROJECT_ROOT", tmp_path / "project")
+    monkeypatch.setattr(BUILD["tempfile"], "tempdir", str(tmp_path))
     directory = tmp_path / "PDV_Studio_example"
     directory.mkdir()
     (directory / "keep.txt").write_text("original", encoding="utf-8")
@@ -71,7 +75,7 @@ def test_zip_verification_rejects_different_file_sets_or_bytes(tmp_path, change)
         if change == "extra":
             archive.writestr(f"{directory.name}/extra.txt", "unexpected")
     with pytest.raises(RuntimeError, match="file set or SHA-256 differs"):
-        BUILD["verify_release_zip"](directory, archive_path)
+        verify(directory, archive_path)
 
 
 def test_existing_zip_is_not_overwritten(tmp_path):

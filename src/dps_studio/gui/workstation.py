@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QPainter, QPaintEvent
+from PySide6.QtGui import QFont, QFontInfo, QFontMetrics, QPainter, QPaintEvent, QResizeEvent
 from PySide6.QtWidgets import QListWidget, QSizePolicy, QWidget, QLabel
 
 
@@ -19,11 +19,42 @@ class WorkflowNavigation(QListWidget):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 - Qt virtual API
+        super().resizeEvent(event)
+        parent = self.parentWidget()
+        if parent is None or not self.count():
+            return
+        # Preserve the desktop font at normal widths. Scale the labels together
+        # when a wide fallback font or a small screen exhausts the row.
+        font = QFont(parent.font())
+        metrics = QFontMetrics(font)
+        labels = [self.item(row).text() for row in range(self.count())]
+        text_width = sum(metrics.horizontalAdvance(label) for label in labels)
+        padding = sum(
+            self.sizeHintForIndex(self.model().index(row, 0)).width()
+            - self.fontMetrics().horizontalAdvance(label)
+            for row, label in enumerate(labels)
+        )
+        available = self.viewport().width() - padding
+        if 0 < available < text_width:
+            pixels = QFontInfo(font).pixelSize()
+            if pixels <= 0:
+                pixels = metrics.height()
+            font.setPixelSize(max(1, pixels * available // text_width))
+        if font != self.font():
+            self.setFont(font)
+
     def sizeHint(self) -> QSize:  # noqa: N802 - Qt virtual API
-        return QSize(420, max(34, self.fontMetrics().height() + 15))
+        items = [self.sizeHintForIndex(self.model().index(row, 0)) for row in range(self.count())]
+        margins = self.contentsMargins()
+        return QSize(
+            sum(item.width() for item in items) + margins.left() + margins.right(),
+            max((item.height() for item in items), default=self.fontMetrics().height())
+            + margins.top() + margins.bottom(),
+        )
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt virtual API
-        return self.sizeHint()
+        return QSize(0, self.sizeHint().height())
 
 
 class ElidedLabel(QLabel):

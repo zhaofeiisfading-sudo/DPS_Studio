@@ -6,20 +6,24 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import QSignalBlocker, Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
-    QFormLayout,
-    QGroupBox,
+    QGridLayout,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QScrollArea,
     QSizePolicy,
     QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -31,6 +35,8 @@ from dps_studio.core.io import (
     preview_delimited_file,
 )
 from dps_studio.gui.data_controller import ChannelImportSpec, SignalLoadRequest
+from dps_studio.gui.icons import chevron_icon, vector_icon
+from dps_studio.gui.inspector_widgets import InspectorCard, StatusBanner
 
 
 _SIGNAL_SLOT_COUNT = 3
@@ -54,6 +60,7 @@ class ImportSettingsDialog(QDialog):
         super().__init__(parent)
         self._source_path = source_path
         self._preview: DelimitedFilePreview | None = None
+        self._mapping_initialized = False
         self._column_count = _FALLBACK_COLUMN_COUNT
         self._slots: list[_SignalSlot] = []
         self.setWindowTitle(self.tr("导入数据"))
@@ -62,12 +69,25 @@ class ImportSettingsDialog(QDialog):
 
         root_layout = QVBoxLayout(self)
         path_label = QLabel(source_path.name)
-        path_label.setToolTip(str(source_path))
         path_label.setWordWrap(True)
         path_label.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
-        root_layout.addWidget(path_label)
+        header = QHBoxLayout()
+        emblem = QLabel()
+        emblem.setPixmap(vector_icon("open_data", "#0f5c8a").pixmap(24, 24))
+        header.addWidget(emblem)
+        path_label.setTextFormat(Qt.TextFormat.PlainText)
+        path_label.setToolTip(str(source_path.absolute()))
+        path_label.setProperty("role", "cardTitle")
+        header.addWidget(path_label)
+        if source_path.is_file():
+            size = source_path.stat().st_size
+            size_badge = QLabel(f"{size / 1e6:.1f} MB" if size >= 1e6 else f"{size / 1e3:.1f} kB")
+            size_badge.setProperty("role", "badge")
+            header.addWidget(size_badge)
+        header.addStretch()
+        root_layout.addLayout(header)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setObjectName("importSettingsScrollArea")
@@ -84,8 +104,9 @@ class ImportSettingsDialog(QDialog):
         self.scroll_area.setWidget(self.scroll_body)
         root_layout.addWidget(self.scroll_area, 1)
 
-        file_group = QGroupBox(self.tr("文件结构与时间单位"))
-        file_form = QFormLayout(file_group)
+        file_group = InspectorCard(self.tr("文件结构与时间单位"))
+        file_form = QGridLayout()
+        file_group.body_layout.addLayout(file_form)
         self.time_column_spin = self._column_spin_box(0)
         self.delimiter_combo = QComboBox()
         self.delimiter_combo.addItem(self.tr("自动检测"), None)
@@ -115,20 +136,50 @@ class ImportSettingsDialog(QDialog):
                 (self.tr("纳秒 (ns)"), 1e-9),
             )
         )
-        file_form.addRow(self.tr("时间列（从 0 开始）"), self.time_column_spin)
-        file_form.addRow(self.tr("分隔符"), delimiter_control)
-        file_form.addRow(self.tr("表头"), self.header_check)
-        file_form.addRow(self.tr("文本编码"), self.encoding_combo)
-        file_form.addRow(self.tr("源时间单位"), self.time_unit_combo)
+        for grid_row, col, caption, control in (
+            (0, 0, self.tr("时间列（从 0 开始）"), self.time_column_spin),
+            (0, 2, self.tr("分隔符"), delimiter_control),
+            (1, 0, self.tr("文本编码"), self.encoding_combo),
+            (1, 2, self.tr("源时间单位"), self.time_unit_combo),
+        ):
+            label = QLabel(caption)
+            label.setBuddy(control)
+            file_form.addWidget(label, grid_row, col)
+            file_form.addWidget(control, grid_row, col + 1)
+        file_form.setColumnStretch(1, 1)
+        file_form.setColumnStretch(3, 1)
+        file_form.addWidget(self.header_check, 2, 0, 1, 4)
         body_layout.addWidget(file_group)
 
-        preview_group = QGroupBox(self.tr("列预览"))
-        preview_layout = QVBoxLayout(preview_group)
+        preview_group = InspectorCard(self.tr("列预览"))
+        preview_layout = preview_group.body_layout
         self.structure_status_label = QLabel()
         self.structure_status_label.setObjectName("importStructureStatus")
         self.structure_status_label.setWordWrap(True)
         preview_layout.addWidget(self.structure_status_label)
+        self.preview_table = QTableWidget()
+        self.preview_table.setObjectName("importPreviewTable")
+        self.preview_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.preview_table.setAlternatingRowColors(True)
+        self.preview_table.setShowGrid(False)
+        self.preview_table.verticalHeader().hide()
+        self.preview_table.verticalHeader().setDefaultSectionSize(22)
+        self.preview_table.horizontalHeader().setMinimumSectionSize(76)
+        self.preview_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.preview_table.setFixedHeight(132)
+        preview_layout.addWidget(self.preview_table)
+        self.summary_toggle = QToolButton()
+        self.summary_toggle.setText(self.tr("列摘要"))
+        self.summary_toggle.setAccessibleName(self.summary_toggle.text())
+        self.summary_toggle.setProperty("accordionToggle", True)
+        self.summary_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.summary_toggle.setIcon(chevron_icon(False))
+        self.summary_toggle.setCheckable(True)
+        preview_layout.addWidget(self.summary_toggle, 0, Qt.AlignmentFlag.AlignLeft)
         self.column_preview_label = QLabel()
+        self.column_preview_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.column_preview_label.hide()
+        self.summary_toggle.toggled.connect(self._show_column_summary)
         self.column_preview_label.setObjectName("importColumnPreview")
         self.column_preview_label.setWordWrap(True)
         self.column_preview_label.setTextInteractionFlags(
@@ -136,8 +187,8 @@ class ImportSettingsDialog(QDialog):
         )
         preview_layout.addWidget(self.column_preview_label)
 
-        channel_group = QGroupBox(self.tr("信号列（最多选择 3 个）"))
-        channel_layout = QVBoxLayout(channel_group)
+        channel_group = InspectorCard(self.tr("信号列（最多选择 3 个）"))
+        channel_layout = channel_group.body_layout
         channel_layout.setSpacing(6)
         headings = QHBoxLayout()
         enabled_heading = QLabel(self.tr("导入"))
@@ -188,12 +239,11 @@ class ImportSettingsDialog(QDialog):
         self.channel_3_unit = self._slots[2].unit
         self.channel_3_row = self._slots[2].editor
 
-        self.validation_error_label = QLabel()
+        self.validation_banner = StatusBanner("error")
+        self.validation_error_label = self.validation_banner.label
         self.validation_error_label.setObjectName("importValidationError")
-        self.validation_error_label.setWordWrap(True)
-        self.validation_error_label.setStyleSheet("color: #b94040;")
-        self.validation_error_label.hide()
-        body_layout.addWidget(self.validation_error_label)
+        self.validation_banner.hide()
+        root_layout.addWidget(self.validation_banner)
         body_layout.addStretch(1)
 
         self.button_box = QDialogButtonBox(
@@ -214,12 +264,22 @@ class ImportSettingsDialog(QDialog):
         self.encoding_combo.currentTextChanged.connect(self._refresh_preview)
         self.header_check.toggled.connect(self._header_selection_changed)
         self._refresh_preview(initialize_slots=True, detect_delimiter=True)
+        self.time_column_spin.valueChanged.connect(self._mapping_changed)
+        for slot in self._slots:
+            slot.enabled.toggled.connect(self._mapping_changed)
+            slot.name.textChanged.connect(self._mapping_changed)
+            slot.column.valueChanged.connect(self._mapping_changed)
+        self._mapping_changed()
+
+    def _show_column_summary(self, expanded: bool) -> None:
+        self.column_preview_label.setVisible(expanded)
+        self.summary_toggle.setIcon(chevron_icon(expanded))
 
     def _resize_for_available_screen(self) -> None:
         """Keep the initial dialog inside the active desktop work area."""
         screen = self.screen() or QGuiApplication.primaryScreen()
         if screen is None:  # pragma: no cover - a GUI application normally has one.
-            self.resize(680, 640)
+            self.resize(740, 640)
             return
         available = screen.availableGeometry()
         width, height = self._bounded_initial_size(
@@ -234,7 +294,7 @@ class ImportSettingsDialog(QDialog):
         available_height: int,
     ) -> tuple[int, int]:
         """Return a readable initial size capped at 82% of the work area."""
-        width = min(680, max(480, int(available_width * 0.82)))
+        width = min(740, max(480, int(available_width * 0.82)))
         height = min(720, max(400, int(available_height * 0.82)))
         return width, height
 
@@ -296,19 +356,48 @@ class ImportSettingsDialog(QDialog):
     def _validate_and_accept(self) -> None:
         error = self.validation_error()
         if error is None:
-            self.validation_error_label.clear()
-            self.validation_error_label.hide()
-            self.button_box.setToolTip("")
-            self.button_box.setStyleSheet("")
+            self.validation_banner.hide()
             self.accept()
             return
         self._show_validation_error(error)
 
     def _show_validation_error(self, notice: str) -> None:
         self.validation_error_label.setText(notice)
-        self.validation_error_label.show()
-        self.button_box.setToolTip(notice)
-        self.button_box.setStyleSheet("border: 1px solid #b94040;")
+        self.validation_banner.show()
+
+    def _mapping_changed(self) -> None:
+        active = [slot for slot in self._slots if slot.enabled.isChecked()]
+        columns = [slot.column.value() for slot in active]
+        names = [slot.name.text().strip() for slot in active]
+        time = self.time_column_spin.value()
+        self._mark_conflict(self.time_column_spin, time in columns or time >= self._column_count)
+        for slot in self._slots:
+            column = slot.column.value()
+            name = slot.name.text().strip()
+            enabled = slot.enabled.isChecked()
+            self._mark_conflict(slot.column, enabled and (
+                column == time or columns.count(column) > 1 or column >= self._column_count
+            ))
+            self._mark_conflict(slot.name, enabled and (not name or names.count(name) > 1))
+        error = self.validation_error()
+        self.validation_error_label.setText(error or "")
+        self.validation_banner.setVisible(error is not None)
+        for index in range(self.preview_table.columnCount()):
+            roles = [self.tr("时间")] if index == time else []
+            roles.extend(slot.name.text().strip() for slot in active if slot.column.value() == index)
+            title = self.tr("列 {index}").format(index=index)
+            if roles:
+                title += " · " + " / ".join(roles)
+            item = QTableWidgetItem(title)
+            item.setToolTip(title)
+            if roles:
+                item.setForeground(QColor("#0f5c8a" if len(roles) == 1 else "#c62828"))
+            self.preview_table.setHorizontalHeaderItem(index, item)
+
+    @staticmethod
+    def _mark_conflict(control: QSpinBox | QLineEdit, conflict: bool) -> None:
+        selector = "QSpinBox" if isinstance(control, QSpinBox) else "QLineEdit"
+        control.setStyleSheet(f"{selector} {{ border: 1px solid #c62828; }}" if conflict else "")
 
     def _refresh_preview(
         self,
@@ -325,11 +414,14 @@ class ImportSettingsDialog(QDialog):
                 encoding=self.encoding_combo.currentText(),
             )
         except DelimitedPreviewError as exc:
+            self._preview = None
+            self.preview_table.setRowCount(0)
+            self.preview_table.setColumnCount(0)
+            self.column_preview_label.clear()
             if self._source_path.exists():
                 self.structure_status_label.setText(
                     self.tr("文件结构预览失败：{message}").format(message=exc)
                 )
-                self.column_preview_label.clear()
             else:
                 self.structure_status_label.setText(
                     self.tr("文件尚不可读取；将在确认时由严格读取器校验。")
@@ -337,9 +429,11 @@ class ImportSettingsDialog(QDialog):
                 if self._selected_delimiter() is None:
                     self._set_delimiter_control(",")
             self._set_column_count(self._column_count, initialize_slots)
+            self._mapping_changed()
             return
 
-        initialize_slots = initialize_slots or self._preview is None
+        initialize_slots = initialize_slots or not self._mapping_initialized
+        self._mapping_initialized = True
         self._preview = preview
         self._set_delimiter_control(preview.delimiter)
         if initialize_slots:
@@ -372,7 +466,16 @@ class ImportSettingsDialog(QDialog):
         rows = (preview.header, *preview.rows) if preview.has_header else preview.rows
         has_header = self.header_check.isChecked()
         selected_header = rows[0] if has_header and rows else ()
-        sample_rows = rows[1:4] if has_header else rows[:3]
+        table_rows = rows[1:5] if has_header else rows[:4]
+        self.preview_table.setColumnCount(preview.column_count)
+        self.preview_table.setRowCount(len(table_rows))
+        for row_index, row in enumerate(table_rows):
+            for col_index, value in enumerate(row):
+                item = QTableWidgetItem(value)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                self.preview_table.setItem(row_index, col_index, item)
+        self._mapping_changed()
+        sample_rows = table_rows[:3]
         self.structure_status_label.setText(
             self.tr(
                 "{count} 列（0–{maximum}） · {delimiter} · {encoding}"

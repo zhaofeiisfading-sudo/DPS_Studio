@@ -13,11 +13,10 @@ from numpy.typing import NDArray
 from PySide6.QtCore import QSignalBlocker, QRectF, Signal, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QPushButton,
+    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -33,6 +32,10 @@ from dps_studio.gui.display_preferences import (
     DEFAULT_SPECTROGRAM_COLORMAP,
     normalize_spectrogram_colormap,
     spectrogram_colormap,
+)
+from dps_studio.gui.icons import vector_icon
+from dps_studio.gui.plot_chrome import (
+    PlotActionButton, PlotCrosshairHud, PlotSelector, add_plot_toolbar, style_plot_widget,
 )
 from dps_studio.gui.ridge_corridor import (
     RidgeCorridorController,
@@ -298,37 +301,39 @@ class _ChannelView(QWidget):
         self._search_region_editable = False
         self.root_layout = QVBoxLayout(self)
         self.root_layout.setContentsMargins(7, 6, 7, 5)
-        self.controls_layout = QHBoxLayout()
+        self.controls_layout = add_plot_toolbar(self.root_layout)
         self.controls_layout.addWidget(QLabel(self.tr("通道")))
-        self.channel_combo = QComboBox()
+        self.channel_combo = PlotSelector()
+        self.channel_combo.setAccessibleName(self.tr("通道"))
         self.channel_combo.setObjectName("analysisChannelSelector")
         self.channel_combo.currentIndexChanged.connect(self._channel_changed)
         self.controls_layout.addWidget(self.channel_combo)
-        self.fit_analysis_range_button = QPushButton(
-            self.tr("适合分析范围")
-        )
+        self.fit_analysis_range_button = PlotActionButton(self.tr("适合分析范围"), "fit_time")
         self.fit_analysis_range_button.setObjectName("fitAnalysisRangeButton")
         self.fit_analysis_range_button.clicked.connect(self.fit_analysis_range)
-        self.controls_layout.addWidget(self.fit_analysis_range_button)
-        self.controls_layout.addStretch(1)
-        self.root_layout.addLayout(self.controls_layout)
+        self.fit_analysis_range_button.hide()
+
+    def _attach_hud(self, quantity: str, unit: str) -> None:
+        style_plot_widget(self.plot_widget)
+        self.hud = PlotCrosshairHud(
+            self.plot_widget, lambda x, y: f"t = {x:.6g} μs · {quantity} = {y:.5g} {unit}",
+            width_sample=f"t = -123.456 μs · {quantity} = -123.45 {unit}",
+        )
+        self.crosshair_readout_label = self.hud.crosshair_readout_label
+        self.controls_layout.addWidget(self.crosshair_readout_label)
 
     def add_spectral_view_controls(self) -> None:
         """Add the two display-only frequency shortcuts used by STFT views."""
-        self.fit_search_region_button = QPushButton(self.tr("适合搜索区域"))
+        self.controls_layout.addWidget(self.fit_analysis_range_button)
+        self.fit_search_region_button = PlotActionButton(self.tr("适合搜索区域"), "search_region")
         self.fit_search_region_button.setObjectName("fitSearchRegionButton")
         self.fit_search_region_button.clicked.connect(self.fit_search_region)
-        self.show_full_spectrum_button = QPushButton(self.tr("显示完整频谱"))
+        self.show_full_spectrum_button = PlotActionButton(self.tr("显示完整频谱"), "fit_view")
         self.show_full_spectrum_button.setObjectName("showFullSpectrumButton")
         self.show_full_spectrum_button.clicked.connect(self.show_full_spectrum)
-        self.controls_layout.insertWidget(
-            self.controls_layout.count() - 1,
-            self.fit_search_region_button,
-        )
-        self.controls_layout.insertWidget(
-            self.controls_layout.count() - 1,
-            self.show_full_spectrum_button,
-        )
+        self.controls_layout.addWidget(self.fit_search_region_button)
+        self.controls_layout.addWidget(self.show_full_spectrum_button)
+        self.controls_layout.addStretch(1)
 
     def set_view_configuration(
         self,
@@ -702,11 +707,8 @@ class SpectrogramView(_ChannelView):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.add_spectral_view_controls()
-        self.fit_analysis_range_button.setVisible(False)
-        colormap_row = QHBoxLayout()
-        colormap_row.addWidget(QLabel(self.tr("色图")))
-        self.colormap_combo = QComboBox()
+        self.controls_layout.addWidget(QLabel(self.tr("色图")))
+        self.colormap_combo = PlotSelector()
         self.colormap_combo.setObjectName("spectrogramColormapSelector")
         self.colormap_combo.addItem("Viridis", "viridis")
         self.colormap_combo.addItem("Cividis", "cividis")
@@ -714,14 +716,13 @@ class SpectrogramView(_ChannelView):
         self.colormap_combo.currentIndexChanged.connect(
             self._colormap_selected
         )
-        colormap_row.addWidget(self.colormap_combo)
-        colormap_row.addStretch(1)
-        self.root_layout.addLayout(colormap_row)
+        self.controls_layout.addWidget(self.colormap_combo)
+        self.add_spectral_view_controls()
         self.plot_widget = pg.PlotWidget(background="w")
         self.plot_widget.setObjectName("spectrogramPlot")
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
         self.plot_widget.setLabel("left", self.tr("频率"), units="GHz")
-        self.plot_widget.showGrid(x=True, y=True, alpha=0.18)
+        self._attach_hud("f", "GHz")
         self.image_item = pg.ImageItem(axisOrder="row-major")
         self.plot_widget.addItem(self.image_item)
         self.current_colormap_name = DEFAULT_SPECTROGRAM_COLORMAP
@@ -748,7 +749,9 @@ class SpectrogramView(_ChannelView):
         self.definition_label = QLabel(
             self.tr("显示定义：20 log10(|STFT| / 通道全局最大值)，不是正式 SNR。")
         )
+        self.definition_label.setProperty("role", "plotFooter")
         self.definition_label.setObjectName("spectrogramDefinitionLabel")
+        self.definition_label.setWordWrap(True)
         self.root_layout.addWidget(self.definition_label)
         self.current_image_db: FloatArray | None = None
         self._corridors: Mapping[str, RidgeSearchConstraint] = {}
@@ -765,7 +768,6 @@ class SpectrogramView(_ChannelView):
         relative_db_floor: float,
     ) -> None:
         """Present independent STFT results before any ridge exists."""
-        self.plot_widget.setTitle("")
         self._analyses = {}
         self._stft_results = stft_results
         self._floor_db = float(relative_db_floor)
@@ -849,8 +851,11 @@ class SpectrogramView(_ChannelView):
 
     def _render_channel(self, channel_name: str, *, fit_view: bool) -> None:
         stft_result = self._stft_results[channel_name]
+        self.plot_widget.setTitle(None)
+        self.corridor_controller.detach_context()
         self.dispose_search_region_interactions()
         self.plot_widget.clear()
+        self.hud.reinstall()
         self.plot_widget.addItem(self.image_item)
         self.current_image_db = _set_stft_image(
             self.image_item,
@@ -899,8 +904,10 @@ class SpectrogramView(_ChannelView):
                 )
 
     def _clear_plot(self) -> None:
+        self.corridor_controller.detach_context()
         self.dispose_search_region_interactions()
         self.plot_widget.clear()
+        self.hud.reinstall()
         self.plot_widget.addItem(self.image_item)
         self.plot_widget.setTitle(self.tr("尚未计算时频图"), color="#666666")
         self.current_image_db = None
@@ -909,7 +916,6 @@ class SpectrogramView(_ChannelView):
         self._search_region_roi = None
         self._search_frequency_grid_hz = None
         self._search_time_grid_s = None
-        self.corridor_controller.detach_context()
 
 
 class RidgeView(_ChannelView):
@@ -917,26 +923,25 @@ class RidgeView(_ChannelView):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.add_spectral_view_controls()
-        self.fit_analysis_range_button.setVisible(False)
-        source_row = QHBoxLayout()
-        source_row.addWidget(QLabel(self.tr("结果来源")))
-        self.result_source_combo = QComboBox()
+        self.controls_layout.addWidget(QLabel(self.tr("结果来源")))
+        self.result_source_combo = PlotSelector({"automatic": self.tr("自动"), "guided": self.tr("人工范围")})
+        self.result_source_combo.setAccessibleName(self.tr("结果来源"))
         self.result_source_combo.setObjectName("ridgeResultSourceSelector")
         self.result_source_combo.currentIndexChanged.connect(
             self._result_source_changed
         )
-        source_row.addWidget(self.result_source_combo)
-        source_row.addStretch(1)
-        self.root_layout.addLayout(source_row)
+        self.controls_layout.addWidget(self.result_source_combo)
+        self.add_spectral_view_controls()
         self.plot_widget = pg.PlotWidget(background="w")
         self.plot_widget.setObjectName("ridgePlot")
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
         self.plot_widget.setLabel("left", self.tr("频率"), units="GHz")
-        self.plot_widget.showGrid(x=True, y=True, alpha=0.18)
+        self._attach_hud("f", "GHz")
         self.root_layout.addWidget(self.plot_widget, 1)
         self.quality_label = QLabel(self.tr("尚无质量状态。"))
+        self.quality_label.setProperty("role", "plotFooter")
         self.quality_label.setObjectName("ridgeQualitySummary")
+        self.quality_label.setWordWrap(True)
         self.root_layout.addWidget(self.quality_label)
         self.current_colormap_name = DEFAULT_SPECTROGRAM_COLORMAP
         self.image_item: Any | None = None
@@ -1037,6 +1042,7 @@ class RidgeView(_ChannelView):
         analysis = self._analyses[channel_name]
         self.dispose_search_region_interactions()
         self.plot_widget.clear()
+        self.hud.reinstall()
         self.plot_widget.addLegend(offset=(12, 12))
         self.image_item = pg.ImageItem(axisOrder="row-major")
         self.image_item.setColorMap(
@@ -1111,6 +1117,7 @@ class RidgeView(_ChannelView):
     def _clear_plot(self) -> None:
         self.dispose_search_region_interactions()
         self.plot_widget.clear()
+        self.hud.reinstall()
         self.quality_label.setText(self.tr("尚无质量状态。"))
         self.image_item = None
         self.candidate_curve = None
@@ -1127,34 +1134,32 @@ class RidgeView(_ChannelView):
 class _KinematicView(_ChannelView):
     """Show one continuous final curve with optional diagnostic overlays."""
 
+    _hud_quantity = ("v", "m/s")
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.fit_analysis_range_button.setToolTip(
             self.tr("将视图恢复到当前设定的分析时间范围。")
         )
         self.fit_analysis_range_button.setText(self.tr("分析范围"))
-        self.fit_result_range_button = QPushButton(self.tr("全部结果"))
+        self.fit_result_range_button = PlotActionButton(self.tr("全部结果"), "fit_view")
         self.fit_result_range_button.setObjectName("fitResultRangeButton")
         self.fit_result_range_button.setToolTip(
             self.tr("将视图适配到当前显示的有效速度结果。")
         )
         self.fit_result_range_button.clicked.connect(self.fit_result_range)
-        self.controls_layout.insertWidget(
-            self.controls_layout.count() - 1,
-            self.fit_result_range_button,
-        )
-        source_row = QHBoxLayout()
-        source_row.addWidget(QLabel(self.tr("结果来源")))
-        self.result_source_combo = QComboBox()
+        self.controls_layout.addWidget(QLabel(self.tr("结果来源")))
+        self.result_source_combo = PlotSelector({"automatic": self.tr("自动"), "guided": self.tr("人工范围")})
+        self.result_source_combo.setAccessibleName(self.tr("结果来源"))
         self.result_source_combo.setObjectName("velocityResultSourceSelector")
         self.result_source_combo.currentIndexChanged.connect(
             self._result_source_changed
         )
-        source_row.addWidget(self.result_source_combo)
-        source_row.addStretch(1)
-        self.root_layout.addLayout(source_row)
-        option_row = QHBoxLayout()
+        self.controls_layout.addWidget(self.result_source_combo)
         self.diagnostic_velocity_check = QCheckBox(self.tr("显示诊断曲线"))
+        self.diagnostic_velocity_check.setProperty("fullCaption", self.diagnostic_velocity_check.text())
+        self.diagnostic_velocity_check.setAccessibleName(self.diagnostic_velocity_check.text())
+        self.diagnostic_velocity_check.setIcon(vector_icon("diagnostics"))
         self.diagnostic_velocity_check.setObjectName("diagnosticVelocityCheck")
         self.diagnostic_velocity_check.setChecked(False)
         self.diagnostic_velocity_check.setToolTip(
@@ -1165,14 +1170,16 @@ class _KinematicView(_ChannelView):
         self.display_velocity_check = self.diagnostic_velocity_check
         self._export_preview_mode = False
         self._display_velocity_before_export_preview = False
-        option_row.addWidget(self.diagnostic_velocity_check)
-        option_row.addStretch(1)
-        self.root_layout.addLayout(option_row)
+        self.controls_layout.addWidget(self.diagnostic_velocity_check)
+        self.controls_layout.addStretch(1)
+        self.controls_layout.addWidget(self.fit_analysis_range_button)
+        self.fit_analysis_range_button.show()
+        self.controls_layout.addWidget(self.fit_result_range_button)
         self.plot_widget = pg.PlotWidget(background="w")
         self.plot_widget.setObjectName("velocityPlot")
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
         self.plot_widget.setLabel("left", self.tr("速度"), units="m/s")
-        self.plot_widget.showGrid(x=True, y=True, alpha=0.22)
+        self._attach_hud(*self._hud_quantity)
         self.plot_widget.plotItem.hideButtons()
         self.plot_widget.setToolTip(self.tr("滚轮缩放，拖动平移；“全部结果”恢复完整数据范围。"))
         self.root_layout.addWidget(self.plot_widget, 1)
@@ -1187,6 +1194,7 @@ class _KinematicView(_ChannelView):
         self._guided_analyses: Mapping[str, ChannelAnalysis] = {}
         self._available_channel_names: tuple[str, ...] = ()
         self.source_notice = QLabel()
+        self.source_notice.setProperty("role", "plotFooter")
         self.source_notice.setObjectName("velocityResultSourceNotice")
         self.source_notice.setWordWrap(True)
         self.source_notice.hide()
@@ -1419,6 +1427,7 @@ class _KinematicView(_ChannelView):
         self.source_notice.hide()
         previous_range = self.plot_widget.plotItem.vb.viewRange()
         self.plot_widget.clear()
+        self.hud.reinstall()
         self.plot_widget.addLegend(offset=(12, 12))
         reference_s = analysis.signal_detection_result.manual_event_reference_time_s
         event_relative = (
@@ -1548,6 +1557,7 @@ class _KinematicView(_ChannelView):
 
     def _clear_plot(self) -> None:
         self.plot_widget.clear()
+        self.hud.reinstall()
         self.formal_curve = None
         self.apparent_curve = None
         self.corrected_curve = None
@@ -1570,19 +1580,28 @@ class ComparisonView(QWidget):
         self._checks: dict[str, QCheckBox] = {}
         self.curves: dict[str, Any] = {}
         layout = QVBoxLayout(self)
-        fit_row = QHBoxLayout()
-        self.fit_analysis_range_button = QPushButton(
-            self.tr("适合分析范围")
-        )
+        fit_row = add_plot_toolbar(layout)
+        self.fit_analysis_range_button = PlotActionButton(self.tr("适合分析范围"), "fit_time")
         self.fit_analysis_range_button.setObjectName(
             "fitComparisonAnalysisRangeButton"
         )
         self.fit_analysis_range_button.clicked.connect(self.fit_analysis_range)
         fit_row.addWidget(self.fit_analysis_range_button)
-        fit_row.addStretch(1)
-        layout.addLayout(fit_row)
-        self.controls = QHBoxLayout()
-        layout.addLayout(self.controls)
+        series_scroll = QScrollArea()
+        series_scroll.setObjectName("comparisonSeriesScroll")
+        series_scroll.setWidgetResizable(True)
+        series_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        series_widget = QWidget()
+        self.controls = QHBoxLayout(series_widget)
+        self.controls.setContentsMargins(0, 0, 0, 0)
+        self.controls.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        series_scroll.setWidget(series_widget)
+        scrollbar = series_scroll.horizontalScrollBar()
+        series_scroll.setFixedHeight(26)
+        scrollbar.rangeChanged.connect(lambda low, high: series_scroll.setFixedHeight(
+            26 + (scrollbar.sizeHint().height() if high > low else 0),
+        ))
+        fit_row.addWidget(series_scroll, 1)
         self.notice = QLabel()
         self.notice.setObjectName("comparisonResultNotice")
         self.notice.setWordWrap(True)
@@ -1591,8 +1610,11 @@ class ComparisonView(QWidget):
         self.plot_widget = pg.PlotWidget(background="w")
         self.plot_widget.setObjectName("comparisonPlot")
         self.plot_widget.setLabel("bottom", self.tr("时间"), units="μs")
-        self.plot_widget.setLabel("left", self.tr("表观速度"), units="m/s")
-        self.plot_widget.showGrid(x=True, y=True, alpha=0.22)
+        self.plot_widget.setLabel("left", self.tr("修正速度"), units="m/s")
+        style_plot_widget(self.plot_widget)
+        self.hud = PlotCrosshairHud(self.plot_widget, lambda x, y: f"t = {x:.6g} μs · v = {y:.5g} m/s")
+        self.crosshair_readout_label = self.hud.crosshair_readout_label
+        fit_row.addWidget(self.crosshair_readout_label)
         layout.addWidget(self.plot_widget, 1)
 
     def set_analyses(self, analyses: Mapping[str, ChannelAnalysis]) -> None:
@@ -1650,7 +1672,6 @@ class ComparisonView(QWidget):
             self._checks[series_key] = check
             self.curves[series_key] = curve
             self._series[series_key] = analysis
-        self.controls.addStretch(1)
         if len(series) == 1:
             self.notice.setText(self.tr("当前只有一个可比较结果。"))
             self.notice.show()
@@ -1679,6 +1700,7 @@ class ComparisonView(QWidget):
         self._analyses = {}
         self._series.clear()
         self.plot_widget.clear()
+        self.hud.reinstall()
         while self.controls.count():
             item = self.controls.takeAt(0)
             if item is None:

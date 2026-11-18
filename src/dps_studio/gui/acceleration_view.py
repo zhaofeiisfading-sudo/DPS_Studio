@@ -7,30 +7,49 @@ from collections import Counter
 from collections.abc import Mapping
 from concurrent.futures import Future, ThreadPoolExecutor
 from threading import Event
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 import pyqtgraph as pg  # type: ignore[import-untyped]
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QHideEvent, QShowEvent
 from PySide6.QtWidgets import (
-    QComboBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QPushButton, QSpinBox, QWidget,
+    QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QLabel, QSpinBox, QWidget,
 )
 
 from dps_studio.core.models import SignalRecord
 from dps_studio.core.physics.dechirp import DechirpResult, DechirpSettings
 from dps_studio.core.physics.window_presets import window_configuration_name
+from dps_studio.core.quality import SignalDetectionResult
+from dps_studio.core.time_frequency import STFTResult
 from dps_studio.core.workflow import ChannelAnalysis
 from dps_studio.core.workflow.acceleration import channel_acceleration, channel_dechirp
+from dps_studio.core.workflow.display import PRE_EVENT_DISPLAY_ORIGIN
+from dps_studio.core.workflow.models import WorkingRidgeSource
+from dps_studio.gui.plot_chrome import PlotActionButton, PlotSelector
 from dps_studio.gui.result_views import (
     FloatArray, _KinematicView, finite_velocity_xy_view_range,
 )
 
 _POOL = ThreadPoolExecutor(max_workers=1, thread_name_prefix="pdv-dechirp")
-_Request = tuple[SignalRecord, ChannelAnalysis, DechirpSettings]
+
+
+class _Request(NamedTuple):
+    record: SignalRecord
+    stft: STFTResult
+    wavelength_m: float
+    frequency_bytes: bytes
+    settings: DechirpSettings
+    # channel_dechirp also gates frames and excludes windows crossing event boundaries.
+    detection: SignalDetectionResult
+    working_source: tuple[WorkingRidgeSource, ...]
+    pre_event_mask: bytes
+    ridge_event_start_s: float | None
 
 
 class AccelerationView(_KinematicView):
+    _hud_quantity = ("a", "×10⁹ m/s²")
+
     def __init__(self) -> None:
         super().__init__()
         self._records: Mapping[str, SignalRecord] = {}
@@ -41,24 +60,23 @@ class AccelerationView(_KinematicView):
         self._timer.timeout.connect(self._poll_dechirp)
         self.acceleration_curve: Any | None = None
         self.acceleration_notice = QLabel()
+        self.acceleration_notice.setProperty("role", "plotFooter")
         self.acceleration_notice.setWordWrap(True)
         self.root_layout.addWidget(self.acceleration_notice)
         self.diagnostic_velocity_check.hide()
         self.plot_widget.setObjectName("accelerationPlot")
 
-        self.method_combo = QComboBox()
+        self.method_combo = PlotSelector({"velocity_derivative": self.tr("差分"), "dechirp": "Dechirp"})
         self.method_combo.addItem(self.tr("速度差分"), "velocity_derivative")
         self.method_combo.addItem(self.tr("Dechirp 直接估计"), "dechirp")
-        method_row = QHBoxLayout()
-        method_row.addWidget(self.method_combo)
-        fit_visible = QPushButton(self.tr("适合可见区"))
-        fit_visible.clicked.connect(self._fit_visible)
-        method_row.addWidget(fit_visible)
-        self.settings_toggle = QPushButton(self.tr("算法设置"))
+        self.fit_visible = PlotActionButton(self.tr("适合可见区"), "fit_amplitude")
+        self.fit_visible.setToolTip(self.tr("按当前时间范围内的加速度缩放纵轴。"))
+        self.fit_visible.clicked.connect(self._fit_visible)
+        self.settings_toggle = PlotActionButton(self.tr("算法设置"), "parameters")
         self.settings_toggle.setCheckable(True)
-        method_row.addWidget(self.settings_toggle)
-        method_row.addStretch()
-        self.root_layout.insertLayout(2, method_row)
+        index = self.controls_layout.indexOf(self.diagnostic_velocity_check)
+        for offset, widget in enumerate((self.method_combo, self.settings_toggle, self.fit_visible)):
+            self.controls_layout.insertWidget(index + offset, widget)
 
         self.acceleration_method_combo = QComboBox()
         self.acceleration_method_combo.addItem(self.tr("原始差分"), "raw")
@@ -84,20 +102,28 @@ class AccelerationView(_KinematicView):
         self.dechirp_r2_spin.setRange(.05, .99)
         self.dechirp_r2_spin.setValue(.5)
         self.dechirp_r2_spin.setKeyboardTracking(False)
-        self._settings_panel = QWidget()
-        form = QFormLayout(self._settings_panel)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
-        for label, field in (
+        self._settings_panel = QFrame()
+        self._settings_panel.setProperty("settingsStrip", True)
+        strip = QGridLayout(self._settings_panel)
+        strip.setContentsMargins(10, 6, 10, 6)
+        strip.setHorizontalSpacing(12)
+        strip.setVerticalSpacing(4)
+        self._setting_labels: dict[QWidget, QLabel] = {}
+        fields: tuple[tuple[str, QWidget], ...] = (
             (self.tr("差分方式"), self.acceleration_method_combo),
             (self.tr("局部拟合窗口"), self.acceleration_window_spin),
             (self.tr("波形窗口采样点"), self.dechirp_samples_spin),
             (self.tr("斜率搜索上限"), self.dechirp_rate_spin),
             (self.tr("最低拟合 R²"), self.dechirp_r2_spin),
-        ):
-            form.addRow(label, field)
-        self._settings_form = form
-        self.root_layout.insertWidget(3, self._settings_panel)
+        )
+        for column, (title, field) in enumerate(fields):
+            label = QLabel(title)
+            label.setBuddy(field)
+            strip.addWidget(label, 0, column)
+            strip.addWidget(field, 1, column)
+            self._setting_labels[field] = label
+        strip.setColumnStretch(len(fields), 1)
+        self.root_layout.insertWidget(1, self._settings_panel)
         self._settings_panel.hide()
         self.settings_toggle.toggled.connect(self._settings_panel.setVisible)
         self.method_combo.currentIndexChanged.connect(self._settings_changed)
@@ -124,22 +150,34 @@ class AccelerationView(_KinematicView):
     def set_records(self, records: Mapping[str, SignalRecord]) -> None:
         self._records = records
 
+    def _dechirp_key(self, record: SignalRecord, analysis: ChannelAnalysis) -> _Request:
+        return _Request(
+            record, analysis.stft_result, analysis.discrete_velocity_result.vacuum_wavelength_m,
+            analysis.working_frequency_hz.tobytes(), self.dechirp_settings,
+            analysis.signal_detection_result, analysis.working_source,
+            bytes(origin == PRE_EVENT_DISPLAY_ORIGIN for origin in analysis.velocity_origins),
+            analysis.ridge_result.event_start_time_s,
+        )
+
     def cached_dechirp(
         self, record: SignalRecord, analysis: ChannelAnalysis,
     ) -> DechirpResult | None:
-        key = (record, analysis, self.dechirp_settings)
+        key = self._dechirp_key(record, analysis)
         if self._cached is not None and self._cached[0] == key:
             return self._cached[1]
         return None
 
     def _settings_changed(self, _value: float = 0) -> None:
         dechirp = self.method_combo.currentData() == "dechirp"
-        self._settings_form.setRowVisible(self.acceleration_method_combo, not dechirp)
-        self._settings_form.setRowVisible(
-            self.acceleration_window_spin, not dechirp and self.local_fit_window_s is not None,
-        )
-        for control in (self.dechirp_samples_spin, self.dechirp_rate_spin, self.dechirp_r2_spin):
-            self._settings_form.setRowVisible(control, dechirp)
+        for control, label in self._setting_labels.items():
+            if control is self.acceleration_method_combo:
+                visible = not dechirp
+            elif control is self.acceleration_window_spin:
+                visible = not dechirp and self.local_fit_window_s is not None
+            else:
+                visible = dechirp
+            label.setVisible(visible)
+            control.setVisible(visible)
         channel = self.channel_combo.currentData()
         if isinstance(channel, str) and channel in self._analyses:
             self._render_channel(channel, fit_view=False)
@@ -209,13 +247,13 @@ class AccelerationView(_KinematicView):
         )
 
     def _request_dechirp(self, record: SignalRecord, analysis: ChannelAnalysis) -> None:
-        key = (record, analysis, self.dechirp_settings)
+        key = self._dechirp_key(record, analysis)
         if self._pending is not None and self._pending[0] == key:
             return
         self.cancel_dechirp()
         stop = Event()
         future = _POOL.submit(channel_dechirp, record, analysis,
-                              settings=key[2], cancelled=stop.is_set)
+                              settings=key.settings, cancelled=stop.is_set)
         self._pending = key, future, stop
         self._timer.start()
 

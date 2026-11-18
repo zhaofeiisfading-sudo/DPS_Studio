@@ -8,11 +8,12 @@ from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import (
-    QByteArray, QPointF, QSettings, QSignalBlocker, QSize, Qt, QThreadPool, QTimer, Slot,
+    QByteArray, QPointF, QSettings, QSignalBlocker, QSize, Qt, QThreadPool, QTimer, QUrl, Slot,
 )
-from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
+from PySide6.QtGui import QAction, QCloseEvent, QDesktopServices, QDragEnterEvent, QDropEvent, QKeySequence
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QAbstractSpinBox,
     QButtonGroup,
     QCheckBox,
     QDockWidget,
@@ -20,7 +21,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QListWidgetItem,
@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QToolBar,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -109,7 +110,8 @@ from dps_studio.gui.i18n import (
 )
 from dps_studio.gui.import_dialog import ImportSettingsDialog
 from dps_studio.gui.import_worker import ImportWorker
-from dps_studio.gui.native_icons import native_directory_icon
+from dps_studio.gui.icons import vector_icon
+from dps_studio.gui.inspector_widgets import CollapsibleSection, InspectorCard, StatusBanner
 from dps_studio.gui.preset_repository import (
     CUSTOM_PRESET_ID,
     PresetRepository,
@@ -136,7 +138,7 @@ _GEOMETRY_SETTINGS_KEY = "layout/main_window_geometry"
 _WINDOW_STATE_SETTINGS_KEY = "layout/main_window_state"
 _SPLITTER_STATE_SETTINGS_KEY = "layout/workspace_splitter_v2"
 _DIAGNOSTICS_HEIGHT_SETTINGS_KEY = "layout/diagnostics_dock_height"
-_DEFAULT_WORKSPACE_SIZES = (1050, 350)
+_DEFAULT_WORKSPACE_SIZES = (1040, 360)
 _DEFAULT_DIAGNOSTICS_HEIGHT = 210
 _AUTOMATIC_MODE_BUTTON_ID = 101
 _GUIDED_MODE_BUTTON_ID = 102
@@ -188,6 +190,8 @@ class MainWindow(QMainWindow):
         window_preset_repository: WindowPresetRepository | None = None,
     ) -> None:
         super().__init__(parent)
+        self.setAcceptDrops(True)
+        self._syncing_navigation_from_tab: bool = False
         self._translation_manager = translation_manager
         self._settings = settings if settings is not None else QSettings()
         self._display_preferences = DisplayPreferences(self._settings)
@@ -227,9 +231,9 @@ class MainWindow(QMainWindow):
 
         self._create_actions()
         self._create_menus()
-        self._create_toolbar()
         self._create_workspace()
         self._create_diagnostics_dock()
+        self._create_toolbar()
         self.diagnostics_dock.hide()
         self.view_menu.insertAction(
             self.action_restore_default_layout, self.diagnostics_dock.toggleViewAction()
@@ -275,6 +279,7 @@ class MainWindow(QMainWindow):
         if not isinstance(result, DelimitedSignalLoadResult):
             raise TypeError("result must be a DelimitedSignalLoadResult.")
         self._load_result = result
+        self.export_receipt_banner.hide()
         self.workflow_navigation.setCurrentRow(0)
         self.parameter_stack.setCurrentIndex(0)
         self.science_tabs.setCurrentWidget(self.raw_signal_view)
@@ -476,7 +481,7 @@ class MainWindow(QMainWindow):
 
     def _create_actions(self) -> None:
         self.action_open_data = QAction(
-            native_directory_icon(),
+            vector_icon("open_data", "#0f5c8a"),
             self.tr("打开数据…"),
             self,
         )
@@ -489,7 +494,7 @@ class MainWindow(QMainWindow):
         self.action_exit.setShortcut(QKeySequence.StandardKey.Quit)
 
         planned_tooltip = self.tr("请先加载配置、确认范围和真空波长。")
-        self.action_quick_analysis = QAction(self.tr("快速分析"), self)
+        self.action_quick_analysis = QAction(vector_icon("quick_analysis"), self.tr("快速分析"), self)
         self.action_quick_analysis.setObjectName("actionQuickAnalysis")
         self.action_quick_analysis.setEnabled(False)
         self.action_quick_analysis.setToolTip(planned_tooltip)
@@ -499,7 +504,7 @@ class MainWindow(QMainWindow):
         self.action_automatic.setObjectName("actionAutomaticAnalysis")
         self.action_automatic.setEnabled(False)
         self.action_automatic.setToolTip(planned_tooltip)
-        self.action_full_automatic = QAction(self.tr("全自动分析"), self)
+        self.action_full_automatic = QAction(vector_icon("full_automatic"), self.tr("全自动分析"), self)
         self.action_full_automatic.setObjectName("actionFullAutomaticAnalysis")
         self.action_full_automatic.setEnabled(False)
         self.action_full_automatic.setToolTip(planned_tooltip)
@@ -538,7 +543,7 @@ class MainWindow(QMainWindow):
         self.action_velocity.setObjectName("actionVelocity")
         self.action_velocity.setEnabled(False)
         self.action_velocity.setToolTip(planned_tooltip)
-        self.action_export = QAction(self.tr("复核与导出"), self)
+        self.action_export = QAction(vector_icon("export"), self.tr("复核与导出"), self)
         self.action_export.setObjectName("actionExport")
         self.action_export.setEnabled(False)
         self.action_export.setToolTip(
@@ -632,10 +637,17 @@ class MainWindow(QMainWindow):
             Qt.ToolButtonStyle.ToolButtonTextBesideIcon
         )
         self.main_toolbar.addAction(self.action_open_data)
-        self.main_toolbar.addSeparator()
         self.main_toolbar.addAction(self.action_quick_analysis)
-        self.main_toolbar.addSeparator()
         self.main_toolbar.addAction(self.action_export)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.main_toolbar.addWidget(spacer)
+        diagnostics = self.diagnostics_dock.toggleViewAction()
+        diagnostics.setIcon(vector_icon("diagnostics"))
+        self.main_toolbar.addAction(diagnostics)
+        button = self.main_toolbar.widgetForAction(diagnostics)
+        if isinstance(button, QToolButton):
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.addToolBar(self.main_toolbar)
 
     def _create_workspace(self) -> None:
@@ -658,6 +670,8 @@ class MainWindow(QMainWindow):
         self.science_tabs = QTabWidget()
         self.science_tabs.setObjectName("scienceTabs")
         self.science_tabs.setDocumentMode(True)
+        self.science_tabs.setUsesScrollButtons(False)
+        self.science_tabs.setElideMode(Qt.TextElideMode.ElideRight)
         self.science_tabs.setMinimumWidth(360)
         science_policy = self.science_tabs.sizePolicy()
         science_policy.setHorizontalPolicy(QSizePolicy.Policy.Ignored)
@@ -686,8 +700,10 @@ class MainWindow(QMainWindow):
         self.parameter_stack = QStackedWidget()
         self.parameter_stack.setObjectName("parameterStack")
         self._build_parameter_pages()
+        for spin in self.parameter_stack.findChildren(QAbstractSpinBox):
+            spin.setKeyboardTracking(False)
         parameter_layout.addWidget(self.parameter_stack, 1)
-        self.parameter_panel.setMinimumWidth(240)
+        self.parameter_panel.setMinimumWidth(280)
         parameter_policy = self.parameter_panel.sizePolicy()
         parameter_policy.setHorizontalPolicy(QSizePolicy.Policy.Ignored)
         parameter_policy.setVerticalPolicy(QSizePolicy.Policy.Ignored)
@@ -712,8 +728,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(workspace)
 
     def _build_common_analysis_panel(self) -> QWidget:
-        panel = QGroupBox(self.tr("分析配置"))
-        layout = QVBoxLayout(panel)
+        panel = InspectorCard(self.tr("STFT 分析配置"))
+        layout = panel.body_layout
         form = QFormLayout()
         self.profile_combo = QComboBox()
         self.profile_combo.setObjectName("analysisProfileCombo")
@@ -770,6 +786,7 @@ class MainWindow(QMainWindow):
         self.window_length_spin = self._sample_spin("windowLengthSamples")
         self.overlap_spin = self._sample_spin("overlapSamples", minimum=0)
         self.hop_label = QLabel("—")
+        self.hop_label.setProperty("role", "badge")
         self.nfft_spin = self._sample_spin("nfftSamples")
         self.minimum_frequency_spin = self._frequency_spin("minimumFrequencyGhz")
         self.maximum_frequency_spin = self._frequency_spin("maximumFrequencyGhz")
@@ -779,7 +796,7 @@ class MainWindow(QMainWindow):
         form.addRow(self.tr("重叠长度"), self.overlap_spin)
         form.addRow(self.tr("步长"), self.hop_label)
         form.addRow(self.tr("FFT 长度"), self.nfft_spin)
-        layout.addLayout(form)
+        panel.add_form(form)
         self.parameter_error_label = QLabel()
         self.parameter_error_label.setObjectName("analysisParameterError")
         self.parameter_error_label.setWordWrap(True)
@@ -789,16 +806,18 @@ class MainWindow(QMainWindow):
         self.restore_preset_button = QPushButton(self.tr("恢复预设值"))
         self.restore_preset_button.setObjectName("restoreAnalysisPresetButton")
         self.restore_preset_button.setEnabled(False)
-        layout.addWidget(self.restore_preset_button)
+        buttons = QHBoxLayout()
+        buttons.addWidget(self.restore_preset_button)
         self.advanced_parameters_button = QPushButton(self.tr("高级参数…"))
         self.advanced_parameters_button.setObjectName("advancedParametersButton")
         self.advanced_parameters_button.setEnabled(False)
-        layout.addWidget(self.advanced_parameters_button)
+        buttons.addWidget(self.advanced_parameters_button)
+        layout.addLayout(buttons)
         self.compute_stft_button = QPushButton(self.tr("计算时频图"))
         self.compute_stft_button.setObjectName("computeSpectrogramButton")
         self.compute_stft_button.setDefault(True)
+        self.compute_stft_button.setProperty("variant", "primary")
         self.compute_stft_button.setEnabled(False)
-        layout.addWidget(self.compute_stft_button)
         self.run_analysis_button = self.compute_stft_button
         self.analysis_progress = QProgressBar()
         self.analysis_progress.setObjectName("analysisProgress")
@@ -807,21 +826,38 @@ class MainWindow(QMainWindow):
         self.analysis_status_label = self._notice(
             self.tr("请先导入实验数据。")
         )
-        layout.addWidget(self.analysis_status_label)
         return panel
 
     def _build_parameter_pages(self) -> None:
         data_page = QWidget()
         data_layout = QVBoxLayout(data_page)
-        data_layout.addWidget(self._section_title(self.tr("数据与分析范围")))
+        summary = InspectorCard(self.tr("数据概览"))
+        data_layout.addWidget(summary)
+        self.empty_data_prompt = self._notice(self.tr("请先导入实验数据。"))
+        prompt = QHBoxLayout()
+        self.empty_data_emblem = QLabel()
+        self.empty_data_emblem.setPixmap(
+            vector_icon("waveform", "#0f5c8a").pixmap(QSize(24, 24), self.devicePixelRatioF())
+        )
+        prompt.addWidget(self.empty_data_emblem)
+        prompt.addWidget(self.empty_data_prompt, 1)
+        summary.body_layout.addLayout(prompt)
         self.record_summary = self._notice("")
-        data_layout.addWidget(self.record_summary)
+        self.record_summary.setProperty("role", "badge")
+        summary.body_layout.addWidget(self.record_summary)
         self.open_button = QPushButton(self.tr("选择并导入数据…"))
         self.open_button.clicked.connect(self.action_open_data.trigger)
-        data_layout.addWidget(self.open_button)
+        self.open_button.setProperty("variant", "primary")
+        summary.body_layout.addWidget(self.open_button)
+        self.change_data_button = QPushButton(self.tr("更换数据…"))
+        self.change_data_button.setIcon(vector_icon("open_data"))
+        self.change_data_button.clicked.connect(self.action_open_data.trigger)
+        summary.body_layout.addWidget(self.change_data_button)
 
         self.analysis_range_panel = AnalysisRangePanel()
-        data_layout.addWidget(self.analysis_range_panel.range_controls)
+        self.range_card = InspectorCard(self.tr("分析范围"))
+        self.range_card.body_layout.addWidget(self.analysis_range_panel.range_controls)
+        data_layout.addWidget(self.range_card)
         data_layout.addWidget(self.common_analysis_panel)
         self.analysis_range_label = QLabel("—")
         self.quality_source_label = QLabel(self.tr("内置默认质量配置"))
@@ -837,19 +873,16 @@ class MainWindow(QMainWindow):
         data_layout.addStretch(1)
         self.analysis_range_scroll = QScrollArea()
         self.analysis_range_scroll.setObjectName("analysisRangeScrollArea")
-        self.analysis_range_scroll.setWidgetResizable(True)
-        self.analysis_range_scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        self.analysis_range_scroll.setWidget(data_page)
         self.stft_parameter_scroll = self.analysis_range_scroll
-        self.parameter_stack.addWidget(self.analysis_range_scroll)
+        self.parameter_stack.addWidget(self._inspector_page(
+            data_page, self.analysis_range_scroll, self.analysis_status_label, self.compute_stft_button,
+        ))
 
         guided_page = QWidget()
         guided_layout = QVBoxLayout(guided_page)
-        guided_layout.addWidget(self._section_title(self.tr("脊线提取")))
-        ridge_mode_group = QGroupBox(self.tr("提取方式"))
-        ridge_mode_layout = QHBoxLayout(ridge_mode_group)
+        ridge_mode_group = InspectorCard(self.tr("提取方式"))
+        ridge_mode_layout = QHBoxLayout()
+        ridge_mode_group.body_layout.addLayout(ridge_mode_layout)
         self.automatic_mode_radio = QRadioButton(self.tr("自动"))
         self.automatic_mode_radio.setChecked(True)
         self.guided_mode_radio = QRadioButton(self.tr("人工范围"))
@@ -865,11 +898,13 @@ class MainWindow(QMainWindow):
             self.guided_mode_radio,
             _GUIDED_MODE_BUTTON_ID,
         )
+        self.automatic_mode_radio.setProperty("ridgeMode", True)
+        self.guided_mode_radio.setProperty("ridgeMode", True)
         ridge_mode_layout.addWidget(self.automatic_mode_radio)
         ridge_mode_layout.addWidget(self.guided_mode_radio)
         guided_layout.addWidget(ridge_mode_group)
-        self.automatic_ridge_panel = QGroupBox(self.tr("脊线搜索区域"))
-        automatic_layout = QVBoxLayout(self.automatic_ridge_panel)
+        self.automatic_ridge_panel = InspectorCard(self.tr("脊线搜索区域"))
+        automatic_layout = self.automatic_ridge_panel.body_layout
         automatic_form = QFormLayout()
         self.ridge_time_start_spin = _CompactDoubleSpinBox(minimum_decimals=3)
         self.ridge_time_start_spin.setObjectName("ridgeSearchTimeStartUs")
@@ -893,7 +928,7 @@ class MainWindow(QMainWindow):
         automatic_form.addRow(
             self.tr("搜索频率上限"), self.maximum_frequency_spin
         )
-        automatic_layout.addLayout(automatic_form)
+        self.automatic_ridge_panel.add_form(automatic_form)
         self.automatic_ridge_status_label = self._notice(
             self.tr("当前 STFT 尚未就绪。")
         )
@@ -904,23 +939,15 @@ class MainWindow(QMainWindow):
         self.extract_automatic_ridge_button.setObjectName(
             "extractAutomaticRidgeButton"
         )
-        automatic_layout.addWidget(self.extract_automatic_ridge_button)
+        self.extract_automatic_ridge_button.setProperty("variant", "primary")
         self.confirm_search_region_button = self.extract_automatic_ridge_button
         guided_layout.addWidget(self.automatic_ridge_panel)
-        self.guided_ridge_panel = QGroupBox(self.tr("人工频率范围"))
-        guided_panel_layout = QVBoxLayout(self.guided_ridge_panel)
+        self.guided_ridge_panel = InspectorCard(self.tr("人工频率范围"))
+        guided_panel_layout = self.guided_ridge_panel.body_layout
         guided_layout.addWidget(
             self.guided_ridge_panel
         )
-        guided_panel_layout.addWidget(
-            self._notice(
-                self.tr(
-                    "默认使用完整搜索频带。可绘制上边界或下边界限制候选谱峰"
-                    "搜索区域。人工边界在控制点之间线性连接，并以首末点高度"
-                    "延伸至当前分析范围两端。"
-                )
-            )
-        )
+        guided_panel_layout.addWidget(self._notice(self.tr("在时频图上编辑上、下边界。")))
         guided_form = QFormLayout()
         self.guided_channel_label = QLabel("—")
         self.guided_channel_label.setObjectName("guidedCurrentChannel")
@@ -980,7 +1007,8 @@ class MainWindow(QMainWindow):
         guided_panel_layout.addLayout(edit_buttons)
         self.run_guided_button = QPushButton(self.tr("运行人工范围分析"))
         self.run_guided_button.setObjectName("runGuidedAnalysisButton")
-        guided_panel_layout.addWidget(self.run_guided_button)
+        self.run_guided_button.setProperty("variant", "primary")
+        self.run_guided_button.hide()
         self.guided_status_label = self._notice(
             self.tr("人工范围未设置；当前使用完整搜索频带。")
         )
@@ -989,35 +1017,35 @@ class MainWindow(QMainWindow):
         guided_layout.addStretch(1)
         self.ridge_parameter_scroll = QScrollArea()
         self.ridge_parameter_scroll.setObjectName("ridgeParameterScrollArea")
-        self.ridge_parameter_scroll.setWidgetResizable(True)
-        self.ridge_parameter_scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        guided_page.setSizePolicy(
-            QSizePolicy.Policy.Ignored,
-            QSizePolicy.Policy.Preferred,
-        )
-        self.ridge_parameter_scroll.setWidget(guided_page)
-        self.parameter_stack.addWidget(self.ridge_parameter_scroll)
+        self.parameter_stack.addWidget(self._inspector_page(
+            guided_page, self.ridge_parameter_scroll,
+            self.extract_automatic_ridge_button, self.run_guided_button,
+        ))
         self.guided_ridge_panel.setVisible(False)
 
         velocity_page = QWidget()
         velocity_layout = QVBoxLayout(velocity_page)
-        velocity_layout.addWidget(self._section_title(self.tr("速度参数")))
+        self.formal_velocity_banner = StatusBanner()
+        self.formal_velocity_status_label = self.formal_velocity_banner.label
+        self.formal_velocity_status_label.setText(self.tr("尚无速度结果"))
+        velocity_layout.addWidget(self.formal_velocity_banner)
+        optical = InspectorCard(self.tr("光学与修正参数"))
+        velocity_layout.addWidget(optical)
         velocity_form = QFormLayout()
-        velocity_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
-        self.formal_velocity_status_label = QLabel(self.tr("尚无速度结果"))
-        self.formal_velocity_status_label.setWordWrap(True)
+        optical.add_form(velocity_form)
         self.display_velocity_status_label = QLabel(self.tr("关闭"))
-        velocity_form.addRow(
-            self.tr("最终速度"), self.formal_velocity_status_label
-        )
+        events = CollapsibleSection(self.tr("事件参考…"))
+        self.event_toggle = events.toggle_button
+        self.event_toggle.setToolTip(self.tr("事件参考与显示平台"))
+        event_form = QFormLayout()
+        event_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        events.body_layout.addLayout(event_form)
         self.pre_event_display_check = QCheckBox(self.tr("启用"))
         self.pre_event_display_check.setObjectName("preEventDisplayCheck")
         self.pre_event_display_check.setToolTip(
             self.tr("仅在已设置事件参考时，用指定速度显示事件前平台。")
         )
-        velocity_form.addRow(
+        event_form.addRow(
             self.tr("事件前平台"), self.pre_event_display_check
         )
         velocity_form.addRow(self.tr("真空波长"), self.vacuum_wavelength_spin)
@@ -1029,13 +1057,12 @@ class MainWindow(QMainWindow):
         self.pre_event_display_velocity_spin.setDecimals(6)
         self.pre_event_display_velocity_spin.setSingleStep(1.0)
         self.pre_event_display_velocity_spin.setSuffix(" m/s")
-        self.pre_event_display_velocity_spin.setMaximumWidth(160)
         self.pre_event_display_velocity_spin.setToolTip(
             self.tr(
                 "仅用于事件前显示/可选导出平台，不代表正式测得速度。"
             )
         )
-        velocity_form.addRow(
+        event_form.addRow(
             self.tr("事件前平台速度"),
             self.pre_event_display_velocity_spin,
         )
@@ -1062,7 +1089,6 @@ class MainWindow(QMainWindow):
         self.measurement_angle_spin.setDecimals(6)
         self.measurement_angle_spin.setSingleStep(0.1)
         self.measurement_angle_spin.setSuffix("°")
-        self.measurement_angle_spin.setMaximumWidth(160)
         self.measurement_angle_spin.setToolTip(
             self.tr(
                 "PDV 测量视线与被测界面运动法线之间的夹角；0° 表示法向观测。"
@@ -1071,14 +1097,17 @@ class MainWindow(QMainWindow):
             )
         )
         velocity_form.addRow(self.tr("观测角度"), self.measurement_angle_spin)
-        self.lif_parameter_toggle = QPushButton(self.tr("材料参数…"))
+        for field in (self.vacuum_wavelength_spin, self.window_material_combo, self.measurement_angle_spin):
+            field.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        materials = CollapsibleSection(self.tr("材料参数…"))
+        self.lif_parameter_toggle = materials.toggle_button
         self.lif_parameter_toggle.setObjectName("toggleLifMaterialParameters")
-        self.lif_parameter_toggle.setCheckable(True)
-        velocity_form.addRow("", self.lif_parameter_toggle)
-        self.lif_parameter_panel = QWidget()
+        self.lif_parameter_toggle.setToolTip(self.tr("材料参数与自定义预设"))
+        self.lif_parameter_panel = materials.body
         self.lif_parameter_panel.setObjectName("lifMaterialParametersPanel")
-        lif_form = QFormLayout(self.lif_parameter_panel)
-        lif_form.setContentsMargins(0, 0, 0, 0)
+        lif_form = QFormLayout()
+        lif_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        materials.body_layout.addLayout(lif_form)
         self.window_preset_editor = WindowPresetEditor(self._window_preset_repository)
         self.window_preset_editor.model_selected.connect(self._select_window_model)
         lif_form.addRow(self.window_preset_editor)
@@ -1120,48 +1149,60 @@ class MainWindow(QMainWindow):
             self.tr("标定参考波长"), self.lif_reference_wavelength_spin
         )
         lif_form.addRow(self.tr("来源"), self.lif_provenance_label)
-        lif_form.addRow("", self.restore_lif_defaults_button)
-        self.lif_parameter_panel.setVisible(False)
-        velocity_layout.addLayout(velocity_form)
-        velocity_layout.addWidget(self.lif_parameter_panel)
-        self.velocity_correction_warning_label = self._notice("")
+        lif_form.addRow(self.restore_lif_defaults_button)
+        velocity_layout.addWidget(materials)
+        events.body_layout.addWidget(self.analysis_range_panel)
+        velocity_layout.addWidget(events)
+        self.velocity_warning_banner = StatusBanner()
+        self.velocity_correction_warning_label = self.velocity_warning_banner.label
         self.velocity_correction_warning_label.setObjectName(
             "velocityCorrectionWarning"
         )
-        velocity_layout.addWidget(self.velocity_correction_warning_label)
-        event_toggle = QPushButton(self.tr("事件参考…"))
-        event_toggle.setCheckable(True)
-        event_toggle.toggled.connect(self.analysis_range_panel.setVisible)
-        self.analysis_range_panel.hide()
-        velocity_layout.addWidget(event_toggle)
-        velocity_layout.addWidget(self.analysis_range_panel)
+        velocity_layout.addWidget(self.velocity_warning_banner)
         velocity_layout.addStretch(1)
         self.velocity_parameter_scroll = QScrollArea()
         self.velocity_parameter_scroll.setObjectName("velocityParameterScrollArea")
-        self.velocity_parameter_scroll.setWidgetResizable(True)
-        self.velocity_parameter_scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        velocity_page.setSizePolicy(
-            QSizePolicy.Policy.Ignored,
-            QSizePolicy.Policy.Preferred,
-        )
-        self.velocity_parameter_scroll.setWidget(velocity_page)
-        self.parameter_stack.addWidget(self.velocity_parameter_scroll)
+        self.review_export_button = QPushButton(self.tr("前往复核与导出"))
+        self.review_export_button.setProperty("variant", "primary")
+        self.review_export_button.clicked.connect(self._show_review_and_export)
+        self.parameter_stack.addWidget(self._inspector_page(
+            velocity_page, self.velocity_parameter_scroll, self.review_export_button,
+        ))
 
         self.parameter_stack.addWidget(self._build_export_parameters_page())
+
+    @staticmethod
+    def _inspector_page(content: QWidget, scroll: QScrollArea, *footer_widgets: QWidget) -> QWidget:
+        content.setProperty("inspectorPage", True)
+        content.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        scroll.setProperty("inspectorScroll", True)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(content)
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(scroll, 1)
+        footer = QWidget()
+        buttons = QVBoxLayout(footer)
+        buttons.setContentsMargins(9, 5, 9, 8)
+        for widget in footer_widgets:
+            buttons.addWidget(widget)
+        layout.addWidget(footer)
+        return page
 
     def _build_export_parameters_page(self) -> QWidget:
         """Build controls for one current, independently analyzed result."""
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.addWidget(self._section_title(self.tr("复核与导出")))
-        self.export_availability_label = self._notice(
-            self.tr("当前没有可导出的有效正式结果。")
-        )
+        self.export_availability_banner = StatusBanner()
+        self.export_availability_label = self.export_availability_banner.label
+        self.export_availability_label.setText(self.tr("当前没有可导出的有效正式结果。"))
         self.export_availability_label.setObjectName("exportAvailabilityStatus")
-        self.export_availability_label.setStyleSheet("color: #526477;")
-        layout.addWidget(self.export_availability_label)
+        layout.addWidget(self.export_availability_banner)
+        target = InspectorCard(self.tr("导出目标与时间零点"))
+        layout.addWidget(target)
         form = QFormLayout()
         self.export_mode_combo = QComboBox()
         self.export_mode_combo.setObjectName("exportAnalysisModeCombo")
@@ -1171,11 +1212,7 @@ class MainWindow(QMainWindow):
         self.export_channel_combo.setEnabled(False)
         form.addRow(self.tr("分析结果"), self.export_mode_combo)
         form.addRow(self.tr("导出通道"), self.export_channel_combo)
-        layout.addLayout(form)
-
-        velocity_group = QGroupBox(self.tr("导出速度设置"))
-        velocity_form = QFormLayout(velocity_group)
-        velocity_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        target.add_form(form)
         # Compatibility aliases keep integrations source-compatible while the
         # Review page presents a single read-only summary instead of a second
         # correction editor.
@@ -1217,25 +1254,37 @@ class MainWindow(QMainWindow):
         self.export_event_time_origin_radio.setChecked(True)
         time_origin_layout.addWidget(self.export_event_time_origin_radio)
         time_origin_layout.addWidget(self.export_absolute_time_origin_radio)
-        velocity_form.addRow(self.tr("时间零点"), time_origin_widget)
+        form.addRow(self.tr("时间零点"), time_origin_widget)
 
         self.export_velocity_summary_label = ElidedLabel()
         self.export_velocity_summary_label.setObjectName(
             "exportVelocitySummary"
         )
-        velocity_form.addRow(
+        form.addRow(
             self.tr("最终导出速度"),
             self.export_velocity_summary_label,
         )
-        layout.addWidget(velocity_group)
+        formats = InspectorCard(self.tr("导出内容与格式"))
+        layout.addWidget(formats)
+        directory = InspectorCard(self.tr("输出目录"))
+        layout.addWidget(directory)
+        directory_buttons = QHBoxLayout()
+        directory.body_layout.addLayout(directory_buttons)
 
         self.export_directory_button = QPushButton(self.tr("选择导出目录…"))
         self.export_directory_button.setObjectName("chooseExportDirectoryButton")
         self.export_directory_button.setEnabled(False)
-        layout.addWidget(self.export_directory_button)
+        directory_buttons.addWidget(self.export_directory_button)
+        self.open_export_directory_button = QPushButton(self.tr("打开目录"))
+        self.open_export_directory_button.setIcon(vector_icon("folder_open"))
+        self.open_export_directory_button.clicked.connect(self._open_export_directory)
+        directory_buttons.addWidget(self.open_export_directory_button)
         self.export_directory_label = ElidedLabel(self.tr("尚未选择导出目录。"))
         self.export_directory_label.setObjectName("exportDirectoryStatus")
-        layout.addWidget(self.export_directory_label)
+        directory.body_layout.addWidget(self.export_directory_label)
+        self.export_receipt_banner = StatusBanner("success")
+        directory.body_layout.addWidget(self.export_receipt_banner)
+        self.export_receipt_banner.hide()
         self.export_include_pre_event_check = QCheckBox(
             self.tr("含事件前显示平台")
         )
@@ -1248,7 +1297,7 @@ class MainWindow(QMainWindow):
             )
         )
         self.export_include_pre_event_check.setEnabled(False)
-        layout.addWidget(self.export_include_pre_event_check)
+        formats.body_layout.addWidget(self.export_include_pre_event_check)
         self.export_quality_passed_check = QCheckBox(
             self.tr("简表仅含质量通过点")
         )
@@ -1257,21 +1306,24 @@ class MainWindow(QMainWindow):
             "默认导出连续显示曲线。勾选后简表仅含 measured 且有限的正式修正速度，"
             "排除显示平台；文件名包含 quality_passed。详细表保留全部诊断行。"
         ))
-        layout.addWidget(self.export_quality_passed_check)
+        formats.body_layout.addWidget(self.export_quality_passed_check)
         self.export_acceleration_check = QCheckBox(self.tr("加速度 CSV · 原始差分"))
         self.export_acceleration_check.setObjectName("exportAcceleration")
         self.export_acceleration_check.setToolTip(self.tr(
             "独立文件保留 SI 时间、速度、加速度和质量来源；不改变速度简表。"
         ))
-        layout.addWidget(self.export_acceleration_check)
+        formats.body_layout.addWidget(self.export_acceleration_check)
         self.export_acceleration_fit_check = QCheckBox()
         self.export_acceleration_fit_check.setEnabled(False)
         self.export_acceleration_check.toggled.connect(self.export_acceleration_fit_check.setEnabled)
-        layout.addWidget(self.export_acceleration_fit_check)
+        acceleration_options = QVBoxLayout()
+        acceleration_options.setContentsMargins(16, 0, 0, 0)
+        formats.body_layout.addLayout(acceleration_options)
+        acceleration_options.addWidget(self.export_acceleration_fit_check)
         self.export_dechirp_check = QCheckBox(self.tr("附加 Dechirp 表观加速度列"))
         self.export_dechirp_check.setEnabled(False)
         self.export_acceleration_check.toggled.connect(self.export_dechirp_check.setEnabled)
-        layout.addWidget(self.export_dechirp_check)
+        acceleration_options.addWidget(self.export_dechirp_check)
         self.acceleration_view.acceleration_window_spin.valueChanged.connect(
             self._update_acceleration_export_window
         )
@@ -1287,22 +1339,13 @@ class MainWindow(QMainWindow):
         self.export_description_label.setParent(page)
         self.export_description_label.hide()
         layout.addStretch(1)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        page.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        scroll.setWidget(page)
-        export_page = QWidget()
-        footer_layout = QVBoxLayout(export_page)
-        footer_layout.setContentsMargins(0, 0, 0, 0)
-        footer_layout.setSpacing(5)
-        footer_layout.addWidget(scroll, 1)
+        self.export_parameter_scroll = QScrollArea()
         self.export_button = QPushButton(self.tr("导出结果"))
         self.export_button.setObjectName("exportFormalResultsButton")
         self.export_button.setDefault(True)
+        self.export_button.setProperty("variant", "primary")
         self.export_button.setEnabled(False)
-        footer_layout.addWidget(self.export_button)
-        return export_page
+        return self._inspector_page(page, self.export_parameter_scroll, self.export_button)
 
     def _create_diagnostics_dock(self) -> None:
         self.diagnostics_dock = QDockWidget(self.tr("诊断与数据"), self)
@@ -1327,6 +1370,8 @@ class MainWindow(QMainWindow):
         self.diagnostics_tabs.addTab(self.quality_summary, self.tr("质量"))
 
         self.data_summary_table = QTableWidget(0, 2)
+        self.data_summary_table.setAlternatingRowColors(True)
+        self.quality_summary.table.setAlternatingRowColors(True)
         self.data_summary_table.setObjectName("dataSummaryTable")
         self.data_summary_table.setHorizontalHeaderLabels(
             [self.tr("字段"), self.tr("值")]
@@ -1387,6 +1432,7 @@ class MainWindow(QMainWindow):
         self.status_unsaved.hide()
 
     def _connect_signals(self) -> None:
+        self.raw_signal_view.open_data_requested.connect(self.action_open_data.trigger)
         self.action_open_data.triggered.connect(self._open_data)
         self.action_export.triggered.connect(self._show_review_and_export)
         self.action_quick_analysis.triggered.connect(self.run_quick_analysis)
@@ -1473,9 +1519,6 @@ class MainWindow(QMainWindow):
         self.lif_b2_spin.valueChanged.connect(self._velocity_correction_changed)
         self.lif_reference_wavelength_spin.valueChanged.connect(
             self._velocity_correction_changed
-        )
-        self.lif_parameter_toggle.toggled.connect(
-            self.lif_parameter_panel.setVisible
         )
         self.restore_lif_defaults_button.clicked.connect(
             self._restore_lif_defaults
@@ -1594,6 +1637,8 @@ class MainWindow(QMainWindow):
     def _science_tab_changed(self, _index: int) -> None:
         self._clear_cursor_status()
         view = self.science_tabs.currentWidget()
+        if not self._syncing_navigation_from_tab:
+            self._sync_step_to_view(view)
         previous = self._last_science_view
         self._last_science_view = view
         kinematic = (VelocityView, AccelerationView)
@@ -1610,6 +1655,26 @@ class MainWindow(QMainWindow):
         ):
             controller.cancel_drawing()
             self._sync_guided_panel()
+
+    def _sync_step_to_view(self, view: QWidget) -> None:
+        if view is self.raw_signal_view:
+            row = 0
+        elif view in (self.spectrogram_view, self.ridge_view):
+            row = 1
+        elif view is self.velocity_view and self.workflow_navigation.currentRow() == 3:
+            return
+        else:
+            row = 2
+        item = self.workflow_navigation.item(row)
+        if item is None or not item.flags() & Qt.ItemFlag.ItemIsEnabled:
+            return
+        with QSignalBlocker(self.workflow_navigation):
+            self.workflow_navigation.setCurrentRow(row)
+        self.parameter_stack.setCurrentIndex(row)
+        self.velocity_view.set_export_preview_mode(False)
+        if row == 1:
+            self.spectrogram_view.set_search_region_interaction(visible=True, editable=True)
+            self.ridge_view.set_search_region_interaction(visible=True, editable=True)
 
     def _set_spectrogram_colormap(
         self,
@@ -1729,7 +1794,33 @@ class MainWindow(QMainWindow):
         )
         if not selected_path:
             return False
-        dialog = ImportSettingsDialog(Path(selected_path), self)
+        return self._import_file(Path(selected_path), continue_to_stft=continue_to_stft)
+
+    def _dropped_file(self, event: QDropEvent) -> Path | None:
+        urls = event.mimeData().urls()
+        if self._busy or len(urls) != 1 or not urls[0].isLocalFile():
+            return None
+        path = Path(urls[0].toLocalFile())
+        if path.suffix.lower() in {".csv", ".dat", ".txt"} and path.is_file():
+            return path
+        return None
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
+        if self._dropped_file(event) is None:
+            event.ignore()
+        else:
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
+        path = self._dropped_file(event)
+        if path is None:
+            event.ignore()
+            return
+        event.acceptProposedAction()
+        self._import_file(path)
+
+    def _import_file(self, path: Path, *, continue_to_stft: bool = False) -> bool:
+        dialog = ImportSettingsDialog(path, self)
         try:
             if dialog.exec() != int(dialog.DialogCode.Accepted):
                 return False
@@ -2338,6 +2429,7 @@ class MainWindow(QMainWindow):
 
     def _sync_velocity_correction_warning(self) -> None:
         """Expose exact-wavelength and oblique-window applicability limits."""
+        self.velocity_warning_banner.set_tone("info")
         configuration = self._session.run_configuration
         if configuration is None:
             self.velocity_correction_warning_label.clear()
@@ -2349,6 +2441,7 @@ class MainWindow(QMainWindow):
             )
             return
         if correction.lif_model != LIF_RIGG_2014_1550NM:
+            self.velocity_warning_banner.set_tone("warning")
             self.velocity_correction_warning_label.setText(self.tr(
                 "自定义 · {name}：固定幂律形式的用户参数；参考波长 {reference:g} nm。"
                 "名称及参数修改不代表材料标定已验证。"
@@ -2363,6 +2456,7 @@ class MainWindow(QMainWindow):
             rel_tol=0.0,
             abs_tol=1.0e-18,
         ):
+            self.velocity_warning_banner.set_tone("warning")
             self.velocity_correction_warning_label.setText(
                 self.tr(
                     "警告：当前 LiF 参数参考 {reference:.12g} nm；当前 PDV 波长为 "
@@ -2374,6 +2468,7 @@ class MainWindow(QMainWindow):
             )
             return
         if correction.measurement_angle_rad > 0.0:
+            self.velocity_warning_banner.set_tone("warning")
             self.velocity_correction_warning_label.setText(
                 self.tr(
                     "非零角度与 LiF 修正按可分离工程近似组合，不代表完整斜入射"
@@ -2802,6 +2897,8 @@ class MainWindow(QMainWindow):
                 del blocker
         self._session.set_ridge_extraction_mode(mode)
         guided = mode is RidgeExtractionMode.GUIDED
+        self.extract_automatic_ridge_button.setVisible(not guided)
+        self.run_guided_button.setVisible(guided)
         self.automatic_ridge_panel.setVisible(not guided)
         self.guided_ridge_panel.setVisible(guided)
         controller = self.spectrogram_view.corridor_controller
@@ -3749,6 +3846,11 @@ class MainWindow(QMainWindow):
             and not busy
         )
         self.action_export.setEnabled(result_available and not busy)
+        self.review_export_button.setEnabled(self.action_export.isEnabled())
+        self.open_export_directory_button.setEnabled(
+            self._export_output_directory is not None and self._export_output_directory.is_dir()
+        )
+        self.export_availability_banner.set_tone("success" if self.export_button.isEnabled() else "info")
         self.action_export.setToolTip(action_tooltip)
         if self.workflow_navigation.currentRow() == 3:
             self._sync_review_preview()
@@ -3807,10 +3909,18 @@ class MainWindow(QMainWindow):
 
     def _set_export_output_directory(self, directory: Path) -> None:
         """Store a user-selected output parent without creating any files."""
+        self.export_receipt_banner.hide()
         self._export_output_directory = Path(directory)
         self.export_directory_label.setText(str(self._export_output_directory))
         self.export_directory_label.setToolTip(str(self._export_output_directory))
         self._refresh_export_controls()
+
+    def _open_export_directory(self) -> None:
+        directory = self._export_output_directory
+        if directory is not None and directory.is_dir():
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory)))
+        else:
+            self.open_export_directory_button.setEnabled(False)
 
     def _show_review_and_export(self) -> None:
         """Navigate to the review step without writing files or changing state."""
@@ -3923,6 +4033,14 @@ class MainWindow(QMainWindow):
         )
         self.analysis_status_label.setText(message)
         self.statusBar().showMessage(message, 8000)
+        paths = [exported.csv_path, exported.detail_csv_path, exported.metadata_path]
+        if exported.acceleration_csv_path is not None:
+            paths.append(exported.acceleration_csv_path)
+        self.export_receipt_banner.label.setText(self.tr("已导出文件：\n{files}").format(
+            files="\n".join(path.name for path in paths),
+        ))
+        self.export_receipt_banner.setToolTip(str(report.output_directory))
+        self.export_receipt_banner.show()
         self._append_log(
             self.tr(
                 "{mode} / {channel} 已导出至 {directory}：{csv}；{detail}；{metadata}"
@@ -4063,6 +4181,11 @@ class MainWindow(QMainWindow):
         self.action_open_data.setEnabled(not busy)
         self.open_button.setEnabled(not busy)
         self.open_button.setVisible(not loaded)
+        self.empty_data_prompt.setVisible(not loaded)
+        self.empty_data_emblem.setVisible(not loaded)
+        self.change_data_button.setVisible(loaded)
+        self.change_data_button.setEnabled(not busy)
+        self.range_card.setVisible(loaded)
         self.analysis_range_panel.range_controls.setVisible(loaded)
         self.analysis_range_panel.range_controls.setEnabled(not busy)
         self.raw_signal_view.analysis_region.setMovable(not busy)
@@ -4073,6 +4196,7 @@ class MainWindow(QMainWindow):
         )
         stft_ready = self._session.stft_valid and bool(self._session.stft_results)
         result_ready = self._session.any_formal_results_available
+        self.formal_velocity_banner.set_tone("success" if result_ready else "info")
         availability = (True, stft_ready, result_ready, result_ready)
         unavailable_tooltip = self.tr(
             "完成前一步后可用。"
@@ -4221,6 +4345,13 @@ class MainWindow(QMainWindow):
         item = self.workflow_navigation.item(row)
         if item is None or not bool(item.flags() & Qt.ItemFlag.ItemIsEnabled):
             return
+        self._syncing_navigation_from_tab = True
+        try:
+            self._show_workflow_page(row)
+        finally:
+            self._syncing_navigation_from_tab = False
+
+    def _show_workflow_page(self, row: int) -> None:
         self.parameter_stack.setCurrentIndex(row)
         self.velocity_view.set_export_preview_mode(row == 3)
         if row == 0:
@@ -4230,7 +4361,7 @@ class MainWindow(QMainWindow):
                 visible=True,
                 editable=True,
             )
-            if (
+            if self._session.ridge_extraction_mode is RidgeExtractionMode.AUTOMATIC and (
                 self._session.automatic_results_available
                 or self._session.guided_results_available
             ):
@@ -4254,7 +4385,11 @@ class MainWindow(QMainWindow):
     def _complete_pending_navigation(self) -> None:
         """Perform one focus change after the requested scientific operation."""
         if self._pending_navigation_tab is not None:
-            self.science_tabs.setCurrentIndex(self._pending_navigation_tab)
+            self._syncing_navigation_from_tab = True
+            try:
+                self.science_tabs.setCurrentIndex(self._pending_navigation_tab)
+            finally:
+                self._syncing_navigation_from_tab = False
         self._pending_navigation_tab = None
 
     def _result_cursor_moved(self, position: QPointF) -> None:
@@ -4332,7 +4467,8 @@ class MainWindow(QMainWindow):
         self.log_view.appendPlainText(message)
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        """Close without claiming to interrupt an active numerical worker."""
+        """Cancel the view fit and defer closure while a workflow worker is active."""
+        self.acceleration_view.cancel_dechirp()
         if self._busy:
             self._close_when_idle = True
             self.statusBar().showMessage(self.tr("当前任务结束后关闭…"))
@@ -4344,12 +4480,6 @@ class MainWindow(QMainWindow):
         self.spectrogram_view.corridor_controller.detach_context()
         self.ridge_view.dispose_search_region_interactions()
         event.accept()
-
-    @staticmethod
-    def _section_title(text: str) -> QLabel:
-        label = QLabel(text)
-        label.setObjectName("sectionTitle")
-        return label
 
     @staticmethod
     def _notice(text: str) -> QLabel:

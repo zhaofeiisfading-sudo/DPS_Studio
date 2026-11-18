@@ -35,6 +35,7 @@ class WindowPresetEditor(QWidget):
         self._read_error: str | None = None
         layout = QFormLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
         self.preset_combo = QComboBox()
         self.preset_combo.setObjectName("windowPresetSelector")
@@ -42,6 +43,8 @@ class WindowPresetEditor(QWidget):
         self.name_edit.setObjectName("windowPresetName")
         self.save_button = QPushButton(self.tr("保存修改"))
         self.save_as_button = QPushButton(self.tr("另存为新配置…"))
+        self.save_button.setProperty("variant", "secondary")
+        self.save_as_button.setProperty("variant", "secondary")
         row = QHBoxLayout()
         row.addWidget(self.save_button)
         row.addWidget(self.save_as_button)

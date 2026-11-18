@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QButtonGroup,
     QDoubleSpinBox,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -48,6 +49,8 @@ class AnalysisRangePanel(QWidget):
         self.range_controls = QWidget(self)
         range_form = QFormLayout(self.range_controls)
         range_form.setContentsMargins(0, 0, 0, 0)
+        range_form.setSpacing(6)
+        range_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         range_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         form = QFormLayout()
         form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
@@ -69,8 +72,10 @@ class AnalysisRangePanel(QWidget):
         self.end_editor = end_editor
         end_layout = QHBoxLayout(end_editor)
         end_layout.setContentsMargins(0, 0, 0, 0)
+        end_layout.setSpacing(5)
         end_layout.addWidget(self.end_spin, 1)
         self.full_range_button = QPushButton(self.tr("重置"))
+        self.full_range_button.setProperty("variant", "ghost")
         self.full_range_button.setObjectName("resetFullAnalysisRangeButton")
         self.full_range_button.setToolTip(self.tr("重置为完整数据范围"))
         self.full_range_button.setSizePolicy(
@@ -274,7 +279,7 @@ class AnalysisRangePanel(QWidget):
         blocker = QSignalBlocker(self.event_reference_spin)
         self.event_reference_spin.clear()
         del blocker
-        self.event_reference_spin.setStyleSheet("border: 1px solid #b98224;")
+        self.event_reference_spin.setStyleSheet("QDoubleSpinBox { border: 1px solid #b98224; }")
         self.apply_event_reference_button.setEnabled(False)
         self.clear_event_reference_button.setEnabled(False)
         self.event_reference_status_label.setText(reason)
@@ -312,9 +317,10 @@ class AnalysisRangePanel(QWidget):
         )
         for channel_name, candidate_s in candidates_s.items():
             compatibility_s = compatibility.get(channel_name)
-            row = QWidget()
+            row = QFrame()
+            row.setProperty("eventCandidate", True)
             row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setContentsMargins(7, 4, 7, 4)
             if candidate_s is None:
                 text = self.tr("{channel}：未检测到可采用的推荐候选").format(
                     channel=channel_name
@@ -442,7 +448,7 @@ class AnalysisRangePanel(QWidget):
         if self._bounds_s is None:
             return
         self._event_reference_draft_set = True
-        self.event_reference_spin.setStyleSheet("border: 1px solid #0b6fa4;")
+        self.event_reference_spin.setStyleSheet("QDoubleSpinBox { border: 1px solid #0b6fa4; }")
         self.apply_event_reference_button.setEnabled(True)
         if self.manual_event_time_radio.isChecked():
             self.event_reference_confirmed.emit(
@@ -477,7 +483,7 @@ class AnalysisRangePanel(QWidget):
 
     def _set_valid(self, valid: bool) -> None:
         self.apply_button.setEnabled(valid and self._bounds_s is not None)
-        style = "" if valid else "border: 1px solid #b94040;"
+        style = "" if valid else "QDoubleSpinBox { border: 1px solid #b94040; }"
         self.start_spin.setStyleSheet(style)
         self.end_spin.setStyleSheet(style)
         if self.range_is_valid != valid:
