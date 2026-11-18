@@ -16,6 +16,7 @@ REAL_DATA_TESTS = frozenset({
     "test_cross_file_raw_hashes_and_gui_script_boundary_are_stable",
     "tests/unit/gui/test_release_workflow_smoke.py::test_gui_workflow_audits_real_sample_and_exports",
     "tests/unit/test_macos_internal_release.py::test_local_scientific_chain_matches_windows_reference",
+    "tests/unit/test_task023_hotfix_real.py::test_real_default_and_active_platform",
 })
 WINDOWS_RELEASE_MODULES = frozenset({
     "tests/unit/test_production_release.py",

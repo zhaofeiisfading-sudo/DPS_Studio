@@ -28,9 +28,8 @@ FloatArray = NDArray[np.float64]
 
 
 class WorkingRidgeSource(str, Enum):
-    """Availability and selection provenance of a working ridge point."""
+    """Auditable source of one non-formal continuous Production point."""
 
-    UNAVAILABLE = "unavailable"
     REFINED = "refined"
     CONTINUITY_SELECTED = "continuity_selected"
     STRONGEST_REFINED_FALLBACK = "strongest_refined_fallback"
@@ -68,7 +67,6 @@ class ChannelAnalysis:
     automatic_ridge_selection_result: AutomaticRidgeSelectionResult
     local_peak_candidates: LocalPeakCandidateResult | None = None
     experimental_reselection_result: ExperimentalReselectionResult | None = None
-    pre_event_display_enabled: bool = False
 
     def __post_init__(self) -> None:
         formal_discrete_velocity = _immutable_float_array(
@@ -117,7 +115,6 @@ class ChannelAnalysis:
                 in {
                     WorkingRidgeSource.OUTSIDE_ANALYSIS_WINDOW,
                     WorkingRidgeSource.NO_ALLOWED_FINITE_BIN,
-                    WorkingRidgeSource.UNAVAILABLE,
                 }
                 for source in working_source
             ),
@@ -135,8 +132,6 @@ class ChannelAnalysis:
             raise ValueError(
                 "working_velocity_m_s must be finite exactly where working frequency is."
             )
-        if not np.array_equal(working_frequency, self.signal_detection_result.refined_frequency_hz, equal_nan=True):
-            raise ValueError("Working frequency must match the measured refined frequency.")
         origins = tuple(self.velocity_origins)
         if len(origins) != frame_count:
             raise ValueError("velocity_origins must match the STFT time axis.")
@@ -269,7 +264,7 @@ class ChannelAnalysis:
 
     @property
     def continuous_frequency_hz(self) -> FloatArray:
-        """Measured refined frequency with gaps at unreliable frames."""
+        """Production plotting frequency; quality describes but does not erase it."""
         return self.working_frequency_hz
 
     @property

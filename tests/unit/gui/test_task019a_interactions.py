@@ -116,8 +116,6 @@ def test_velocity_fit_buttons_use_only_visible_finite_curve_data(
         )
         assert view.apparent_curve is not None
         assert view.corrected_curve is not None
-        assert view.pre_event_platform_curve is not None
-        view.pre_event_platform_curve.hide()
         view.apparent_curve.setData(
             np.asarray([-0.1, 0.0, 0.2]),
             np.asarray([10.0, 20.0, 1000.0]),

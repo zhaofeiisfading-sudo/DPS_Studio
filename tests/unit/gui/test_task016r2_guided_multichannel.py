@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pytest
 from PySide6.QtCore import QSettings, QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 
@@ -361,10 +362,25 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
         window.velocity_view.display_velocity_check.setChecked(True)
         qapp.processEvents()
         connector = window.velocity_view.display_connector
-        # The 630 MHz tone is already moving before the chosen reference.
-        assert connector is None
-        assert window.velocity_view.pre_event_platform_curve is None
-        assert np.isfinite(analysis.corrected_velocity_m_s[3:12]).all()
+        assert connector is not None
+        connector_time_us, connector_velocity_m_s = connector.getData()
+        finite_indices = np.flatnonzero(
+            np.isfinite(analysis.working_corrected_velocity_m_s)
+            & (analysis.stft_result.time_s >= session.event_reference_time_s)
+        )
+        assert finite_indices.size > 0
+        first = int(finite_indices[0])
+        assert connector_time_us[0] == pytest.approx(0.0)
+        assert connector_time_us[1] == pytest.approx(
+            (
+                analysis.stft_result.time_s[first]
+                - session.event_reference_time_s
+            )
+            * 1.0e6
+        )
+        assert connector_velocity_m_s[1] == pytest.approx(
+            analysis.working_corrected_velocity_m_s[first]
+        )
         np.testing.assert_array_equal(
             analysis.signal_detection_result.apparent_velocity_m_s,
             formal_before,
@@ -374,7 +390,7 @@ def test_display_connector_is_guided_only_presentation_and_preserves_formal_data
         qapp.processEvents()
         assert window.velocity_view.display_curve is not None
         assert window.velocity_view.formal_curve is None
-        assert window.velocity_view.display_connector is None
+        assert window.velocity_view.display_connector is not None
         np.testing.assert_array_equal(
             analysis.signal_detection_result.apparent_velocity_m_s,
             formal_before,

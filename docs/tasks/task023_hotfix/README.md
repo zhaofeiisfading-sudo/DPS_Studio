@@ -1,5 +1,7 @@
 # Production TASK-023 Hotfix｜速度语义、拖拽阻塞与快速分析图标修复
 
+本次工作树修订默认显示完整 STFT 速度，显式采用事件参考后才叠加平台。现行行为和真实数据复核见[连续速度、默认导出与起跳前加速度](revision.md)。下文记录 `17c89b9b` 的首轮修复。
+
 - **仓库**：`D:\Code\Python_Projects\DPS_Studio`（`main`，基于 `b6557b015683d34428c384291d4a828824962cee`）
 - **职责分工**：Gemini Antigravity 担任技术负责人与独立验收者；实际代码修复由 Codex CLI（`gpt-6.2-astra` 负责核心/导出/三态语义架构，`gpt-6.2-sol` 负责拖放/图标/视口修复与严格类型标注）完成。
 

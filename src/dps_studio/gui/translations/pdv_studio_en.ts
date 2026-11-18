@@ -790,10 +790,6 @@
 </context>
 <context>
     <name>MainWindow</name>
-    <message>
-        <source>设置事件参考后，仅对有静止依据的未测速帧显示平台。</source>
-        <translation>With an event reference, show the platform only on unmeasured frames with stationary evidence.</translation>
-    </message>
     <message><source>STFT 分析配置</source><translation>STFT Settings</translation></message>
     <message><source>数据概览</source><translation>Data Overview</translation></message>
     <message><source>更换数据…</source><translation>Change Data…</translation></message>
@@ -3057,8 +3053,8 @@ The TASK-014 version connects only read-only data import and raw-signal display.
         <translation>Export only quality-passed data (two columns; time series may have gaps)</translation>
     </message>
     <message>
-        <source>默认导出显示速度，未确定帧保留 NaN。勾选后简表仅含 measured 且有限的正式修正速度，排除显示平台；文件名包含 quality_passed。详细表保留全部诊断行。</source>
-        <translation>By default, exports display velocity with NaN for undetermined frames. When checked, the concise CSV contains only measured, finite formal corrected velocities and excludes display-only platforms. Filenames contain quality_passed; detailed CSVs retain all diagnostic rows.</translation>
+        <source>默认导出连续显示曲线。勾选后简表仅含 measured 且有限的正式修正速度，排除显示平台；文件名包含 quality_passed。详细表保留全部诊断行。</source>
+        <translation>By default, exports the continuous display curve. When checked, the concise CSV contains only measured, finite formal corrected velocities and excludes display-only platforms. Filenames contain quality_passed; detailed CSVs retain all diagnostic rows.</translation>
     </message>
     <message>
         <source>PDV Studio {version}
@@ -3206,13 +3202,13 @@ PDV waveforms, spectrograms and velocity analysis.</translation>
     </message>
     <message>
         <location filename="../result_views.py" line="1698"/>
-        <source>工作脊线来源</source>
-        <translation>Working Ridge Sources</translation>
+        <source>连续结果回退</source>
+        <translation>Continuous Fallbacks</translation>
     </message>
     <message>
         <location filename="../result_views.py" line="1738"/>
-        <source>{count} 帧无有效测速</source>
-        <translation>{count} frames have no measured velocity</translation>
+        <source>{count} 帧仅缺少 formal/trusted 值</source>
+        <translation>{count} frames lack only formal/trusted values</translation>
     </message>
     <message>
         <location filename="../result_views.py" line="1747"/>
@@ -3221,8 +3217,8 @@ PDV waveforms, spectrograms and velocity analysis.</translation>
     </message>
     <message>
         <location filename="../result_views.py" line="1754"/>
-        <source>仅有效测速帧具有正式速度。事件前静止约束单独显示。</source>
-        <translation>Formal velocities are available on measured frames. Pre-event stationary constraints are shown separately.</translation>
+        <source>质量仅描述连续速度的可信程度；展开此诊断可查看 formal/trusted 子集。</source>
+        <translation>Quality describes confidence in the continuous velocity; expand this diagnostic to inspect the formal/trusted subset.</translation>
     </message>
     <message>
         <source>MEASURED 帧</source>
@@ -3525,15 +3521,6 @@ PDV waveforms, spectrograms and velocity analysis.</translation>
 </context>
 <context>
     <name>VelocityView</name>
-    <message><source>有效测速</source><translation>Measured velocity</translation></message>
-    <message>
-        <source>有效测速 {measured} 帧 · 未确定 {unknown} 帧 · 事件前静止约束 {stationary} 帧</source>
-        <translation>Measured {measured} frames · Undetermined {unknown} frames · Pre-event stationary constraint {stationary} frames</translation>
-    </message>
-    <message>
-        <source>事件前静止约束（仅显示）</source>
-        <translation>Pre-event stationary constraint (display only)</translation>
-    </message>
     <message>
         <source>显示显示速度（非正式结果）</source>
         <translation type="vanished">Show Display Velocity (Non-formal Result)</translation>
@@ -3596,8 +3583,8 @@ PDV waveforms, spectrograms and velocity analysis.</translation>
     <message>
         <location filename="../result_views.py" line="1159"/>
         <location filename="../result_views.py" line="1249"/>
-        <source>显示有效测量的表观速度和修正速度。</source>
-        <translation>Show apparent and corrected velocities for measured frames.</translation>
+        <source>显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。</source>
+        <translation>Show formal/trusted apparent and corrected velocities; quality gates do not remove points from the default main curve.</translation>
     </message>
     <message>
         <location filename="../result_views.py" line="1172"/>
@@ -3893,10 +3880,6 @@ Output directory:
 </context>
 <context>
     <name>_KinematicView</name>
-    <message><source>有效测速</source><translation>Measured velocity</translation></message>
-    <message><source>有效测速 {measured} 帧 · 未确定 {unknown} 帧 · 事件前静止约束 {stationary} 帧</source><translation>Measured {measured} frames · Undetermined {unknown} frames · Pre-event stationary constraint {stationary} frames</translation></message>
-    <message><source>事件前静止约束（仅显示）</source><translation>Pre-event stationary constraint (display only)</translation></message>
-
     <message><source>显示显示速度（非正式结果）</source><translation>Show Display Velocity (Non-formal Result)</translation></message>
     <message><source>结果来源</source><translation>Result Source</translation></message>
     <message><source>工作/显示速度（非正式结果）</source><translation>Working/Display Velocity (Non-formal Result)</translation></message>
@@ -3910,7 +3893,7 @@ Output directory:
     <message><source>将视图适配到当前显示的有效速度结果。</source><translation>Fit the view to the currently displayed valid velocity results.</translation></message>
     <message><source>正式显示速度（含事件前平台约定）</source><translation>Formal Display Velocity (Including Pre-event Platform Convention)</translation></message>
     <message><source>显示诊断曲线</source><translation>Show Diagnostic Curves</translation></message>
-    <message><source>显示有效测量的表观速度和修正速度。</source><translation>Show apparent and corrected velocities for measured frames.</translation></message>
+    <message><source>显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。</source><translation>Show formal/trusted apparent and corrected velocities; quality gates do not remove points from the default main curve.</translation></message>
     <message><source>速度</source><translation>Velocity</translation></message>
     <message><source>当前没有{source}分析结果。</source><translation>No {source} analysis result is currently available.</translation></message>
     <message><source>当前预览中没有通道：{channel}</source><translation>The current preview has no channel named {channel}.</translation></message>
@@ -3965,7 +3948,7 @@ Output directory:
     <message><source>将视图适配到当前显示的有效速度结果。</source><translation>Fit the view to the currently displayed valid velocity results.</translation></message>
     <message><source>正式显示速度（含事件前平台约定）</source><translation>Formal Display Velocity (Including Pre-event Platform Convention)</translation></message>
     <message><source>显示诊断曲线</source><translation>Show Diagnostic Curves</translation></message>
-    <message><source>显示有效测量的表观速度和修正速度。</source><translation>Show apparent and corrected velocities for measured frames.</translation></message>
+    <message><source>显示 formal/trusted 表观速度和修正速度；默认主曲线不受质量门删点。</source><translation>Show formal/trusted apparent and corrected velocities; quality gates do not remove points from the default main curve.</translation></message>
     <message><source>速度</source><translation>Velocity</translation></message>
     <message><source>当前没有{source}分析结果。</source><translation>No {source} analysis result is currently available.</translation></message>
     <message><source>当前预览中没有通道：{channel}</source><translation>The current preview has no channel named {channel}.</translation></message>
@@ -4013,7 +3996,7 @@ Output directory:
     <message><source>没有可用的原始波形。</source><translation>No raw waveform available.</translation></message>
     <message><source>正在拟合原始波形…</source><translation>Fitting raw waveform…</translation></message>
     <message><source>表观加速度 · {count}/{total} 点通过拟合检查</source><translation>Apparent acceleration · {count}/{total} fits accepted</translation></message>
-    <message><source>无效区与显示平台留空。有限差分值不代表质量通过。</source><translation>Gaps and display plateaus stay blank. A finite derivative does not establish acceleration accuracy.</translation></message>
+    <message><source>仅区间外、插值与无频点帧留空，包含起跳前数据；有限差分值不代表质量通过。</source><translation>Pre-event data are included. Frames outside the analysis range, interpolated frames and frames without a frequency bin are left blank. A finite difference does not imply a quality pass.</translation></message>
     <message><source>波形拟合失败：{reason}</source><translation>Waveform fit failed: {reason}</translation></message>
     <message><source>不应用角度或窗口修正。</source><translation>No angle or window correction is applied.</translation></message>
     <message><source>差分</source><translation>Derivative</translation></message>

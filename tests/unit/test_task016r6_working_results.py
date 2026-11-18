@@ -103,7 +103,7 @@ def test_normal_frames_make_identical_working_and_formal_ridges() -> None:
     assert set(analysis.working_source) == {WorkingRidgeSource.REFINED}
 
 
-def test_refinement_failure_preserves_only_the_diagnostic_peak() -> None:
+def test_refinement_failure_falls_back_to_same_frame_discrete_peak() -> None:
     analysis = _analyze(_stft((1, 1, 1, 1, 1, 1)))
     assert set(analysis.refined_result.refinement_statuses) == {
         RidgeRefinementStatus.BOUNDARY_PEAK
@@ -111,17 +111,17 @@ def test_refinement_failure_preserves_only_the_diagnostic_peak() -> None:
     assert np.isnan(
         analysis.signal_detection_result.refined_frequency_hz
     ).all()
-    assert np.isnan(analysis.display_velocity_m_s).all()
+    assert np.isfinite(analysis.display_velocity_m_s).all()
     np.testing.assert_array_equal(
         analysis.display_velocity_m_s,
         analysis.continuous_corrected_velocity_m_s,
     )
     np.testing.assert_array_equal(
+        analysis.working_frequency_hz,
         analysis.ridge_result.frequency_hz,
-        10.0,
     )
     assert set(analysis.working_source) == {
-        WorkingRidgeSource.UNAVAILABLE
+        WorkingRidgeSource.DISCRETE_FALLBACK
     }
 
 
@@ -183,27 +183,26 @@ def test_low_quality_states_keep_working_and_formal_nan(
 ) -> None:
     analysis = _analyze(_stft(), detection_config=config)
     assert set(analysis.signal_detection_result.signal_states) == {expected_state}
-    assert np.isnan(analysis.working_frequency_hz).all()
+    assert np.isfinite(analysis.working_frequency_hz).all()
     assert np.isnan(
         analysis.signal_detection_result.refined_frequency_hz
     ).all()
-    assert np.isnan(analysis.display_velocity_m_s).all()
+    assert np.isfinite(analysis.display_velocity_m_s).all()
     np.testing.assert_array_equal(
         analysis.display_velocity_m_s,
         analysis.continuous_corrected_velocity_m_s,
     )
     assert set(analysis.working_source) == {
-        WorkingRidgeSource.UNAVAILABLE
+        WorkingRidgeSource.LOW_CONFIDENCE_FALLBACK
     }
 
 
-def test_search_boundary_peak_is_diagnostic_only() -> None:
+def test_search_boundary_peak_is_a_finite_discrete_working_point() -> None:
     analysis = _analyze(_stft((4, 4, 4, 4, 4, 4)))
     assert set(analysis.signal_detection_result.signal_states) == {
         SignalState.PEAK_AT_BAND_BOUNDARY
     }
-    np.testing.assert_array_equal(analysis.ridge_result.frequency_hz, 40.0)
-    assert np.isnan(analysis.working_frequency_hz).all()
+    np.testing.assert_array_equal(analysis.working_frequency_hz, 40.0)
     assert np.isnan(
         analysis.signal_detection_result.refined_frequency_hz
     ).all()
@@ -254,14 +253,14 @@ def test_pre_event_working_frequency_does_not_pollute_display_platform() -> None
     )
     assert np.isfinite(analysis.working_frequency_hz[:3]).all()
     assert np.all(analysis.working_velocity_m_s[:3] > 7.5)
-    np.testing.assert_array_equal(analysis.display_velocity_m_s[:3], analysis.corrected_velocity_m_s[:3])
+    np.testing.assert_array_equal(analysis.display_velocity_m_s[:3], 7.5)
     np.testing.assert_array_equal(
         analysis.display_velocity_m_s[3:],
         analysis.corrected_velocity_m_s[3:],
     )
 
 
-def test_display_platform_preserves_formal_measured_pre_event_frames() -> None:
+def test_display_platform_overrides_even_formal_measured_pre_event_frames() -> None:
     time_s = np.asarray([0.0, 1.0, 2.0])
     display, origins = build_display_velocity(
         time_s,
@@ -271,8 +270,10 @@ def test_display_platform_preserves_formal_measured_pre_event_frames() -> None:
         enable_pre_event_display=True,
         pre_event_display_velocity_m_s=7.5,
     )
-    np.testing.assert_array_equal(display, [100.0, 101.0, 102.0])
-    assert origins == ("measured",) * 3
+    np.testing.assert_array_equal(display, [7.5, 7.5, 102.0])
+    assert origins[:2] == (
+        "configured_pre_event_display_velocity_only",
+    ) * 2
 
 
 def test_formal_arrays_are_unchanged_when_only_working_display_is_reconfigured() -> None:

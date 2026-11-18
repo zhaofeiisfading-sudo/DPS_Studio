@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections import Counter
-
 import copy
 import json
 import plistlib
@@ -18,7 +16,7 @@ import pytest
 from dps_studio import __version__
 from dps_studio.gui import release_smoke
 from dps_studio.gui.release_smoke_macos import finish_report, match_loaded_image
-from dps_studio.release.portable_reference import capture_snapshot, compare_snapshots, lf_text_hash, runs
+from dps_studio.release.portable_reference import capture_snapshot, compare_snapshots, lf_text_hash
 from scripts.build import build_macos_release as mac
 from scripts.build.build_macos_icon import ICONSET_SIZES, generate_icon
 
@@ -316,7 +314,7 @@ def test_portable_selection_is_explicit_and_full_suite_retains_raw_tests():
     for nodeid in contract["REAL_DATA_TESTS"]:
         assert contract["portable_exclusion"](nodeid)
     assert contract["portable_exclusion"]("tests/unit/test_stft.py::test_synthetic") is None
-    assert len(contract["REAL_DATA_TESTS"]) == 6
+    assert len(contract["REAL_DATA_TESTS"]) == 7
 
 
 def test_local_scientific_chain_matches_windows_reference(tmp_path):
@@ -330,35 +328,6 @@ def test_local_scientific_chain_matches_windows_reference(tmp_path):
     for channel, schema in actual["export_schema"].items():
         assert schema["version"] == __version__
         reference["snapshot"]["export_schema"][channel]["version"] = __version__
-    # Translate only the specified TASK-023 changes in the frozen Windows oracle.
-    snapshot = reference["snapshot"]
-    ch1 = snapshot["channels"]["pdv_channel_1"]
-    rejected = (20, 111)
-    states = [value for value, count in ch1["signal_states"] for _ in range(count)]
-    for index in rejected:
-        assert states[index] == "measured"
-        states[index] = "unstable_detection"
-    ch1["signal_states"] = runs(states)
-    ch1["signal_state_counts"] = dict(Counter(states))
-    for field in ("refined_frequency_hz", "apparent_velocity_m_s", "corrected_velocity_m_s"):
-        vector = ch1["vectors"][field]
-        for index in rejected:
-            vector[index] = None
-        ch1["nan_masks"][field] = runs([value is None for value in vector])
-        ch1["nan_counts"][field] = vector.count(None)
-    selection = ch1["event_selection"]
-    assert [row[1:3] for row in selection["segments"][:2]] == [[20, 20], [111, 111]]
-    selection["segments"] = selection["segments"][2:]
-    for number, row in enumerate(selection["segments"], start=1):
-        row[0] = f"balanced:pdv_channel_1:segment_{number:03d}"
-    selection["primary_segment_id"] = selection["segments"][0][0]
-    snapshot["export_schema"]["pdv_channel_1"]["quality_passed"]["rows"] -= len(rejected)
-    for channel in (*snapshot["channels"].values(), *snapshot["synthetic"]["channels"].values()):
-        sources = [v for v, n in channel["working_source"] for _ in range(n)]
-        channel["working_source"] = runs([
-            source if frequency is not None else "unavailable"
-            for source, frequency in zip(sources, channel["vectors"]["refined_frequency_hz"], strict=True)
-        ])
     report = compare_snapshots(reference, actual)
     assert report["status"] == "PASS", report["failures"]
     assert report["nan_mask_equality"] and report["quality_flag_equality"]

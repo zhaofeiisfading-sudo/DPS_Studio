@@ -1,121 +1,122 @@
-"""Production balanced-profile checks on the original oscilloscope channels."""
+"""Real balanced-profile regressions through event selection, plotting and CSV export."""
 
-import hashlib
-import json
+import csv
 from pathlib import Path
 
 import numpy as np
 import pytest
+from PySide6.QtCore import QEvent, QEventLoop, QSettings, Qt, QTimer
+from PySide6.QtWidgets import QApplication
 
 from dps_studio.core.io import read_delimited_signals
-from dps_studio.core.quality import SignalState
-from dps_studio.core.workflow import (
-    PRE_EVENT_DISPLAY_ORIGIN, analyze_stft_results, compute_profile_stfts,
-    configure_channel_event_reference, load_workflow_config,
-)
-from dps_studio.core.workflow.acceleration import channel_acceleration, channel_dechirp
-
+from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN, ChannelAnalysis
+from dps_studio.core.workflow.acceleration import channel_acceleration
+from dps_studio.gui.analysis_session import EventTimeSource
+from dps_studio.gui.main_window import MainWindow
+from dps_studio.gui.release_workflow_smoke import audit_derivative
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _analyze(filename: str, column: int):
-    config = load_workflow_config(ROOT / "configs/pdv_studio_defaults.toml", repository_root=ROOT)
-    name = f"pdv_channel_{column}"
-    records = read_delimited_signals(
-        ROOT / "data/raw" / filename, time_column=0, voltage_columns={name: column},
-        delimiter=",", has_header=False, encoding="utf-8", time_scale=1.0,
-        voltage_scales={name: 1.0},
-    ).records
-    profile = config.analysis.default_profile
-    stfts = compute_profile_stfts(records, profile=profile)
-    stft = stfts[name]
-    result = analyze_stft_results(
-        stfts, minimum_frequency_hz=profile.minimum_frequency_hz,
-        maximum_frequency_hz=profile.maximum_frequency_hz,
-        analysis_start_time_s=float(stft.time_s[0]), analysis_end_time_s=float(stft.time_s[-1]),
-        vacuum_wavelength_m=config.analysis.vacuum_wavelength_m,
-        detection_config=config.quality.signal_detection, event_candidate_config=config.event_candidate,
-        automatic_ridge_selection_config=config.automatic_ridge_selection,
-        velocity_correction_config=config.velocity_correction,
-        background_guard_window_scale=config.quality.background_guard_window_scale,
-        minimum_background_bin_count=config.quality.minimum_background_bin_count,
-        assume_pre_event_zero_for_display=True,
-    )[name]
-    return records[name], result
+def _check_export(window: MainWindow, directory: Path, analysis: ChannelAnalysis) -> None:
+    directory.mkdir()
+    window._set_export_output_directory(directory)
+    assert window.export_include_pre_event_check.isChecked()
+    assert not window.export_quality_passed_check.isChecked()
+    assert window._export_current_result()
 
-@pytest.mark.parametrize(("filename", "column"), [
-    ("20260607.csv", 1), ("20260630-1.csv", 2), ("20260630-2.csv", 1), ("20260701.csv", 1),
-    ("ch2.csv", 1), ("ch3.csv", 1), ("ch4.csv", 1),
+    concise, detail = sorted(directory.glob("*.csv"))
+    with concise.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    np.testing.assert_array_equal([float(r["time_s"]) for r in rows], analysis.stft_result.time_s)
+    np.testing.assert_array_equal([float(r["display_velocity_m_s"]) for r in rows],
+                                  analysis.plot_velocity_m_s)
+    with detail.open(encoding="utf-8", newline="") as handle:
+        assert tuple(r["velocity_origin"] for r in csv.DictReader(handle)) == analysis.velocity_origins
+
+
+@pytest.mark.parametrize(("filename", "column", "frames"), [
+    ("20260607.csv", 1, 620), ("20260630-1.csv", 2, 1557),
 ])
-def test_balanced_velocity_semantics(filename, column):
-    record, analysis = _analyze(filename, column)
-    detection = analysis.signal_detection_result
-    time = detection.time_s
-    measured = np.array([s is SignalState.MEASURED for s in detection.signal_states])
-    assert detection.manual_event_reference_time_s is None
-    assert analysis.velocity_origins == tuple(s.value for s in detection.signal_states)
-    for vector in (
-        analysis.working_frequency_hz, analysis.continuous_apparent_velocity_m_s,
-        analysis.continuous_corrected_velocity_m_s, analysis.plot_velocity_m_s,
-        analysis.apparent_velocity_m_s, analysis.corrected_velocity_m_s,
-    ):
-        np.testing.assert_array_equal(np.isfinite(vector), measured)
-        assert np.isnan(vector[~measured]).all()
-    assert np.isnan(channel_acceleration(analysis).acceleration_m_s2[~measured]).all()
+def test_real_default_and_active_platform(filename: str, column: int, frames: int, tmp_path: Path) -> None:
+    app = QApplication.instance() or QApplication(["task023", "-platform", "offscreen"])
+    window = MainWindow(settings=QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat))
+    name = f"pdv_channel_{column}"
+    try:
+        loaded = read_delimited_signals(
+            ROOT / "data/raw" / filename, time_column=0, voltage_columns={name: column},
+            delimiter=",", has_header=False, encoding="utf-8", time_scale=1.0,
+            voltage_scales={name: 1.0},
+        )
+        window.set_loaded_result(loaded)
+        panel = window.analysis_range_panel
+        panel.use_full_range()
+        loop = QEventLoop()
+        window._analysis_adapter.finished.connect(loop.quit)
+        window._analysis_adapter.failed.connect(loop.quit)
+        QTimer.singleShot(30_000, loop, loop.quit)
+        assert window.run_automatic_analysis()
+        loop.exec()
+        session = window.analysis_session
+        assert session.results_valid
+        original = session.channel_analyses[name]
+        time = original.stft_result.time_s
+        candidate = session.automatic_event_reference_times_s[name]
+        assert candidate is not None and time[1] < candidate < time[-2]
+        assert time.size == frames
+        assert session.event_time_source is EventTimeSource.UNSET
+        assert original.signal_detection_result.manual_event_reference_time_s is None
+        assert PRE_EVENT_DISPLAY_ORIGIN not in original.velocity_origins
+        assert np.isfinite(original.working_frequency_hz).all()
+        assert np.isfinite(original.plot_velocity_m_s).all()
+        np.testing.assert_array_equal(original.plot_velocity_m_s, original.continuous_corrected_velocity_m_s)
+        assert np.any(original.plot_velocity_m_s[time < candidate] > 0.0)
+        assert audit_derivative(original)["finite_derivatives"] == frames
+        _check_export(window, tmp_path / "unset", original)
 
-    reference = analysis.stream_event_candidates.primary_candidate_time_s
-    assert reference is not None
-    active = configure_channel_event_reference(
-        analysis, event_reference_time_s=reference, event_reference_source="user_adopted",
-        enable_pre_event_display=True, pre_event_display_velocity_m_s=0.0,
-    )
-    platform = np.array(active.velocity_origins) == PRE_EVENT_DISPLAY_ORIGIN
-    assert platform.any() and np.all(time[platform] < reference)
-    assert not (platform & measured).any()
-    np.testing.assert_array_equal(active.plot_velocity_m_s[platform], 0.0)
-    np.testing.assert_array_equal(active.plot_velocity_m_s[measured], analysis.corrected_velocity_m_s[measured])
-    assert np.isnan(active.plot_velocity_m_s[~(platform | measured)]).all()
-    assert np.isnan(active.corrected_velocity_m_s[platform]).all()
-    if filename == "20260607.csv":
-        assert not measured[time < reference].any()
-        assert platform[:100].sum() >= 90
-    elif filename == "20260630-1.csv":
-        assert platform[:100].sum() >= 90
-        assert analysis.apparent_velocity_m_s[1015] == pytest.approx(163.819, abs=0.001)
-        assert measured[697:700].all()
-        assert not platform[700:].any()
-    elif filename == "20260630-2.csv":
-        assert time[153] < reference and np.isnan(active.plot_velocity_m_s[153])
-    elif filename == "ch2.csv":
-        assert (time[355:360] < reference).all()
-        assert np.isnan(active.plot_velocity_m_s[355:360]).all()
-    elif filename in ("ch3.csv", "ch4.csv"):
-        spikes = [9, 21] if filename == "ch3.csv" else [55, 65, 67]
-        assert not measured[spikes].any()
-
-    # The supplied JSON covers the first two records. The additional hashes
-    # were captured with the same entry point on Production b6557b0 before editing.
-    oracle = json.loads((ROOT / "tests/reference/task023_pass1_before_sha256.json").read_text())
-    if filename not in oracle:
-        return
-    baseline = ROOT / "artifacts/task023_hotfix/baseline/before_metrics.json"
-    if baseline.exists():
-        supplied = json.loads(baseline.read_text()).get(filename)
-        if supplied:
-            assert oracle[filename] == {k: supplied[k]["sha256"] for k in oracle[filename]}
-    apparent = analysis.apparent_velocity_m_s.copy()
-    corrected = analysis.corrected_velocity_m_s.copy()
-    if filename == "20260607.csv":
-        # Restore the two rejected values on comparison copies only, so the
-        # original full-array digests verify every other byte, including NaNs.
-        apparent[[20, 111]] = [2655.8947848000603, 1837.9313652481494]
-        corrected[[20, 111]] = [2080.101232769797, 1443.8228924341954]
-    arrays = {
-        "stft_spectrum": analysis.stft_result.spectrum, "stft_time_s": time,
-        "stft_freq_hz": analysis.stft_result.frequency_hz,
-        "formal_apparent": apparent, "formal_corrected": corrected,
-        "dechirp_accel": channel_dechirp(record, analysis).apparent_acceleration_m_s2,
-    }
-    for field, values in arrays.items():
-        assert hashlib.sha256(values.tobytes()).hexdigest() == oracle[filename][field], field
+        view = window.velocity_view
+        window.science_tabs.setCurrentWidget(view)
+        assert not hasattr(view, "pre_event_platform_curve")
+        assert window.pre_event_display_check.isChecked()
+        for source in (EventTimeSource.AUTOMATIC, EventTimeSource.MANUAL):
+            panel.unset_event_time_radio.click()
+            x_bounds = (time[1] * 1e6, time[-2] * 1e6)
+            view.plot_widget.setXRange(*x_bounds, padding=0)
+            view.plot_widget.setYRange(50.0, 500.0, padding=0)
+            if source is EventTimeSource.AUTOMATIC:
+                panel.automatic_event_time_radio.click()
+            else:
+                panel.event_reference_spin.setValue(time[frames // 2] * 1e6)
+                panel.apply_event_reference_button.click()
+            app.processEvents()
+            active = session.channel_analyses[name]
+            reference = active.signal_detection_result.manual_event_reference_time_s
+            assert session.event_time_source is source
+            expected_reference = candidate if source is EventTimeSource.AUTOMATIC else time[frames // 2]
+            assert reference == pytest.approx(expected_reference, rel=0.0, abs=1e-12)
+            before = time < reference
+            np.testing.assert_array_equal(np.asarray(active.velocity_origins) == PRE_EVENT_DISPLAY_ORIGIN, before)
+            np.testing.assert_array_equal(active.continuous_corrected_velocity_m_s, original.plot_velocity_m_s)
+            np.testing.assert_array_equal(active.plot_velocity_m_s, np.where(before, 0.0, original.plot_velocity_m_s))
+            curve = view.display_curve
+            np.testing.assert_array_equal(curve.yData, active.plot_velocity_m_s)
+            pen = curve.opts["pen"]
+            assert pen.color().name().upper() == "#6C5CE7"
+            assert pen.widthF() == pytest.approx(2.2) and pen.style() == Qt.PenStyle.SolidLine
+            assert curve.opts["connect"] == "finite"
+            if view.display_connector is not None:
+                assert view.display_connector.opts["pen"].color() == pen.color()
+            x_range, y_range = view.plot_widget.viewRange()
+            assert x_range == pytest.approx(x_bounds)
+            assert y_range == pytest.approx([-37.5, 500.0])
+            acceleration = channel_acceleration(active).acceleration_m_s2
+            first_post = int(np.searchsorted(time, reference))
+            np.testing.assert_array_equal(acceleration[:first_post - 1], 0.0)
+            assert acceleration[first_post - 1] > 0.0
+            assert audit_derivative(active)["finite_derivatives"] == frames
+            _check_export(window, tmp_path / source.value, active)
+    finally:
+        window.close()
+        window.deleteLater()
+        app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        app.processEvents()

@@ -162,28 +162,6 @@ def detect_beat_signal(
             )
         )
 
-    # Unsupported alternatives cannot start or extend a hysteresis segment.
-    supported_neighbor = (
-        ~outside & ~boundary
-        & np.array([status is RidgeSpectralQualityStatus.ASSESSED
-                    for status in spectral_quality_result.assessment_statuses])
-        & (spectral_quality_result.peak_to_background_db
-           >= detection_config.minimum_peak_to_background_db)
-    )
-    rescue_indices = []
-    for index, origin in enumerate(selection_origins):
-        if origin is not RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE:
-            continue
-        if strict_states[index] is not SignalState.MEASURED or not (
-            0 < index < frame_count - 1
-            and supported_neighbor[index - 1] and supported_neighbor[index + 1]
-        ):
-            if strict_states[index] is SignalState.MEASURED:
-                strict_states[index] = SignalState.UNSTABLE_DETECTION
-            tracking_states[index] = strict_states[index]
-            continue
-        rescue_indices.append(index)
-
     final_states = list(strict_states)
     segment_established = False
     previous_measured_index: int | None = None
@@ -244,18 +222,16 @@ def detect_beat_signal(
             segment_established = True
             previous_measured_index = stop - 1
 
-    # Freeze the established runs before allowing an isolated rescue.
-    # Promoted frames cannot recursively validate one another.
-    anchored = np.zeros(frame_count, dtype=np.bool_)
-    for start, stop in _measured_runs(final_states):
-        if stop - start >= detection_config.minimum_consecutive_frames:
-            anchored[start:stop] = True
-    for index in rescue_indices:
-        # An intervening frame, if present, passed the strict neighbor gate.
-        if anchored[max(0, index - 2):index + 3].any():
+    for index, origin in enumerate(selection_origins):
+        if (
+            origin is RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE
+            and strict_states[index] is SignalState.MEASURED
+        ):
+            # A production rescue has already passed the isolated-jump,
+            # event-protection, spectral, and two-neighbor gates. Preserve it
+            # as an explicitly sourced measurement without manufacturing a
+            # multi-frame run or changing compatibility onset detection.
             final_states[index] = SignalState.MEASURED
-        else:
-            final_states[index] = SignalState.UNSTABLE_DETECTION
 
     qualifying_runs = [
         run
@@ -356,7 +332,7 @@ def _provisional_state(
     if outside:
         return SignalState.OUTSIDE_ANALYSIS_WINDOW
     if not detection_config.enabled:
-        return SignalState.UNASSESSED
+        return SignalState.NO_DETECTABLE_BEAT
     assessment = spectral_quality_result.assessment_statuses[index]
     peak_to_background = float(
         spectral_quality_result.peak_to_background_db[index]
@@ -364,15 +340,12 @@ def _provisional_state(
     peak_to_competitor = float(
         spectral_quality_result.peak_to_competitor_db[index]
     )
-    if assessment is RidgeSpectralQualityStatus.INVALID_PEAK_MAGNITUDE:
-        # An exactly zero in-band spectrum contains no detectable beat.
-        return SignalState.NO_DETECTABLE_BEAT
     if (
         assessment is not RidgeSpectralQualityStatus.ASSESSED
         or not math.isfinite(peak_to_background)
         or not math.isfinite(peak_to_competitor)
     ):
-        return SignalState.UNASSESSED
+        return SignalState.NO_DETECTABLE_BEAT
     if peak_to_background < minimum_peak_to_background_db:
         return SignalState.NO_DETECTABLE_BEAT
     competitor_threshold = detection_config.minimum_peak_to_competitor_db

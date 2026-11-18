@@ -7,80 +7,17 @@ from dataclasses import replace
 from numbers import Real
 
 import numpy as np
-from numpy.typing import NDArray
-from scipy.signal import get_window  # type: ignore[import-untyped]
 
 from dps_studio.core.physics import (
     VelocityCorrectionConfig,
     apply_velocity_corrections,
 )
-from dps_studio.core.quality import SignalDetectionResult, SignalState
-from dps_studio.core.time_frequency import STFTResult
+from dps_studio.core.quality import SignalState
 from dps_studio.core.ridge import assess_event_aware_ridge_continuity
 from dps_studio.core.workflow.models import ChannelAnalysis, FloatArray
 
 
-PRE_EVENT_DISPLAY_ORIGIN = "pre_event_display_platform"
-
-
-def pre_event_interval(
-    time: FloatArray, reference: float | None, start: float | None, end: float | None,
-) -> NDArray[np.bool_]:
-    """Frames before a resolved reference inside both the data and analysis range."""
-    lower = max(time[0], start) if start is not None else time[0]
-    upper = min(time[-1], end) if end is not None else time[-1]
-    if reference is None or not lower <= reference <= upper:
-        return np.zeros(time.shape, dtype=np.bool_)
-    return np.asarray((time >= lower) & (time < reference), dtype=np.bool_)
-
-
-def stationary_pre_event_evidence(
-    stft: STFTResult, detection: SignalDetectionResult,
-) -> NDArray[np.bool_]:
-    """Test for quiet AC power within the active pre-reference prefix.
-
-    Remove the windowed DC component (including its leakage into positive
-    bins). Parseval power of the residual is proportional to windowed AC
-    energy. Use the lower quartile of the diffuse AC powers as the noise reference.
-    Allow at most a fourfold power increase (6 dB) and stop permanently at
-    the first sustained measured run. This relative veto supports an explicit
-    stationary prior; absolute rest cannot be inferred from a PDV noise floor.
-    """
-    mask = np.zeros(stft.time_s.shape, dtype=np.bool_)
-    eligible = pre_event_interval(
-        stft.time_s, detection.manual_event_reference_time_s,
-        detection.analysis_start_time_s, detection.analysis_end_time_s,
-    )
-    if not eligible.any():
-        return mask
-    run = 0
-    for i, state in enumerate(detection.signal_states):
-        run = run + 1 if state is SignalState.MEASURED else 0
-        if run >= detection.detection_config.minimum_consecutive_frames:
-            eligible[i + 1 - run:] = False
-            break
-    indices = np.flatnonzero(eligible)
-    if not indices.size:
-        return mask
-    window = get_window(stft.window_name, stft.window_length_samples)
-    response = np.fft.rfft(window, n=stft.nfft) / window.sum()
-    if response.size != stft.frequency_hz.size:
-        # An incomplete spectrum cannot establish total AC power.
-        return mask
-    coeff = stft.spectrum[:, indices[0]:indices[-1] + 1]
-    residual = coeff - response[:, None] * coeff[:1]
-    power = np.abs(residual) ** 2
-    power[1:(-1 if stft.nfft % 2 == 0 else None)] *= 2
-    energy = power.sum(axis=0)
-    # For a bin-centered sinusoid the peak-bin power fraction scales as
-    # 1 / ENBW (in padded FFT bins). Reject a line consistent with at
-    # least one quarter of total AC power, even in an all-active prefix.
-    enbw_bins = stft.nfft * np.dot(window, window) / window.sum() ** 2
-    diffuse = power.max(axis=0) * enbw_bins <= 0.25 * energy
-    quiet_candidates = energy[diffuse]
-    if quiet_candidates.size:
-        mask[indices] = diffuse & (energy <= 4.0 * np.quantile(quiet_candidates, 0.25))
-    return mask
+PRE_EVENT_DISPLAY_ORIGIN = "configured_pre_event_display_velocity_only"
 
 
 def build_display_velocity(
@@ -93,12 +30,14 @@ def build_display_velocity(
     analysis_end_time_s: float | None = None,
     enable_pre_event_display: bool,
     pre_event_display_velocity_m_s: float = 0.0,
-    stationary_pre_event_mask: NDArray[np.bool_] | None = None,
 ) -> tuple[FloatArray, tuple[str, ...]]:
     """Build the final plotting array from an explicit optional event reference.
 
-    Measured values take precedence. A display-only constraint requires an
-    explicit stationary mask. Missing evidence leaves non-measured frames NaN.
+    Every frame inside the explicit analysis range and strictly before the
+    resolved event reference receives the configured platform, regardless of
+    formal quality. All other in-range values come from the supplied continuous
+    corrected-velocity array. A reference outside the active
+    analysis/data domain produces no platform.
     """
     if not isinstance(enable_pre_event_display, bool):
         raise TypeError("enable_pre_event_display must be a boolean.")
@@ -137,24 +76,34 @@ def build_display_velocity(
             "analysis_start_time_s must not exceed analysis_end_time_s."
         )
 
-    prefix = pre_event_interval(time, manual_reference, analysis_start, analysis_end)
-    stationary = np.zeros(time.shape, dtype=np.bool_)
-    if stationary_pre_event_mask is not None:
-        stationary = np.asarray(stationary_pre_event_mask)
-        if stationary.dtype != np.bool_ or stationary.shape != time.shape:
-            raise ValueError("stationary_pre_event_mask must be boolean and match time_s.")
-    display = np.full(time.shape, np.nan)
-    origins = [state.value for state in states]
+    display_start = (
+        analysis_start if analysis_start is not None else float(time[0])
+    )
+    display_end = analysis_end if analysis_end is not None else float(time[-1])
+    reference_is_active = (
+        manual_reference is not None
+        and display_start <= manual_reference <= display_end
+        and float(time[0]) <= manual_reference <= float(time[-1])
+    )
+
+    display = continuous.copy()
+    origins: list[str] = []
     for index, state in enumerate(states):
-        if state is SignalState.MEASURED:
-            display[index] = continuous[index]
-        elif (
-            enable_pre_event_display and prefix[index]
-            and state not in (SignalState.OUTSIDE_ANALYSIS_WINDOW, SignalState.UNASSESSED)
-            and stationary[index]
+        if (
+            enable_pre_event_display
+            and reference_is_active
+            and time[index] >= display_start
+            and time[index] < manual_reference
+            and time[index] <= display_end
         ):
             display[index] = platform_velocity
-            origins[index] = PRE_EVENT_DISPLAY_ORIGIN
+            origins.append(PRE_EVENT_DISPLAY_ORIGIN)
+        elif state is SignalState.OUTSIDE_ANALYSIS_WINDOW:
+            origins.append("outside_analysis_window")
+        elif np.isfinite(display[index]):
+            origins.append("continuous_corrected_velocity")
+        else:
+            origins.append(state.value)
     return display, tuple(origins)
 
 
@@ -171,10 +120,7 @@ def configure_channel_display_velocity(
     display, origins = build_display_velocity(
         detection.time_s,
         detection.signal_states,
-        analysis.corrected_velocity_m_s,
-        stationary_pre_event_mask=stationary_pre_event_evidence(
-            analysis.stft_result, detection,
-        ) if enable_pre_event_display else None,
+        analysis.continuous_corrected_velocity_m_s,
         manual_event_reference_time_s=(
             detection.manual_event_reference_time_s
         ),
@@ -187,7 +133,6 @@ def configure_channel_display_velocity(
         analysis,
         display_velocity_m_s=display,
         velocity_origins=origins,
-        pre_event_display_enabled=enable_pre_event_display,
     )
 
 
@@ -211,10 +156,15 @@ def configure_channel_velocity_correction(
         config=velocity_correction_config,
         vacuum_wavelength_m=vacuum_wavelength_m,
     )
+    working_correction = apply_velocity_corrections(
+        analysis.working_apparent_velocity_m_s,
+        config=velocity_correction_config,
+        vacuum_wavelength_m=vacuum_wavelength_m,
+    )
     updated = replace(
         analysis,
         velocity_correction_result=correction,
-        working_velocity_correction_result=correction,
+        working_velocity_correction_result=working_correction,
     )
     return configure_channel_display_velocity(
         updated,

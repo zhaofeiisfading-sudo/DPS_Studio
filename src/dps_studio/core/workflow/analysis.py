@@ -50,7 +50,7 @@ from dps_studio.core.ridge import (
     validate_ridge_corridor_for_stft,
 )
 from dps_studio.core.time_frequency import STFTResult, compute_stft
-from dps_studio.core.workflow.display import build_display_velocity, stationary_pre_event_evidence
+from dps_studio.core.workflow.display import build_display_velocity
 from dps_studio.core.workflow.models import (
     ChannelAnalysis,
     FloatArray,
@@ -532,9 +532,18 @@ def analyze_stft_results(
             config=velocity_correction_config,
             vacuum_wavelength_m=vacuum_wavelength_m,
         )
-        working_frequency_hz = signal_detection_result.refined_frequency_hz
-        working_source = _working_sources(
-            signal_detection_result.signal_states, refined_result, automatic_selection_result.origins
+        working_frequency_hz, working_source = _build_working_ridge(
+            refined_result,
+            signal_detection_result.signal_states,
+            automatic_selection_result.origins,
+        )
+        working_velocity_m_s = (
+            working_frequency_hz * vacuum_wavelength_m / 2.0
+        )
+        working_velocity_correction_result = apply_velocity_corrections(
+            working_velocity_m_s,
+            config=velocity_correction_config,
+            vacuum_wavelength_m=vacuum_wavelength_m,
         )
         stream_event_candidates = build_stream_event_candidates(
             signal_detection_result,
@@ -546,10 +555,7 @@ def analyze_stft_results(
         display_velocity_m_s, velocity_origins = build_display_velocity(
             stft_result.time_s,
             signal_detection_result.signal_states,
-            velocity_correction_result.corrected_velocity_m_s,
-            stationary_pre_event_mask=stationary_pre_event_evidence(
-                stft_result, signal_detection_result,
-            ) if assume_pre_event_zero_for_display else None,
+            working_velocity_correction_result.corrected_velocity_m_s,
             manual_event_reference_time_s=resolved_event_time_s,
             analysis_start_time_s=channel_analysis_start,
             analysis_end_time_s=channel_analysis_end,
@@ -584,11 +590,12 @@ def analyze_stft_results(
             velocity_correction_result=velocity_correction_result,
             working_frequency_hz=working_frequency_hz,
             working_source=working_source,
-            working_velocity_m_s=refined_velocity_m_s,
-            working_velocity_correction_result=velocity_correction_result,
+            working_velocity_m_s=working_velocity_m_s,
+            working_velocity_correction_result=(
+                working_velocity_correction_result
+            ),
             display_velocity_m_s=display_velocity_m_s,
             velocity_origins=velocity_origins,
-            pre_event_display_enabled=assume_pre_event_zero_for_display,
             spectral_quality_result=spectral_quality_result,
             continuity_result=continuity_result,
             event_aware_continuity_result=event_aware_continuity_result,
@@ -601,25 +608,55 @@ def analyze_stft_results(
     return MappingProxyType(analyses)
 
 
-def _working_sources(
-    states: tuple[SignalState, ...],
-    ridge: RefinedRidgeResult,
-    origins: tuple[RidgeSelectionOrigin, ...],
-) -> tuple[WorkingRidgeSource, ...]:
-    sources = []
-    for state, flag, origin in zip(states, ridge.quality_flags, origins, strict=True):
-        if state is SignalState.OUTSIDE_ANALYSIS_WINDOW:
-            source = WorkingRidgeSource.OUTSIDE_ANALYSIS_WINDOW
-        elif flag is RidgeQualityFlag.NO_ALLOWED_BINS:
-            source = WorkingRidgeSource.NO_ALLOWED_FINITE_BIN
-        elif state is not SignalState.MEASURED:
-            source = WorkingRidgeSource.UNAVAILABLE
-        elif origin is RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE:
-            source = WorkingRidgeSource.CONTINUITY_SELECTED
+def _build_working_ridge(
+    refined_result: RefinedRidgeResult,
+    signal_states: tuple[SignalState, ...],
+    selection_origins: tuple[RidgeSelectionOrigin, ...],
+) -> tuple[FloatArray, tuple[WorkingRidgeSource, ...]]:
+    """Choose one same-frame production point without relaxing Formal gates."""
+    frame_count = refined_result.time_s.size
+    if len(signal_states) != frame_count or len(selection_origins) != frame_count:
+        raise ValueError(
+            "Working ridge inputs must share the refined ridge time axis."
+        )
+    frequency_hz = np.full(frame_count, np.nan, dtype=np.float64)
+    sources: list[WorkingRidgeSource] = []
+    for index, flag in enumerate(refined_result.quality_flags):
+        discrete_frequency = refined_result.discrete_frequency_hz[index]
+        if signal_states[index] is SignalState.OUTSIDE_ANALYSIS_WINDOW or flag in {
+            RidgeQualityFlag.PRE_EVENT,
+            RidgeQualityFlag.OUTSIDE_ANALYSIS_WINDOW,
+        }:
+            sources.append(WorkingRidgeSource.OUTSIDE_ANALYSIS_WINDOW)
+            continue
+        if flag is not RidgeQualityFlag.CANDIDATE or not np.isfinite(
+            discrete_frequency
+        ):
+            sources.append(WorkingRidgeSource.NO_ALLOWED_FINITE_BIN)
+            continue
+
+        refined_frequency = refined_result.refined_frequency_hz[index]
+        refinement_succeeded = (
+            refined_result.refinement_statuses[index]
+            is RidgeRefinementStatus.REFINED
+            and np.isfinite(refined_frequency)
+        )
+        if not refinement_succeeded:
+            frequency_hz[index] = discrete_frequency
+            sources.append(WorkingRidgeSource.COARSE_BIN_FALLBACK)
+            continue
+
+        frequency_hz[index] = refined_frequency
+        if (
+            selection_origins[index]
+            is RidgeSelectionOrigin.CONTINUITY_ASSISTED_ALTERNATIVE
+        ):
+            sources.append(WorkingRidgeSource.CONTINUITY_SELECTED)
+        elif signal_states[index] is not SignalState.MEASURED:
+            sources.append(WorkingRidgeSource.STRONGEST_REFINED_FALLBACK)
         else:
-            source = WorkingRidgeSource.REFINED
-        sources.append(source)
-    return tuple(sources)
+            sources.append(WorkingRidgeSource.REFINED)
+    return frequency_hz, tuple(sources)
 
 
 def _validated_ridge_constraints(

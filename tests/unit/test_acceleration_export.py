@@ -15,6 +15,7 @@ from dps_studio.core.export import (
     export_formal_results, ExportTimeOrigin, ResultExportWriteError, ResultAnalysisMode,
     ResultExportOptions,
 )
+from dps_studio.core.quality import SignalState
 from dps_studio.core.workflow.acceleration import channel_acceleration
 from dps_studio.core.workflow import WorkingRidgeSource, PRE_EVENT_DISPLAY_ORIGIN
 
@@ -99,19 +100,30 @@ def test_optional_csv_preserves_original_files_and_records_si_source(
     assert metadata == old
 
 
-def test_known_finite_interpolated_gap_and_platform_are_masked(tmp_path: Path) -> None:
+def test_pre_event_acceleration_includes_platform_and_no_beat_without_bridging(tmp_path: Path) -> None:
     analysis = _analyses(tmp_path)["pdv_channel_1"]
-    index = int(np.flatnonzero(np.isfinite(analysis.plot_velocity_m_s) &
-               (analysis.stft_result.time_s > .5e-6))[0])
+    time = analysis.stft_result.time_s
+    platform = np.asarray(analysis.velocity_origins) == PRE_EVENT_DISPLAY_ORIGIN
+    indices = np.flatnonzero(platform)
+    assert indices.size >= 5
+    gap = int(indices[2])
     sources = list(analysis.working_source)
-    sources[index] = WorkingRidgeSource.INTERPOLATED
+    sources[gap] = WorkingRidgeSource.INTERPOLATED
     changed = replace(analysis, working_source=tuple(sources))
     result = channel_acceleration(changed)
-    assert np.isnan(result.acceleration_m_s2[index])
-    for i, origin in enumerate(analysis.velocity_origins):
-        if origin == PRE_EVENT_DISPLAY_ORIGIN:
-            assert np.isnan(result.acceleration_m_s2[i])
-    assert changed.plot_velocity_m_s[index] == analysis.plot_velocity_m_s[index]
+    assert np.isnan(result.acceleration_m_s2[gap])
+    assert result.numerical_flags[gap - 1:gap + 2] == (
+        "one_sided_secant", "invalid_or_masked", "one_sided_secant",
+    )
+    np.testing.assert_array_equal(result.acceleration_m_s2[[gap - 1, gap + 1]], 0.0)
+
+    unselected = formal_analyses(tmp_path, manual_event_reference_time_s=None)["automatic"]["pdv_channel_1"]
+    before = (time < 0.4e-6) & np.isfinite(unselected.plot_velocity_m_s)
+    no_beat = np.array([state is SignalState.NO_DETECTABLE_BEAT
+                        for state in unselected.signal_detection_result.signal_states])
+    assert (before & no_beat).any()
+    acceleration = channel_acceleration(unselected).acceleration_m_s2
+    assert np.isfinite(acceleration[before & no_beat]).all()
 
 
 def test_acceleration_collision_allocates_consistent_group(tmp_path: Path) -> None:

@@ -259,11 +259,7 @@ def test_gui_reference_candidates_and_result_view_fit(
                 (analysis.stft_result.time_s >= candidate_s) & ~measured
             )
             assert pre_event.any()
-            platform = np.asarray(analysis.velocity_origins) == "pre_event_display_platform"
-            assert platform.any()
-            assert pre_event[platform].all()
-            assert np.equal(analysis.display_velocity_m_s[platform], 0.0).all()
-            assert np.isnan(analysis.display_velocity_m_s[pre_event & ~platform & ~measured]).all()
+            assert np.equal(analysis.display_velocity_m_s[pre_event], 0.0).all()
             assert np.isnan(
                 analysis.display_velocity_m_s[before_analysis]
             ).all()
@@ -353,10 +349,7 @@ def test_one_click_keeps_ch1_candidate_optional_and_working_curves(
                 analysis.display_velocity_m_s[pre_event],
                 analysis.continuous_corrected_velocity_m_s[pre_event],
             )
-            np.testing.assert_array_equal(
-                analysis.working_frequency_hz[pre_event],
-                analysis.signal_detection_result.refined_frequency_hz[pre_event],
-            )
+            assert np.isfinite(analysis.working_frequency_hz[pre_event]).all()
 
         np.testing.assert_array_equal(
             window.ridge_view.refined_curve.yData,

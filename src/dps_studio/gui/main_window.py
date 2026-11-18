@@ -1050,7 +1050,7 @@ class MainWindow(QMainWindow):
         self.pre_event_display_check = QCheckBox(self.tr("启用"))
         self.pre_event_display_check.setObjectName("preEventDisplayCheck")
         self.pre_event_display_check.setToolTip(
-            self.tr("设置事件参考后，仅对有静止依据的未测速帧显示平台。")
+            self.tr("仅在已设置事件参考时，用指定速度显示事件前平台。")
         )
         event_form.addRow(
             self.tr("事件前平台"), self.pre_event_display_check
@@ -1310,7 +1310,7 @@ class MainWindow(QMainWindow):
         )
         self.export_quality_passed_check.setObjectName("exportQualityPassedOnly")
         self.export_quality_passed_check.setToolTip(self.tr(
-            "默认导出显示速度，未确定帧保留 NaN。勾选后简表仅含 measured 且有限的正式修正速度，"
+            "默认导出连续显示曲线。勾选后简表仅含 measured 且有限的正式修正速度，"
             "排除显示平台；文件名包含 quality_passed。详细表保留全部诊断行。"
         ))
         formats.body_layout.addWidget(self.export_quality_passed_check)

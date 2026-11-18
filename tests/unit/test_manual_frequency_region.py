@@ -255,7 +255,7 @@ def test_manual_region_does_not_force_a_ridge_when_no_peak_is_credible() -> None
     )
 
 
-def test_manual_mask_preserves_unresolved_pre_event_tone_gap() -> None:
+def test_manual_mask_preserves_the_same_pre_event_display_platform() -> None:
     stft = _stft()
     common = dict(
         minimum_frequency_hz=0.1e9,
@@ -288,6 +288,6 @@ def test_manual_mask_preserves_unresolved_pre_event_tone_gap() -> None:
         automatic.display_velocity_m_s[pre_event],
         manual.display_velocity_m_s[pre_event],
     )
-    assert np.isnan(manual.display_velocity_m_s[pre_event]).all()
+    np.testing.assert_array_equal(manual.display_velocity_m_s[pre_event], 0.0)
     assert np.isnan(automatic.apparent_velocity_m_s[pre_event]).all()
     assert np.isnan(manual.apparent_velocity_m_s[pre_event]).all()
