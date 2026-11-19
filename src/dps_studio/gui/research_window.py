@@ -1,4 +1,4 @@
-"""Classic, segmented and diagnostic workspaces sharing immutable scientific inputs."""
+"""Classic, segmented, diagnostic and comparison workspaces sharing immutable scientific inputs."""
 
 from __future__ import annotations
 
@@ -7,11 +7,13 @@ from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QComboBox, QLabel, QSizePolicy, QStackedWidget, QToolButton
 
 from dps_studio.core.diagnostics import DiagnosticPreset, load_raw_channel_result
+from dps_studio.core.io import SignalIOError
 from dps_studio.gui.analysis_session import (
     AnalysisRange,
     AnalysisRunConfiguration,
     RidgeSearchRegion,
 )
+from dps_studio.gui.comparison import ComparisonWorkspace
 from dps_studio.gui.diagnostic import DiagnosticWorkspace
 from dps_studio.gui.main_window import MainWindow
 from dps_studio.gui.segment_workspace import SegmentWorkspace
@@ -22,16 +24,18 @@ from dps_studio.gui.workspace_ui import channel_label
 class ResearchMainWindow(MainWindow):
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
-        self.setWindowTitle("PDV Studio · Research / Test · TASK-022")
+        self.setWindowTitle("PDV Studio · Research / Test · TASK-024")
         self.segment_workspace = SegmentWorkspace(self)
         self.diagnostic_workspace = DiagnosticWorkspace(
             repository_root=self._repository_root, parent=self
         )
+        self.comparison_workspace = ComparisonWorkspace(self._repository_root, self)
         self._segment_roi_override: AnalysisRange | None = None
         self.segment_workspace.can_analyze = lambda: (
             self._parameters_valid
             and not self._analysis_adapter.busy
             and not self.diagnostic_workspace.busy
+            and not self.comparison_workspace.busy
         )
         self.mode_stack = QStackedWidget()
         self.mode_stack.setObjectName("analysisWorkspaceStack")
@@ -39,12 +43,14 @@ class ResearchMainWindow(MainWindow):
         self.mode_stack.addWidget(self.science_tabs)
         self.mode_stack.addWidget(self.segment_workspace)
         self.mode_stack.addWidget(self.diagnostic_workspace)
+        self.mode_stack.addWidget(self.comparison_workspace)
         self.properties_stack = QStackedWidget()
         self.properties_stack.setObjectName("workspacePropertiesStack")
         self.workspace_splitter.replaceWidget(2, self.properties_stack)
         self.properties_stack.addWidget(self.parameter_panel)
         self.properties_stack.addWidget(self.segment_workspace.properties)
         self.properties_stack.addWidget(self.diagnostic_workspace.properties)
+        self.properties_stack.addWidget(self.comparison_workspace.properties)
         for widget in (self.mode_stack, self.properties_stack):
             widget.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.properties_stack.setMinimumWidth(280)
@@ -56,6 +62,7 @@ class ResearchMainWindow(MainWindow):
         self.mode_combo.addItem("经典 STFT", "classic")
         self.mode_combo.addItem("人工分段", "segmented")
         self.mode_combo.addItem(self.tr("波形与支路诊断"), "diagnostic")
+        self.mode_combo.addItem("STFT vs M4 对比", "stft_m4_compare")
         self.mode_combo.setMinimumWidth(150)
         self.main_toolbar.addSeparator()
         self.main_toolbar.addWidget(QLabel("  工作区  "))
@@ -65,6 +72,11 @@ class ResearchMainWindow(MainWindow):
         self.diagnostic_workspace.busyChanged.connect(self._classic_busy_changed)
         self.diagnostic_workspace.presetLoadRequested.connect(self._load_diagnostic_preset)
         self.diagnostic_workspace.channelChanged.connect(self._sync_active_channel)
+        self.comparison_workspace.busyChanged.connect(self._classic_busy_changed)
+        self.comparison_workspace.channel_combo.currentIndexChanged.connect(self._sync_active_channel)
+        self.comparison_workspace.stateChanged.connect(self._comparison_state_changed)
+        self.comparison_workspace.openFileRequested.connect(self.action_open_data.trigger)
+        self.comparison_workspace.presetLoadRequested.connect(self._load_comparison_preset)
         self.segment_workspace.roi_change_requested.connect(self._segment_range_confirmed)
         self.segment_workspace.reference_requested.connect(self._prepare_segment_reference)
         self._analysis_adapter.busy_changed.connect(self._classic_busy_changed)
@@ -81,6 +93,7 @@ class ResearchMainWindow(MainWindow):
         self._classic_sizes: list[int] = [150, 980, 310]
         self._manual_sizes: list[int] = [0, 1130, 310]
         self._diagnostic_sizes: list[int] = [0, 1190, 265]
+        self._comparison_sizes: list[int] = [0, 1034, 342]
         self._dock_visible_before_diagnostic: bool | None = None
         self._previous_mode_index = 0
         self.diagnostics_toggle = QToolButton()
@@ -101,11 +114,16 @@ class ResearchMainWindow(MainWindow):
     def diagnostic_mode(self) -> bool:
         return hasattr(self, "mode_combo") and self.mode_combo.currentData() == "diagnostic"
 
+    @property
+    def comparison_mode(self) -> bool:
+        return hasattr(self, "mode_combo") and self.mode_combo.currentData() == "stft_m4_compare"
+
     def _mode_changed(self, index: int) -> None:
         if (
             self.segment_workspace.busy
             or self._analysis_adapter.busy
             or self.diagnostic_workspace.busy
+            or self.comparison_workspace.busy
         ):
             with QSignalBlocker(self.mode_combo):
                 self.mode_combo.setCurrentIndex(self.mode_stack.currentIndex())
@@ -114,15 +132,17 @@ class ResearchMainWindow(MainWindow):
             self._classic_sizes = self.workspace_splitter.sizes()
         elif self._previous_mode_index == 1:
             self._manual_sizes = self.workspace_splitter.sizes()
-        else:
+        elif self._previous_mode_index == 2:
             self._diagnostic_sizes = self.workspace_splitter.sizes()
-        if index == 2 and self._previous_mode_index != 2:
+        else:
+            self._comparison_sizes = self.workspace_splitter.sizes()
+        if index >= 2 and self._previous_mode_index < 2:
             self._dock_visible_before_diagnostic = self.diagnostics_dock.isVisible()
             self.diagnostics_dock.hide()
-        elif index != 2 and self._previous_mode_index == 2:
+        elif index < 2 and self._previous_mode_index >= 2:
             self._restore_diagnostics_dock()
         self._previous_mode_index = index
-        if index in (1, 2):
+        if index in (1, 2, 3):
             self._cancel_corridor_drawing()
         if index == 1:
             self._sync_segments()
@@ -136,6 +156,11 @@ class ResearchMainWindow(MainWindow):
             self.properties_stack.setCurrentWidget(self.diagnostic_workspace.properties)
             self.navigation_panel.hide()
             self.workspace_splitter.setSizes(self._diagnostic_sizes)
+        elif index == 3:
+            self.mode_stack.setCurrentWidget(self.comparison_workspace)
+            self.properties_stack.setCurrentWidget(self.comparison_workspace.properties)
+            self.navigation_panel.hide()
+            self.workspace_splitter.setSizes(self._comparison_sizes)
         else:
             self.mode_stack.setCurrentWidget(self.science_tabs)
             self.properties_stack.setCurrentWidget(self.parameter_panel)
@@ -150,11 +175,33 @@ class ResearchMainWindow(MainWindow):
                 self.load_result.source_path if self.load_result else None,
             )
 
+    def _sync_comparison(self) -> None:
+        self.comparison_workspace.set_context(
+            self.analysis_session.records,
+            self.load_result.source_path if self.load_result else None,
+        )
+
+    def _load_comparison_preset(self, preset: DiagnosticPreset) -> None:
+        if self.comparison_workspace.busy or not self.mode_combo.isEnabled():
+            return
+        try:
+            result = load_raw_channel_result(preset, self._repository_root)
+            self.set_loaded_result(result)
+        except (OSError, ValueError, SignalIOError) as exc:
+            self.comparison_workspace.properties.stage_label.setText(f"算例载入失败 · {exc}")
+
+    def _comparison_state_changed(self, text: str) -> None:
+        if self.comparison_mode:
+            self.status_state.setText(text)
+            self.status_state.setToolTip(text)
+            self._sync_active_channel()
+
     def _load_diagnostic_preset(self, preset: DiagnosticPreset) -> None:
         if (
             self.segment_workspace.busy
             or self._analysis_adapter.busy
             or self.diagnostic_workspace.busy
+            or self.comparison_workspace.busy
         ):
             return
         prefer_frozen = self.diagnostic_workspace.properties.prefer_frozen_checkbox.isChecked()
@@ -209,6 +256,7 @@ class ResearchMainWindow(MainWindow):
             self._analysis_adapter.busy
             or (hasattr(self, "segment_workspace") and self.segment_workspace.busy)
             or (hasattr(self, "diagnostic_workspace") and self.diagnostic_workspace.busy)
+            or (hasattr(self, "comparison_workspace") and self.comparison_workspace.busy)
         ):
             return None
         return super()._analysis_request_ready()
@@ -218,6 +266,7 @@ class ResearchMainWindow(MainWindow):
             self._analysis_adapter.busy
             or (hasattr(self, "segment_workspace") and self.segment_workspace.busy)
             or (hasattr(self, "diagnostic_workspace") and self.diagnostic_workspace.busy)
+            or (hasattr(self, "comparison_workspace") and self.comparison_workspace.busy)
         ):
             return False
         return super().run_stft_analysis()
@@ -274,21 +323,26 @@ class ResearchMainWindow(MainWindow):
             self.science_tabs.setCurrentIndex(page)
         self._sync_segments()
         self._sync_diagnostic()
+        self._sync_comparison()
         busy = (
             self.segment_workspace.busy
             or self._analysis_adapter.busy
             or self.diagnostic_workspace.busy
+            or self.comparison_workspace.busy
         )
         self.mode_combo.setEnabled(not busy)
         self.diagnostic_workspace.external_busy = (
-            self.segment_workspace.busy or self._analysis_adapter.busy
+            self.segment_workspace.busy or self._analysis_adapter.busy or self.comparison_workspace.busy
+        )
+        self.comparison_workspace.set_external_busy(
+            self.segment_workspace.busy or self._analysis_adapter.busy or self.diagnostic_workspace.busy
         )
         self.diagnostic_workspace._refresh_controls()
         self.segment_workspace._refresh_controls()
         self.parameter_panel.setEnabled(not busy)
         self.navigation_panel.setEnabled(not busy)
         self.action_open_data.setEnabled(not busy)
-        if self.segmented_mode or self.diagnostic_mode or busy:
+        if self.segmented_mode or self.diagnostic_mode or self.comparison_mode or busy:
             self.run_analysis_button.setEnabled(False)
             for action in (
                 self.action_quick_analysis,
@@ -310,11 +364,14 @@ class ResearchMainWindow(MainWindow):
         }
         self.status_state.setText(labels[self.workflow_state.value])
         self.status_state.setToolTip(self.workflow_state.name)
+        self._comparison_state_changed(self.comparison_workspace.state_text)
         self._sync_active_channel()
 
     def _sync_active_channel(self, _value: object = None) -> None:
         view = (
-            self.diagnostic_workspace
+            self.comparison_workspace
+            if self.comparison_mode
+            else self.diagnostic_workspace
             if self.diagnostic_mode
             else self.segment_workspace
             if self.segmented_mode
@@ -355,5 +412,6 @@ class ResearchMainWindow(MainWindow):
             return
         self.segment_workspace.dispose()
         self.diagnostic_workspace.dispose()
+        self.comparison_workspace.dispose()
         self._restore_diagnostics_dock()
         super().closeEvent(event)

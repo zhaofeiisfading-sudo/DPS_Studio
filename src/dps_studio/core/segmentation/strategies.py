@@ -6,6 +6,7 @@ supported by voltage is not a certified physical target branch.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -109,7 +110,8 @@ def spectral_candidates(tau: Float, residual: Float, fs: float, spec: Strategy,
 
 
 def estimate_strategy(request: EstimatorRequest, name: str,
-                      spec: Strategy | None = None) -> BeatEstimate:
+                      spec: Strategy | None = None, *, sample_centers: NDArray[np.int64] | None = None,
+                      check: Callable[[], None] | None = None) -> BeatEstimate:
     spec = STRATEGIES[name] if spec is None else spec
     record = request.record
     fs = record.sample_rate_hz
@@ -121,8 +123,10 @@ def estimate_strategy(request: EstimatorRequest, name: str,
     last = int(np.searchsorted(record.time_s, end, side="left"))
     if end == record.end_time_s:
         last = len(record.time_s)
-    centers = np.arange(0, len(record.time_s), spec.hop, dtype=np.int64)
-    centers = centers[(record.time_s[centers] >= start) & (record.time_s[centers] <= end)]
+    centers = sample_centers
+    if centers is None:
+        centers = np.arange(0, len(record.time_s), spec.hop, dtype=np.int64)
+        centers = centers[(record.time_s[centers] >= start) & (record.time_s[centers] <= end)]
     frequency = np.full(len(centers), np.nan)
     candidates = frequency.copy()
     flags: list[str] = []
@@ -130,6 +134,8 @@ def estimate_strategy(request: EstimatorRequest, name: str,
     fmin = max(1., float(request.workflow_options["minimum_frequency_hz"]))
     fmax = min(float(request.workflow_options["maximum_frequency_hz"]), fs*.49)
     for i, center in enumerate(centers):
+        if check is not None:
+            check()
         left, right = max(0, int(center)-spec.width//2), min(len(record.time_s), int(center)+spec.width//2)
         if spec.boundary == "clip":
             left, right = max(left, first), min(right, last)

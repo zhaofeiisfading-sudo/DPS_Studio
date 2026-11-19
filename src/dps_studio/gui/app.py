@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 import json
 from collections.abc import Sequence
+from pathlib import Path
 from typing import cast
 
 from PySide6.QtCore import QSettings, QTimer
@@ -63,6 +64,13 @@ def main(arguments: Sequence[str] | None = None) -> int:
     from dps_studio.gui.research_safety import install_write_guard
 
     install_write_guard()
+    if "--compare-capture-spec" in args:
+        from dps_studio.gui.comparison.capture import run_capture_spec
+
+        index = args.index("--compare-capture-spec") + 1
+        if index == len(args):
+            raise ValueError("--compare-capture-spec requires a JSON path")
+        return run_capture_spec(Path(args[index]))
     if "--task012-smoke" in args:
         from dps_studio.gui.task012_smoke import run_smoke as run_task012_smoke
 

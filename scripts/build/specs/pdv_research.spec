@@ -16,7 +16,11 @@ analysis = Analysis(
            (str(ROOT / "configs/pdv_studio_defaults.toml"), "configs"),
            (str(SOURCE / "dps_studio/gui/translations/pdv_studio_en.qm"),
             "dps_studio/gui/translations")],
-    hiddenimports=collect_submodules("dps_studio.algorithms"),
+    hiddenimports=[
+        *collect_submodules("dps_studio.algorithms"),
+        *collect_submodules("dps_studio.core.stft_m4"),
+        *collect_submodules("dps_studio.gui.comparison"),
+    ],
     hookspath=[], hooksconfig={}, runtime_hooks=[],
     excludes=["matplotlib", "mypy", "pytest", "ruff", "tkinter", "dps_studio.research"],
     noarchive=False, optimize=0,
