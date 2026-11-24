@@ -95,31 +95,31 @@ def test_export_controls_start_disabled_without_formal_results(
         assert not window.export_button.isEnabled()
         assert not window.export_mode_combo.isEnabled()
         assert window.export_include_pre_event_check.isChecked()
-        assert not window.export_quality_passed_check.isChecked()
+        assert not window.export_acceleration_check.isChecked()
+        assert not hasattr(window, "export_quality_passed_check")
         assert "没有可导出" in window.export_availability_label.text()
     finally:
         window.close()
         qapp.processEvents()
 
 
-def test_quality_filtered_export_is_explicit_and_about_uses_package_version(
+def test_pre_event_toggle_and_about_uses_package_version(
     qapp: QApplication, tmp_path: Path, monkeypatch: Any,
 ) -> None:
     window, source_path, source_before = _window(qapp, tmp_path)
     try:
         _wait(window, window.run_automatic_analysis)
         window.export_absolute_time_origin_radio.click()
-        window.export_quality_passed_check.setChecked(True)
+        window.export_include_pre_event_check.setChecked(False)
         window._set_export_output_directory(tmp_path)
         monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *_args: None))
         assert window._export_current_result()
-        documents = list(tmp_path.glob("*.metadata.json"))
-        assert len(documents) == 1
-        assert "quality_passed" in documents[0].name
-        metadata = json.loads(documents[0].read_text(encoding="utf-8"))
-        assert metadata["simple_export"]["quality_filtering_applied"]
-        assert metadata["input_provenance"]["time_column_index"] == 0
-        assert metadata["dps_studio_version"] == qapp.applicationVersion() == __version__
+        bundles = list(tmp_path.glob("*/run_summary.json"))
+        assert len(bundles) == 1
+        summary = json.loads(bundles[0].read_text(encoding="utf-8"))
+        assert summary["display_processing"]["pdv_channel_1"]["pre_event_enabled"] is False
+        assert summary["display_processing"]["pdv_channel_1"]["pre_event_source"] == "disabled"
+        assert summary["dps_studio_version"] == qapp.applicationVersion() == __version__
         messages = []
         monkeypatch.setattr(QMessageBox, "about", staticmethod(lambda _w, _t, body: messages.append(body)))
         window._show_about()
@@ -160,7 +160,8 @@ def test_export_controls_are_translated_in_english(qapp: QApplication) -> None:
         assert window.action_export.text() == "Review & Export"
         assert window.export_button.text() == "Export Results"
         assert window.export_description_label.text() == (
-            "Exports time–velocity data, diagnostic data, and analysis parameters."
+            "Exports 5 files: velocity_raw.csv, velocity_gated.csv, "
+            "velocity_display.csv, run_summary.json, and spectrogram_ridge.png."
         )
         assert window.export_include_pre_event_check.text() == (
             "Include pre-event display plateau"
@@ -188,7 +189,7 @@ def test_toolbar_review_and_export_only_navigates_without_writing(
         result_state = window.workflow_state
         calls: list[object] = []
         monkeypatch.setattr(
-            "dps_studio.gui.main_window.export_formal_results",
+            "dps_studio.gui.main_window.export_result_bundle",
             lambda *_args, **_kwargs: calls.append(object()),
         )
 
@@ -216,10 +217,11 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         _wait(window, window.run_automatic_analysis)
         assert window.action_export.isEnabled()
         assert window.export_mode_combo.currentData() == "automatic"
+        assert window.export_channel_combo.currentData() == "__all__"
         assert {
             window.export_channel_combo.itemData(index)
             for index in range(window.export_channel_combo.count())
-        } == {"pdv_channel_1", "pdv_channel_2"}
+        } == {"__all__", "pdv_channel_1", "pdv_channel_2"}
         monkeypatch.setattr(
             QFileDialog,
             "getExistingDirectory",
@@ -243,33 +245,30 @@ def test_automatic_export_uses_current_selection_and_keeps_export_available(
         )
         assert window._export_current_result(), failure_messages
         assert not list(export_parent.glob("pdv_studio_export_*"))
-        metadata_path = export_parent / "task017_dual_channel_ch1_auto.metadata.json"
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        assert metadata["analysis_mode"] == "automatic"
-        assert metadata["source_channel"] == "pdv_channel_1"
-        analysis = window.analysis_session.channel_analyses["pdv_channel_1"]
-        assert metadata["automatic_event_candidate_time_s"] == (
-            analysis.stream_event_candidates.primary_candidate_time_s
-        )
-        assert metadata["compatibility_event_candidate_time_s"] == (
-            analysis.signal_detection_result.detected_event_candidate_time_s
-        )
-        assert metadata["event_reference_time_s"] == (
-            window.analysis_session.event_reference_time_s
-        )
-        assert metadata["event_reference_source"] is None
-        assert metadata["event_time_source"] == "unset"
-        assert metadata["event_time_s"] == metadata["event_reference_time_s"]
-        assert metadata["pre_event_display"]["included_in_csv"] is True
-        assert len(tuple(export_parent.glob("*.metadata.json"))) == 1
-        assert (export_parent / "task017_dual_channel_ch1_auto.csv").is_file()
-        assert (export_parent / "task017_dual_channel_ch1_auto_detail.csv").is_file()
-        assert str(export_parent) in window.statusBar().currentMessage()
-        assert "task017_dual_channel_ch1_auto.csv" in window.log_view.toPlainText()
-        assert str(export_parent) in window.log_view.toPlainText()
+        bundle_dir = export_parent / "task017_dual_channel_auto"
+        assert bundle_dir.is_dir()
+        assert {p.name for p in bundle_dir.iterdir()} == {
+            "velocity_raw.csv",
+            "velocity_gated.csv",
+            "velocity_display.csv",
+            "run_summary.json",
+            "spectrogram_ridge.png",
+        }
+        assert not list(bundle_dir.glob("*_detail.csv"))
+        assert not (bundle_dir / "acceleration.csv").exists()
+        summary = json.loads((bundle_dir / "run_summary.json").read_text(encoding="utf-8"))
+        assert summary["analysis_mode"] == "automatic"
+        assert summary["channels"] == ["pdv_channel_1", "pdv_channel_2"]
+        assert summary["event_reference"]["event_reference_source"] is None
+        assert summary["event_reference"]["event_time_source"] == "unset"
+        assert str(bundle_dir) in window.statusBar().currentMessage()
+        assert "velocity_display.csv" in window.log_view.toPlainText()
+        assert str(bundle_dir) in window.log_view.toPlainText()
         assert window.export_button.isEnabled()
         assert window._export_current_result()
-        assert (export_parent / "task017_dual_channel_ch1_auto_2.csv").is_file()
+        bundle_dir_2 = export_parent / "task017_dual_channel_auto_2"
+        assert bundle_dir_2.is_dir()
+        assert (bundle_dir_2 / "velocity_raw.csv").is_file()
         assert window.export_button.isEnabled()
         assert source_path.read_bytes() == source_before
 
@@ -310,8 +309,9 @@ def test_guided_mode_selection_keeps_missing_channels_visible_but_safe(
         window.export_mode_combo.setCurrentIndex(guided_index)
         qapp.processEvents()
         assert window.export_mode_combo.currentData() == "guided"
-        assert window.export_channel_combo.count() == 2
-        assert window.export_channel_combo.currentData() == "pdv_channel_1"
+        assert window.export_channel_combo.count() == 3
+        assert window.export_channel_combo.currentData() == "__all__"
+        assert window.export_button.isEnabled()
 
         window.export_channel_combo.setCurrentIndex(
             window.export_channel_combo.findData("pdv_channel_2")
@@ -328,7 +328,7 @@ def test_guided_mode_selection_keeps_missing_channels_visible_but_safe(
         assert {
             window.export_channel_combo.itemData(index)
             for index in range(window.export_channel_combo.count())
-        } == {"pdv_channel_1", "pdv_channel_2"}
+        } == {"__all__", "pdv_channel_1", "pdv_channel_2"}
     finally:
         window.close()
         qapp.processEvents()

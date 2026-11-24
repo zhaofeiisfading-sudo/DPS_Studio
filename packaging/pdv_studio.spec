@@ -28,6 +28,19 @@ VERSION_INFO = VSVersionInfo(
         VarFileInfo([VarStruct("Translation", [1033, 1200])]),
     ],
 )
+CLI_VERSION_INFO = VSVersionInfo(
+    ffi=VERSION_INFO.ffi,
+    kids=[
+        StringFileInfo([StringTable("040904B0", [
+            StringStruct("FileDescription", "PDV Studio CLI"),
+            StringStruct("FileVersion", RELEASE_VERSION),
+            StringStruct("OriginalFilename", "pdv.exe"),
+            StringStruct("ProductName", "PDV Studio"),
+            StringStruct("ProductVersion", RELEASE_VERSION),
+        ])]),
+        VarFileInfo([VarStruct("Translation", [1033, 1200])]),
+    ],
+)
 
 datas = [
     (str(APP_ICON), "dps_studio/gui/icons"),
@@ -45,18 +58,20 @@ datas = [
         ),
         "dps_studio/gui/translations",
     ),
+    (str(PROJECT_ROOT / ".agents" / "skills" / "pdv-studio" / "SKILL.md"), "skills/pdv-studio"),
 ]
 
+excludes = ["matplotlib", "mypy", "pytest", "ruff", "tkinter"]
 analysis = Analysis(
     [str(SOURCE_ROOT / "dps_studio" / "gui" / "__main__.py")],
     pathex=[str(SOURCE_ROOT)],
     binaries=[],
     datas=datas,
-    hiddenimports=[],
+    hiddenimports=["dps_studio.cli", "dps_studio.cli_config", "dps_studio.cli_plots"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["matplotlib", "mypy", "pytest", "ruff", "tkinter"],
+    excludes=excludes,
     noarchive=False,
     optimize=0,
 )
@@ -84,10 +99,33 @@ executable = EXE(
     entitlements_file=None,
 )
 if not onefile:
+    cli_analysis = Analysis(
+        [str(SOURCE_ROOT / "dps_studio" / "__main__.py")],
+        pathex=[str(SOURCE_ROOT)],
+        datas=datas,
+        excludes=excludes,
+        noarchive=False,
+        optimize=0,
+    )
+    cli_executable = EXE(
+        PYZ(cli_analysis.pure),
+        cli_analysis.scripts,
+        exclude_binaries=True,
+        name="pdv",
+        version=CLI_VERSION_INFO,
+        icon=str(APP_ICON),
+        debug=False,
+        strip=False,
+        upx=False,
+        console=True,
+    )
     collection = COLLECT(
         executable,
+        cli_executable,
         analysis.binaries,
+        cli_analysis.binaries,
         analysis.datas,
+        cli_analysis.datas,
         strip=False,
         upx=False,
         upx_exclude=[],

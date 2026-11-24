@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 from collections.abc import Mapping
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 from stat import S_ISREG
 
@@ -14,7 +15,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import (
     QAction, QCloseEvent, QDesktopServices, QDragEnterEvent, QDragMoveEvent, QDropEvent,
-    QKeySequence,
+    QKeySequence, QShowEvent,
 )
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -62,9 +63,10 @@ from dps_studio.core.analysis_profiles import (
 from dps_studio.core.export import (
     ExportTimeOrigin,
     ResultAnalysisMode,
+    ResultBundleOptions,
     ResultExportError,
-    ResultExportOptions,
-    export_formal_results,
+    allocate_bundle_directory,
+    export_result_bundle,
 )
 from dps_studio.core.io import DelimitedSignalLoadResult
 from dps_studio.core.physics import (
@@ -109,6 +111,7 @@ from dps_studio.gui.analysis_session import (
 from dps_studio.gui.advanced_parameters_dialog import AdvancedParametersDialog
 from dps_studio.gui.data_controller import DataImportController, SignalLoadRequest
 from dps_studio.gui.display_preferences import DisplayPreferences
+from dps_studio.gui.feedback_dialog import FeedbackDialog
 from dps_studio.gui.i18n import (
     LANGUAGE_EN,
     LANGUAGE_ZH_CN,
@@ -133,10 +136,14 @@ from dps_studio.gui.result_views import (
     VelocityView,
 )
 from dps_studio.gui.state import WorkflowState, state_reaches
+from dps_studio.gui.update_dialog import (
+    UpdateDialog, UpdateThread, auto_check_enabled, check_operation, skip_automatic_update_check,
+)
 from dps_studio.gui.window_preset_editor import WindowPresetEditor, window_preset_path
 from dps_studio.gui.styles import configure_action_button_cursors
 from dps_studio.gui.workstation import ElidedLabel, WorkflowNavigation
-from dps_studio.runtime_paths import application_resource_root
+from dps_studio.runtime_paths import application_resource_root, user_settings_path
+from dps_studio.updates import UpdateCheck
 
 
 _LAYOUT_STATE_VERSION = 2
@@ -199,7 +206,15 @@ class MainWindow(QMainWindow):
         self.setAcceptDrops(True)
         self._syncing_navigation_from_tab: bool = False
         self._translation_manager = translation_manager
-        self._settings = settings if settings is not None else QSettings()
+        self._settings = (
+            settings if settings is not None
+            else QSettings(str(user_settings_path()), QSettings.Format.IniFormat)
+        )
+        self._startup_update_scheduled = False
+        self._startup_update_worker: UpdateThread | None = None
+        self._startup_update_result: UpdateCheck | None = None
+        self._update_dialog: UpdateDialog | None = None
+        self._feedback_dialog: FeedbackDialog | None = None
         self._display_preferences = DisplayPreferences(self._settings)
         self._window_preset_repository = (
             window_preset_repository or WindowPresetRepository(window_preset_path())
@@ -222,6 +237,7 @@ class MainWindow(QMainWindow):
         self._continue_to_velocity_after_analysis = False
         self._current_guided_channel: str | None = None
         self._export_output_directory: Path | None = None
+        self._last_exported_bundle_directory: Path | None = None
         self._workflow_state = WorkflowState.EMPTY
         self._unsaved_changes = False
         self._parameters_valid = False
@@ -594,6 +610,10 @@ class MainWindow(QMainWindow):
         self.action_language_zh.setChecked(configured_language == LANGUAGE_ZH_CN)
         self.action_language_en.setChecked(configured_language == LANGUAGE_EN)
 
+        self.action_check_updates = QAction(self.tr("检查更新…"), self)
+        self.action_check_updates.setObjectName("actionCheckUpdates")
+        self.action_feedback = QAction(self.tr("意见反馈…"), self)
+        self.action_feedback.setObjectName("actionFeedback")
         self.action_about = QAction(self.tr("关于 PDV Studio"), self)
         self.action_about.setObjectName("actionAbout")
 
@@ -633,6 +653,9 @@ class MainWindow(QMainWindow):
 
         self.help_menu = self.menuBar().addMenu(self.tr("帮助"))
         self.help_menu.setObjectName("helpMenu")
+        self.help_menu.addAction(self.action_check_updates)
+        self.help_menu.addAction(self.action_feedback)
+        self.help_menu.addSeparator()
         self.help_menu.addAction(self.action_about)
 
     def _create_toolbar(self) -> None:
@@ -1237,7 +1260,7 @@ class MainWindow(QMainWindow):
         )
         self.export_event_time_origin_radio.setToolTip(
             self.tr(
-                "简表使用 time_from_event_s；详细表仍同时保留绝对 time_s。"
+                "所有导出 CSV 的时间列均为相对起跳时间 time_from_event_s。"
             )
         )
         self.export_absolute_time_origin_radio = QRadioButton(
@@ -1248,7 +1271,7 @@ class MainWindow(QMainWindow):
         )
         self.export_absolute_time_origin_radio.setToolTip(
             self.tr(
-                "简表使用实验绝对 time_s；详细表仍包含 time_from_event_s。"
+                "所有导出 CSV 的时间列均为实验绝对时间 time_s。"
             )
         )
         self.export_time_origin_group = QButtonGroup(self)
@@ -1299,25 +1322,17 @@ class MainWindow(QMainWindow):
         self.export_include_pre_event_check.setChecked(True)
         self.export_include_pre_event_check.setToolTip(
             self.tr(
-                "仅控制 CSV 行范围；不会把显示平台写入正式表观速度，"
-                "也不会修改内存中的分析结果。"
+                "仅控制 velocity_display.csv 的起跳前显示平台；"
+                "不会修改 velocity_raw.csv 与 velocity_gated.csv。"
             )
         )
         self.export_include_pre_event_check.setEnabled(False)
         formats.body_layout.addWidget(self.export_include_pre_event_check)
-        self.export_quality_passed_check = QCheckBox(
-            self.tr("简表仅含质量通过点")
-        )
-        self.export_quality_passed_check.setObjectName("exportQualityPassedOnly")
-        self.export_quality_passed_check.setToolTip(self.tr(
-            "默认导出连续显示曲线。勾选后简表仅含 measured 且有限的正式修正速度，"
-            "排除显示平台；文件名包含 quality_passed。详细表保留全部诊断行。"
-        ))
-        formats.body_layout.addWidget(self.export_quality_passed_check)
         self.export_acceleration_check = QCheckBox(self.tr("加速度 CSV · 原始差分"))
         self.export_acceleration_check.setObjectName("exportAcceleration")
+        self.export_acceleration_check.setChecked(False)
         self.export_acceleration_check.setToolTip(self.tr(
-            "独立文件保留 SI 时间、速度、加速度和质量来源；不改变速度简表。"
+            "可选额外生成 acceleration.csv（默认关闭）；不影响 5 个标准输出文件。"
         ))
         formats.body_layout.addWidget(self.export_acceleration_check)
         self.export_acceleration_fit_check = QCheckBox()
@@ -1340,7 +1355,10 @@ class MainWindow(QMainWindow):
         self.export_acceleration_fit_check.setToolTip(self.tr("拟合窗口在加速度页设置。"))
         self.export_dechirp_check.setToolTip(self.tr("使用加速度页的 Dechirp 设置。"))
         self.export_description_label = self._notice(
-            self.tr("将导出时间—速度数据、详细诊断数据和分析参数记录。")
+            self.tr(
+                "每次导出将生成 5 个文件：velocity_raw.csv、velocity_gated.csv、"
+                "velocity_display.csv、run_summary.json 与 spectrogram_ridge.png。"
+            )
         )
         self.export_description_label.setObjectName("exportDescription")
         self.export_description_label.setParent(page)
@@ -1411,6 +1429,12 @@ class MainWindow(QMainWindow):
         status_bar = QStatusBar()
         status_bar.setObjectName("mainStatusBar")
         self.setStatusBar(status_bar)
+        self.update_notice = QToolButton()
+        self.update_notice.setAutoRaise(True)
+        self.update_notice.setObjectName("updateNotice")
+        self.update_notice.clicked.connect(self._show_update_dialog)
+        status_bar.addPermanentWidget(self.update_notice)
+        self.update_notice.hide()
         self.status_file = ElidedLabel(self.tr("文件：未加载"))
         status_bar.addWidget(self.status_file, 1)
         self.analysis_progress.setMaximumWidth(110)
@@ -1458,6 +1482,8 @@ class MainWindow(QMainWindow):
             self._reset_default_layout
         )
         self.action_exit.triggered.connect(self.close)
+        self.action_check_updates.triggered.connect(self._show_update_dialog)
+        self.action_feedback.triggered.connect(self._show_feedback_dialog)
         self.action_about.triggered.connect(self._show_about)
         self.action_language_zh.triggered.connect(
             lambda: self._save_language(LANGUAGE_ZH_CN)
@@ -3842,10 +3868,14 @@ class MainWindow(QMainWindow):
         busy = self._busy
         current_mode = self._selected_export_mode()
         current_channel = self.export_channel_combo.currentData()
+        mode_analyses = available.get(current_mode, {}) if isinstance(current_mode, ResultAnalysisMode) else {}
         selection_valid = (
             isinstance(current_mode, ResultAnalysisMode)
             and isinstance(current_channel, str)
-            and current_channel in available.get(current_mode, {})
+            and (
+                (current_channel == "__all__" and bool(mode_analyses))
+                or current_channel in mode_analyses
+            )
         )
         event_origin_ready = (
             self._session.export_time_origin is ExportTimeOrigin.ABSOLUTE
@@ -3885,8 +3915,9 @@ class MainWindow(QMainWindow):
         )
         self.action_export.setEnabled(result_available and not busy)
         self.review_export_button.setEnabled(self.action_export.isEnabled())
+        open_dir = self._last_exported_bundle_directory or self._export_output_directory
         self.open_export_directory_button.setEnabled(
-            self._export_output_directory is not None and self._export_output_directory.is_dir()
+            open_dir is not None and open_dir.is_dir()
         )
         self.export_availability_banner.set_tone("success" if self.export_button.isEnabled() else "info")
         self.action_export.setToolTip(action_tooltip)
@@ -3894,14 +3925,18 @@ class MainWindow(QMainWindow):
             self._sync_review_preview()
 
     def _refresh_export_channels(self) -> None:
-        """Populate the channel selector from the selected, independent mode."""
+        """Populate the channel selector, defaulting to combined export for multi-channel data."""
         selected_channel = self.export_channel_combo.currentData()
         channel_names = tuple(self._session.records)
         channel_blocker = QSignalBlocker(self.export_channel_combo)
         self.export_channel_combo.clear()
+        if len(channel_names) > 1:
+            self.export_channel_combo.addItem(self.tr("全部通道（合并导出）"), "__all__")
         for channel_name in channel_names:
             self.export_channel_combo.addItem(channel_name, channel_name)
-        if isinstance(selected_channel, str) and selected_channel in channel_names:
+        valid_values = {"__all__"} if len(channel_names) > 1 else set()
+        valid_values.update(channel_names)
+        if isinstance(selected_channel, str) and selected_channel in valid_values:
             self.export_channel_combo.setCurrentIndex(
                 self.export_channel_combo.findData(selected_channel)
             )
@@ -3920,11 +3955,17 @@ class MainWindow(QMainWindow):
         self.velocity_view.set_export_preview_mode(True)
         mode = self._selected_export_mode()
         channel_name = self.export_channel_combo.currentData()
-        if mode is None or not isinstance(channel_name, str):
+        available = self._exportable_result_sets().get(mode, {}) if mode is not None else {}
+        preview_channel: str | None = None
+        if channel_name == "__all__":
+            preview_channel = next(iter(available), None)
+        elif isinstance(channel_name, str):
+            preview_channel = channel_name
+        if mode is None or preview_channel is None:
             self.velocity_view.clear_results()
             return
         self.science_tabs.setCurrentWidget(self.velocity_view)
-        self.velocity_view.select_result_target(mode.value, channel_name)
+        self.velocity_view.select_result_target(mode.value, preview_channel)
 
     def _selected_export_mode(self) -> ResultAnalysisMode | None:
         """Normalize Qt's QVariant string back to the public export enum."""
@@ -3949,12 +3990,13 @@ class MainWindow(QMainWindow):
         """Store a user-selected output parent without creating any files."""
         self.export_receipt_banner.hide()
         self._export_output_directory = Path(directory)
+        self._last_exported_bundle_directory = None
         self.export_directory_label.setText(str(self._export_output_directory))
         self.export_directory_label.setToolTip(str(self._export_output_directory))
         self._refresh_export_controls()
 
     def _open_export_directory(self) -> None:
-        directory = self._export_output_directory
+        directory = self._last_exported_bundle_directory or self._export_output_directory
         if directory is not None and directory.is_dir():
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory)))
         else:
@@ -3975,17 +4017,27 @@ class MainWindow(QMainWindow):
         self.parameter_stack.setCurrentIndex(review_index)
 
     def _export_current_result(self) -> bool:
-        """Select a directory if needed, then call the public core export API."""
+        """Select a directory if needed, then export the unified 5-file bundle."""
         if self._busy:
             return False
         available = self._exportable_result_sets()
         mode = self._selected_export_mode()
-        channel_name = self.export_channel_combo.currentData()
-        if (
-            mode is None
-            or not isinstance(channel_name, str)
-            or channel_name not in available.get(mode, {})
-        ):
+        channel_selection = self.export_channel_combo.currentData()
+        mode_analyses = available.get(mode, {}) if mode is not None else {}
+        if mode is None or not isinstance(channel_selection, str):
+            target_channels: dict[str, ChannelAnalysis] = {}
+        elif channel_selection == "__all__":
+            target_channels = {
+                name: mode_analyses[name]
+                for name in self._session.records
+                if name in mode_analyses
+            }
+        elif channel_selection in mode_analyses:
+            target_channels = {channel_selection: mode_analyses[channel_selection]}
+        else:
+            target_channels = {}
+
+        if not target_channels or mode is None:
             message = self.tr("当前没有可导出的有效正式结果。")
             self.analysis_status_label.setText(message)
             self._append_log(message)
@@ -3997,98 +4049,130 @@ class MainWindow(QMainWindow):
         configuration = self._session.run_configuration
         if configuration is None or self._export_output_directory is None:
             return False
-        selected_analysis = available[mode][channel_name]
+
+        first_channel = next(iter(target_channels))
+        first_analysis = target_channels[first_channel]
         has_event_reference = (
-            selected_analysis.signal_detection_result.manual_event_reference_time_s
+            first_analysis.signal_detection_result.manual_event_reference_time_s
             is not None
         )
         event_reference_source = (
-            self._session.resolved_event_source(channel_name)
+            self._session.resolved_event_source(first_channel)
             if has_event_reference
             else None
         )
+        pre_event_enabled = (
+            self.export_include_pre_event_check.isChecked()
+            and configuration.enable_pre_event_display
+        )
+        include_acceleration = self.export_acceleration_check.isChecked()
+        fit_window = (
+            self.acceleration_view.acceleration_window_spin.value() * 1e-9
+            if include_acceleration and self.export_acceleration_fit_check.isChecked()
+            else None
+        )
+        source_path = self._session.source_path
+        source_sha256: str | None = None
+        if source_path is not None and source_path.is_file():
+            with source_path.open("rb") as handle:
+                source_sha256 = hashlib.file_digest(handle, "sha256").hexdigest()
+        channel_bounds = {
+            name: (analysis.ridge_result.minimum_frequency_hz, analysis.ridge_result.maximum_frequency_hz)
+            for name, analysis in target_channels.items()
+        }
+        workflow_config = self._session.workflow_configuration
+        relative_db_floor = (
+            workflow_config.plot.relative_db_floor if workflow_config is not None else -60.0
+        )
+
         try:
             dechirp_results = {}
-            if self.export_acceleration_check.isChecked() and self.export_dechirp_check.isChecked():
-                record = self._session.records[channel_name]
-                fitted = self.acceleration_view.cached_dechirp(record, selected_analysis)
-                if fitted is None:
-                    fitted = channel_dechirp(
-                        record, selected_analysis, settings=self.acceleration_view.dechirp_settings,
-                    )
-                dechirp_results[channel_name] = fitted
-            report = export_formal_results(
-                ResultExportOptions(
-                    output_directory=self._export_output_directory,
+            if include_acceleration and self.export_dechirp_check.isChecked():
+                for name, analysis in target_channels.items():
+                    record = self._session.records[name]
+                    fitted = self.acceleration_view.cached_dechirp(record, analysis)
+                    if fitted is None:
+                        fitted = channel_dechirp(
+                            record, analysis, settings=self.acceleration_view.dechirp_settings,
+                        )
+                    dechirp_results[name] = fitted
+
+            bundle_dir = allocate_bundle_directory(
+                self._export_output_directory,
+                source_path=source_path,
+                analysis_mode=mode,
+                protected_output_directories=(self._repository_root / "data" / "raw",),
+            )
+            from dps_studio.cli_plots import render_bundle_spectrogram_ridge
+
+            report = export_result_bundle(
+                ResultBundleOptions(
+                    output_directory=bundle_dir,
                     analysis_mode=mode,
-                    channel_analyses={channel_name: available[mode][channel_name]},
+                    channel_analyses=target_channels,
                     time_origin=self._session.export_time_origin,
-                    include_pre_event_display_rows=(
-                        self.export_include_pre_event_check.isChecked()
-                    ),
-                    quality_passed_only=self.export_quality_passed_check.isChecked(),
-                    include_acceleration=self.export_acceleration_check.isChecked(),
-                    acceleration_fit_window_s=(
-                        self.acceleration_view.acceleration_window_spin.value() * 1e-9
-                        if self.export_acceleration_check.isChecked()
-                        and self.export_acceleration_fit_check.isChecked() else None
-                    ),
-                    dechirp_results=dechirp_results,
-                    source_path=self._session.source_path,
+                    source_path=source_path,
+                    source_sha256=source_sha256,
                     analysis_profile_name=configuration.parameters.provenance_name,
-                    pre_event_display_enabled=(
-                        configuration.enable_pre_event_display
-                    ),
-                    pre_event_display_velocity_m_s=(
-                        configuration.pre_event_display_velocity_m_s
-                    ),
+                    pre_event_display_enabled=pre_event_enabled,
+                    pre_event_display_velocity_m_s=configuration.pre_event_display_velocity_m_s,
                     event_reference_source=event_reference_source,
                     event_time_source=self._session.event_time_source.value,
-                    ridge_constraints=(
-                        {
-                            channel_name: self._session.ridge_constraints[
-                                channel_name
-                            ]
-                        }
-                        if mode is ResultAnalysisMode.GUIDED
-                        and channel_name in self._session.ridge_constraints
-                        else {}
-                    ),
-                    protected_output_directories=(
-                        self._repository_root / "data" / "raw",
+                    include_acceleration=include_acceleration,
+                    acceleration_fit_window_s=fit_window,
+                    dechirp_results=dechirp_results,
+                    analysis_parameters={
+                        **asdict(configuration.parameters),
+                        "profile_name": configuration.parameters.provenance_name,
+                        "include_acceleration": include_acceleration,
+                        "acceleration_fit_window_s": fit_window,
+                    },
+                    protected_output_directories=(self._repository_root / "data" / "raw",),
+                    spectrogram_renderer=lambda plot_dst: render_bundle_spectrogram_ridge(
+                        target_channels,
+                        plot_dst,
+                        channel_frequency_bounds_hz=channel_bounds,
+                        relative_db_floor=relative_db_floor,
                     ),
                 )
             )
-        except (ResultExportError, ValueError) as exc:
+        except (ResultExportError, ValueError, OSError) as exc:
             message = self.tr("结果导出失败：{message}").format(message=exc)
             self.analysis_status_label.setText(message)
             self._append_log(message)
             QMessageBox.critical(self, self.tr("结果导出失败"), message)
             return False
-        exported = report.exported_channels[0]
-        message = self.tr("结果导出完成：{path}").format(
-            path=report.output_directory
-        )
+
+        self._last_exported_bundle_directory = report.output_directory
+        self.open_export_directory_button.setEnabled(True)
+        message = self.tr("结果导出完成：{path}").format(path=report.output_directory)
         self.analysis_status_label.setText(message)
         self.statusBar().showMessage(message, 8000)
-        paths = [exported.csv_path, exported.detail_csv_path, exported.metadata_path]
-        if exported.acceleration_csv_path is not None:
-            paths.append(exported.acceleration_csv_path)
-        self.export_receipt_banner.label.setText(self.tr("已导出文件：\n{files}").format(
-            files="\n".join(path.name for path in paths),
-        ))
+        paths = [
+            report.velocity_raw_csv_path,
+            report.velocity_gated_csv_path,
+            report.velocity_display_csv_path,
+            report.run_summary_json_path,
+        ]
+        if report.spectrogram_ridge_png_path is not None:
+            paths.append(report.spectrogram_ridge_png_path)
+        if report.acceleration_csv_path is not None:
+            paths.append(report.acceleration_csv_path)
+        self.export_receipt_banner.label.setText(
+            self.tr("已导出文件：\n{files}").format(
+                files="\n".join(path.name for path in paths),
+            )
+        )
         self.export_receipt_banner.setToolTip(str(report.output_directory))
         self.export_receipt_banner.show()
         self._append_log(
             self.tr(
-                "{mode} / {channel} 已导出至 {directory}：{csv}；{detail}；{metadata}"
+                "{mode} / {channel} 已导出至 {directory}：{files}"
             ).format(
                 mode=mode.value,
-                channel=channel_name,
+                channel=channel_selection,
                 directory=report.output_directory,
-                csv=exported.csv_path.name,
-                detail=exported.detail_csv_path.name,
-                metadata=exported.metadata_path.name,
+                files="；".join(path.name for path in paths),
             )
         )
         return True
@@ -4486,6 +4570,84 @@ class MainWindow(QMainWindow):
             5000,
         )
 
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        if not self._startup_update_scheduled:
+            self._startup_update_scheduled = True
+            QTimer.singleShot(0, self, self._start_startup_update_check)
+
+    @Slot()
+    def _start_startup_update_check(self) -> None:
+        if (
+            not self.isVisible()
+            or self._startup_update_worker is not None
+            or not auto_check_enabled(self._settings)
+            or skip_automatic_update_check()
+        ):
+            return
+        worker = UpdateThread(check_operation, self)
+        self._startup_update_worker = worker
+        worker.finished.connect(self._startup_update_finished)
+        worker.start()
+
+    @Slot()
+    def _startup_update_finished(self) -> None:
+        worker = self._startup_update_worker
+        if worker is None or self.sender() is not worker:
+            return
+        self._startup_update_worker = None
+        worker.wait()
+        worker.deleteLater()
+        result = worker.result
+        if (
+            isinstance(result, UpdateCheck)
+            and result.latest is not None
+            and result.update_available
+            and auto_check_enabled(self._settings)
+        ):
+            self._startup_update_result = result
+            self.update_notice.setText(self.tr("更新 {version} 可用").format(version=result.latest.version))
+            self.update_notice.setToolTip(self.tr("检查更新…"))
+            self.update_notice.show()
+
+    @Slot()
+    def _show_update_dialog(self) -> None:
+        if self._update_dialog is None:
+            initial_result = self._startup_update_result if self.sender() is self.update_notice else None
+            dialog = UpdateDialog(self._settings, self, initial_result=initial_result)
+            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            dialog.finished.connect(self._update_dialog_finished)
+            dialog.install_started.connect(self.close)
+            self._update_dialog = dialog
+            if initial_result is None:
+                dialog.start_check()
+        self._update_dialog.show()
+        self._update_dialog.raise_()
+        self._update_dialog.activateWindow()
+
+    @Slot()
+    def _update_dialog_finished(self) -> None:
+        self._update_dialog = None
+
+    @Slot()
+    def _show_feedback_dialog(self) -> None:
+        if self._feedback_dialog is None:
+            language = (
+                self._translation_manager.current_language
+                if self._translation_manager is not None else LANGUAGE_ZH_CN
+            )
+            dialog = FeedbackDialog(language, self)
+            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            dialog.finished.connect(self._feedback_dialog_finished)
+            self._feedback_dialog = dialog
+        self._feedback_dialog.show()
+        self._feedback_dialog.raise_()
+        self._feedback_dialog.activateWindow()
+
+    @Slot()
+    def _feedback_dialog_finished(self) -> None:
+        self._feedback_dialog = None
+
     def _show_about(self) -> None:
         QMessageBox.about(
             self,
@@ -4506,6 +4668,14 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Cancel the view fit and defer closure while a workflow worker is active."""
+        update_worker = self._startup_update_worker
+        self._startup_update_worker = None
+        if update_worker is not None:
+            update_worker.stop()
+        if self._update_dialog is not None:
+            self._update_dialog.close()
+        if self._feedback_dialog is not None:
+            self._feedback_dialog.close()
         self._pending_drop = None
         self.acceleration_view.cancel_dechirp()
         if self._busy:

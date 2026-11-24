@@ -2,24 +2,25 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QEvent, QSettings  # noqa: E402
+from PySide6.QtCore import QEvent  # noqa: E402
 from PySide6.QtWidgets import QApplication, QMainWindow  # noqa: E402
 
 from dps_studio.gui.app import create_application  # noqa: E402
+from dps_studio.runtime_paths import USERDATA_ENV_VAR, initialize_runtime_storage  # noqa: E402
 
 
 @pytest.fixture(scope="session")
 def qapp(tmp_path_factory: pytest.TempPathFactory) -> Iterator[QApplication]:
     settings_path = str(tmp_path_factory.mktemp("qt_settings"))
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    for scope in (QSettings.Scope.UserScope, QSettings.Scope.SystemScope):
-        QSettings.setPath(QSettings.Format.IniFormat, scope, settings_path)
+    os.environ[USERDATA_ENV_VAR] = settings_path
+    initialize_runtime_storage(Path(settings_path), redirect_process_temp=False)
     application = create_application([], language_code="zh_CN")
     yield application
     application.closeAllWindows()

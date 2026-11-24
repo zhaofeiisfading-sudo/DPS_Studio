@@ -95,8 +95,9 @@ def test_direct_tab_clicks_and_guided_reentry(qapp: QApplication, tmp_path: Path
         assert opened == [QUrl.fromLocalFile(str(tmp_path))]
         assert window.export_receipt_banner.isHidden()
         assert window._export_current_result()
+        bundle_dir = next(tmp_path.glob("*_auto"))
         receipt = window.export_receipt_banner.label.text().splitlines()[1:]
-        assert len(receipt) == 4 and all((tmp_path / name).is_file() for name in receipt)
+        assert len(receipt) == 6 and all((bundle_dir / name).is_file() for name in receipt)
         assert window.export_receipt_banner.isVisible()
     finally:
         window.close()

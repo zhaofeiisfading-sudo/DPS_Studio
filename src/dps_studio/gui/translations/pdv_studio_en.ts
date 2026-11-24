@@ -3788,6 +3788,34 @@ PDV waveforms, spectrograms and velocity analysis.</translation>
 <context>
     <name>MainWindow</name>
     <message>
+        <source>全部通道（合并导出）</source>
+        <translation>All channels (combined)</translation>
+    </message>
+    <message>
+        <source>所有导出 CSV 的时间列均为相对起跳时间 time_from_event_s。</source>
+        <translation>All exported CSVs use relative event time (time_from_event_s).</translation>
+    </message>
+    <message>
+        <source>所有导出 CSV 的时间列均为实验绝对时间 time_s。</source>
+        <translation>All exported CSVs use absolute experiment time (time_s).</translation>
+    </message>
+    <message>
+        <source>仅控制 velocity_display.csv 的起跳前显示平台；不会修改 velocity_raw.csv 与 velocity_gated.csv。</source>
+        <translation>Controls only the pre-event display plateau in velocity_display.csv; velocity_raw.csv and velocity_gated.csv stay unchanged.</translation>
+    </message>
+    <message>
+        <source>可选额外生成 acceleration.csv（默认关闭）；不影响 5 个标准输出文件。</source>
+        <translation>Optionally exports acceleration.csv (off by default) without changing the 5 standard output files.</translation>
+    </message>
+    <message>
+        <source>每次导出将生成 5 个文件：velocity_raw.csv、velocity_gated.csv、velocity_display.csv、run_summary.json 与 spectrogram_ridge.png。</source>
+        <translation>Exports 5 files: velocity_raw.csv, velocity_gated.csv, velocity_display.csv, run_summary.json, and spectrogram_ridge.png.</translation>
+    </message>
+    <message>
+        <source>{mode} / {channel} 已导出至 {directory}：{files}</source>
+        <translation>{mode} / {channel} exported to {directory}: {files}</translation>
+    </message>
+    <message>
         <source>额外导出加速度 CSV（最终显示速度的 dv/dt）</source>
         <translation>Also export acceleration CSV (dv/dt of final displayed speed)</translation>
     </message>
@@ -4000,5 +4028,61 @@ Output directory:
     <message><source>波形拟合失败：{reason}</source><translation>Waveform fit failed: {reason}</translation></message>
     <message><source>不应用角度或窗口修正。</source><translation>No angle or window correction is applied.</translation></message>
     <message><source>差分</source><translation>Derivative</translation></message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message><source>检查更新…</source><translation>Check for Updates…</translation></message>
+    <message><source>意见反馈…</source><translation>Send Feedback…</translation></message>
+    <message><source>更新 {version} 可用</source><translation>Update {version} available</translation></message>
+</context>
+<context>
+    <name>UpdateDialog</name>
+    <message><source>软件更新</source><translation>Software Update</translation></message>
+    <message><source>当前版本 {version}</source><translation>Current {version}</translation></message>
+    <message><source>最新正式版 {version}</source><translation>Latest stable {version}</translation></message>
+    <message><source>发布说明</source><translation>Release notes</translation></message>
+    <message><source>启动时自动检查更新</source><translation>Check for updates at startup</translation></message>
+    <message><source>取消下载</source><translation>Cancel</translation></message>
+    <message><source>关闭</source><translation>Close</translation></message>
+    <message><source>可以检查正式版本。</source><translation>Ready to check for updates.</translation></message>
+    <message><source>发现可用更新。</source><translation>An update is available.</translation></message>
+    <message><source>暂无正式版本。</source><translation>No stable releases found.</translation></message>
+    <message><source>当前版本已是最新。</source><translation>You're up to date.</translation></message>
+    <message><source>启动安装并退出</source><translation>Install and Exit</translation></message>
+    <message><source>下载更新</source><translation>Download Update</translation></message>
+    <message><source>检查更新</source><translation>Check for Updates</translation></message>
+    <message><source>正在检查更新…</source><translation>Checking for updates…</translation></message>
+    <message><source>正在下载并校验安装程序…</source><translation>Downloading and verifying the installer…</translation></message>
+    <message><source>正在取消下载…</source><translation>Cancelling download…</translation></message>
+    <message><source>安装程序已通过校验。</source><translation>Installer verified.</translation></message>
+    <message><source>已取消下载。</source><translation>Download cancelled.</translation></message>
+    <message><source>安装程序校验失败，请重新下载。</source><translation>Installer verification failed. Download it again.</translation></message>
+    <message><source>此版本缺少安装程序或可信的 SHA-256 校验值。</source><translation>This release lacks an installer or a trusted SHA-256 checksum.</translation></message>
+    <message><source>下载失败，请检查网络或安装目录权限后重试。</source><translation>Download failed. Check your connection and installation folder permissions.</translation></message>
+    <message><source>检查更新失败，请检查网络后重试。</source><translation>Update check failed. Check your connection and try again.</translation></message>
+    <message><source>请保存分析结果，并关闭其他 PDV Studio 窗口和 pdv.exe 实例。继续将启动安装程序并关闭当前窗口。</source><translation>Save your analysis results and close other PDV Studio windows and pdv.exe instances. Continuing opens the installer and exits this window.</translation></message>
+    <message><source>无法启动安装程序，请重试。</source><translation>Could not start the installer. Try again.</translation></message>
+</context>
+<context>
+    <name>FeedbackDialog</name>
+    <message><source>意见反馈</source><translation>Send Feedback</translation></message>
+    <message><source>Bug 反馈</source><translation>Bug report</translation></message>
+    <message><source>功能建议</source><translation>Feature request</translation></message>
+    <message><source>其他意见</source><translation>Other feedback</translation></message>
+    <message><source>类别</source><translation>Category</translation></message>
+    <message><source>标题</source><translation>Title</translation></message>
+    <message><source>反馈内容</source><translation>Feedback details</translation></message>
+    <message><source>描述遇到的问题、复现步骤或建议。</source><translation>Describe the issue, steps to reproduce, or your suggestion.</translation></message>
+    <message><source>附带基础环境信息
+（仅版本、系统与语言，不含文件路径或实验数据）</source><translation>Include basic environment info
+(version, OS and language only)</translation></message>
+    <message><source>复制反馈内容</source><translation>Copy Feedback</translation></message>
+    <message><source>在 GitHub 提交</source><translation>Submit on GitHub</translation></message>
+    <message><source>关闭</source><translation>Close</translation></message>
+    <message><source>已复制到剪贴板，可离线保存或粘贴提交。</source><translation>Copied. Paste or save offline.</translation></message>
+    <message><source>请输入反馈标题。</source><translation>Enter a feedback title.</translation></message>
+    <message><source>将在浏览器中打开 GitHub 反馈草稿。请检查内容后在 GitHub 提交。</source><translation>Open the draft in your browser, then review and submit it on GitHub.</translation></message>
+    <message><source>反馈内容较长。继续将复制内容并打开 GitHub，请粘贴后提交。</source><translation>This draft is long. Continue to copy it and open GitHub, then paste it into the issue.</translation></message>
+    <message><source>无法打开浏览器，可复制反馈内容。</source><translation>Could not open the browser. You can copy the feedback.</translation></message>
 </context>
 </TS>

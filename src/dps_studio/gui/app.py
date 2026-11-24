@@ -2,22 +2,30 @@
 
 from __future__ import annotations
 
-import sys
 import json
+import os
+import sys
 from collections.abc import Sequence
 from typing import cast
 
 from PySide6.QtCore import QSettings, QTimer
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from dps_studio import __version__
+from dps_studio.core.physics.window_presets import WindowPresetRepository
 from dps_studio.gui.i18n import TranslationManager
 from dps_studio.gui.main_window import MainWindow
 from dps_studio.gui.release_smoke import loaded_runtime_paths, run_analysis_smoke, smoke_options
 from dps_studio.gui.styles import apply_application_style
-from dps_studio.runtime_paths import package_resource_path
-from dps_studio.core.physics.window_presets import WindowPresetRepository
+from dps_studio.runtime_paths import (
+    USERDATA_ENV_VAR,
+    RuntimeStorageError,
+    UserdataPaths,
+    initialize_runtime_storage,
+    package_resource_path,
+    userdata_paths,
+)
 
 
 _translation_manager: TranslationManager | None = None
@@ -27,9 +35,14 @@ def create_application(
     arguments: Sequence[str] | None = None,
     *,
     language_code: str | None = None,
+    storage_paths: UserdataPaths | None = None,
 ) -> QApplication:
     """Create or reuse the process QApplication and install translations."""
     global _translation_manager
+    paths = storage_paths if storage_paths is not None else userdata_paths()
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    for scope in (QSettings.Scope.UserScope, QSettings.Scope.SystemScope):
+        QSettings.setPath(QSettings.Format.IniFormat, scope, str(paths.config_dir))
     existing = QApplication.instance()
     if existing is None:
         application = QApplication(
@@ -45,7 +58,9 @@ def create_application(
         QIcon(str(package_resource_path("gui", "icons", "pdv_studio.ico")))
     )
     apply_application_style(application)
-    _translation_manager = TranslationManager(application)
+    _translation_manager = TranslationManager(
+        application, settings=QSettings(str(paths.settings_file), QSettings.Format.IniFormat)
+    )
     _translation_manager.install(language_code)
     return application
 
@@ -65,7 +80,25 @@ def main(arguments: Sequence[str] | None = None) -> int:
 
         return run_workflow_smoke(args)
     report_path, analysis_input = smoke_options(args)
-    application = create_application(arguments)
+    storage_paths = None
+    if report_path is None:
+        try:
+            storage_paths = initialize_runtime_storage(
+                redirect_process_temp=bool(getattr(sys, "frozen", False))
+            )
+        except RuntimeStorageError as exc:
+            print(exc, file=sys.stderr)
+            if "--no-error-dialog" not in args and os.environ.get("QT_QPA_PLATFORM") != "offscreen":
+                error_application = cast("QApplication | None", QApplication.instance())
+                if error_application is None:
+                    error_application = QApplication(args[:1])
+                QMessageBox.critical(error_application.activeWindow(), "PDV Studio", str(exc))
+            return 2
+    elif USERDATA_ENV_VAR not in os.environ:
+        storage_paths = initialize_runtime_storage(
+            report_path.parent / "userdata", redirect_process_temp=False
+        )
+    application = create_application(arguments, storage_paths=storage_paths)
     window = MainWindow(
         translation_manager=translation_manager(),
         settings=(QSettings(str(report_path.parent / "layout.ini"), QSettings.Format.IniFormat)

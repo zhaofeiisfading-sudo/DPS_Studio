@@ -104,8 +104,8 @@ def test_acceleration_tracks_channel_corrections_rename_export_and_clear(
         window._set_export_output_directory(tmp_path)
         monkeypatch.setattr(QMessageBox, "information", lambda *_args: None)
         assert window._export_current_result()
-        metadata = json.loads(next(tmp_path.glob("*.metadata.json")).read_text(encoding="utf-8"))
-        snapshot = metadata["acceleration_export"]["velocity_correction"]["window"]
+        summary = json.loads(next(tmp_path.glob("*/run_summary.json")).read_text(encoding="utf-8"))
+        snapshot = summary["acceleration_export"]["pdv_channel_1"]["velocity_correction"]["window"]
         assert snapshot["configuration_name"] == "测试窗口甲"
         assert snapshot["b1"] == .8
         window._clear_result_presentation("invalidated")

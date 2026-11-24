@@ -6,6 +6,7 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 from time import monotonic
@@ -21,7 +22,12 @@ from dps_studio.core.workflow.acceleration import channel_acceleration
 from dps_studio.core.workflow.models import ChannelAnalysis
 from dps_studio.gui.main_window import MainWindow
 from dps_studio.gui.release_smoke import loaded_runtime_paths
-from dps_studio.runtime_paths import application_resource_path, package_resource_path
+from dps_studio.runtime_paths import (
+    USERDATA_ENV_VAR,
+    application_resource_path,
+    initialize_runtime_storage,
+    package_resource_path,
+)
 
 
 def event_option_geometry(window: MainWindow) -> list[dict[str, Any]]:
@@ -111,14 +117,24 @@ def _verify_dechirp(window: MainWindow, destination: Path) -> int:
     window.export_dechirp_check.setChecked(True)
     QTimer.singleShot(100, _dismiss_message)
     assert window._export_current_result()
-    document = json.loads(next(output.glob("*.metadata.json")).read_text(encoding="utf-8"))
-    metadata = document["acceleration_dechirp"]
-    assert metadata["window_samples"] == view.dechirp_settings.window_samples
-    with (output / metadata["csv_file"]).open(encoding="utf-8", newline="") as handle:
+    summary_path = next(output.rglob("run_summary.json"))
+    bundle_dir = summary_path.parent
+    document = json.loads(summary_path.read_text(encoding="utf-8"))
+    accel_meta = document["acceleration_export"][channel]
+    dechirp_meta = accel_meta["dechirp"]
+    assert dechirp_meta["window_samples"] == view.dechirp_settings.window_samples
+    with (bundle_dir / accel_meta["csv_file"]).open(encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
-    np.testing.assert_array_equal([float(row["dechirp_apparent_acceleration_m_s2"]) for row in rows],
-                                  result.apparent_acceleration_m_s2)
-    assert tuple(row["dechirp_flag"] for row in rows) == result.flags
+    np.testing.assert_array_equal(
+        [
+            float(row[dechirp_meta["acceleration_column"]])
+            if row[dechirp_meta["acceleration_column"]] != ""
+            else np.nan
+            for row in rows
+        ],
+        result.apparent_acceleration_m_s2,
+    )
+    assert tuple(row[dechirp_meta["flag_column"]] for row in rows) == result.flags
 
     view.method_combo.setCurrentIndex(view.method_combo.findData("velocity_derivative"))
     view.acceleration_method_combo.setCurrentIndex(0)
@@ -192,20 +208,24 @@ def _exercise(window: MainWindow, source: Path, destination: Path) -> dict[str, 
         window.export_channel_combo.setCurrentIndex(window.export_channel_combo.findData(name))
         QTimer.singleShot(100, _dismiss_message)
         assert window._export_current_result()
-    metadata_paths = list(export_dir.glob("*.metadata.json"))
-    assert len(metadata_paths) == len(corrected_audits)
-    for metadata_path in metadata_paths:
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        acceleration = metadata["acceleration_export"]
-        assert acceleration["velocity_correction"]["window"]["configuration_name"] == "发布验证窗口"
-        assert metadata["dps_studio_version"] == __version__
-        with (export_dir / acceleration["csv_file"]).open(encoding="utf-8", newline="") as handle:
-            rows = list(csv.DictReader(handle))
-        assert acceleration["units"] == {"time": "s", "velocity": "m/s", "acceleration": "m/s^2"}
-        channel = metadata["source_channel"]
-        analysis = window.analysis_session.channel_analyses[channel]
-        np.testing.assert_allclose([float(row["acceleration_m_s2"]) for row in rows],
-            channel_acceleration(analysis).acceleration_m_s2, equal_nan=True)
+    summary_paths = sorted(export_dir.rglob("run_summary.json"))
+    assert len(summary_paths) == len(corrected_audits)
+    for summary_path in summary_paths:
+        bundle_dir = summary_path.parent
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        assert summary["dps_studio_version"] == __version__
+        for channel, acceleration in summary["acceleration_export"].items():
+            assert acceleration["velocity_correction"]["window"]["configuration_name"] == "发布验证窗口"
+            with (bundle_dir / acceleration["csv_file"]).open(encoding="utf-8", newline="") as handle:
+                rows = list(csv.DictReader(handle))
+            assert acceleration["units"] == {"time": "s", "velocity": "m/s", "acceleration": "m/s^2"}
+            analysis = window.analysis_session.channel_analyses[channel]
+            col = acceleration["acceleration_column"]
+            np.testing.assert_allclose(
+                [float(row[col]) if row[col] != "" else np.nan for row in rows],
+                channel_acceleration(analysis).acceleration_m_s2,
+                equal_nan=True,
+            )
     window.select_workflow_step(2)
     window.science_tabs.setCurrentWidget(view)
     window.velocity_parameter_scroll.verticalScrollBar().setValue(0)
@@ -229,18 +249,24 @@ def _exercise(window: MainWindow, source: Path, destination: Path) -> dict[str, 
         window.export_channel_combo.setCurrentIndex(window.export_channel_combo.findData(name))
         QTimer.singleShot(100, _dismiss_message)
         assert window._export_current_result()
-    for metadata_path in fit_dir.glob("*.metadata.json"):
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        fit = metadata["acceleration_local_fit"]
-        assert np.isclose(fit["window_s"], 50e-9, rtol=1e-12, atol=0)
-        analysis = window.analysis_session.channel_analyses[metadata["source_channel"]]
-        with (fit_dir / fit["csv_file"]).open(encoding="utf-8", newline="") as handle:
-            rows = list(csv.DictReader(handle))
-        for column, fit_window in (("acceleration_m_s2", None),
-                                   ("local_linear_acceleration_m_s2", fit["window_s"])):
-            np.testing.assert_allclose([float(row[column]) for row in rows],
-                channel_acceleration(analysis, window_s=fit_window).acceleration_m_s2,
-                equal_nan=True)
+    for summary_path in sorted(fit_dir.rglob("run_summary.json")):
+        bundle_dir = summary_path.parent
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        for channel, acceleration in summary["acceleration_export"].items():
+            fit = acceleration["local_fit"]
+            assert np.isclose(fit["window_s"], 50e-9, rtol=1e-12, atol=0)
+            analysis = window.analysis_session.channel_analyses[channel]
+            with (bundle_dir / acceleration["csv_file"]).open(encoding="utf-8", newline="") as handle:
+                rows = list(csv.DictReader(handle))
+            for column, fit_window in (
+                (acceleration["acceleration_column"], None),
+                (fit["column"], fit["window_s"]),
+            ):
+                np.testing.assert_allclose(
+                    [float(row[column]) if row[column] != "" else np.nan for row in rows],
+                    channel_acceleration(analysis, window_s=fit_window).acceleration_m_s2,
+                    equal_nan=True,
+                )
     window.select_workflow_step(2)
     window.science_tabs.setCurrentWidget(view)
     window.velocity_parameter_scroll.verticalScrollBar().setValue(0)
@@ -262,7 +288,7 @@ def _exercise(window: MainWindow, source: Path, destination: Path) -> dict[str, 
 
 
 def run_workflow_smoke(arguments: list[str]) -> int:
-    """Run only when explicitly requested; never use the real user's settings."""
+    """Run an explicit release workflow with report-local or test-install storage."""
     from dps_studio.gui.app import create_application, translation_manager
 
     parser = argparse.ArgumentParser()
@@ -270,6 +296,7 @@ def run_workflow_smoke(arguments: list[str]) -> int:
     parser.add_argument("--workflow-input", type=Path)
     parser.add_argument("--workflow-restart", action="store_true")
     parser.add_argument("--workflow-layout-only", action="store_true")
+    parser.add_argument("--workflow-installation-storage", action="store_true")
     parser.add_argument("--workflow-language", default="zh_CN")
     parser.add_argument("--workflow-width", type=int, default=1366)
     parser.add_argument("--workflow-height", type=int, default=768)
@@ -277,11 +304,26 @@ def run_workflow_smoke(arguments: list[str]) -> int:
     report_path: Path = args.workflow_smoke_test
     destination = report_path.parent
     destination.mkdir(parents=True, exist_ok=True)
-    application = create_application([], language_code=args.workflow_language)
+    storage_paths = None
+    if args.workflow_installation_storage:
+        if not getattr(sys, "frozen", False) or USERDATA_ENV_VAR in os.environ:
+            parser.error("Installation storage smoke requires a frozen test installation.")
+        storage_paths = initialize_runtime_storage()
+    elif USERDATA_ENV_VAR not in os.environ:
+        storage_paths = initialize_runtime_storage(
+            destination / "userdata", redirect_process_temp=False
+        )
+    application = create_application(
+        [], language_code=args.workflow_language, storage_paths=storage_paths,
+    )
     application.setQuitOnLastWindowClosed(False)
-    window = MainWindow(translation_manager=translation_manager(),
-        settings=QSettings(str(destination / "layout.ini"), QSettings.Format.IniFormat),
-        window_preset_repository=WindowPresetRepository(destination / "window_presets.json"))
+    window = MainWindow(
+        translation_manager=translation_manager(),
+        settings=None if args.workflow_installation_storage else
+        QSettings(str(destination / "layout.ini"), QSettings.Format.IniFormat),
+        window_preset_repository=None if args.workflow_installation_storage else
+        WindowPresetRepository(destination / "window_presets.json"),
+    )
     window.resize(args.workflow_width, args.workflow_height)
     window.show()
 

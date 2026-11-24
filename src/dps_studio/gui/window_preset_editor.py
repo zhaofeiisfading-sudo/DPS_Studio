@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
-from PySide6.QtCore import QSignalBlocker, QStandardPaths, Signal
+from PySide6.QtCore import QSignalBlocker, Signal
 from PySide6.QtWidgets import (
     QComboBox, QFormLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QPushButton, QWidget,
 )
@@ -15,10 +15,11 @@ from dps_studio.core.physics.exceptions import VelocityConfigurationError
 from dps_studio.core.physics.window_presets import (
     WindowPresetError, WindowPresetRepository, is_builtin_window, window_configuration_name,
 )
+from dps_studio.runtime_paths import window_preset_file_path
 
 
 def window_preset_path() -> Path:
-    return Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppConfigLocation)) / "window_presets.json"
+    return window_preset_file_path()
 
 
 class WindowPresetEditor(QWidget):

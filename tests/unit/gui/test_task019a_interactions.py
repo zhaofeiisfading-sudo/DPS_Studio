@@ -285,29 +285,23 @@ def test_gui_export_uses_the_visible_shared_correction_and_time_origin(
         monkeypatch.setattr(QMessageBox, "information", lambda *_args: None)
         assert window._export_current_result()
 
-        metadata_path = next(output_directory.glob("*.metadata.json"))
-        simple_path = next(
-            path
-            for path in output_directory.glob("*.csv")
-            if not path.name.endswith("_detail.csv")
-        )
-        detail_path = next(output_directory.glob("*_detail.csv"))
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        with simple_path.open(encoding="utf-8", newline="") as handle:
-            simple = list(csv.DictReader(handle))
-        with detail_path.open(encoding="utf-8", newline="") as handle:
-            detail = list(csv.DictReader(handle))
-        assert set(simple[0]) == {"time_from_event_s", "display_velocity_m_s"}
-        assert metadata["time_coordinate"]["export_time_origin"] == "event"
-        assert metadata["velocity_correction"]["window"]["material"] == "none"
-        assert metadata["velocity_correction"]["angle"]["angle_deg_display"] == (
+        summary_path = next(output_directory.glob("*/run_summary.json"))
+        bundle_dir = summary_path.parent
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        assert not list(bundle_dir.glob("*_detail.csv"))
+        with (bundle_dir / "velocity_display.csv").open(encoding="utf-8", newline="") as handle:
+            display_rows = list(csv.DictReader(handle))
+        assert set(display_rows[0]) == {
+            "time_from_event_s",
+            "ch1_display_velocity_m_s",
+            "ch2_display_velocity_m_s",
+        }
+        assert summary["time_origin"] == "event"
+        assert summary["velocity_correction"]["window"]["material"] == "none"
+        assert summary["velocity_correction"]["angle"]["angle_deg_display"] == (
             pytest.approx(25.0)
         )
-        assert all(
-            simple_row["display_velocity_m_s"]
-            == detail_row["display_velocity_m_s"]
-            for simple_row, detail_row in zip(simple, detail, strict=True)
-        )
+        assert "nan" not in (bundle_dir / "velocity_display.csv").read_text(encoding="utf-8").lower()
     finally:
         window.close()
         window.deleteLater()

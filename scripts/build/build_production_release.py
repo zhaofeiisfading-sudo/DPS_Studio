@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+from contextlib import nullcontext
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -58,7 +59,10 @@ def isolated_environment() -> dict[str, str]:
     environment = {
         key: value for key, value in os.environ.items()
         if not key.upper().startswith(("PYTHON", "CONDA", "QT", "PYSIDE", "QML", "_PYI_"))
-        and key.upper() not in {"VIRTUAL_ENV", "VIRTUAL_ENV_PROMPT", "__PYVENV_LAUNCHER__"}
+        and key.upper() not in {
+            "VIRTUAL_ENV", "VIRTUAL_ENV_PROMPT", "__PYVENV_LAUNCHER__",
+            "PDV_STUDIO_USERDATA_DIR", "MPLCONFIGDIR", "TMPDIR",
+        }
     }
     windows = Path(environment.get("SYSTEMROOT", r"C:\Windows"))
     environment["PATH"] = os.pathsep.join((str(windows / "System32"), str(windows)))
@@ -234,14 +238,22 @@ def verify_release_zip(
 
 def verify_onedir_directory(
     directory: Path, *, analysis_input: Path, workflow_smoke: bool = True,
+    verification_root: Path | None = None,
 ) -> dict[str, Any]:
     """Verify the unpackaged folder before publishing it."""
     directory = directory.resolve()
     hashes = tree_hashes(directory)
-    temp_parent = Path(tempfile.gettempdir()).resolve()
-    if any(temp_parent.is_relative_to(root.resolve()) for root in (PROJECT_ROOT, Path(sys.prefix))):
-        raise RuntimeError("Onedir smoke must run outside the repository and Python environment")
-    with tempfile.TemporaryDirectory(prefix="dps_production_onedir_", dir=temp_parent) as temporary:
+    if verification_root is None:
+        temp_parent = Path(tempfile.gettempdir()).resolve()
+        if any(temp_parent.is_relative_to(root.resolve()) for root in (PROJECT_ROOT, Path(sys.prefix))):
+            raise RuntimeError("Onedir smoke must run outside the repository and Python environment")
+        evidence = tempfile.TemporaryDirectory(prefix="dps_production_onedir_", dir=temp_parent)
+    else:
+        if verification_root.resolve().is_relative_to(directory):
+            raise ValueError("Onedir verification evidence must be outside the packaged directory")
+        verification_root.mkdir()
+        evidence = nullcontext(str(verification_root))
+    with evidence as temporary:
         root = Path(temporary)
         copied_input = copy_smoke_input(analysis_input, root)
         environment = isolated_environment()

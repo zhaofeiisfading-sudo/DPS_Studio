@@ -9,6 +9,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from dps_studio import __version__
+
 
 BUILD = runpy.run_path(str(Path(__file__).resolve().parents[2] / "scripts/build/build_production_release.py"))
 MAIN = BUILD["main"]
@@ -87,7 +89,7 @@ def test_onedir_requires_analysis_input(monkeypatch):
 def onedir_cli(tmp_path, monkeypatch):
     project = tmp_path / "project"
     output = project / "build" / "task023"
-    target = project / "release" / "PDV_Studio_v0.2.0_Windows_x64"
+    target = project / "release" / f"PDV_Studio_v{__version__}_Windows_x64"
     source = tmp_path / "source.csv"
     source.write_text("time,voltage\n", encoding="utf-8")
     monkeypatch.setitem(BUILD_GLOBALS, "PROJECT_ROOT", project)
@@ -126,11 +128,11 @@ def test_onedir_refuses_to_overwrite_existing_directory(onedir_cli):
 @pytest.mark.parametrize("failure", [None, "verification", "commit"])
 def test_onedir_publishes_only_after_verification_and_commit_recheck(onedir_cli, monkeypatch, failure):
     project, output, target, source = onedir_cli
-    directory = output / "dist" / "PDV_Studio_v0.2.0"
+    directory = output / "dist" / f"PDV_Studio_v{__version__}"
     docs = project / "docs"
     docs.mkdir(parents=True)
-    notes = "# PDV Studio 0.2.0\n"
-    (docs / "RELEASE_NOTES_0.2.0.md").write_text(notes, encoding="utf-8")
+    notes = f"# PDV Studio {__version__}\n"
+    (docs / f"RELEASE_NOTES_{__version__}.md").write_text(notes, encoding="utf-8")
     commits = iter(["initial", "changed" if failure == "commit" else "initial"])
     monkeypatch.setitem(BUILD_GLOBALS, "committed_source", lambda: next(commits))
     monkeypatch.setattr(BUILD["importlib"].metadata, "version", lambda _: "test")
@@ -158,7 +160,7 @@ def test_onedir_publishes_only_after_verification_and_commit_recheck(onedir_cli,
         assert workflow_smoke
         assert (candidate / "RELEASE_NOTES.md").read_text(encoding="utf-8") == notes
         guide = (candidate / "README.txt").read_text(encoding="utf-8")
-        assert all(text in guide for text in ("0.2.0", "Windows x64", "PDV Studio.exe", "_internal/"))
+        assert all(text in guide for text in (__version__, "Windows x64", "PDV Studio.exe", "_internal/"))
         info = json.loads((candidate / "BUILD_INFO.json").read_text(encoding="utf-8"))
         assert info["commit_sha"] == "initial"
         assert not target.exists()

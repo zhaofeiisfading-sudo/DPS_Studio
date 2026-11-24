@@ -25,7 +25,7 @@ CACHES = frozenset({
 })
 GENERATED_ROOTS = frozenset({"artifacts", "build", "dist", "outputs", "release"})
 RELEASE_ARCHIVE = re.compile(r"^(PDV[ _-]Studio.*|release_artifact)\.zip$", re.I)
-RELEASE_EXECUTABLE = re.compile(r"^PDV_Studio_v.+_Windows_x64\.exe$", re.I)
+RELEASE_EXECUTABLE = re.compile(r"^PDV[ _-]Studio(?:_v.+_Windows_x64|-Setup-x64)\.exe$", re.I)
 LOCAL_DOC_DATA = frozenset({
     "docs/原始数据.csv", "docs/旧软件速度时间数据.csv",
     "docs/user_manual/PDV_Studio_用户使用说明书.html",

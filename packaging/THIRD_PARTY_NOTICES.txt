@@ -1,0 +1,55 @@
+PDV Studio — third-party notices
+================================
+
+This distribution includes the third-party components listed below. Version
+numbers for the shipped build are recorded in BUILD_INFO.json. License and
+copyright files supplied with the bundled packages are under licenses/.
+
+Python 3.12 — Python Software Foundation License Agreement
+  Copyright Python Software Foundation and prior Python copyright holders.
+  The PSF agreement permits use and redistribution subject to retaining the
+  license agreement and applicable copyright notices.
+  https://docs.python.org/3.12/license.html
+
+NumPy — BSD 3-Clause License
+  Copyright NumPy developers. Redistribution in source and binary forms is
+  allowed with the copyright notice, conditions, and disclaimer. The copyright
+  holders' and contributors' names cannot be used for endorsement without
+  permission. See the shipped NumPy license for the bundled library notices.
+  https://numpy.org/doc/stable/license.html
+
+SciPy — BSD 3-Clause License
+  Copyright SciPy developers. The same notice, disclaimer, and non-endorsement
+  conditions apply. See the shipped SciPy license for the bundled library notices.
+  https://scipy.org/scipylib/license.html
+
+Pandas — BSD 3-Clause License
+  Copyright pandas development team and prior copyright holders. The same
+  notice, disclaimer, and non-endorsement conditions apply.
+  https://pandas.pydata.org/docs/getting_started/overview.html#license
+
+PySide6, Shiboken6, and Qt 6 — GNU LGPL version 3
+  Copyright The Qt Company Ltd. and other contributors as stated in the
+  corresponding sources. Qt libraries are dynamically linked and replaceable:
+  close both programs, back up the original DLLs, and replace the compatible
+  Qt DLLs (and matching plug-ins where required) in _internal/PySide6/. PySide6
+  and Shiboken6 extensions are loaded separately from _internal/PySide6/ and
+  _internal/shiboken6/. Use matching Windows x64 builds and keep the wheel's
+  relative library and plug-in layout. The LGPL permits modification of these
+  libraries and reverse engineering for debugging such modifications.
+  See the GNU GPLv3 and LGPLv3 texts in licenses/Qt/. Corresponding upstream
+  source archives are listed by the exact bundled version in BUILD_INFO.json.
+  https://doc.qt.io/qt-6/licensing.html
+
+PyQtGraph — MIT License
+  Copyright PyQtGraph developers. Use, modification, and redistribution are
+  allowed provided the copyright and permission notice are retained.
+  https://github.com/pyqtgraph/pyqtgraph/blob/master/LICENSE.txt
+
+Pydantic and pydantic-core — MIT License
+  Copyright Pydantic contributors. Both components carry the MIT notice and
+  disclaimer. Retain the copyright and permission notice on redistribution.
+  https://github.com/pydantic/pydantic
+  https://github.com/pydantic/pydantic-core
+
+The upstream license texts govern the rights and conditions for each component.

@@ -5,7 +5,7 @@ from __future__ import annotations
 from PySide6.QtCore import QSettings, QTranslator
 from PySide6.QtWidgets import QApplication
 
-from dps_studio.runtime_paths import package_resource_path
+from dps_studio.runtime_paths import package_resource_path, user_settings_path
 
 
 LANGUAGE_ZH_CN = "zh_CN"
@@ -24,7 +24,10 @@ class TranslationManager:
         settings: QSettings | None = None,
     ) -> None:
         self._application = application
-        self._settings = settings if settings is not None else QSettings()
+        self._settings = (
+            settings if settings is not None
+            else QSettings(str(user_settings_path()), QSettings.Format.IniFormat)
+        )
         self._translator = QTranslator(application)
         self._installed = False
         self._current_language = LANGUAGE_ZH_CN

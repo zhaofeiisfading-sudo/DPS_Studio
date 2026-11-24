@@ -8,7 +8,9 @@ import pytest
 from PySide6.QtCore import QEvent, QEventLoop, QSettings, Qt, QTimer
 from PySide6.QtWidgets import QApplication
 
+from dps_studio.core.export import build_display_velocity_curve, channel_token
 from dps_studio.core.io import read_delimited_signals
+from dps_studio.core.quality import SignalState
 from dps_studio.core.workflow import PRE_EVENT_DISPLAY_ORIGIN, ChannelAnalysis
 from dps_studio.core.workflow.acceleration import channel_acceleration
 from dps_studio.gui.analysis_session import EventTimeSource
@@ -18,21 +20,60 @@ from dps_studio.gui.release_workflow_smoke import audit_derivative
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _check_export(window: MainWindow, directory: Path, analysis: ChannelAnalysis) -> None:
+def _check_export(window: MainWindow, directory: Path, analysis: ChannelAnalysis, *, channel_name: str) -> None:
     directory.mkdir()
     window._set_export_output_directory(directory)
     assert window.export_include_pre_event_check.isChecked()
-    assert not window.export_quality_passed_check.isChecked()
+    assert not hasattr(window, "export_quality_passed_check")
     assert window._export_current_result()
 
-    concise, detail = sorted(directory.glob("*.csv"))
-    with concise.open(encoding="utf-8", newline="") as handle:
-        rows = list(csv.DictReader(handle))
-    np.testing.assert_array_equal([float(r["time_s"]) for r in rows], analysis.stft_result.time_s)
-    np.testing.assert_array_equal([float(r["display_velocity_m_s"]) for r in rows],
-                                  analysis.plot_velocity_m_s)
-    with detail.open(encoding="utf-8", newline="") as handle:
-        assert tuple(r["velocity_origin"] for r in csv.DictReader(handle)) == analysis.velocity_origins
+    summary_path = next(directory.glob("*/run_summary.json"))
+    bundle_dir = summary_path.parent
+    token = channel_token(channel_name)
+    assert {p.name for p in bundle_dir.iterdir()} == {
+        "velocity_raw.csv",
+        "velocity_gated.csv",
+        "velocity_display.csv",
+        "run_summary.json",
+        "spectrogram_ridge.png",
+    }
+    with (bundle_dir / "velocity_raw.csv").open(encoding="utf-8", newline="") as handle:
+        raw_rows = list(csv.DictReader(handle))
+    np.testing.assert_array_equal(
+        [float(r["time_s"]) for r in raw_rows],
+        analysis.stft_result.time_s,
+    )
+    np.testing.assert_array_equal(
+        [float(r[f"{token}_raw_velocity_m_s"]) for r in raw_rows],
+        analysis.continuous_corrected_velocity_m_s,
+    )
+
+    with (bundle_dir / "velocity_gated.csv").open(encoding="utf-8", newline="") as handle:
+        gated_rows = list(csv.DictReader(handle))
+    gated_col = f"{token}_gated_velocity_m_s"
+    expected_gated = np.where(
+        [s is SignalState.MEASURED for s in analysis.signal_detection_result.signal_states],
+        analysis.corrected_velocity_m_s,
+        np.nan,
+    )
+    parsed_gated = np.array(
+        [float(r[gated_col]) if r[gated_col] != "" else np.nan for r in gated_rows],
+        dtype=np.float64,
+    )
+    np.testing.assert_allclose(parsed_gated, expected_gated, equal_nan=True)
+
+    with (bundle_dir / "velocity_display.csv").open(encoding="utf-8", newline="") as handle:
+        disp_rows = list(csv.DictReader(handle))
+    disp_col = f"{token}_display_velocity_m_s"
+    parsed_disp = np.array(
+        [float(r[disp_col]) if r[disp_col] != "" else np.nan for r in disp_rows],
+        dtype=np.float64,
+    )
+    expected_disp = build_display_velocity_curve(
+        analysis,
+        pre_event_display_enabled=window.export_include_pre_event_check.isChecked(),
+    ).values
+    np.testing.assert_allclose(parsed_disp, expected_disp, equal_nan=True)
 
 
 @pytest.mark.parametrize(("filename", "column", "frames"), [
@@ -72,7 +113,7 @@ def test_real_default_and_active_platform(filename: str, column: int, frames: in
         np.testing.assert_array_equal(original.plot_velocity_m_s, original.continuous_corrected_velocity_m_s)
         assert np.any(original.plot_velocity_m_s[time < candidate] > 0.0)
         assert audit_derivative(original)["finite_derivatives"] == frames
-        _check_export(window, tmp_path / "unset", original)
+        _check_export(window, tmp_path / "unset", original, channel_name=name)
 
         view = window.velocity_view
         window.science_tabs.setCurrentWidget(view)
@@ -114,7 +155,7 @@ def test_real_default_and_active_platform(filename: str, column: int, frames: in
             np.testing.assert_array_equal(acceleration[:first_post - 1], 0.0)
             assert acceleration[first_post - 1] > 0.0
             assert audit_derivative(active)["finite_derivatives"] == frames
-            _check_export(window, tmp_path / source.value, active)
+            _check_export(window, tmp_path / source.value, active, channel_name=name)
     finally:
         window.close()
         window.deleteLater()
